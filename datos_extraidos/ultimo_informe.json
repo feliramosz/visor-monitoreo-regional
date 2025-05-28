@@ -1,0 +1,125 @@
+{
+    "tipo_informe": "AM",
+    "fecha_informe": "miércoles, 28 de mayo de 2025",
+    "hora_informe": " h.",
+    "alertas_vigentes": [
+        {
+            "nivel_alerta": "Temprana Preventiva",
+            "evento": "Alteración Sanitaria",
+            "cobertura": "Regional continental",
+            "amplitud": "SINAPRED"
+        },
+        {
+            "nivel_alerta": "Amarilla",
+            "evento": "Alteración Sanitaria",
+            "cobertura": "Provincia de Los Andes",
+            "amplitud": "SINAPRED"
+        },
+        {
+            "nivel_alerta": "Temprana Preventiva",
+            "evento": "Marejadas Anormales",
+            "cobertura": "Provincia de Isla de Pascua",
+            "amplitud": "SINAPRED"
+        }
+    ],
+    "emergencias_ultimas_24_horas": [
+        {
+            "n_informe": "139",
+            "fecha_hora": "28/05 – 10:16",
+            "evento_lugar": "Alteración del suministro de agua potable – Comuna de San Antonio",
+            "resumen": "4.500 clientes afectados por una alteración del suministro de agua potable debido a un corte de emergencia en la comuna de San Antonio. Hora estimada de reposición 13:00 h. del día de hoy 28 de mayo 2025"
+        },
+        {
+            "n_informe": "138 - A",
+            "fecha_hora": "28/05 – 09:40",
+            "evento_lugar": "Alteración del suministro de agua potable – Comuna de Calera",
+            "resumen": "Normalizado se encuentra el suministro de agua potable que afectó a 3.626 clientes a raíz de un corte programado de la empresa ESVAL por mantenimiento de la red de agua potable, comuna de La Calera, Provincia de Quillota."
+        }
+    ],
+    "avisos_alertas_meteorologicas": [
+        {
+            "aviso_alerta_alarma": "Aviso de Marejadas N° 19",
+            "fecha_hora_emision": "24/05 13:44",
+            "descripcion": "Desde lunes 26 hasta jueves 29 de mayo 2025.",
+            "cobertura": "Provincia de Isla de Pascua"
+        },
+        {
+            "aviso_alerta_alarma": "Aviso de Marejadas N° 20",
+            "fecha_hora_emision": "27/05 20:01",
+            "descripcion": "Desde jueves 29 hasta sábado 31 de mayo 2025",
+            "cobertura": "Golfo de Penas hasta Arica y archipiélago Juan Fernandez"
+        },
+        {
+            "aviso_alerta_alarma": "Aviso A195/2025",
+            "fecha_hora_emision": "27/05 16:12",
+            "descripcion": "Viento normal a Moderado, desde la mañana del jueves 29 a la tarde del viernes 30.",
+            "cobertura": "Provincia de Isla de Pascua"
+        }
+    ],
+    "radiacion_uv": {
+        "observado_ayer_label": "Índice observado ayer:",
+        "observado_ayer_value": "4 (Moderado)",
+        "pronosticado_hoy_label": "Índice pronosticado hoy:",
+        "pronosticado_hoy_value": "3 – 5 (Moderado)"
+    },
+    "estado_carreteras": [
+        {
+            "carretera": "Ruta F – 760",
+            "estado": "Cruce F-50 - Colliguay - Cruce F-778, socavación en la calzada del km 12,7.",
+            "condicion": "Habilitado con precaución"
+        },
+        {
+            "carretera": "Ruta E – 761",
+            "estado": "Calle Reyes cerrada por socavamiento en puente, comuna de San Esteban",
+            "condicion": "Cerrado"
+        }
+    ],
+    "estado_puertos": [
+        {
+            "puerto": "Hanga Roa",
+            "estado_del_puerto": "Límites operacionales nave menor",
+            "condicion": "Ola – Marejada - Viento"
+        },
+        {
+            "puerto": "Quintero",
+            "estado_del_puerto": "Sin restricciones",
+            "condicion": "Normal"
+        },
+        {
+            "puerto": "Valparaíso",
+            "estado_del_puerto": "Sin restricciones",
+            "condicion": "Normal"
+        },
+        {
+            "puerto": "San Antonio",
+            "estado_del_puerto": "Sin restricciones",
+            "condicion": "Normal"
+        },
+        {
+            "puerto": "Algarrobo",
+            "estado_del_puerto": "Sin restricciones.",
+            "condicion": "Normal"
+        },
+        {
+            "puerto": "Juan Fernández",
+            "estado_del_puerto": "Sin restricciones.",
+            "condicion": "Normal"
+        }
+    ],
+    "estado_pasos_fronterizos": [
+        {
+            "nombre_paso": "Los Libertadores",
+            "condicion": "Abierto",
+            "observaciones": "Habilitado para todo tipo de vehículos las 24 horas"
+        }
+    ],
+    "dynamic_slides": [
+        {
+            "id": "20250528151132_pronostico_14763195.png",
+            "image_url": "assets/dynamic_slides/20250528151132_pronostico_14763195.png",
+            "title": "Pronóstico meteorológico Regional - DMC",
+            "description": ""
+        }
+    ],
+    "slide_interval": 10000
+}

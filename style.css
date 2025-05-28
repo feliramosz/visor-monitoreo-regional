@@ -1,0 +1,652 @@
+@font-face {
+    font-family: 'DS-Digital';
+    src: url('assets/fonts/DS-DIGII.TTF') format('truetype');
+}
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: #f4f4f4;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100vw; /* Asegura que el body ocupe el 100% del ancho del viewport */
+    overflow-x: hidden; /* Oculta el scroll horizontal del body */
+    overflow-y: hidden; /* Oculta el scroll vertical del body */
+    align-items: center; /* Centra el main si main tiene un max-width y es más pequeño que el body */
+}
+
+header {
+    background-color: #004d99;
+    color: white;
+    padding: 10px 10px; /* Padding interno para separar logos de los bordes del header */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    flex-wrap: wrap;
+    width: 100%;
+    box-sizing: border-box; /* Incluye padding en el ancho total del header */
+    margin-bottom: 0; 
+    position: relative; /* Necesario para posicionar el banner de alerta */
+}
+
+
+header .logo-left,
+header .logo-right {
+    width: 180px; /* Ajusta este valor si es necesario para que quepa bien el logo más ancho */
+                  /* Debe ser un poco más que el max-width actual de la imagen si el texto del logo lo requiere */
+    display: flex;
+    align-items: center; /* Centra la imagen verticalmente dentro de su contenedor */
+}
+
+header .logo-left {
+    justify-content: flex-start; /* Alinea la imagen del logo izquierdo al inicio de su caja */
+}
+
+header .logo-right {
+    justify-content: flex-end; /* Alinea la imagen del logo derecho al final de su caja */
+}
+
+/* Modifica ligeramente los estilos existentes de las imágenes de los logos */
+header .logo-left img,
+header .logo-right img {
+    height: 70px;
+    max-width: 100%; /* Permite que la imagen use hasta el 100% del ancho de su nuevo contenedor fijo */
+    object-fit: contain;
+}
+
+/* Contenedor para el título principal y el banner de alerta */
+.header-title-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-grow: 1;
+    margin: 0 10px;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.8em;
+    text-align: center;
+}
+
+/* --- ESTILOS PARA EL BANNER DE ALERTA DE CALIDAD DEL AIRE --- */
+#header-alert-banner {
+    width: 100%;
+    padding: 8px;
+    margin-top: 8px;
+    border-radius: 5px;
+    font-size: 1.1em;
+    font-weight: bold;
+    text-align: center;
+    color: #000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: all 0.5s ease-in-out;
+}
+
+#header-alert-banner.hidden {
+    display: none;
+}
+
+/* Colores para los estados de alerta del banner */
+#header-alert-banner.status-alerta { background-color: #ffee58; } /* Amarillo */
+#header-alert-banner.status-preemergencia { background-color: #ff9800; } /* Naranja */
+#header-alert-banner.status-emergencia { background-color: #c20d00; } /* Rojo */
+
+/* Animación de parpadeo/pulso */
+@keyframes pulse-animation {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.02); opacity: 0.85; }
+    100% { transform: scale(1); opacity: 1; }
+}
+.blinking-alert {
+    animation: pulse-animation 1.5s infinite;
+}
+
+/* NUEVA REGLA PARA EL CUADRO DE INFORMACIÓN FIJO */
+.informe-header-fijo {
+    background-color: #e0f2f7; /* Azul claro, igual que antes */
+    color: #333;
+    padding: 10px 20px; /* Padding interno */
+    margin: 0 auto; /* Centra horizontalmente */
+    width: 100%; /* Ocupa todo el ancho */
+    max-width: 1350px; /* Igual que el max-width de main */
+    box-sizing: border-box; /* Incluye padding en el ancho */
+    border-radius: 0 0 8px 8px; /* Bordes redondeados solo abajo */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Sombra sutil */
+    font-size: 1.1em;
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    align-items: center; /* Centra el texto verticalmente dentro del div */
+}
+
+.informe-header-fijo p {
+    margin: 5px 10px; /* Espaciado entre los párrafos */
+}
+
+main {
+    flex-grow: 1;
+    padding: 20px; /* Padding para el contenido dentro de main */
+    max-width: 1350px; /* O el valor que prefieras para el ancho del contenido */
+    width: 100%; /* Asegura que main ocupe todo el ancho disponible hasta max-width */
+    margin: 8px auto 20px auto; /* Ajustar margin superior para que no choque con el informe-header-fijo */
+    background-color: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    position: relative;
+    min-height: 60vh;
+    display: block;
+    box-sizing: border-box; /* Incluye padding en el ancho total de main */
+    border-left: 2px solid #007bff; /* Color de acento azul */
+    border-right: 2px solid #007bff;/* Color de acento azul */
+}
+
+.slide {
+    padding: 0; /* Se maneja el padding en los hijos directos */
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow-y: auto;
+    overflow-x: hidden; /* Oculta el scroll horizontal dentro de cada slide */
+    -webkit-overflow-scrolling: touch;
+
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+    pointer-events: none;
+    visibility: hidden;
+
+    /* --- Contenedor Flexbox para centrar su contenido --- */
+    display: flex;
+    flex-direction: column; /* Centra título, imagen, tablas, etc. verticalmente */
+    justify-content: center; /* Centra el contenido a lo largo del eje principal (vertical) */
+    align-items: center; /* Centra el contenido a lo largo del eje transversal (horizontal) */
+}
+
+.slide.active {
+    display: flex; /* También debe ser flex cuando está activo */
+    opacity: 1;
+    pointer-events: auto;
+    position: relative;
+    visibility: visible;
+}
+
+/* --- Contenedores internos de los slides (para darles padding y centrar texto) --- */
+/* Se aplica a todos los hijos directos de .slide para que hereden el centrado de .slide */
+.slide > h2,
+.slide > table,
+/* .slide > .informe-header, <-- Esta regla ya no necesita el .informe-header */
+.slide > .uv-info,
+.slide > .image-slide-content,
+.slide > p {
+    width: 100%; /* Ocupa el ancho completo */
+    padding: 0 20px; /* Padding lateral para el contenido */
+    box-sizing: border-box; /* Incluye padding en el ancho */
+    text-align: left; /* Centra el texto de todos estos elementos por defecto */
+}
+
+.informe-header {
+    background-color: #e0f2f7;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    font-size: 1.1em;
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    padding: 10px 0;
+}
+
+h2 {
+    color: #004d99;
+    border-bottom: 2px solid #004d99;
+    padding-bottom: 8px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    font-size: 1.6em;
+    /* text-align: center; /* Ya lo maneja el selector .slide > h2 */
+}
+
+table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: center; /* Texto alineado al centro dentro de las celdas */
+    vertical-align: top;
+    word-wrap: break-word;
+    white-space: normal;
+    overflow-wrap: break-word;
+}
+
+th {
+    background-color: #f2f2f2;
+    color: #555;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.9em;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+tr:hover {
+    background-color: #eef;
+}
+
+#table-emergencias th:nth-child(4),
+#table-emergencias td:nth-child(4) {
+    width: 40%;
+}
+#table-alertas th:nth-child(2),
+#table-alertas td:nth-child(2) {
+    width: 30%;
+}
+
+#table-alertas tbody tr td:first-child {
+    font-weight: bold;
+    text-align: center;
+}
+
+.alerta-temprana-preventiva {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.alerta-amarilla {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.alerta-roja {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.uv-info {
+    margin-top: 15px;
+    margin-bottom: 25px;
+    padding: 15px 20px;
+    background-color: #e6f7ff;
+    border-left: 5px solid #0066cc;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+.uv-info .uv-icon {
+    height: 150px;
+    width: auto;
+    flex-shrink: 0;
+}
+
+.uv-info .uv-text-content {
+    flex-grow: 1;
+}
+
+.uv-info p {
+    margin: 8px 0;
+    font-size: 1.2em;
+    line-height: 1.4;
+}
+.uv-info p:last-child {
+    margin-bottom: 0;
+}
+.uv-info strong {
+    color: #004d99;
+    margin-right: 5px;
+}
+
+/* --- ESTILOS PARA SLIDES DINÁMICAS --- */
+
+.dynamic-image-slide {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.95);
+    height: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.dynamic-image-slide .image-slide-content {
+    max-width: 90%;
+    width: fit-content; /* Ajusta el ancho al contenido */
+    margin: 0 auto; /* Centra este div dentro de su padre */
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    text-align: center;    
+}
+
+.dynamic-image-slide .responsive-image {
+    max-width: 100%;
+    max-height: 65vh;
+    width: auto;
+    height: auto;
+    display: block;
+    margin: auto; /* Centrado horizontal y vertical con auto-margins */
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border-radius: 5px;
+    object-fit: contain;
+}
+
+.dynamic-image-slide h2,
+.dynamic-image-slide p {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.dynamic-image-slide h2 {
+    font-size: 2em;
+    margin-bottom: 15px;
+    color: #004d99;
+    border-bottom: none;
+}
+
+.dynamic-image-slide p {
+    font-size: 1.2em;
+    color: #555;
+    max-width: 80%;
+    margin-top: 15px;
+    margin-bottom: 0;
+}
+
+
+footer {
+    background-color: #333;
+    color: white;
+    text-align: center;
+    padding: 1px 0;
+    margin-top: auto;
+    font-size: 0.9em;
+    width: 100%;
+    box-sizing: border-box; /* Asegura que el padding se incluya en el width */
+}
+
+/* --- ESTILOS PARA LAS HORAS OFICIALES DEL SHOA --- */
+.header-clock {
+    text-align: center;
+    margin: 0 20px;
+    min-width: 225px;
+}
+
+.header-clock h3 {
+    margin: 1px 0 0 0;
+    font-size: 0.8em;
+    color: #cce7ff;
+    font-weight: normal;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.header-time-display {
+    background-color: #000000;
+    color: #39FF14;
+    font-family: 'DS-Digital', 'Courier New', monospace; 
+    font-size: 2.4em; 
+    padding: 8px 15px;
+    border-radius: 5px;
+    border: 2px solid #444;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.7);
+    letter-spacing: 3px; 
+    line-height: 1;
+    margin-bottom: 0;
+}
+
+/* Ajustes responsivos para pantallas más pequeñas */
+@media (max-width: 768px) {
+    .shoa-clocks-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    .shoa-clock-item {
+        max-width: 90%; /* En pantallas pequeñas, ocupan más ancho */
+    }
+}
+
+/* --- ESTILOS PARA SIDEBARS DEL CLIMA --- */
+.weather-sidebar {
+    position: fixed;
+    top: 150px;
+    width: 240px; /* Ancho de la barra lateral */
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Espacio entre cada cuadro de estación */
+    z-index: 100; /* Asegura que esté por encima de otros elementos */
+}
+
+#weather-sidebar-left {
+    left: 20px; /* Posición de la barra izquierda */
+}
+
+#weather-sidebar-right {
+    right: 20px; /* Posición de la barra derecha */
+}
+
+.weather-station-box {
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ddd;
+    border-top: 2px solid #007bff;
+    border-bottom: 2px solid #007bff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    backdrop-filter: blur(5px);
+}
+
+.weather-station-box h4 {
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 1.1em;
+    color: #004d99;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+
+.weather-station-box p {
+    margin: 0px 0;
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+.weather-station-box p strong {
+    color: #333;
+}
+
+/* --- ESTILOS PARA LA HORA DE ACTUALIZACIÓN DE ESTACIONES --- */
+.station-update-time {
+    font-size: 0.8em;      /* Letra más pequeña */
+    font-style: italic;    /* Estilo en cursiva */
+    color: #6c757d;        /* Color gris sutil */
+    text-align: right;     /* Alineado a la derecha */
+    margin-top: 10px;      /* Espacio superior */
+    border-top: 1px solid #eee; /* Línea divisoria sutil */
+    padding-top: 5px;      /* Espacio sobre el texto */
+    margin-bottom: 0;
+}
+
+/* --- ESTILO PARA EL CONTENEDOR DEL MAPA --- */
+#air-quality-map-container {
+    width: 100%;
+    height: 65vh; /* Altura del mapa, ajustable */
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Ajuste para que no se solape con el header en pantallas pequeñas */
+@media (max-width: 1200px) {
+    .weather-sidebar {
+        display: none; /* Opcional: Ocultar en pantallas pequeñas si molestan */
+    }
+}
+
+/* --- ESTILOS PARA LA LEYENDA DEL MAPA DE CALIDAD DEL AIRE --- */
+.info.legend {
+    padding: 10px 15px;
+    font-family: Arial, sans-serif;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+    display: flex; 
+    flex-direction: row; 
+    align-items: center;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-right: 15px; 
+    text-transform: capitalize; 
+}
+
+.legend-item:last-child {
+    margin-right: 0; 
+}
+
+.legend-item i {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 1px solid rgba(0,0,0,0.3);
+    flex-shrink: 0;
+}
+/* --- ESTILO PARA FUENTE DE DATOS --- */
+.data-source {
+    width: 100%;
+    text-align: center;
+    font-size: 0.85em;
+    font-style: italic;
+    color: #6c757d; 
+    margin-top: 2px; 
+    margin-bottom: 0px; 
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+/* --- Estilo para la fuente de la información en las estaciones meteorológicas --- */
+.station-source {
+    font-size: 0.8em;     
+    font-style: italic;    
+    color: #6c757d;      
+    text-align: right;     
+    margin-top: 2px;       
+    margin-bottom: 0;
+    padding: 0;
+    border: none;
+}
+
+/* --- NUEVOS ESTILOS PARA EL LAYOUT DEL MAPA Y PANEL DE ALERTA --- */
+
+/* Contenedor principal que usa Flexbox para dividir el espacio */
+#air-quality-main-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 65vh; /* Altura principal para ambos elementos */
+    gap: 20px; /* Espacio entre el mapa y el panel */
+    margin-bottom: 10px;
+}
+
+/* El contenedor del mapa ahora ocupa 3/4 del espacio (flex: 3) */
+#air-quality-map-container {
+    flex: 3; 
+    height: 100%;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* El nuevo panel de alertas ocupa 1/4 del espacio (flex: 1) */
+#air-quality-alert-panel {
+    flex: 1;
+    height: 100%;
+    background-color: #f4f7f9;
+    border-radius: 8px;
+    padding: 15px;
+    overflow-y: auto; /* Scroll si hay muchas alertas */
+    border: 1px solid #e0e0e0;
+}
+
+#air-quality-alert-panel {
+    flex: 1;
+    height: 100%;
+    background-color: #f4f7f9;
+    border-radius: 8px;
+    padding: 15px;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    box-sizing: border-box; /* <-- CORREGIR EL TAMAÑO */
+    scrollbar-width: none;  /* <-- OCULTAR SCROLL EN FIREFOX */
+}
+
+/* Estilo para cada estación listada en el panel */
+.alert-station-item {
+    background-color: #fff;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    border-left: 6px solid; /* El color se definirá por la clase de estado */
+}
+
+/* Colores del borde izquierdo según el estado de la alerta */
+.status-border-alerta { border-left-color: #ff9800; }      /* Naranja */
+.status-border-preemergencia { border-left-color: #f44336; } /* Rojo */
+.status-border-emergencia { border-left-color: #9c27b0; }    /* Morado */
+
+.alert-station-item h4 {
+    margin: 0 0 8px 0;
+    font-size: 1.1em;
+}
+
+.alert-station-item p {
+    margin: 4px 0;
+    font-size: 0.95em;
+}
+.alert-station-item p strong {
+    text-transform: capitalize;
+}
+
+.alert-station-item hr {
+    border: 0;
+    border-top: 1px solid #eee;
+    margin: 8px 0;
+}
+
+/* Mensaje cuando no hay alertas */
+.no-alerts-message {
+    text-align: center;
+    color: #666;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.no-alerts-message h4 {
+    margin: 0;
+    font-size: 1.2em;
+    color: #4caf50; /* Verde */
+}
+#air-quality-alert-panel::-webkit-scrollbar {
+    display: none; /* Oculta la barra en navegadores Chrome, Safari, etc. */
+}
