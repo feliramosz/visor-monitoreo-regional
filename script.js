@@ -106,15 +106,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateClockDisplays() {
         if (lastFetchedShoaUtcTimestamp === 0) return;
+
         const currentTimeInSeconds = Date.now() / 1000;
         const secondsElapsed = currentTimeInSeconds - initialLocalTimestamp;
         const currentShoaUtcTimestamp = lastFetchedShoaUtcTimestamp + secondsElapsed;
         const dtUtc = new Date(currentShoaUtcTimestamp * 1000);
+
+        // Función simple para formatear HH:MM:SS
         function formatTime(dateObj, timeZone) {
-            return dateObj.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: timeZone });
+            return dateObj.toLocaleTimeString('es-CL', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+                timeZone: timeZone
+            });
         }
-        document.getElementById('time-continental').textContent = formatTime(dtUtc, 'America/Santiago');
-        document.getElementById('time-rapa-nui').textContent = formatTime(dtUtc, 'Pacific/Easter');
+
+        // Función para actualizar los dígitos de un reloj
+        function updateLedClock(clockId, timeString) {
+            const clockElement = document.getElementById(clockId);
+            if (!clockElement) return;
+
+            const digits = clockElement.querySelectorAll('.digit');
+            const timeDigits = timeString.replace(/:/g, ''); // Quitamos los ":" para tener solo números
+
+            // Actualizamos cada dígito solo si ha cambiado
+            for (let i = 0; i < digits.length; i++) {
+                if (digits[i].textContent !== timeDigits[i]) {
+                    digits[i].textContent = timeDigits[i];
+                }
+            }
+        }
+
+        // Actualizamos ambos relojes
+        updateLedClock('clock-continental', formatTime(dtUtc, 'America/Santiago'));
+        updateLedClock('clock-rapa-nui', formatTime(dtUtc, 'Pacific/Easter'));
     }
 
     async function fetchAndRenderWeather() {

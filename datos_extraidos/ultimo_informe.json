@@ -1,7 +1,7 @@
 {
-    "tipo_informe": "AM",
+    "tipo_informe": "PM",
     "fecha_informe": "miércoles, 28 de mayo de 2025",
-    "hora_informe": " h.",
+    "hora_informe": "18:15 hrs.",
     "alertas_vigentes": [
         {
             "nivel_alerta": "Temprana Preventiva",
@@ -24,10 +24,10 @@
     ],
     "emergencias_ultimas_24_horas": [
         {
-            "n_informe": "139",
-            "fecha_hora": "28/05 – 10:16",
+            "n_informe": "139 \n139 - A",
+            "fecha_hora": "28/05 – 10:16\n28/05 – 13:32",
             "evento_lugar": "Alteración del suministro de agua potable – Comuna de San Antonio",
-            "resumen": "4.500 clientes afectados por una alteración del suministro de agua potable debido a un corte de emergencia en la comuna de San Antonio. Hora estimada de reposición 13:00 h. del día de hoy 28 de mayo 2025"
+            "resumen": "4.500 clientes afectados por una alteración del suministro de agua potable debido a un corte de emergencia en la comuna de San Antonio. Hora estimada de reposición 13:00 h. del día de hoy 28 de mayo 2025\nNormalizado se encuentra el suministro de agua potable que afecto a 4.500 cliente a raíz de un corte de emergencia en la comuna de San Antonio, Provincia de San Antonio."
         },
         {
             "n_informe": "138 - A",
@@ -54,12 +54,18 @@
             "fecha_hora_emision": "27/05 16:12",
             "descripcion": "Viento normal a Moderado, desde la mañana del jueves 29 a la tarde del viernes 30.",
             "cobertura": "Provincia de Isla de Pascua"
+        },
+        {
+            "aviso_alerta_alarma": "Aviso A196/2025",
+            "fecha_hora_emision": "28/05 17:40",
+            "descripcion": "Precipitaciones normales a moderadas, madrugada hasta la noche jueves 29 de mayo 2025.",
+            "cobertura": "Provincia de Isla de Pascua"
         }
     ],
     "radiacion_uv": {
-        "observado_ayer_label": "Índice observado ayer:",
+        "observado_ayer_label": "Índice observado hoy:",
         "observado_ayer_value": "4 (Moderado)",
-        "pronosticado_hoy_label": "Índice pronosticado hoy:",
+        "pronosticado_hoy_label": "Índice pronosticado para mañana:",
         "pronosticado_hoy_value": "3 – 5 (Moderado)"
     },
     "estado_carreteras": [
@@ -112,14 +118,5 @@
             "condicion": "Abierto",
             "observaciones": "Habilitado para todo tipo de vehículos las 24 horas"
         }
-    ],
-    "dynamic_slides": [
-        {
-            "id": "20250528151132_pronostico_14763195.png",
-            "image_url": "assets/dynamic_slides/20250528151132_pronostico_14763195.png",
-            "title": "Pronóstico meteorológico Regional - DMC",
-            "description": ""
-        }
-    ],
-    "slide_interval": 10000
+    ]
 }

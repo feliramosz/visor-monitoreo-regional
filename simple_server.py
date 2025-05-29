@@ -296,7 +296,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             parametros_data = []
                             station_statuses = set()
 
-                            # --- CORRECCIÓN CLAVE: Iterar sobre 'realtime' en lugar de 'data' ---
+                            # --- Iterar sobre 'realtime' en lugar de 'data' ---
                             if 'realtime' in station and isinstance(station['realtime'], list):
                                 for param in station['realtime']:
                                     # Los detalles de cada parámetro están en el objeto 'tableRow'

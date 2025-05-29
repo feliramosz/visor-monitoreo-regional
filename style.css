@@ -388,29 +388,6 @@ footer {
     min-width: 225px;
 }
 
-.header-clock h3 {
-    margin: 1px 0 0 0;
-    font-size: 0.8em;
-    color: #cce7ff;
-    font-weight: normal;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.header-time-display {
-    background-color: #000000;
-    color: #39FF14;
-    font-family: 'DS-Digital', 'Courier New', monospace; 
-    font-size: 2.4em; 
-    padding: 8px 15px;
-    border-radius: 5px;
-    border: 2px solid #444;
-    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.7);
-    letter-spacing: 3px; 
-    line-height: 1;
-    margin-bottom: 0;
-}
-
 /* Ajustes responsivos para pantallas más pequeñas */
 @media (max-width: 768px) {
     .shoa-clocks-container {
@@ -582,7 +559,7 @@ footer {
     background-color: #f4f7f9;
     border-radius: 8px;
     padding: 15px;
-    overflow-y: auto; /* Scroll si hay muchas alertas */
+    overflow-y: auto; 
     border: 1px solid #e0e0e0;
 }
 
@@ -594,7 +571,7 @@ footer {
     padding: 15px;
     overflow-y: auto;
     border: 1px solid #e0e0e0;
-    box-sizing: border-box; /* <-- CORREGIR EL TAMAÑO */
+    box-sizing: border-box; 
     scrollbar-width: none;  /* <-- OCULTAR SCROLL EN FIREFOX */
 }
 
@@ -649,4 +626,61 @@ footer {
 }
 #air-quality-alert-panel::-webkit-scrollbar {
     display: none; /* Oculta la barra en navegadores Chrome, Safari, etc. */
+}
+/* --- ESTILOS DEFINITIVOS PARA RELOJ DIGITAL LED (ANCHO FIJO) --- */
+.header-clock {
+    /* AÑADIDO: Centramos todo el contenido del contenedor del reloj */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.header-clock h3 {
+    font-size: 0.8em;
+    color: #cce7ff;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 8px;
+    text-align: center;
+}
+
+.led-clock {
+    display: inline-flex; 
+    align-items: center; 
+    background-color: #242323;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 15px;
+    padding-right: 15px;
+    border-radius: 25px;
+    box-shadow: 0 2px 5px rgba(110, 110, 110, 0.3), inset 0 0 6px rgba(0, 255, 43, 0.5);
+}
+
+/* Estilo para cada dígito individual */
+.digit {
+    font-family: 'DS-Digital', sans-serif;
+    color: #4CAF50;
+    font-size: 3.0em; /* Aumentado desde 2.8em */
+    text-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+    width: 28px; /* Aumentado desde 22px */
+    text-align: center;
+}
+
+/* Estilo para los dos puntos separadores */
+.separator {
+    font-family: 'DS-Digital', sans-serif;
+    color: #4CAF50;
+    font-size: 3.5em; /* Aumentado desde 2.8em */
+    text-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+    animation: blink 1s step-end infinite;
+    width: 18px; /* Aumentado desde 15px */
+    text-align: center;
+}
+
+/* Animación de parpadeo */
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
 }
