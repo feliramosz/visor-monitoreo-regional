@@ -6,8 +6,8 @@ from docx import Document
 import json
 
 # --- CONFIGURACIÓN ---
-EMAIL_USER = os.getenv('GMAIL_USER', 'monitoreoregionaleco5@gmail.com')
-EMAIL_PASSWORD = os.getenv('GMAIL_APP_PASSWORD')
+EMAIL_USER = os.getenv('GMAIL_USER', 'monitoreoregionaleco5@gmail.com') #-- AQUI LA CUENTA DE GMAIL QUE RECIBIRÁ EL INFORME EN FORMATO DOCX
+EMAIL_PASSWORD = os.getenv('GMAIL_APP_PASSWORD') #-- ESTA CONTRASEÑA DEBE SER GENERADA COMO CONTRASEÑA DE APLICACION EN GOOGLE Y USADA EN LA CONSOLA CON EL COMANDO [System.Environment]::SetEnvironmentVariable('GMAIL_APP_PASSWORD', 'AQUI LA CONTRASEÑA DE 16 DIGITOS', 'User')
 IMAP_SERVER = "imap.gmail.com"
 DOWNLOAD_FOLDER = "informes_descargados"
 DATA_OUTPUT_FOLDER = "datos_extraidos"
@@ -144,7 +144,7 @@ def extraer_datos_docx(docx_filepath, subject_email):
         else:
             print("No se encontró la tabla de Alertas Vigentes.")
 
-        # --- EXTRAER RESUMEN DE EMERGENCIAS DE LAS ÚLTIMAS 24 HORAS (TABLA 2) ---
+        # --- EXTRAER RESUMEN DE EMERGENCIAS DE LAS ÚLTIMAS 24 HORAS ---
         datos_extraidos['emergencias_ultimas_24_horas'] = []
         if len(document.tables) > 2:
             table_emergencias = document.tables[2]

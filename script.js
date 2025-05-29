@@ -349,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const displayEstado = station.estado.replace('_', ' ');
                     let popupContent = `<b>${station.nombre_estacion}</b><br>Estado: ${displayEstado}`;
-                    marker.bindPopup(popupContent); // Se mantiene el popup al hacer click
+                    marker.bindPopup(popupContent); // popup al hacer click
                     airQualityMarkers.push(marker);
                 }
             });

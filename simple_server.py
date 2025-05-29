@@ -269,7 +269,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self.wfile.write(json.dumps({"error": f"Error interno del servidor: {e}"}).encode('utf-8'))
                 return
             
-            # --- ENDPOINT PARA DATOS DE CALIDAD DEL AIRE (VERSIÓN FINAL) ---
+            # --- ENDPOINT PARA DATOS DE CALIDAD DEL AIRE ---
             elif requested_path == '/api/calidad_aire':
                 try:
                     # Se importa 'unescape' para decodificar caracteres HTML como &oacute;
@@ -331,7 +331,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                                 "parametros": parametros_data
                             })
                     
-                    ## --- INICIO: CÓDIGO DE SIMULACIÓN DE ALERTA (TEMPORAL) ---
+                    ## --- CÓDIGO DE SIMULACIÓN DE ALERTA (TEMPORAL) ---
                     ## Elige el estado que quieres simular: 'alerta', 'preemergencia', o 'emergencia'
                     #simulated_status = 'emergencia' 
                     
