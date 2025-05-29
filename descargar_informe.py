@@ -296,7 +296,7 @@ if __name__ == "__main__":
         json_ruta = extraer_datos_docx(ruta_informe_descargado, subject_del_correo)
         if json_ruta:
             print(f"Proceso de extracción completado exitosamente para: {json_ruta}")
-            # --- Eliminar el archivo .docx después de un procesamiento exitoso ---
+            # --- Eliminar el archivo .docx después de extraer datos ---
             try:
                 os.remove(ruta_informe_descargado)
                 print(f"Archivo de informe '{os.path.basename(ruta_informe_descargado)}' eliminado después de procesar.")
