@@ -8,12 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- NUEVO: Objeto de mapeo de estado a color ---
     const stateToColor = {
-        'bueno': '#4caf50', // Verde
-        'regular': '#ffeb3b', // Amarillo
-        'alerta': '#ff9800', // Naranja
-        'preemergencia': '#f44336', // Rojo
-        'emergencia': '#9c27b0', // Morado
-        'no_disponible': '#9e9e9e' // Gris
+        'bueno': '#4caf50',
+        'regular': '#ffeb3b',
+        'alerta': '#ff9800',
+        'preemergencia': '#f44336',
+        'emergencia': '#9c27b0',
+        'no_disponible': '#9e9e9e'
     };
 
     // Referencias a elementos del DOM
@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentShoaUtcTimestamp = lastFetchedShoaUtcTimestamp + secondsElapsed;
         const dtUtc = new Date(currentShoaUtcTimestamp * 1000);
 
-        // Función simple para formatear HH:MM:SS
+        // Función simple para formatear en HH:MM:SS
         function formatTime(dateObj, timeZone) {
             return dateObj.toLocaleTimeString('es-CL', {
                 hour: '2-digit',
@@ -129,9 +129,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!clockElement) return;
 
             const digits = clockElement.querySelectorAll('.digit');
-            const timeDigits = timeString.replace(/:/g, ''); // Quitamos los ":" para tener solo números
+            const timeDigits = timeString.replace(/:/g, ''); // Quita los ":" para tener solo numeros
 
-            // Actualizamos cada dígito solo si ha cambiado
+            // Actualiza cada dígito solo si ha cambiado
             for (let i = 0; i < digits.length; i++) {
                 if (digits[i].textContent !== timeDigits[i]) {
                     digits[i].textContent = timeDigits[i];
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Actualizamos ambos relojes
+        // Actualiza ambos relojes
         updateLedClock('clock-continental', formatTime(dtUtc, 'America/Santiago'));
         updateLedClock('clock-rapa-nui', formatTime(dtUtc, 'Pacific/Easter'));
     }
@@ -219,17 +219,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
         renderTableRows(tableAlertasBody, data.alertas_vigentes, [ (row, item) => { const cell = row.insertCell(); cell.textContent = item.nivel_alerta; const nivelTexto = (item.nivel_alerta || '').toLowerCase(); if (nivelTexto.includes('temprana preventiva')) cell.className = 'alerta-temprana-preventiva'; else if (nivelTexto.includes('amarilla')) cell.className = 'alerta-amarilla'; else if (nivelTexto.includes('roja')) cell.className = 'alerta-roja'; }, (row, item) => row.insertCell().textContent = item.evento, (row, item) => row.insertCell().textContent = item.cobertura, (row, item) => row.insertCell().textContent = item.amplitud ], 4, "No hay alertas vigentes registradas.");
-        renderTableRows(tableEmergenciasBody, data.emergencias_ultimas_24_horas, [(r, i) => r.insertCell().textContent = i.n_informe, (r, i) => r.insertCell().textContent = i.fecha_hora, (r, i) => r.insertCell().textContent = i.evento_lugar, (r, i) => r.insertCell().textContent = i.resumen], 4, "No hay emergencias registradas.");
-        renderTableRows(tableAvisosMetBody, data.avisos_alertas_meteorologicas, [(r, i) => r.insertCell().textContent = i.aviso_alerta_alarma, (r, i) => r.insertCell().textContent = i.fecha_hora_emision, (r, i) => r.insertCell().textContent = i.descripcion, (r, i) => r.insertCell().textContent = i.cobertura], 4, "No hay avisos/alertas meteorológicas.");
+        renderTableRows(tableEmergenciasBody, data.emergencias_ultimas_24_horas, [(r, i) => { const c = r.insertCell(); c.textContent = i.n_informe; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.fecha_hora; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.evento_lugar; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.resumen; c.className = 'text-justify'; }], 4, "No hay emergencias registradas.");
+        renderTableRows(tableAvisosMetBody, data.avisos_alertas_meteorologicas, [(r, i) => { const c = r.insertCell(); c.textContent = i.aviso_alerta_alarma; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.fecha_hora_emision; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.descripcion; c.className = 'text-justify'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.cobertura; c.className = 'v-align-middle'; }], 4, "No hay avisos/alertas meteorológicas.");
         if (data.radiacion_uv) {
             uvObservadoLabelSpan.textContent = data.radiacion_uv.observado_ayer_label || 'Observado ayer:';
             uvObservadoValueSpan.textContent = data.radiacion_uv.observado_ayer_value || 'N/A';
             uvPronosticadoLabelSpan.textContent = data.radiacion_uv.pronosticado_hoy_label || 'Pronosticado para hoy:';
             uvPronosticadoValueSpan.textContent = data.radiacion_uv.pronosticado_hoy_value || 'N/A';
         }
-        renderTableRows(tableCarreterasBody, data.estado_carreteras, [(r, i) => r.insertCell().textContent = i.carretera, (r, i) => r.insertCell().textContent = i.estado, (r, i) => r.insertCell().textContent = i.condicion], 3, "No hay info de carreteras.");
+        renderTableRows(tableCarreterasBody, data.estado_carreteras, [(r, i) => { const c = r.insertCell(); c.textContent = i.carretera; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.estado; c.className = 'text-justify'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.condicion; c.className = 'v-align-middle'; }], 3, "No hay info de carreteras.");
         renderTableRows(tablePuertosBody, data.estado_puertos, [(r, i) => r.insertCell().textContent = i.puerto, (r, i) => r.insertCell().textContent = i.estado_del_puerto, (r, i) => r.insertCell().textContent = i.condicion], 3, "No hay info de puertos.");
-        renderTableRows(tablePasosFronterizosBody, data.estado_pasos_fronterizos, [(r, i) => r.insertCell().textContent = i.nombre_paso, (r, i) => r.insertCell().textContent = i.condicion, (r, i) => r.insertCell().textContent = i.observaciones], 3, "No hay info de pasos fronterizos.");
+        renderTableRows(tablePasosFronterizosBody, data.estado_pasos_fronterizos, [(r, i) => { const c = r.insertCell(); c.textContent = i.nombre_paso; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.condicion; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.observaciones; c.className = 'text-justify'; }], 3, "No hay info de pasos fronterizos.");
         const mainElement = document.querySelector('main');
         mainElement.querySelectorAll('.dynamic-image-slide').forEach(slide => slide.remove());
         if (data.dynamic_slides && data.dynamic_slides.length > 0) {
@@ -332,9 +332,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const alertPanel = document.getElementById('air-quality-alert-panel');
             alertPanel.innerHTML = '';
 
-            const alertStates = ['emergencia', 'preemergencia', 'alerta'];
+            // Define la lista de estados a mostrar en el panel
+            const panelDisplayStates = ['emergencia', 'preemergencia', 'alerta', 'regular'];
 
-            // 1. Crear los marcadores en el mapa para TODAS las estaciones
+            // Filtramos las estaciones para el panel usando la nueva lista
+            const stationsForPanel = stations.filter(station => panelDisplayStates.includes(station.estado));
+
+            // Crear los marcadores en el mapa para TODAS las estaciones
             stations.forEach(station => {
                 if (station.lat && station.lon) {
                     const markerColor = stateToColor[station.estado] || stateToColor['no_disponible'];
@@ -349,53 +353,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const displayEstado = station.estado.replace('_', ' ');
                     let popupContent = `<b>${station.nombre_estacion}</b><br>Estado: ${displayEstado}`;
-                    marker.bindPopup(popupContent); // popup al hacer click
+                    marker.bindPopup(popupContent);
                     airQualityMarkers.push(marker);
                 }
             });
 
-            // 2. Filtrar solo las estaciones que están en alerta
-            const alertStations = stations.filter(station => alertStates.includes(station.estado));
-
-            // 3. Poblar el panel lateral con las estaciones en alerta
-            if (alertStations.length > 0) {
-                alertPanel.innerHTML = '<h3>Estaciones en Alerta</h3>'; // Título del panel
+            // Poblar el panel lateral con las estaciones que coinciden
+            if (stationsForPanel.length > 0) {
+                alertPanel.innerHTML = '<h3>Estaciones con Novedad</h3>';
                 
-                // Ordenar por severidad
-                alertStations.sort((a, b) => alertStates.indexOf(a.estado) - alertStates.indexOf(b.estado));
+                // Ordena por severidad las estaciones
+                stationsForPanel.sort((a, b) => panelDisplayStates.indexOf(a.estado) - panelDisplayStates.indexOf(b.estado));
 
-                alertStations.forEach(station => {
+                stationsForPanel.forEach(station => {
                     const itemDiv = document.createElement('div');
-                    itemDiv.className = `alert-station-item status-border-${station.estado}`;
                     
                     let itemHTML = `<h4>${station.nombre_estacion}</h4>`;
-                    itemHTML += `<p><strong>Estado:</strong> ${station.estado.replace('_', ' ')}</p>`;
+                    const estadoTexto = station.estado.replace('_', ' '); // Ej: "regular" o "pre emergencia"
+                    const estadoCapitalizado = estadoTexto.charAt(0).toUpperCase() + estadoTexto.slice(1); // Pone la primera letra del estado en mayúscula
+                    itemHTML += `<p><strong>Estado:</strong> ${estadoCapitalizado}</p>`;
                     
                     if (station.parametros && station.parametros.length > 0) {
-                        itemHTML += '<hr>';
-                        station.parametros.forEach(p => {
-                            itemHTML += `<p>${p.parametro}: ${p.valor} ${p.unidad}</p>`;
-                        });
+                        // Filtra para obtener solo los parámetros que NO están en estado 'bueno'
+                        const problemParameters = station.parametros.filter(p => p.estado !== 'bueno' && p.estado !== 'no_disponible');
+
+                        // Solo si encuentra parametros con problemas los muestra
+                        if (problemParameters.length > 0) {
+                            itemHTML += '<hr>';
+                            problemParameters.forEach(p => {
+                                itemHTML += `<p>${p.parametro}: ${p.valor} ${p.unidad}</p>`;
+                            });
+                        }
                     }
                     itemDiv.innerHTML = itemHTML;
+                    // importante para los estilos de borde de color
+                    itemDiv.className = `alert-station-item status-border-${station.estado}`;
                     alertPanel.appendChild(itemDiv);
                 });
             } else {
-                // Mensaje si no hay estaciones en alerta
+                // si todas las estaciones tienen estado 'Bueno'
                 alertPanel.innerHTML = `
                     <div class="no-alerts-message">
-                        <h4>Sin Alertas</h4>
-                        <p>No hay estaciones en estado de alerta actualmente.</p>
+                        <h4>Condición Óptima</h4>
+                        <p>Todas las estaciones reportan un estado 'Bueno'.</p>
                     </div>
                 `;
             }
-
-            // Finalmente, se actualiza el banner del encabezado como antes
+            
             updateHeaderAlert(stations);
 
         } catch (error) {
             console.error("Error al procesar datos de calidad del aire:", error);
-            // Manejar el error en la UI si es necesario
             const alertPanel = document.getElementById('air-quality-alert-panel');
             if(alertPanel) {
                 alertPanel.innerHTML = '<p style="color:red;">Error al cargar datos de calidad del aire.</p>';

@@ -2,6 +2,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const DATA_API_URL = '/api/data';
     const UPLOAD_IMAGE_API_URL = '/api/upload_image';
     const DELETE_IMAGE_API_URL = '/api/delete_image';
+    const TRIGGER_DOWNLOAD_API_URL = '/api/trigger-download';
+
+    //Referencias para descarga manual de informe AM o PM
+    const runScriptBtn = document.getElementById('runScriptBtn');
+    const scriptOutput = document.getElementById('scriptOutput');
 
     // Elementos de información general
     const adminFechaInforme = document.getElementById('adminFechaInforme');
@@ -375,6 +380,51 @@ document.addEventListener('DOMContentLoaded', async () => {
         puertosContainer.appendChild(createPuertoFormItem({}, puertosContainer.children.length));
     });
 
+    runScriptBtn.addEventListener('click', async () => {
+        // Mostrar feedback inmediato al usuario
+        runScriptBtn.disabled = true;
+        runScriptBtn.textContent = 'Ejecutando...';
+        scriptOutput.textContent = 'Iniciando proceso, por favor espera...';
+
+        try {
+            const response = await fetch(TRIGGER_DOWNLOAD_API_URL, {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+
+            // Formatear la salida para mostrarla en el <pre>
+            let formattedOutput = `--- ESTADO: ${response.ok ? 'ÉXITO' : 'FALLO'} ---\n`;
+            formattedOutput += `MENSAJE: ${result.message}\n\n`;
+
+            if (result.output) {
+                formattedOutput += `--- SALIDA DEL SCRIPT ---\n${result.output}\n`;
+            }
+            if (result.error) {
+                formattedOutput += `--- ERRORES ---\n${result.error}\n`;
+            }
+
+            scriptOutput.textContent = formattedOutput;
+
+            if (response.ok) {
+                showMessage('Proceso de descarga finalizado con éxito. Recargando datos...', 'success');
+                // Opcional: Recargar los datos del formulario para reflejar el nuevo informe
+                setTimeout(loadDataForAdmin, 1500); 
+            } else {
+                showMessage(`El proceso falló: ${result.message}`, 'error');
+            }
+
+        } catch (error) {
+            console.error("Error al llamar a la API de descarga:", error);
+            scriptOutput.textContent = `Error de conexión con el servidor: ${error.message}`;
+            showMessage('Error de conexión al intentar ejecutar el script.', 'error');
+        } finally {
+            // Re-habilitar el botón sin importar el resultado
+            runScriptBtn.disabled = false;
+            runScriptBtn.textContent = 'Iniciar Descarga Manual';
+        }
+    });
+
     uploadImageBtn.addEventListener('click', async () => {
         const file = imageFile.files[0];
         if (!file) {
@@ -497,7 +547,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const result = await response.json();
             showMessage(result.message || 'Datos guardados correctamente.', 'success');
-            // No recargamos aquí para mantener la posición del usuario en el formulario
             // loadDataForAdmin(); 
 
         } catch (error) {

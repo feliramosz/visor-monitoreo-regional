@@ -12,8 +12,9 @@ from PIL import Image
 import uuid
 import requests
 import ntplib # <-- Librería para NTP
+import subprocess
 
-HOST_NAME = 'localhost'
+HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8000
 DATA_FILE = os.path.join('datos_extraidos', 'ultimo_informe.json')
 SERVER_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -313,7 +314,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                                     parametros_data.append({
                                         "parametro": param_name,
                                         "valor": details.get('value', '---'),
-                                        "unidad": details.get('unit', '')
+                                        "unidad": details.get('unit', ''),
+                                        "estado": param_status
                                     })
                             
                             final_station_status = "no_disponible"
@@ -333,13 +335,13 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     
                     ## --- CÓDIGO DE SIMULACIÓN DE ALERTA (TEMPORAL) ---
                     ## Elige el estado que quieres simular: 'alerta', 'preemergencia', o 'emergencia'
-                    #simulated_status = 'emergencia' 
+                    #simulated_status = 'alerta' 
                     
                     ## Busca la primera estación en la lista para forzar la alerta
                     #if processed_stations: # Asegurarse de que la lista no esté vacía
                     #   print(f"--- SIMULACIÓN ACTIVA: Forzando estado '{simulated_status}' en la estación '{processed_stations[0]['nombre_estacion']}' ---")
                     #processed_stations[0]['estado'] = simulated_status
-                    ## --- FIN: CÓDIGO DE SIMULACIÓN --- ##
+                    # --- FIN: CÓDIGO DE SIMULACIÓN --- ##
 
                     self._set_headers(200, 'application/json')
                     self.wfile.write(json.dumps(processed_stations, ensure_ascii=False).encode('utf-8'))
@@ -410,6 +412,55 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._set_headers(500, 'application/json')
                 self.wfile.write(json.dumps({"error": f"Error al guardar los datos: {e}"}).encode('utf-8'))
+            return
+
+        elif self.path == '/api/trigger-download':
+            try:
+                print("INFO: Se ha recibido una solicitud para ejecutar descargar_informe.py manualmente.")
+
+                # Comando para ejecutar el script.
+                command = ["python", "descargar_informe.py"]
+                
+                result = subprocess.run(
+                    command, 
+                    capture_output=True, 
+                    text=True,  # Decodifica la salida como texto
+                    encoding='utf-8', # Especifica la codificación
+                    errors='replace',
+                    timeout=300 # Timeout de 5 minutos por si el proceso se queda pegado
+                )
+
+                # Verificamos si el script se ejecutó correctamente (código de salida 0)
+                if result.returncode == 0:
+                    print("SUCCESS: El script descargar_informe.py se ejecutó correctamente.")
+                    self._set_headers(200, 'application/json')
+                    response = {
+                        "success": True,
+                        "message": "El script se ejecutó correctamente.",
+                        "output": result.stdout
+                    }
+                    self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
+                else:
+                    # Si el script falló, enviamos un error 500 con la salida del error
+                    print(f"ERROR: El script descargar_informe.py falló con el código {result.returncode}.")
+                    self._set_headers(500, 'application/json')
+                    response = {
+                        "success": False,
+                        "message": "Error durante la ejecución del script.",
+                        "error": result.stderr,
+                        "output": result.stdout
+                    }
+                    self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
+
+            except FileNotFoundError:
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({"error": "No se encontró el script 'descargar_informe.py'."}).encode('utf-8'))
+            except subprocess.TimeoutExpired:
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({"error": "La ejecución del script tardó demasiado y fue cancelada (Timeout)."}).encode('utf-8'))
+            except Exception as e:
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({"error": f"Ocurrió un error inesperado en el servidor: {e}"}).encode('utf-8'))
             return
 
         elif self.path == '/api/upload_image':

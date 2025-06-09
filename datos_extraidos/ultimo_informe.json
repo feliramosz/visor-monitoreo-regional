@@ -1,7 +1,7 @@
 {
-    "tipo_informe": "PM",
-    "fecha_informe": "miércoles, 28 de mayo de 2025",
-    "hora_informe": "18:15 hrs.",
+    "tipo_informe": "AM",
+    "fecha_informe": "Lunes 09 de junio 2025",
+    "hora_informe": "07:00 h.",
     "alertas_vigentes": [
         {
             "nivel_alerta": "Temprana Preventiva",
@@ -14,57 +14,45 @@
             "evento": "Alteración Sanitaria",
             "cobertura": "Provincia de Los Andes",
             "amplitud": "SINAPRED"
-        },
-        {
-            "nivel_alerta": "Temprana Preventiva",
-            "evento": "Marejadas Anormales",
-            "cobertura": "Provincia de Isla de Pascua",
-            "amplitud": "SINAPRED"
         }
     ],
     "emergencias_ultimas_24_horas": [
         {
-            "n_informe": "139 \n139 - A",
-            "fecha_hora": "28/05 – 10:16\n28/05 – 13:32",
-            "evento_lugar": "Alteración del suministro de agua potable – Comuna de San Antonio",
-            "resumen": "4.500 clientes afectados por una alteración del suministro de agua potable debido a un corte de emergencia en la comuna de San Antonio. Hora estimada de reposición 13:00 h. del día de hoy 28 de mayo 2025\nNormalizado se encuentra el suministro de agua potable que afecto a 4.500 cliente a raíz de un corte de emergencia en la comuna de San Antonio, Provincia de San Antonio."
-        },
-        {
-            "n_informe": "138 - A",
-            "fecha_hora": "28/05 – 09:40",
-            "evento_lugar": "Alteración del suministro de agua potable – Comuna de Calera",
-            "resumen": "Normalizado se encuentra el suministro de agua potable que afectó a 3.626 clientes a raíz de un corte programado de la empresa ESVAL por mantenimiento de la red de agua potable, comuna de La Calera, Provincia de Quillota."
+            "n_informe": "149 - A",
+            "fecha_hora": "07/06 22:05h",
+            "evento_lugar": "Incendio estructural residencial, comuna de Viña del Mar(evento cerrado)",
+            "resumen": "05 persona damnificada, 08 afectadas, 01 vivienda destruida, 01 vivienda con daño menor habitable, es el resultado de un incendio estructural residencial que se desarrolló en calle Violeta Parra N°56, Población Las Palmeras Forestal Alto, comuna de Viña del Mar, Provincia de Valparaíso."
         }
     ],
     "avisos_alertas_meteorologicas": [
         {
-            "aviso_alerta_alarma": "Aviso de Marejadas N° 19",
-            "fecha_hora_emision": "24/05 13:44",
-            "descripcion": "Desde lunes 26 hasta jueves 29 de mayo 2025.",
-            "cobertura": "Provincia de Isla de Pascua"
+            "aviso_alerta_alarma": "Aviso A204-2/2025",
+            "fecha_hora_emision": "08/07 15:13",
+            "descripcion": "Precipitaciones normales a moderadas desde la madrugada y la noche del jueves 12 de junio.",
+            "cobertura": "Entre las regiones de Coquimbo al Biobío"
         },
         {
-            "aviso_alerta_alarma": "Aviso de Marejadas N° 20",
-            "fecha_hora_emision": "27/05 20:01",
-            "descripcion": "Desde jueves 29 hasta sábado 31 de mayo 2025",
-            "cobertura": "Golfo de Penas hasta Arica y archipiélago Juan Fernandez"
+            "aviso_alerta_alarma": "Aviso A205-2/2025",
+            "fecha_hora_emision": "08/06 12:56",
+            "descripcion": "Viento Normal a Moderado desde la tarde del miércoles 11 a la tarde del jueves 12 de junio de junio",
+            "cobertura": "Entre las regiones de Coquimbo al Biobío"
         },
         {
-            "aviso_alerta_alarma": "Aviso A195/2025",
-            "fecha_hora_emision": "27/05 16:12",
-            "descripcion": "Viento normal a Moderado, desde la mañana del jueves 29 a la tarde del viernes 30.",
-            "cobertura": "Provincia de Isla de Pascua"
+            "aviso_alerta_alarma": "Aviso A208/2025",
+            "fecha_hora_emision": "08/07 15:13",
+            "descripcion": "Precipitaciones normales a moderadas en corto periodo de tiempo desde la madrugada a la tarde del miércoles 11 de junio.",
+            "cobertura": "Archipiélago Juan Fernández"
         },
         {
-            "aviso_alerta_alarma": "Aviso A196/2025",
-            "fecha_hora_emision": "28/05 17:40",
-            "descripcion": "Precipitaciones normales a moderadas, madrugada hasta la noche jueves 29 de mayo 2025.",
-            "cobertura": "Provincia de Isla de Pascua"
+            "aviso_alerta_alarma": "Aviso de Marejadas N°21",
+            "fecha_hora_emision": "07/06 10:27",
+            "descripcion": "Aviso de Marejadas desde el lunes 09/06 hasta el miércoles 11/06",
+            "cobertura": "Isla de Pascua"
         }
     ],
     "radiacion_uv": {
         "observado_ayer_label": "Índice observado hoy:",
-        "observado_ayer_value": "4 (Moderado)",
+        "observado_ayer_value": "3 (Moderado)",
         "pronosticado_hoy_label": "Índice pronosticado para mañana:",
         "pronosticado_hoy_value": "3 – 5 (Moderado)"
     },
@@ -78,27 +66,32 @@
             "carretera": "Ruta E – 761",
             "estado": "Calle Reyes cerrada por socavamiento en puente, comuna de San Esteban",
             "condicion": "Cerrado"
+        },
+        {
+            "carretera": "Ruta F – 20",
+            "estado": "Desvíos de tránsito por ejecución de trabajos entre sector puente Puchuncavi y enlace Puchuncavi.",
+            "condicion": "Tránsito regulado"
         }
     ],
     "estado_puertos": [
         {
             "puerto": "Hanga Roa",
-            "estado_del_puerto": "Límites operacionales nave menor",
-            "condicion": "Ola – Marejada - Viento"
+            "estado_del_puerto": "Puerto cerrado para embarcaciones menores dentro y fuera de la bahía",
+            "condicion": "Marejadas"
         },
         {
             "puerto": "Quintero",
-            "estado_del_puerto": "Sin restricciones",
+            "estado_del_puerto": "Sin restricciones.",
             "condicion": "Normal"
         },
         {
             "puerto": "Valparaíso",
-            "estado_del_puerto": "Sin restricciones",
+            "estado_del_puerto": "Sin restricciones.",
             "condicion": "Normal"
         },
         {
             "puerto": "San Antonio",
-            "estado_del_puerto": "Sin restricciones",
+            "estado_del_puerto": "Sin restricciones.",
             "condicion": "Normal"
         },
         {
@@ -116,7 +109,16 @@
         {
             "nombre_paso": "Los Libertadores",
             "condicion": "Abierto",
-            "observaciones": "Habilitado para todo tipo de vehículos las 24 horas"
+            "observaciones": "A partir del domingo 1 de junio comienza el horario de invierno en el Paso Fronterizo Los Libertadores. De 08:00 a 20:00 hrs con corte de tránsito a las 18:00 en Guardia Vieja."
+        }
+    ],
+    "slide_interval": 10000,
+    "dynamic_slides": [
+        {
+            "id": "20250609070459_IAM_3ee3989d.png",
+            "image_url": "assets/dynamic_slides/20250609070459_IAM_3ee3989d.png",
+            "title": "Informe de Amenaza Meteorológica emitido el 09/06",
+            "description": "Fuente: Centro Nacional de Análisis - Dirección Meteorológica de Chile"
         }
     ]
 }

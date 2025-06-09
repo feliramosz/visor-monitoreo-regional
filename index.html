@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
-<body>
+<body>    
     <header>
         <div class="logo-left">
             <img src="assets/bnnr_line_sup.png" alt="Logo SENAPRED">
@@ -23,7 +23,7 @@
                 <span class="separator">:</span>
                 <span class="digit">0</span><span class="digit">0</span>
             </div>
-            <h3>HORA CHILE CONTINENTAL</h3>
+            <h3>HORA DE CHILE CONTINENTAL</h3>
         </div>
         <div class="header-title-container">
             <h1>ESTADO DE SITUACION REGIONAL  -  SENAPRED VALPARAISO</h1>
@@ -46,8 +46,8 @@
 
     <main>
         <div class="informe-header-fijo">
-            <p>Fecha del Informe: <span id="fecha-informe"></span></p>
-            <p>Hora de utlima actualización: <span id="hora-informe"></span></p>
+            <p>Fecha: <span id="fecha-informe"></span></p>
+            <p>Hora de útlima actualización: <span id="hora-informe"></span></p>
         </div>
 
         <section id="slide-alertas-avisos" class="slide active">
@@ -67,8 +67,8 @@
             <p class="data-source">Fuente: Servicio Nacional de Prevención y Respuesta ante Desastres (SENAPRED)</p>
 
             <br>
-            <h2>Avisos / Alertas / Alarmas Meteorológicas</h2>
-            <table id="table-avisos-meteorologicos">
+            <h2>Avisos / Alertas / Alarmas Meteorológicas y Marejadas</h2>
+            <table id="table-avisos-meteorologicos" class="table-layout-auto">
                 <thead>
                     <tr>
                         <th>Aviso / Alerta / Alarma</th>
@@ -85,7 +85,7 @@
 
         <section id="emergencias" class="slide">
             <h2>Informes emitidos en las Últimas 24 Horas</h2>
-            <table id="table-emergencias">
+            <table id="table-emergencias" class="table-layout-auto">
                 <thead>
                     <tr>
                         <th>N° Informe</th>
@@ -102,7 +102,7 @@
 
         <section id="slide-carreteras-pasos-uv" class="slide">
             <h2>Estado de Carreteras</h2>
-            <table id="table-carreteras">
+            <table id="table-carreteras" class="table-layout-auto">
                 <thead>
                     <tr>
                         <th>Carretera</th>
@@ -117,7 +117,7 @@
 
             <br>
             <h2>Estado del Paso Fronterizo</h2>
-            <table id="table-pasos-fronterizos">
+            <table id="table-pasos-fronterizos" class="table-layout-auto">
                 <thead>
                     <tr>
                         <th>Nombre del Paso</th>
@@ -145,7 +145,7 @@
         <section id="puertos" class="slide">
             
             <h2>Estado de Puertos</h2>
-            <table id="table-puertos">
+            <table id="table-puertos" class="table-layout-auto">
                 <thead>
                     <tr>
                         <th>Puerto</th>

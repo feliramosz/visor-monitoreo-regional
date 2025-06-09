@@ -15,7 +15,7 @@ DATA_OUTPUT_FOLDER = "datos_extraidos"
 # --- Verificación de que las variables de entorno están cargadas ---
 if not EMAIL_PASSWORD:
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ERROR: La variable de entorno GMAIL_APP_PASSWORD no está configurada. El script no puede continuar.")
-    exit() # Detiene la ejecución si la contraseña no está presente
+    exit() 
 
 # --- FUNCIÓN PARA DESCARGAR INFORMES ---
 def descargar_ultimo_informe(email_user, email_password, imap_server, download_folder):
@@ -125,7 +125,7 @@ def extraer_datos_docx(docx_filepath, subject_email):
         print(f"Tipo de informe identificado: {datos_extraidos['tipo_informe']}")
 
 
-        # --- EXTRAER RESUMEN DE ALERTAS VIGENTES (TABLA 1) ---
+        # --- EXTRAER RESUMEN DE ALERTAS VIGENTES  ---
         datos_extraidos['alertas_vigentes'] = []
         if len(document.tables) > 1:
             table_alertas = document.tables[1]
@@ -168,7 +168,7 @@ def extraer_datos_docx(docx_filepath, subject_email):
         else:
             print("No se encontró la tabla de Emergencias.")
 
-        # --- EXTRAER 4.1. AVISOS / ALERTAS / ALARMAS METEOROLÓGICAS (TABLA 3) ---
+        # --- EXTRAER AVISOS / ALERTAS / ALARMAS METEOROLÓGICAS ---
         datos_extraidos['avisos_alertas_meteorologicas'] = []
         if len(document.tables) > 4:
             table_avisos_met = document.tables[4]
@@ -187,7 +187,7 @@ def extraer_datos_docx(docx_filepath, subject_email):
         else:
             print("No se encontró la tabla de Avisos/Alertas Meteorológicas.")
 
-        # --- EXTRAER 6. ÍNDICE DE RADIACIÓN ULTRAVIOLETA (TABLA 12) ---
+        # --- EXTRAER 6. ÍNDICE DE RADIACIÓN ULTRAVIOLETA ---
         datos_extraidos['radiacion_uv'] = {
             'observado_ayer_label': 'Observado (sin datos):',
             'observado_ayer_value': 'N/A',
@@ -212,7 +212,7 @@ def extraer_datos_docx(docx_filepath, subject_email):
         else:
             print("No se encontró la tabla de Índice de Radiación Ultravioleta (o el índice es incorrecto).")
 
-        # --- EXTRAER 8. ESTADO DE CARRETERAS (TABLA 13) ---
+        # --- EXTRAER 8. ESTADO DE CARRETERAS ---
         datos_extraidos['estado_carreteras'] = []
         if len(document.tables) > 14:
             table_carreteras = document.tables[14]
@@ -230,7 +230,7 @@ def extraer_datos_docx(docx_filepath, subject_email):
         else:
             print("No se encontró la tabla de Estado de Carreteras.")
 
-        # --- EXTRAER 9. ESTADO DE PUERTOS (TABLA 14) ---
+        # --- EXTRAER 9. ESTADO DE PUERTOS ---
         datos_extraidos['estado_puertos'] = []
         if len(document.tables) > 15:
             table_puertos = document.tables[15]
@@ -248,7 +248,7 @@ def extraer_datos_docx(docx_filepath, subject_email):
         else:
             print("No se encontró la tabla de Estado de Puertos.")
 
-        # --- EXTRAER 11. ESTADO DE PASOS FRONTERIZOS (TABLA 16) ---
+        # --- EXTRAER 11. ESTADO DE PASOS FRONTERIZOS ---
         datos_extraidos['estado_pasos_fronterizos'] = []
         if len(document.tables) > 17:
             table_pasos = document.tables[17]

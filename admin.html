@@ -199,6 +199,7 @@
                     <li><a href="#" data-section="pasos-fronterizos">Pasos Fronterizos</a></li>
                     <li><a href="#" data-section="puertos">Estado de Puertos</a></li>
                     <li><a href="#" data-section="dynamic-slides">Agregar imagenes</a></li> 
+                    <li><a href="#" data-section="accion-manual">Descargar Informe AM o PM fuera de horario</a></li>
                 </ul>
             </nav>
                 <h4 style="margin-bottom: 10px; color: white; border-bottom: 1px solid #495057; padding-bottom: 10px;">Velocidad del Carrusel</h4>
@@ -216,6 +217,20 @@
 
         <div class="admin-content">
             <div class="message" id="adminMessage"></div>
+
+            <section id="accion-manual" class="admin-section">
+                <h3>Ejecutar Descarga de Informe AM o PM</h3>
+                <div class="form-group">
+                    <p>
+                        Haz clic en el siguiente botón para descarga del último informe desde el correo electrónico.
+                        Este proceso puede tardar unos segundos. La salida del proceso se mostrará a continuación.
+                    </p>
+                    <button type="button" id="runScriptBtn">Comenzar Descarga Manual</button>
+
+                    <h4>Salida del Proceso:</h4>
+                    <pre id="scriptOutput" style="background-color: #333; color: #fff; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto;"></pre>
+                </div>
+            </section>
 
             <section id="informacion-general" class="admin-section active">
                 <h3>Modificar fecha y horario</h3>
