@@ -159,7 +159,7 @@ main {
     pointer-events: none;
     visibility: hidden;
 
-    /* --- Contenedor Flexbox para centrar su contenido --- */
+    /* --- Contenedor Flexbox para centrar contenido --- */
     display: flex;
     flex-direction: column; 
     justify-content: center; 
@@ -397,7 +397,7 @@ footer {
     box-sizing: border-box; 
 }
 
-/* --- ESTILOS PARA LAS HORAS OFICIALES DEL SHOA --- */
+/* --- ESTILOS PARA LAS HORAS DEL SHOA --- */
 .header-clock {
     text-align: center;
     margin: 0 20px;
@@ -547,7 +547,7 @@ footer {
     border: none;
 }
 
-/* --- NUEVOS ESTILOS PARA EL LAYOUT DEL MAPA Y PANEL DE ALERTA --- */
+/* --- ESTILOS PARA EL LAYOUT DEL MAPA Y PANEL DE ALERTA --- */
 /* Contenedor principal que usa Flexbox para dividir el espacio */
 #air-quality-main-container {
     display: flex;
@@ -601,9 +601,9 @@ footer {
 }
 
 /* Colores del borde izquierdo según el estado de la alerta */
-.status-border-alerta { border-left-color: #ff9800; }      /* Naranja */
-.status-border-preemergencia { border-left-color: #f44336; } /* Rojo */
-.status-border-emergencia { border-left-color: #9c27b0; }    /* Morado */
+.status-border-alerta { border-left-color: #ff9800; }
+.status-border-preemergencia { border-left-color: #f44336; }
+.status-border-emergencia { border-left-color: #9c27b0; }
 
 .alert-station-item h4 {
     margin: 0 0 4px 0;
@@ -643,7 +643,7 @@ footer {
 #air-quality-alert-panel::-webkit-scrollbar {
     display: none;
 }
-/* --- ESTILOS PARA RELOJ DIGITAL (ANCHO FIJO) --- */
+/* --- ESTILOS PARA RELOJ DIGITAL --- */
 .header-clock {    
     display: flex;
     flex-direction: column;

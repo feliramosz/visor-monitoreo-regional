@@ -11,7 +11,7 @@ import io
 from PIL import Image
 import uuid
 import requests
-import ntplib # <-- Librería para NTP
+import ntplib
 import subprocess
 
 HOST_NAME = '0.0.0.0'
@@ -70,7 +70,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
             # --- RUTA PARA OBTENER LAS HORAS DEL SHOA ---
             elif requested_path == '/api/shoa_times':
-                # --- ASEGURAR IMPORTACIONES NECESARIAS EN ESTE ALCANCE ---
+                # --- PARA ASEGURAR IMPORTACIONES NECESARIAS EN ESTE ALCANCE ---
                 from datetime import datetime # Asegura que datetime esté disponible
                 import pytz # Asegura que pytz esté disponible
 
@@ -111,7 +111,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             # --- RUTA PARA ESTACIONES METEOROLOGICAS ---
             elif requested_path == '/api/weather':
                 
-                # --- IMPORTACIONES NECESARIAS PARA CONVERSIONES ---
+                # --- IMPORTACIONES PARA CONVERSIONES ---
                 from datetime import datetime 
                 import pytz 
                 import re   # Para la función de velocidad del viento
@@ -285,8 +285,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     all_stations = response.json()
 
                     processed_stations = []
-                    
-                    # El estado ya viene como texto ('bueno', 'regular', etc.), no necesitamos mapear colores.
+                                        
                     status_priority = {
                         "emergencia": 1, "preemergencia": 2, "alerta": 3,
                         "regular": 4, "bueno": 5, "no_disponible": 6
@@ -297,18 +296,18 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             parametros_data = []
                             station_statuses = set()
 
-                            # --- Iterar sobre 'realtime' en lugar de 'data' ---
+                            # --- Itera sobre 'realtime' en lugar de 'data' ---
                             if 'realtime' in station and isinstance(station['realtime'], list):
                                 for param in station['realtime']:
                                     # Los detalles de cada parámetro están en el objeto 'tableRow'
                                     details = param.get('tableRow', {})
                                     
-                                    # Obtenemos el estado directamente del campo 'status'
+                                    # Obtiene el estado directamente del campo 'status'
                                     param_status = details.get('status', 'no_disponible')
                                     if param_status:
                                         station_statuses.add(param_status)
 
-                                    # Decodificamos el nombre del parámetro para quitar caracteres HTML
+                                    # Decodifica el nombre del parámetro para quitar caracteres HTML
                                     param_name = unescape(details.get('parameter', 'N/A'))
                                     
                                     parametros_data.append({
@@ -320,7 +319,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             
                             final_station_status = "no_disponible"
                             if station_statuses:
-                                # Filtramos cualquier estado vacío o nulo antes de buscar el peor
+                                # Filtra cualquier estado vacío o nulo antes de buscar el peor
                                 valid_statuses = {s for s in station_statuses if s in status_priority}
                                 if valid_statuses:
                                     final_station_status = min(valid_statuses, key=lambda s: status_priority.get(s, 6))
@@ -334,7 +333,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             })
                     
                     ## --- CÓDIGO DE SIMULACIÓN DE ALERTA (TEMPORAL) ---
-                    ## Elige el estado que quieres simular: 'alerta', 'preemergencia', o 'emergencia'
+                    ## Abajo elige el estado que quieres simular: 'alerta', 'preemergencia', o 'emergencia'
                     #simulated_status = 'alerta' 
                     
                     ## Busca la primera estación en la lista para forzar la alerta
@@ -424,8 +423,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 result = subprocess.run(
                     command, 
                     capture_output=True, 
-                    text=True,  # Decodifica la salida como texto
-                    encoding='utf-8', # Especifica la codificación
+                    text=True,
+                    encoding='utf-8',
                     errors='replace',
                     timeout=300 # Timeout de 5 minutos por si el proceso se queda pegado
                 )
@@ -534,7 +533,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
                             # Guardar la imagen redimensionada en un buffer en memoria
                             output_buffer = io.BytesIO()
-                            # Intentar guardar en formato original si es posible, sino PNG
+                            # Intenta guardar en formato original si es posible, sino PNG
                             try:
                                 image_format = image.format if image.format else 'PNG'
                                 image.save(output_buffer, format=image_format)
