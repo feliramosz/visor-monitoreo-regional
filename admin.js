@@ -13,6 +13,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const adminHoraInforme = document.getElementById('adminHoraInforme');
     const adminTipoInforme = document.getElementById('adminTipoInforme');
 
+    // --- NUEVO: Elementos del Dashboard ---
+    const adminNumeroInforme = document.getElementById('adminNumeroInforme');
+    const adminNovedades = document.getElementById('adminNovedades');
+
+
     // Contenedores de secciones y botones de añadir
     const alertasContainer = document.getElementById('alertasContainer');
     const addAlertaBtn = document.getElementById('addAlertaBtn');
@@ -120,6 +125,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         adminFechaInforme.value = data.fecha_informe || '';
         adminHoraInforme.value = data.hora_informe ? data.hora_informe.replace(' h.', '').trim() : '';
         adminTipoInforme.value = data.tipo_informe || 'Desconocido';
+
+        // --- NUEVO: Cargar datos del dashboard ---
+        adminNumeroInforme.value = data.numero_informe_manual || '';
+        adminNovedades.value = data.nota_novedades || '';
+
 
         // 2. Resumen de Alertas Vigentes
         alertasContainer.innerHTML = '';
@@ -473,6 +483,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         updatedData.fecha_informe = adminFechaInforme.value;
         updatedData.hora_informe = adminHoraInforme.value + ' h.';
         updatedData.tipo_informe = adminTipoInforme.value;
+
+        // --- NUEVO: Recoger datos del dashboard ---
+        updatedData.numero_informe_manual = adminNumeroInforme.value;
+        updatedData.nota_novedades = adminNovedades.value;
+
 
         // 2. Recoger Alertas Vigentes
         updatedData.alertas_vigentes = Array.from(alertasContainer.children).map(item => ({

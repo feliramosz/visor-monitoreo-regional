@@ -1,8 +1,14 @@
 {
     "tipo_informe": "AM",
-    "fecha_informe": "Lunes 09 de junio 2025",
-    "hora_informe": "07:00 h.",
+    "fecha_informe": "Martes 10 de junio 2025",
+    "hora_informe": "07:18 h.",
     "alertas_vigentes": [
+        {
+            "nivel_alerta": "Temprana Preventiva",
+            "evento": "Meteorológico",
+            "cobertura": "Regional, excepto provincia de Isla de Pascua",
+            "amplitud": "SINAPRED"
+        },
         {
             "nivel_alerta": "Temprana Preventiva",
             "evento": "Alteración Sanitaria",
@@ -18,10 +24,10 @@
     ],
     "emergencias_ultimas_24_horas": [
         {
-            "n_informe": "149 - A",
-            "fecha_hora": "07/06 22:05h",
-            "evento_lugar": "Incendio estructural residencial, comuna de Viña del Mar(evento cerrado)",
-            "resumen": "05 persona damnificada, 08 afectadas, 01 vivienda destruida, 01 vivienda con daño menor habitable, es el resultado de un incendio estructural residencial que se desarrolló en calle Violeta Parra N°56, Población Las Palmeras Forestal Alto, comuna de Viña del Mar, Provincia de Valparaíso."
+            "n_informe": "151",
+            "fecha_hora": "09/06",
+            "evento_lugar": "Alteración del suministro de agua potable, comunas de Villa Alemana y Quilpué",
+            "resumen": "20.000 clientes aproximadamente están siendo afectados por una alteración de suministro de agua potable, el que se desarrolla en las comunas de Villa Alemana y Quilpué, Provincia de Marga-Marga. De acuerdo con lo informado por la Superintendencia de Servicios Sanitarios, indica que la interrupción se produce por la rotura en tubería de salida de estanque en Villa Alemana Sur. Los sectores afectados en la comuna de Villa Alemana son: Troncos Viejos, Martín Rivas, Alto El Rocío, Higuerillas, Vicente Martínez, Santa Sarah, San Enrique, Marga Marga, El Peumo, El Álamo, Palmilla Baja-Alta, Gumercindo, Población Prat y Población Valencia. A esto se suma la zona acotada de la comuna de Quilpué con las poblaciones afectadas: Sol del Pacífico, Villa Porvenir, Villa Pacífico, Los Pinos, Lanalhue - Teniente Serrano. Como medida de mitigación, la empresa sanitaria ha dispuesto la concurrencia de 10 camiones aljibes y en evaluación otras medidas sanitarias complementarias. Se estima la reposición del suministro durante la madrugada del martes 10 de junio."
         }
     ],
     "avisos_alertas_meteorologicas": [
@@ -32,8 +38,8 @@
             "cobertura": "Entre las regiones de Coquimbo al Biobío"
         },
         {
-            "aviso_alerta_alarma": "Aviso A205-2/2025",
-            "fecha_hora_emision": "08/06 12:56",
+            "aviso_alerta_alarma": "Aviso A205-3/2025",
+            "fecha_hora_emision": "09/06 12:43",
             "descripcion": "Viento Normal a Moderado desde la tarde del miércoles 11 a la tarde del jueves 12 de junio de junio",
             "cobertura": "Entre las regiones de Coquimbo al Biobío"
         },
@@ -41,6 +47,12 @@
             "aviso_alerta_alarma": "Aviso A208/2025",
             "fecha_hora_emision": "08/07 15:13",
             "descripcion": "Precipitaciones normales a moderadas en corto periodo de tiempo desde la madrugada a la tarde del miércoles 11 de junio.",
+            "cobertura": "Archipiélago Juan Fernández"
+        },
+        {
+            "aviso_alerta_alarma": "Aviso A209/2025",
+            "fecha_hora_emision": "09/06 11:45",
+            "descripcion": "Probables tormentas eléctricas, desde la madrugada hasta la mañana del jueves 12",
             "cobertura": "Archipiélago Juan Fernández"
         },
         {
@@ -112,13 +124,15 @@
             "observaciones": "A partir del domingo 1 de junio comienza el horario de invierno en el Paso Fronterizo Los Libertadores. De 08:00 a 20:00 hrs con corte de tránsito a las 18:00 en Guardia Vieja."
         }
     ],
-    "slide_interval": 10000,
+    "numero_informe_manual": "151",
+    "nota_novedades": "Eventos de prueba:\n- 04:30 C5 E-15; Isidoro Dubournais con Los Laberintos; colisión 02 veh menores 03x13. R24 ABC; 01 pista regulada al sur.\n- 05:10 C1 E-22; Lusitania con Los Platanos, amago en interior de domicilio, 02 afectados, R24 CB(03 unidades), R25.\n- 05:35 Alteración de suministro eléctrico, E-22 Agua Santa, 1500 clientes; EST (08:00 h)",
+    "slide_interval": 5000,
     "dynamic_slides": [
         {
-            "id": "20250609070459_IAM_3ee3989d.png",
-            "image_url": "assets/dynamic_slides/20250609070459_IAM_3ee3989d.png",
-            "title": "Informe de Amenaza Meteorológica emitido el 09/06",
-            "description": "Fuente: Centro Nacional de Análisis - Dirección Meteorológica de Chile"
+            "id": "20250610071822_IAM_915af972.png",
+            "image_url": "assets/dynamic_slides/20250610071822_IAM_915af972.png",
+            "title": "INFORME DE AMENAZA METEOROLÓGICA",
+            "description": "Fuente: DIRECCIÓN METEOROLÓGICA DE CHILE"
         }
     ]
 }

@@ -192,12 +192,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     STATIONS_MAP = {
                         "320019": "Chincolco, Petorca",
                         "330007": "Rodelillo, Valparaíso",
-                        "330161": "Jardín Botánico, Viña del Mar",
+                        "330161": "J. Botánico, Viña del Mar",
                         "320049": "Lo Zárate, San Antonio",
-                        "320124": "Liceo Agricola, Quillota",
+                        "320124": "L. Agricola, Quillota",
                         "320051": "Los Libertadores, Los Andes",
                         "330031": "Isla Juan Fernández",
-                        "270001": "Mataveri, Isla de Pascua" 
+                        "270001": "Isla de Pascua" 
                     }
                     
                     found_stations = {}
@@ -366,6 +366,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 file_to_serve = os.path.join(SERVER_ROOT, 'index.html')
             elif requested_path == '/admin':
                 file_to_serve = os.path.join(SERVER_ROOT, 'admin.html')
+            elif requested_path == '/dashboard':
+                file_to_serve = os.path.join(SERVER_ROOT, 'dashboard.html')    
             elif os.path.isdir(file_to_serve):
                 pass
 

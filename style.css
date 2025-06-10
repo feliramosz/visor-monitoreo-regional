@@ -448,7 +448,7 @@ footer {
 .weather-station-box h4 {
     margin-top: 0;
     margin-bottom: 5px;
-    font-size: 1.1em;
+    font-size: 0.9em;
     color: #004d99;
     border-bottom: 1px solid #eee;
     padding-bottom: 8px;
@@ -456,7 +456,7 @@ footer {
 
 .weather-station-box p {
     margin: 0px 0;
-    font-size: 0.95em;
+    font-size: 0.85em;
     line-height: 1.4;
 }
 
@@ -698,4 +698,219 @@ footer {
     50% {
         opacity: 0;
     }
+}
+
+/* --- ESTILOS ESPECÍFICOS PARA DASHBOARD.HTML (VERSIÓN FINAL) --- */
+
+/* 1. Body como contenedor flex de pantalla completa */
+body.dashboard-body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    margin: 0;
+    overflow-y: hidden; /* Previene el scroll principal */
+    background-color: #f0f2f5;
+}
+
+/* 2. Elementos que no se encogen */
+body.dashboard-body header,
+body.dashboard-body footer {
+    flex-shrink: 0;
+}
+
+/* 3. Banner del clima */
+.weather-banner {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin: 8px 5px;
+    box-sizing: border-box;
+    flex-shrink: 0; /* No se encoje */
+}
+
+.weather-banner .weather-station-box {
+    flex: 1;
+    min-width: 205px;
+    max-width: 220px;
+    border: 1px solid #e0e0e0;
+    box-shadow: none;
+    padding: 10px 10px 5px 10px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+}
+
+/* 4. Grid principal que crece para llenar el espacio */
+main.dashboard-grid {
+    /* Estilos correctos para el grid */
+    display: grid;
+    grid-template-columns: 0.6fr 0.6fr 1fr 1fr; /* <-- CAMBIO AQUÍ: Definimos 4 columnas */
+    gap: 15px;
+    padding: 0 5px 15px 5px;
+    flex-grow: 1;
+    overflow: hidden;
+    min-height: 0;
+
+    /* --- Líneas para ANULAR los estilos de la regla 'main' genérica --- */
+    max-width: none;
+    margin: 0;
+    background-color: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    border: none;
+    position: static;
+}
+
+/* 5. Columnas y Paneles */
+.dashboard-column {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-height: 0; /* Arreglo para flexbox */
+    min-width: 0;
+}
+
+.dashboard-panel {
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0; /* Arreglo para flexbox */
+}
+
+.dashboard-panel h3 {
+    margin-top: 0;
+    font-size: 1.4em;
+    color: #004d99;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+/* 6. Contenido de Paneles específicos */
+#air-quality-map-container-dashboard {
+    flex-grow: 1;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+#air-quality-alert-panel-dashboard {
+    flex-shrink: 0;
+    overflow-y: auto;
+    margin-top: 15px;
+    max-height: 25vh;
+}
+
+#air-quality-alert-panel-dashboard h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+/* 7. Listas y contenido con scroll interno */
+.dashboard-list,
+#novedades-content {
+    overflow-y: auto;
+}
+
+.dashboard-list {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.dashboard-list li {
+    padding: 10px 5px;
+    border-bottom: 1px solid #f0f0f0;
+    line-height: 1.5;
+}
+
+.dashboard-list li:last-child {
+    border-bottom: none;
+}
+
+/* 8. Panel Novedades Header */
+#panel-novedades .novedades-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+#panel-novedades .novedades-header h3 {
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+#panel-novedades .novedades-header #informe-correlativo {
+    font-weight: bold;
+    font-size: 1.1em;
+    background-color: #e9ecef;
+    padding: 5px 10px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+
+#novedades-content {
+    font-size: 1.1em;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    flex-grow: 1;
+}
+
+/* --- ESTILOS PARA LA MARQUESINA DE CALIDAD DEL AIRE --- */
+
+/* Contenedor principal que reemplaza el antiguo panel de alertas */
+#air-quality-alert-panel-dashboard {
+    flex-shrink: 0; /* No se encoge */
+    flex-grow: 0; /* No crece */
+    margin-top: 15px;
+    height: 45px; /* Altura fija para la barra de la marquesina */
+    background-color: #e9ecef;
+    border-radius: 5px;
+    border: 1px solid #ced4da;
+    display: flex;
+    align-items: center;
+    overflow: hidden; /* Oculta el texto que se sale del contenedor */
+}
+
+/* Contenedor del texto dentro de la barra */
+.marquee-container {
+    width: 100%;
+    white-space: nowrap; /* Evita que el texto se parta en varias líneas */
+    overflow: hidden;
+}
+
+/* El texto que se va a animar */
+.marquee-text {
+    display: inline-block;
+    padding-left: 100%; /* Inicia justo fuera de la vista a la derecha */
+    animation: marquee-scroll 10s linear infinite;
+    font-size: 1.1em;
+    color: #343a40;
+}
+
+.marquee-text strong {
+    color: #000;
+}
+
+/* La animación de desplazamiento */
+@keyframes marquee-scroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+/* Quitamos el título "Estaciones con Novedad" que ya no es necesario */
+#air-quality-alert-panel-dashboard h4 {
+    display: none;
 }
