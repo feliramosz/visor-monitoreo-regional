@@ -14,8 +14,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const novedadesContent = document.getElementById('novedades-content');
     const alertasListContainer = document.getElementById('alertas-list-container');
     const avisosListContainer = document.getElementById('avisos-list-container');
+    const avisosTitleContainer = document.querySelector('#panel-avisos .dynamic-title');
 
-    // --- NUEVO: Elementos del carrusel de mapas ---
+    // --- Controles del carrusel de MAPAS ---
     const mapPanelTitle = document.getElementById('map-panel-title');
     const airQualityMapContainer = document.getElementById('air-quality-map-container-dashboard');
     const precipitationMapContainer = document.getElementById('precipitation-map-container-dashboard');
@@ -25,21 +26,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevBtn = document.getElementById('map-prev-btn');
     const nextBtn = document.getElementById('map-next-btn');
     
-    // --- Estado del carrusel de mapas ---
+    // --- Controles del carrusel de AVISOS ---
+    const avisoPrevBtn = document.getElementById('aviso-prev-btn');
+    const avisoPausePlayBtn = document.getElementById('aviso-pause-play-btn');
+    const avisoNextBtn = document.getElementById('aviso-next-btn');
+
+    // Estado del carrusel de mapas
     let mapCarouselInterval;
     let currentMapSlide = 0;
-    const mapSlideDuration = 20000; // 20 segundos por slide
+    const mapSlideDuration = 20000;
     let isMapCarouselPaused = false;
     const mapTitles = ["Calidad del Aire (SINCA)", "Precipitaciones Últ. 24h"];
 
-    // --- Variables de los mapas y marcadores ---
+    // Estado del carrusel de AVISOS
+    let avisosCarouselInterval;
+    let currentAvisoPage = 0;
+    let avisoPages = [];
+    const avisoPageDuration = 15000;
+    let isAvisoCarouselPaused = false;
+
+    // Variables de los mapas y marcadores
     const stateToColor = {'bueno': '#4caf50', 'regular': '#ffeb3b', 'alerta': '#ff9800', 'preemergencia': '#f44336', 'emergencia': '#9c27b0', 'no_disponible': '#9e9e9e'};
     let airQualityMap = null;
     let airQualityMarkers = [];
     let precipitationMap = null;
     let precipitationMarkers = [];
     
-    // --- Lógica de Relojes ---
+    // Lógica de Relojes
     async function updateClocks() {
         try {
             const response = await fetch(SHOA_TIMES_API_URL);
@@ -69,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
         digits.forEach((digit, i) => { if(digit.textContent !== timeDigits[i]) digit.textContent = timeDigits[i]; });
     }
 
-    // --- Lógica de Renderizado de Paneles ---
+    // Lógica de Renderizado de Paneles
     async function fetchAndRenderWeather() {
         try {
             const response = await fetch(WEATHER_API_URL);
@@ -96,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await dataResponse.json();
             const novedades = await novedadesResponse.json();
 
-            // Panel Novedades
             numeroInformeDisplay.textContent = novedades.numero_informe_manual || 'N/A';
             if (novedades.entradas && novedades.entradas.length > 0) {
                 novedadesContent.innerHTML = novedades.entradas.slice(-5).reverse().map(item => 
@@ -106,21 +118,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 novedadesContent.textContent = 'No hay novedades para mostrar.';
             }
 
-            // Panel Alertas y Avisos
             renderAlertasList(alertasListContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
-            renderList(avisosListContainer, data.avisos_alertas_meteorologicas, 
-                item => `<strong>${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}`, 
-                '<p>No hay avisos meteorológicos.</p>'
-            );
+            setupAvisosCarousel(data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
+
         } catch (error) { console.error("Error al cargar datos principales:", error); }
     }
     
-    function renderList(container, items, formatter, noItemsText) {
-        if (items && items.length > 0) {
-            container.innerHTML = `<ul class="dashboard-list">${items.map(item => `<li>${formatter(item)}</li>`).join('')}</ul>`;
-        } else { container.innerHTML = noItemsText; }
-    }
-
     function renderAlertasList(container, items, noItemsText) {
         if (items && items.length > 0) {
             const listHtml = items.map(item => {
@@ -133,10 +136,133 @@ document.addEventListener('DOMContentLoaded', () => {
             }).join('');
             container.innerHTML = `<ul class="dashboard-list">${listHtml}</ul>`;
         } else { container.innerHTML = noItemsText; }
+        
+        checkAndApplyVerticalScroll(container);
     }
 
-    // --- LÓGICA DE MAPAS ---
-    // MAPA 1: Calidad del Aire
+    // --- Sistema de Carrusel de Avisos ---
+    function setupAvisosCarousel(items, noItemsText) {
+        clearInterval(avisosCarouselInterval);
+        const groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
+        if (items && items.length > 0) {
+            items.forEach(item => {
+                const titleText = item.aviso_alerta_alarma.toLowerCase();
+                if (titleText.includes('marejada')) groups.marejadas.push(item);
+                else if (titleText.includes('alarma')) groups.alarmas.push(item);
+                else if (titleText.includes('alerta')) groups.alertas.push(item);
+                else if (titleText.includes('aviso')) groups.avisos.push(item);
+            });
+        }
+
+        avisoPages = [];
+        Object.keys(groups).forEach(key => {
+            if (groups[key].length > 0) {
+                avisoPages.push({ key: key, items: groups[key] });
+            }
+        });
+
+        if (avisoPages.length > 1) {
+            let carouselHtml = '';
+            avisoPages.forEach((page, index) => {
+                const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
+                carouselHtml += `<div class="aviso-slide" data-page-index="${index}"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
+            });
+            avisosListContainer.innerHTML = carouselHtml;
+
+            currentAvisoPage = 0;
+            showAvisoPage(currentAvisoPage);
+            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
+            document.getElementById('avisos-carousel-controls').style.display = 'flex';
+        } else if (avisoPages.length === 1) {
+             const page = avisoPages[0];
+             const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
+             avisosListContainer.innerHTML = `<ul class="dashboard-list">${listItemsHtml}</ul>`;
+             checkAndApplyVerticalScroll(avisosListContainer);
+             avisosTitleContainer.querySelector(`span[data-title-key="${page.key}"]`).classList.add('active-title');
+             document.getElementById('avisos-carousel-controls').style.display = 'none';
+        }else {
+            avisosListContainer.innerHTML = noItemsText;
+            avisosTitleContainer.querySelectorAll('span').forEach(span => span.classList.remove('active-title'));
+            document.getElementById('avisos-carousel-controls').style.display = 'none';
+        }
+    }
+
+    function showAvisoPage(index) {
+        document.querySelectorAll('.aviso-slide').forEach((slide, i) => {
+            slide.style.transform = `translateX(${(i - index) * 100}%)`;
+        });
+
+        const activeKey = avisoPages[index].key;
+        avisosTitleContainer.querySelectorAll('span').forEach(span => {
+            span.classList.toggle('active-title', span.dataset.titleKey === activeKey);
+        });
+
+        const activeSlideContent = document.querySelector(`.aviso-slide[data-page-index="${index}"]`);
+        checkAndApplyVerticalScroll(activeSlideContent);
+    }
+    
+    function nextAvisoPage() {
+        if (avisoPages.length <= 1) return;
+        currentAvisoPage = (currentAvisoPage + 1) % avisoPages.length;
+        showAvisoPage(currentAvisoPage);
+    }
+
+    function prevAvisoPage() {
+        if (avisoPages.length <= 1) return;
+        currentAvisoPage = (currentAvisoPage - 1 + avisoPages.length) % avisoPages.length;
+        showAvisoPage(currentAvisoPage);
+    }
+    
+    function toggleAvisoPausePlay() {
+        isAvisoCarouselPaused = !isAvisoCarouselPaused;
+        if (isAvisoCarouselPaused) {
+            clearInterval(avisosCarouselInterval);
+            avisoPausePlayBtn.textContent = '▶';
+            avisoPausePlayBtn.classList.add('paused');
+        } else {
+            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
+            avisoPausePlayBtn.textContent = '||';
+            avisoPausePlayBtn.classList.remove('paused');
+        }
+    }
+
+    function resetAvisoInterval() {
+        if (!isAvisoCarouselPaused) {
+            clearInterval(avisosCarouselInterval);
+            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
+        }
+    }
+
+    function checkAndApplyVerticalScroll(container) {
+        if (!container) return;
+        const list = container.querySelector('ul');
+        if (!list) return;
+
+        container.classList.remove('is-scrolling');
+        const clones = container.querySelectorAll('.clone');
+        clones.forEach(clone => clone.remove());
+        
+        setTimeout(() => {
+            const containerHeight = container.clientHeight;
+            const listHeight = list.scrollHeight;
+
+            if (listHeight > containerHeight) {
+                const originalItems = list.innerHTML;
+                const clone = list.cloneNode(true);
+                clone.classList.add('clone');
+                list.parentNode.appendChild(clone);
+                
+                container.classList.add('is-scrolling');
+
+                const duration = (listHeight / 40) * 2;
+                container.querySelectorAll('.dashboard-list').forEach(l => {
+                    l.style.animationDuration = `${Math.max(duration, 15)}s`;
+                });
+            }
+        }, 100);
+    }
+
+    // LÓGICA DE MAPAS
     function initializeAirQualityMap() {
         if (airQualityMap) return;
         const mapCenter = [-32.94, -71.50];
@@ -189,7 +315,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- MAPA 2: Precipitaciones ---
     function initializePrecipitationMap() {
         if (precipitationMap) return;
         const mapCenter = [-32.95, -70.91];
@@ -209,19 +334,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (station.lat && station.lon) {
                     const precip = parseFloat(station.precipitacion) || 0;
                     
-                    let color = '#a1d99b'; // 0-1 mm
-                    if (precip > 20) color = '#08306b'; // > 20mm
-                    else if (precip > 10) color = '#08519c'; // 10-20mm
-                    else if (precip > 5) color = '#3182bd'; // 5-10mm
-                    else if (precip > 1) color = '#6baed6'; // 1-5mm
+                    let color = '#a1d99b';
+                    if (precip > 20) color = '#08306b'; else if (precip > 10) color = '#08519c';
+                    else if (precip > 5) color = '#3182bd'; else if (precip > 1) color = '#6baed6';
 
                     const marker = L.circleMarker([station.lat, station.lon], {
-                        radius: 8,
-                        fillColor: color,
-                        color: "#000",
-                        weight: 1,
-                        opacity: 1,
-                        fillOpacity: 0.8
+                        radius: 8, fillColor: color, color: "#000",
+                        weight: 1, opacity: 1, fillOpacity: 0.8
                     }).addTo(precipitationMap)
                       .bindPopup(`<b>${station.nombre}</b><br>Precipitación 24h: ${precip} mm`)                     
                       .bindTooltip(String(precip), { permanent: true, direction: 'bottom', className: 'precipitation-label', offsetY: 10 });
@@ -229,39 +348,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     precipitationMarkers.push(marker);
                 }
             });
-        } catch (error) {
-            console.error("Error al cargar datos del mapa meteorológico:", error);
-        }
+        } catch (error) { console.error("Error al cargar datos del mapa meteorológico:", error); }
     }
 
-    // --- Lógica del carrusel de mapas ---
     function showMapSlide(index) {
-        mapSlides.forEach((slide, i) => {
-            slide.classList.toggle('active-map-slide', i === index);
-        });
-        
-        // Actualizar título y visibilidad del panel de alertas de aire
+        mapSlides.forEach((slide, i) => { slide.classList.toggle('active-map-slide', i === index); });
         mapPanelTitle.textContent = mapTitles[index];
         airQualityAlertPanel.style.display = (index === 0) ? 'flex' : 'none';
-
-        // Redibujar el mapa activo para que se muestre correctamente
         if (index === 0 && airQualityMap) airQualityMap.invalidateSize();
         if (index === 1 && precipitationMap) precipitationMap.invalidateSize();
-
         currentMapSlide = index;
     }
 
-    function nextMapSlide() {
-        let newIndex = (currentMapSlide + 1) % mapSlides.length;
-        showMapSlide(newIndex);
-    }
+    function nextMapSlide() { showMapSlide((currentMapSlide + 1) % mapSlides.length); }
+    function prevMapSlide() { showMapSlide((currentMapSlide - 1 + mapSlides.length) % mapSlides.length); }
 
-    function prevMapSlide() {
-        let newIndex = (currentMapSlide - 1 + mapSlides.length) % mapSlides.length;
-        showMapSlide(newIndex);
-    }
-
-    function togglePausePlay() {
+    function toggleMapPausePlay() {
         isMapCarouselPaused = !isMapCarouselPaused;
         if (isMapCarouselPaused) {
             clearInterval(mapCarouselInterval);
@@ -274,27 +376,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- INICIO DE LA APLICACIÓN ---
     function initializeApp() {
-        // Inicialización de componentes
         updateClocks();
         fetchAndRenderWeather();
         fetchAndRenderMainData();
-
-        // Inicialización de mapas
-        initializeAirQualityMap();
-        fetchAndRenderAirQuality();
-        initializePrecipitationMap();
-        fetchAndRenderPrecipitationData();
-
-        // Configuración del carrusel de mapas
-        showMapSlide(0); // Mostrar el primer mapa al inicio
+        initializeAirQualityMap(); fetchAndRenderAirQuality();
+        initializePrecipitationMap(); fetchAndRenderPrecipitationData();
+        showMapSlide(0);
         mapCarouselInterval = setInterval(nextMapSlide, mapSlideDuration);
         
-        // Event Listeners para los controles
-        pausePlayBtn.addEventListener('click', togglePausePlay);
+        // Listeners para carrusel de MAPAS
+        pausePlayBtn.addEventListener('click', toggleMapPausePlay);
         nextBtn.addEventListener('click', nextMapSlide);
         prevBtn.addEventListener('click', prevMapSlide);
+        
+        // Listeners para carrusel de AVISOS
+        avisoNextBtn.addEventListener('click', () => { nextAvisoPage(); resetAvisoInterval(); });
+        avisoPrevBtn.addEventListener('click', () => { prevAvisoPage(); resetAvisoInterval(); });
+        avisoPausePlayBtn.addEventListener('click', toggleAvisoPausePlay);
 
         // Intervalos de actualización de datos
         setInterval(fetchAndRenderMainData, 60 * 1000);

@@ -261,13 +261,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     # Mismo mapa de estaciones que el banner para consistencia
                     STATIONS_MAP = {
                         "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
-                        "330006": "J. Botánico, Viña del Mar", "330161": "Lo Zárate, San Antonio",
-                        "320124": "L. Agricola, Quillota", "320051": "Los Libertadores, Los Andes",
+                        "330161": "Lo Zárate, San Antonio", "320124": "L. Agricola, Quillota",
                         "330031": "Isla Juan Fernández", "270001": "Isla de Pascua",
                         "320063": "Zapallar, Catapilco", "320019": "San Felipe,",
                         "320045": "Llay Llay", "330030": "Santo Domingo",
-                        "320121": "Putaendo", "320122": "Panquehue,",
-                        "320123": "San Esteban"
+                        "320121": "Putaendo", "320051": "Los Libertadores, Los Andes",
+                        "320123": "San Esteban", "330121": "Curacaví"
                     }
                     
                     map_data = []

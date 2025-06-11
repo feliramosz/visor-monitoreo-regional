@@ -59,8 +59,19 @@
 
                 <div class="dashboard-column">
                     <div id="panel-avisos" class="dashboard-panel">
-                        <h3>Avisos / Alertas / Alarmas / Marejadas</h3>
-                        <div id="avisos-list-container"></div>
+                        <h3 class="dynamic-title">
+                            <span data-title-key="avisos">Avisos</span> / 
+                            <span data-title-key="alertas">Alertas</span> / 
+                            <span data-title-key="alarmas">Alarmas</span> / 
+                            <span data-title-key="marejadas">Marejadas</span>
+                        </h3>
+                        <div id="avisos-list-container">
+                            </div>
+                        <div id="avisos-carousel-controls">
+                            <button id="aviso-prev-btn">&lt;</button>
+                            <button id="aviso-pause-play-btn">||</button>
+                            <button id="aviso-next-btn">&gt;</button>
+                        </div>
                     </div>
                 </div>
 

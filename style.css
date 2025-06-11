@@ -1022,3 +1022,161 @@ main.dashboard-grid {
     color: #000000;
     text-shadow: 1px 1px 2px #ffffff, -1px -1px 2px #ffffff, 1px -1px 2px #ffffff, -1px 1px 2px #ffffff;
 }
+
+/* --- ESTILOS PARA RESALTADO DE AVISOS EN DASHBOARD --- */
+.dashboard-list strong {
+    font-weight: bold;
+    padding: 3px 6px;
+    border-radius: 4px;
+    margin-right: 5px;
+    display: inline-block; /* Permite aplicar padding y border-radius */
+}
+
+/* VERDE para Avisos */
+.dashboard-list .aviso-aviso {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+/* AMARILLO para Alertas */
+.dashboard-list .aviso-alerta {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+/* ROJO para Alarmas */
+.dashboard-list .aviso-alarma {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* AZUL para Marejadas */
+.dashboard-list .aviso-marejadas {
+    background-color: #cfe2ff;
+    color: #084298;
+    border: 1px solid #b6d4fe;
+}
+
+/* --- ESTILOS PARA CARRUSEL DE AVISOS Y SCROLL VERTICAL --- */
+
+/* --- 1. Título dinámico --- */
+.dynamic-title span {
+    transition: all 0.4s ease-in-out;
+    color: #6c757d; /* Color gris para títulos inactivos */
+    font-weight: normal;
+    padding: 2px 0;
+}
+
+.dynamic-title span.active-title {
+    color: #0056b3; /* Color azul fuerte para el título activo */
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(0, 86, 179, 0.3);
+    border-bottom: 2px solid #0056b3;
+}
+
+/* --- 2. Contenedor del carrusel de avisos --- */
+#avisos-list-container {
+    position: relative;
+    flex-grow: 1; /* Ocupa el espacio disponible en el panel */
+    overflow: hidden;
+    width: 100%;
+}
+
+/* --- 3. Diapositivas del carrusel de avisos --- */
+.aviso-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1); /* Animación de deslizamiento suave */
+    /* Se añade el efecto de fade vertical */
+    -webkit-mask-image: linear-gradient(transparent, black 10%, black 90%, transparent);
+    mask-image: linear-gradient(transparent, black 10%, black 90%, transparent);
+}
+
+/* --- 4. Estilos para el scroll vertical DENTRO de una diapositiva --- */
+.is-scrolling .dashboard-list {
+    /* Animación de desplazamiento vertical */
+    animation: vertical-scroll linear infinite;
+}
+
+@keyframes vertical-scroll {
+    from { transform: translateY(0); }
+    to { transform: translateY(-50%); } /* Se desplaza hasta la mitad (donde empieza el clon) */
+}
+
+/* --- 5. Estilos para el resaltado de títulos dentro de la lista (ya existentes, pero los muevo aquí para agrupar) --- */
+.dashboard-list strong[class^="aviso-"] {
+    font-weight: bold;
+    padding: 3px 6px;
+    border-radius: 4px;
+    margin-right: 5px;
+    display: inline-block;
+    border: 1px solid transparent;
+}
+
+.aviso-avisos {
+    background-color: #d4edda; color: #155724; border-color: #c3e6cb;
+}
+.aviso-alertas {
+    background-color: #fff3cd; color: #856404; border-color: #ffeeba;
+}
+.aviso-alarmas {
+    background-color: #f8d7da; color: #721c24; border-color: #f5c6cb;
+}
+.aviso-marejadas {
+    background-color: #cfe2ff; color: #084298; border-color: #b6d4fe;
+}
+
+/* --- AJUSTE AL DEGRADADO DEL CARRUSEL DE AVISOS --- */
+.aviso-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1);
+    /* El degradado ahora es mucho más corto (2%) para no afectar la lectura */
+    -webkit-mask-image: linear-gradient(transparent, black 2%, black 98%, transparent);
+    mask-image: linear-gradient(transparent, black 2%, black 98%, transparent);
+}
+
+/* --- ESTILOS PARA LOS CONTROLES DEL CARRUSEL DE AVISOS --- */
+#avisos-carousel-controls {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding-top: 10px; /* Espacio entre la lista y los botones */
+    border-top: 1px solid #f0f0f0; /* Línea separadora sutil */
+    margin-top: auto; /* Empuja los controles a la parte inferior del panel */
+    flex-shrink: 0; /* Evita que los botones se encojan */
+}
+
+#avisos-carousel-controls button {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    width: 35px;
+    height: 30px;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #495057;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#avisos-carousel-controls button:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+}
+
+#avisos-carousel-controls button.paused {
+    background-color: #e2e6ea;
+}
