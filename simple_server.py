@@ -260,10 +260,14 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
                     # Mismo mapa de estaciones que el banner para consistencia
                     STATIONS_MAP = {
-                        "320019": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
-                        "330161": "J. Botánico, Viña del Mar", "320049": "Lo Zárate, San Antonio",
+                        "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
+                        "330006": "J. Botánico, Viña del Mar", "330161": "Lo Zárate, San Antonio",
                         "320124": "L. Agricola, Quillota", "320051": "Los Libertadores, Los Andes",
-                        "330031": "Isla Juan Fernández", "270001": "Isla de Pascua"
+                        "330031": "Isla Juan Fernández", "270001": "Isla de Pascua",
+                        "320063": "Zapallar, Catapilco", "320019": "San Felipe,",
+                        "320045": "Llay Llay", "330030": "Santo Domingo",
+                        "320121": "Putaendo", "320122": "Panquehue,",
+                        "320123": "San Esteban"
                     }
                     
                     map_data = []
@@ -464,50 +468,60 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         # --- FIN ENDPOINT POST NOVEDADES ---
 
         elif self.path == '/api/trigger-download':
-            try:
-                print("INFO: Se ha recibido una solicitud para ejecutar descargar_informe.py manualmente.")
+                    try:
+                        print("INFO: Se ha recibido una solicitud para ejecutar descargar_informe.py manualmente.")                        
+                        server_root = os.path.dirname(os.path.abspath(__file__))                        
+                        if os.name == 'nt': # Para Windows
+                            python_executable = os.path.join(server_root, 'venv', 'Scripts', 'python.exe')
+                        else: # Para Linux, macOS, etc.
+                            python_executable = os.path.join(server_root, 'venv', 'bin', 'python')                        
+                        if not os.path.exists(python_executable):
+                            print(f"ADVERTENCIA: No se encontró el ejecutable de Python en '{python_executable}'. Usando el 'python' global. Esto podría causar errores de módulos.")
+                            python_executable = "python"                        
+                        
+                        command = [python_executable, "descargar_informe.py"]                       
+                        
+                        result = subprocess.run(
+                            command, 
+                            capture_output=True, 
+                            text=True,
+                            encoding='utf-8',
+                            errors='replace',
+                            timeout=300 # Timeout de 5 minutos por si el proceso se queda pegado
+                        )
 
-                command = ["python", "descargar_informe.py"]
-                
-                result = subprocess.run(
-                    command, 
-                    capture_output=True, 
-                    text=True,
-                    encoding='utf-8',
-                    errors='replace',
-                    timeout=300 
-                )
+                        # Verificamos si el script se ejecutó correctamente (código de salida 0)
+                        if result.returncode == 0:
+                            print("SUCCESS: El script descargar_informe.py se ejecutó correctamente.")
+                            self._set_headers(200, 'application/json')
+                            response = {
+                                "success": True,
+                                "message": "El script se ejecutó correctamente.",
+                                "output": result.stdout
+                            }
+                            self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
+                        else:
+                            # Si el script falló, enviamos un error 500 con la salida del error
+                            print(f"ERROR: El script descargar_informe.py falló con el código {result.returncode}.")
+                            self._set_headers(500, 'application/json')
+                            response = {
+                                "success": False,
+                                "message": "Error durante la ejecución del script.",
+                                "error": result.stderr,
+                                "output": result.stdout
+                            }
+                            self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
 
-                if result.returncode == 0:
-                    print("SUCCESS: El script descargar_informe.py se ejecutó correctamente.")
-                    self._set_headers(200, 'application/json')
-                    response = {
-                        "success": True,
-                        "message": "El script se ejecutó correctamente.",
-                        "output": result.stdout
-                    }
-                    self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
-                else:
-                    print(f"ERROR: El script descargar_informe.py falló con el código {result.returncode}.")
-                    self._set_headers(500, 'application/json')
-                    response = {
-                        "success": False,
-                        "message": "Error durante la ejecución del script.",
-                        "error": result.stderr,
-                        "output": result.stdout
-                    }
-                    self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
-
-            except FileNotFoundError:
-                self._set_headers(500, 'application/json')
-                self.wfile.write(json.dumps({"error": "No se encontró el script 'descargar_informe.py'."}).encode('utf-8'))
-            except subprocess.TimeoutExpired:
-                self._set_headers(500, 'application/json')
-                self.wfile.write(json.dumps({"error": "La ejecución del script tardó demasiado y fue cancelada (Timeout)."}).encode('utf-8'))
-            except Exception as e:
-                self._set_headers(500, 'application/json')
-                self.wfile.write(json.dumps({"error": f"Ocurrió un error inesperado en el servidor: {e}"}).encode('utf-8'))
-            return
+                    except FileNotFoundError:
+                        self._set_headers(500, 'application/json')
+                        self.wfile.write(json.dumps({"error": "No se encontró el script 'descargar_informe.py'."}).encode('utf-8'))
+                    except subprocess.TimeoutExpired:
+                        self._set_headers(500, 'application/json')
+                        self.wfile.write(json.dumps({"error": "La ejecución del script tardó demasiado y fue cancelada (Timeout)."}).encode('utf-8'))
+                    except Exception as e:
+                        self._set_headers(500, 'application/json')
+                        self.wfile.write(json.dumps({"error": f"Ocurrió un error inesperado en el servidor: {e}"}).encode('utf-8'))
+                    return
 
         elif self.path == '/api/upload_image':
             content_type_header = self.headers.get('Content-Type', '')

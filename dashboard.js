@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const SHOA_TIMES_API_URL = '/api/shoa_times';
     const WEATHER_API_URL = '/api/weather';
     const AIR_QUALITY_API_URL = '/api/calidad_aire';
-    const METEO_MAP_API_URL = '/api/estaciones_meteo_mapa'; // <-- NUEVA API
+    const METEO_MAP_API_URL = '/api/estaciones_meteo_mapa';
 
     // Referencias a elementos del DOM
     const weatherBannerContainer = document.getElementById('weather-banner-container');
@@ -25,12 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevBtn = document.getElementById('map-prev-btn');
     const nextBtn = document.getElementById('map-next-btn');
     
-    // --- NUEVO: Estado del carrusel de mapas ---
+    // --- Estado del carrusel de mapas ---
     let mapCarouselInterval;
     let currentMapSlide = 0;
     const mapSlideDuration = 20000; // 20 segundos por slide
     let isMapCarouselPaused = false;
-    const mapTitles = ["Calidad del Aire (SINCA)", "Precipitaciones Últimas 24h (DMC)"];
+    const mapTitles = ["Calidad del Aire (SINCA)", "Precipitaciones Últ. 24h"];
 
     // --- Variables de los mapas y marcadores ---
     const stateToColor = {'bueno': '#4caf50', 'regular': '#ffeb3b', 'alerta': '#ff9800', 'preemergencia': '#f44336', 'emergencia': '#9c27b0', 'no_disponible': '#9e9e9e'};
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let precipitationMap = null;
     let precipitationMarkers = [];
     
-    // --- Lógica de Relojes (sin cambios) ---
+    // --- Lógica de Relojes ---
     async function updateClocks() {
         try {
             const response = await fetch(SHOA_TIMES_API_URL);
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         digits.forEach((digit, i) => { if(digit.textContent !== timeDigits[i]) digit.textContent = timeDigits[i]; });
     }
 
-    // --- Lógica de Renderizado de Paneles (sin cambios en su mayoría) ---
+    // --- Lógica de Renderizado de Paneles ---
     async function fetchAndRenderWeather() {
         try {
             const response = await fetch(WEATHER_API_URL);
@@ -136,12 +136,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- LÓGICA DE MAPAS ---
-
     // MAPA 1: Calidad del Aire
     function initializeAirQualityMap() {
         if (airQualityMap) return;
-        const mapCenter = [-32.95, -71.50];
-        airQualityMap = L.map(airQualityMapContainer).setView(mapCenter, 9);
+        const mapCenter = [-32.94, -71.50];
+        airQualityMap = L.map(airQualityMapContainer).setView(mapCenter, 10);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(airQualityMap);
     }
     
@@ -170,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const alertText = stationsWithNews.map(s => `<strong>${s.nombre_estacion}:</strong> ${s.estado.replace('_', ' ')}`).join(' &nbsp; | &nbsp; ');
                 airQualityAlertPanel.innerHTML = `<div class="marquee-container"><p class="marquee-text">${alertText}</p></div>`;
             } else {
-                airQualityAlertPanel.innerHTML = '<div class="marquee-container"><p style="text-align:center; width:100%;">Todas las estaciones reportan un estado Bueno.</p></div>';
+                airQualityAlertPanel.innerHTML = '<div class="marquee-container"><p style="text-align:center; width:100%;">Reporte de estado: Bueno.</p></div>';
             }
             updateHeaderAlert(stations);
         } catch (error) {
@@ -193,25 +192,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- MAPA 2: Precipitaciones ---
     function initializePrecipitationMap() {
         if (precipitationMap) return;
-        const mapCenter = [-32.95, -71.50];
-        precipitationMap = L.map(precipitationMapContainer).setView(mapCenter, 9);
+        const mapCenter = [-32.95, -70.91];
+        precipitationMap = L.map(precipitationMapContainer).setView(mapCenter, 8);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(precipitationMap);
-
-        // Leyenda para el mapa de precipitaciones
-        const legend = L.control({ position: 'bottomright' });
-        legend.onAdd = function (map) {
-            const div = L.DomUtil.create('div', 'info legend');
-            const grades = [0, 1, 5, 10, 20];
-            const colors = ['#a1d99b', '#6baed6', '#3182bd', '#08519c', '#08306b'];
-            div.innerHTML = '<h4>Precip. (mm)</h4>';
-            for (let i = 0; i < grades.length; i++) {
-                div.innerHTML +=
-                    `<i style="background:${colors[i]}"></i> ` +
-                    grades[i] + (grades[i + 1] ? `&ndash;${grades[i + 1]}<br>` : '+');
-            }
-            return div;
-        };
-        legend.addTo(precipitationMap);
     }
 
     async function fetchAndRenderPrecipitationData() {
@@ -239,7 +222,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         weight: 1,
                         opacity: 1,
                         fillOpacity: 0.8
-                    }).addTo(precipitationMap).bindPopup(`<b>${station.nombre}</b><br>Precipitación 24h: ${precip} mm`);
+                    }).addTo(precipitationMap)
+                      .bindPopup(`<b>${station.nombre}</b><br>Precipitación 24h: ${precip} mm`)                     
+                      .bindTooltip(String(precip), { permanent: true, direction: 'bottom', className: 'precipitation-label', offsetY: 10 });
+                      
                     precipitationMarkers.push(marker);
                 }
             });

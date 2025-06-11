@@ -1,7 +1,7 @@
 {
-    "tipo_informe": "PM",
+    "tipo_informe": "AM",
     "fecha_informe": "Martes 10 de junio 2025",
-    "hora_informe": "19:04 h.",
+    "hora_informe": "2:44 h.",
     "alertas_vigentes": [
         {
             "nivel_alerta": "Temprana Preventiva",
@@ -24,23 +24,29 @@
     ],
     "emergencias_ultimas_24_horas": [
         {
-            "n_informe": "151",
-            "fecha_hora": "09/06",
-            "evento_lugar": "Alteración del suministro de agua potable, comunas de Villa Alemana y Quilpué",
-            "resumen": "20.000 clientes aproximadamente están siendo afectados por una alteración de suministro de agua potable, el que se desarrolla en las comunas de Villa Alemana y Quilpué, Provincia de Marga-Marga. De acuerdo con lo informado por la Superintendencia de Servicios Sanitarios, indica que la interrupción se produce por la rotura en tubería de salida de estanque en Villa Alemana Sur. Los sectores afectados en la comuna de Villa Alemana son: Troncos Viejos, Martín Rivas, Alto El Rocío, Higuerillas, Vicente Martínez, Santa Sarah, San Enrique, Marga Marga, El Peumo, El Álamo, Palmilla Baja-Alta, Gumercindo, Población Prat y Población Valencia. A esto se suma la zona acotada de la comuna de Quilpué con las poblaciones afectadas: Sol del Pacífico, Villa Porvenir, Villa Pacífico, Los Pinos, Lanalhue - Teniente Serrano. Como medida de mitigación, la empresa sanitaria ha dispuesto la concurrencia de 10 camiones aljibes y en evaluación otras medidas sanitarias complementarias. Se estima la reposición del suministro durante la madrugada del martes 10 de junio."
+            "n_informe": "152",
+            "fecha_hora": "10/06",
+            "evento_lugar": "Incendio Estructural en la Comuna de Valparaíso",
+            "resumen": "A la hora del presente informe se registra un incendio estructural declarado que de manera preliminar afecta a 01 vivienda, en camino Cintura con Williams Lyon, comuna de Valparaíso, Provincia de Valparaíso. \nDe acuerdo con la evaluación inicial realizada por personal de Bomberos, se trabaja en la contención de la propagación. Personal de la empresa Chilquinta realizo el corte de suministro eléctrico en el sector para el trabajo de seguro de Bomberos"
         }
     ],
     "avisos_alertas_meteorologicas": [
         {
+            "aviso_alerta_alarma": "Alerta AA42/2025",
+            "fecha_hora_emision": "10/06 12:05",
+            "descripcion": "Viento Moderado a Fuerte desde la tarde del miércoles 11 a la madrugada del jueves 12 de junio.",
+            "cobertura": "Desde la región de Valparaíso al Biobío"
+        },
+        {
             "aviso_alerta_alarma": "Aviso A204-2/2025",
-            "fecha_hora_emision": "08/07 15:13",
+            "fecha_hora_emision": "08/06 15:13",
             "descripcion": "Precipitaciones normales a moderadas desde la madrugada y la noche del jueves 12 de junio.",
             "cobertura": "Entre las regiones de Coquimbo al Biobío"
         },
         {
-            "aviso_alerta_alarma": "Aviso A205-3/2025",
-            "fecha_hora_emision": "09/06 12:43",
-            "descripcion": "Viento Normal a Moderado desde la tarde del miércoles 11 a la tarde del jueves 12 de junio de junio",
+            "aviso_alerta_alarma": "Aviso A205-4/2025",
+            "fecha_hora_emision": "10/06 12:28",
+            "descripcion": "Viento Normal a Moderado desde la madrugada del miércoles 11 a la tarde del jueves 12 de junio.",
             "cobertura": "Entre las regiones de Coquimbo al Biobío"
         },
         {
@@ -50,9 +56,9 @@
             "cobertura": "Archipiélago Juan Fernández"
         },
         {
-            "aviso_alerta_alarma": "Aviso A209/2025",
-            "fecha_hora_emision": "09/06 11:45",
-            "descripcion": "Probables tormentas eléctricas, desde la madrugada hasta la mañana del jueves 12",
+            "aviso_alerta_alarma": "Aviso A209-1/2025",
+            "fecha_hora_emision": "10/06 12:08",
+            "descripcion": "Probables tormentas eléctricas, desde la noche 11 de junio hasta la mañana del jueves 12",
             "cobertura": "Archipiélago Juan Fernández"
         },
         {
@@ -60,13 +66,25 @@
             "fecha_hora_emision": "07/06 10:27",
             "descripcion": "Aviso de Marejadas desde el lunes 09/06 hasta el miércoles 11/06",
             "cobertura": "Isla de Pascua"
+        },
+        {
+            "aviso_alerta_alarma": "Aviso de Marejadas N°22",
+            "fecha_hora_emision": "09/06 16:06",
+            "descripcion": "Aviso de Marejadas desde el miércoles 11/06 hasta el viernes 13/06",
+            "cobertura": "Golfo de Penas hasta Arica y Archipiélago Juan Fernández."
+        },
+        {
+            "aviso_alerta_alarma": "Aviso A212/2025",
+            "fecha_hora_emision": "10/06 13:39",
+            "descripcion": "Aviso de viento normal a moderado desde la madrugada a la tarde del miércoles 11 de junio.",
+            "cobertura": "Isla de Pascua"
         }
     ],
     "radiacion_uv": {
         "observado_ayer_label": "Índice observado hoy:",
-        "observado_ayer_value": "3 (Moderado)",
+        "observado_ayer_value": "2 (Bajo)",
         "pronosticado_hoy_label": "Índice pronosticado para mañana:",
-        "pronosticado_hoy_value": "3 – 5 (Moderado)"
+        "pronosticado_hoy_value": "1-2 (Bajo)"
     },
     "estado_carreteras": [
         {
@@ -89,7 +107,7 @@
         {
             "puerto": "Hanga Roa",
             "estado_del_puerto": "Puerto cerrado para embarcaciones menores dentro y fuera de la bahía",
-            "condicion": "Marejadas"
+            "condicion": "Ola - Marejada"
         },
         {
             "puerto": "Quintero",
@@ -113,8 +131,8 @@
         },
         {
             "puerto": "Juan Fernández",
-            "estado_del_puerto": "Sin restricciones.",
-            "condicion": "Normal"
+            "estado_del_puerto": "Puerto cerrado para embarcaciones menores dentro y fuera de la bahía",
+            "condicion": "Ola - Marejada"
         }
     ],
     "estado_pasos_fronterizos": [
@@ -124,15 +142,6 @@
             "observaciones": "A partir del domingo 1 de junio comienza el horario de invierno en el Paso Fronterizo Los Libertadores. De 08:00 a 20:00 hrs con corte de tránsito a las 18:00 en Guardia Vieja."
         }
     ],
-    "numero_informe_manual": "151",
-    "nota_novedades": "Eventos de prueba:\n- 04:30 C5 E-15; Isidoro Dubournais con Los Laberintos; colisión 02 veh menores 03x13. R24 ABC; 01 pista regulada al sur.\n- 05:10 C1 E-22; Lusitania con Los Platanos, amago en interior de domicilio, 02 afectados, R24 CB(03 unidades), R25.\n- 05:35 Alteración de suministro eléctrico, E-22 Agua Santa, 1500 clientes; EST (08:00 h)",
-    "slide_interval": 5000,
-    "dynamic_slides": [
-        {
-            "id": "20250610071822_IAM_915af972.png",
-            "image_url": "assets/dynamic_slides/20250610071822_IAM_915af972.png",
-            "title": "INFORME DE AMENAZA METEOROLÓGICA",
-            "description": "Fuente: DIRECCIÓN METEOROLÓGICA DE CHILE"
-        }
-    ]
+    "dynamic_slides": [],
+    "slide_interval": 10000
 }

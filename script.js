@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             console.error("Error al procesar datos de sismos:", error);
-            tableSismosBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">Error al cargar datos sísmicos.</td></tr>`;
+            tableSismosBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">Error de conexión desde el servidor de sismología.</td></tr>`;
         }
     }
 
