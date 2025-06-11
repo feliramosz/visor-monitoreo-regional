@@ -191,59 +191,174 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderData(data) {
-        if (!data) {
-            fechaInformeSpan.textContent = 'No se pudo cargar el informe.';
+// REEMPLAZA LA FUNCIÓN renderData ANTIGUA CON ESTA NUEVA VERSIÓN:
+function renderData(data) {
+    if (!data) {
+        fechaInformeSpan.textContent = 'No se pudo cargar el informe.';
+        return;
+    }
+
+    // Aplicar el intervalo de slide personalizado si existe
+    if (data.slide_interval && !isNaN(parseInt(data.slide_interval))) {
+        slideInterval = parseInt(data.slide_interval);
+    } else {
+        slideInterval = 15000; // Valor por defecto
+    }
+
+    fechaInformeSpan.textContent = data.fecha_informe || 'N/A';
+    horaInformeSpan.textContent = data.hora_informe || 'N/A';
+
+    const mainElement = document.querySelector('main');
+    
+    // --- LÓGICA DE PAGINACIÓN ---
+    // 1. Limpiar diapositivas paginadas de ejecuciones anteriores
+    mainElement.querySelectorAll('.paginated-slide').forEach(slide => slide.remove());
+
+    const ITEMS_PER_PAGE = 5; // Máximo 5 items por diapositiva
+
+    // 2. Función auxiliar para generar las diapositivas
+    const generatePaginatedSlides = (items, config) => {
+        if (!items || items.length === 0) {
+            document.querySelector(config.firstPageTbodySelector).innerHTML = `<tr><td colspan="${config.colspan}" class="no-data-cell">${config.noDataMessage}</td></tr>`;
             return;
         }
 
-        // Aplicar el intervalo de slide personalizado si existe
-        if (data.slide_interval && !isNaN(parseInt(data.slide_interval))) {
-            slideInterval = parseInt(data.slide_interval);
-            console.log(`Velocidad del carrusel actualizada a: ${slideInterval / 1000} segundos.`);
-        } else {
-            slideInterval = 15000; // Valor por defecto si no hay nada guardado
-        }
+        const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
+        let slidesHtml = '';
 
-        fechaInformeSpan.textContent = data.fecha_informe || 'N/A';
-        horaInformeSpan.textContent = data.hora_informe || 'N/A';
-        const renderTableRows = (tbody, dataArray, cellBuilders, colspan, noDataMessage) => {
-            tbody.innerHTML = '';
-            if (dataArray && dataArray.length > 0) {
-                dataArray.forEach(item => {
-                    const row = tbody.insertRow();
-                    cellBuilders.forEach(builder => builder(row, item));
-                });
+        for (let i = 0; i < totalPages; i++) {
+            const pageItems = items.slice(i * ITEMS_PER_PAGE, (i + 1) * ITEMS_PER_PAGE);
+            const tableRowsHtml = pageItems.map(item => config.rowBuilder(item)).join('');
+            
+            const pageTitle = totalPages > 1 ? `${config.title} (Página ${i + 1} de ${totalPages})` : config.title;
+
+            if (i === 0) {
+                // Rellenar la primera página en la diapositiva original
+                document.querySelector(config.titleSelector).textContent = pageTitle;
+                document.querySelector(config.firstPageTbodySelector).innerHTML = tableRowsHtml;
             } else {
-                tbody.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center; font-style:italic;">${noDataMessage}</td></tr>`;
+                // Crear nuevas diapositivas para las páginas siguientes
+                slidesHtml += `
+                    <section class="slide paginated-slide">
+                        <h2>${pageTitle}</h2>
+                        <table class="${config.tableClass}">
+                            <thead><tr>${config.headers}</tr></thead>
+                            <tbody>${tableRowsHtml}</tbody>
+                        </table>
+                        <p class="data-source">${config.source}</p>
+                    </section>
+                `;
             }
-        };
-        renderTableRows(tableAlertasBody, data.alertas_vigentes, [ (row, item) => { const cell = row.insertCell(); cell.textContent = item.nivel_alerta; const nivelTexto = (item.nivel_alerta || '').toLowerCase(); if (nivelTexto.includes('temprana preventiva')) cell.className = 'alerta-temprana-preventiva'; else if (nivelTexto.includes('amarilla')) cell.className = 'alerta-amarilla'; else if (nivelTexto.includes('roja')) cell.className = 'alerta-roja'; }, (row, item) => row.insertCell().textContent = item.evento, (row, item) => row.insertCell().textContent = item.cobertura, (row, item) => row.insertCell().textContent = item.amplitud ], 4, "No hay alertas vigentes registradas.");
-        renderTableRows(tableEmergenciasBody, data.emergencias_ultimas_24_horas, [(r, i) => { const c = r.insertCell(); c.textContent = i.n_informe; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.fecha_hora; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.evento_lugar; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.resumen; c.className = 'text-justify'; }], 4, "No hay emergencias registradas.");
-        renderTableRows(tableAvisosMetBody, data.avisos_alertas_meteorologicas, [(r, i) => { const c = r.insertCell(); c.textContent = i.aviso_alerta_alarma; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.fecha_hora_emision; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.descripcion; c.className = 'text-justify'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.cobertura; c.className = 'v-align-middle'; }], 4, "No hay avisos/alertas meteorológicas.");
-        if (data.radiacion_uv) {
-            uvObservadoLabelSpan.textContent = data.radiacion_uv.observado_ayer_label || 'Observado ayer:';
-            uvObservadoValueSpan.textContent = data.radiacion_uv.observado_ayer_value || 'N/A';
-            uvPronosticadoLabelSpan.textContent = data.radiacion_uv.pronosticado_hoy_label || 'Pronosticado para hoy:';
-            uvPronosticadoValueSpan.textContent = data.radiacion_uv.pronosticado_hoy_value || 'N/A';
         }
-        renderTableRows(tableCarreterasBody, data.estado_carreteras, [(r, i) => { const c = r.insertCell(); c.textContent = i.carretera; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.estado; c.className = 'text-justify'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.condicion; c.className = 'v-align-middle'; }], 3, "No hay info de carreteras.");
-        renderTableRows(tablePuertosBody, data.estado_puertos, [(r, i) => r.insertCell().textContent = i.puerto, (r, i) => r.insertCell().textContent = i.estado_del_puerto, (r, i) => r.insertCell().textContent = i.condicion], 3, "No hay info de puertos.");
-        renderTableRows(tablePasosFronterizosBody, data.estado_pasos_fronterizos, [(r, i) => { const c = r.insertCell(); c.textContent = i.nombre_paso; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.condicion; c.className = 'v-align-middle'; }, (r, i) => { const c = r.insertCell(); c.textContent = i.observaciones; c.className = 'text-justify'; }], 3, "No hay info de pasos fronterizos.");
-        const mainElement = document.querySelector('main');
-        mainElement.querySelectorAll('.dynamic-image-slide').forEach(slide => slide.remove());
-        if (data.dynamic_slides && data.dynamic_slides.length > 0) {
-            data.dynamic_slides.forEach((slideInfo) => {
-                const newSlide = document.createElement('section');
-                newSlide.className = 'slide dynamic-image-slide';
-                newSlide.innerHTML = `<div class="slide-content-wrapper"><h2>${slideInfo.title || 'Imagen de Monitoreo'}</h2><img src="${slideInfo.image_url}" alt="${slideInfo.title || ''}" class="responsive-image">${slideInfo.description ? `<p class="data-source">${slideInfo.description}</p>` : ''}</div>`;
-            mainElement.appendChild(newSlide);                
-            });
+        return slidesHtml;
+    };
+
+    // 3. Generar diapositivas para Alertas Vigentes
+    const alertasHtml = generatePaginatedSlides(data.alertas_vigentes, {
+        title: "Resumen de Alertas Vigentes",
+        titleSelector: "#slide-alertas-avisos h2:first-of-type",
+        firstPageTbodySelector: "#table-alertas tbody",
+        colspan: 4,
+        noDataMessage: "No hay alertas vigentes registradas.",
+        tableClass: "",
+        headers: "<th>Nivel de Alerta</th><th>Evento</th><th>Cobertura</th><th>Amplitud</th>",
+        source: "Fuente: Servicio Nacional de Prevención y Respuesta ante Desastres (SENAPRED)",
+        rowBuilder: item => {
+            let itemClass = '';
+            const nivel = (item.nivel_alerta || '').toLowerCase();
+            if (nivel.includes('temprana preventiva')) itemClass = 'alerta-temprana-preventiva';
+            else if (nivel.includes('amarilla')) itemClass = 'alerta-amarilla';
+            else if (nivel.includes('roja')) itemClass = 'alerta-roja';
+            return `<tr><td class="${itemClass}">${item.nivel_alerta}</td><td>${item.evento}</td><td>${item.cobertura}</td><td>${item.amplitud}</td></tr>`;
         }
-        slides = document.querySelectorAll('.slide');
-        showSlide(currentSlide);
-        startSlideshow();
+    });
+
+    // 4. Generar diapositivas para Avisos Meteorológicos
+    const avisosHtml = generatePaginatedSlides(data.avisos_alertas_meteorologicas, {
+        title: "Avisos / Alertas / Alarmas Meteorológicas y Marejadas",
+        titleSelector: "#slide-alertas-avisos h2:last-of-type",
+        firstPageTbodySelector: "#table-avisos-meteorologicos tbody",
+        colspan: 4,
+        noDataMessage: "No hay avisos/alertas meteorológicas.",
+        tableClass: "table-layout-auto",
+        headers: "<th>Aviso / Alerta / Alarma</th><th>Fecha y Hora de Emisión</th><th>Descripción</th><th>Cobertura</th>",
+        source: "Fuente: Dirección Meteorológica de Chile (DMC) - Dirección General del Territorio Marítimo y de Marina Mercante (DIRECTEMAR)",
+        rowBuilder: item => `<tr><td class="v-align-middle">${item.aviso_alerta_alarma}</td><td class="v-align-middle">${item.fecha_hora_emision}</td><td class="text-justify">${item.descripcion}</td><td class="v-align-middle">${item.cobertura}</td></tr>`
+    });
+    
+    // --- FIN LÓGICA DE PAGINACIÓN ---
+
+    // Renderizar el resto de las tablas 
+    const renderStaticTable = (tbody, items, rowBuilder, colspan, noDataMessage) => {
+        tbody.innerHTML = '';
+        if (items && items.length > 0) {
+            tbody.innerHTML = items.map(rowBuilder).join('');
+        } else {
+            tbody.innerHTML = `<tr><td colspan="${colspan}" class="no-data-cell">${noDataMessage}</td></tr>`;
+        }
+    };
+        
+    const emergenciasHtml = generatePaginatedSlides(data.emergencias_ultimas_24_horas, {
+        title: "Informes emitidos en las Últimas 24 Horas",
+        titleSelector: "#emergencias h2",
+        firstPageTbodySelector: "#table-emergencias tbody",
+        colspan: 4,
+        noDataMessage: "No hay emergencias registradas.",
+        tableClass: "table-layout-auto",
+        headers: "<th>N° Informe</th><th>Fecha y Hora</th><th>Evento/Lugar</th><th>Resumen</th>",
+        source: "Fuente: Servicio Nacional de Prevención y Respuesta ante Desastres (SENAPRED)",
+        rowBuilder: item => `<tr class="v-align-middle"><td class="v-align-middle"><span class="math-inline">\{item\.n\_informe\}</td\><td class\="v\-align\-middle"\></span>{item.fecha_hora}</td><td class="v-align-middle"><span class="math-inline">\{item\.evento\_lugar\}</td\><td class\="text\-justify"\></span>{item.resumen}</td></tr>`
+    });
+
+    // Insertar las nuevas diapositivas (si las hay) después de la original
+    const emergenciasSlide = document.getElementById('emergencias');
+    if (emergenciasSlide) {
+        emergenciasSlide.insertAdjacentHTML('afterend', emergenciasHtml);
+        // Ocultar la diapositiva original si no hay datos
+        emergenciasSlide.style.display = (!data.emergencias_ultimas_24_horas || data.emergencias_ultimas_24_horas.length === 0) ? 'none' : 'flex';
     }
+    renderStaticTable(tableCarreterasBody, data.estado_carreteras, i => `<tr><td class="v-align-middle">${i.carretera}</td><td class="text-justify">${i.estado}</td><td class="v-align-middle">${i.condicion}</td></tr>`, 3, "No hay info de carreteras.");
+    renderStaticTable(tablePuertosBody, data.estado_puertos, i => `<tr><td>${i.puerto}</td><td>${i.estado_del_puerto}</td><td>${i.condicion}</td></tr>`, 3, "No hay info de puertos.");
+    renderStaticTable(tablePasosFronterizosBody, data.estado_pasos_fronterizos, i => `<tr><td class="v-align-middle">${i.nombre_paso}</td><td class="v-align-middle">${i.condicion}</td><td class="text-justify">${i.observaciones}</td></tr>`, 3, "No hay info de pasos fronterizos.");
+
+    // Renderizar UV
+    if (data.radiacion_uv) {
+        uvObservadoLabelSpan.textContent = data.radiacion_uv.observado_ayer_label || 'Observado ayer:';
+        uvObservadoValueSpan.textContent = data.radiacion_uv.observado_ayer_value || 'N/A';
+        uvPronosticadoLabelSpan.textContent = data.radiacion_uv.pronosticado_hoy_label || 'Pronosticado para hoy:';
+        uvPronosticadoValueSpan.textContent = data.radiacion_uv.pronosticado_hoy_value || 'N/A';
+    }
+
+    // Insertar las nuevas diapositivas paginadas en el DOM
+    const slideContainer = document.getElementById('slide-alertas-avisos');
+    if (slideContainer) {
+        slideContainer.insertAdjacentHTML('afterend', alertasHtml);
+        slideContainer.insertAdjacentHTML('afterend', avisosHtml);
+    }
+    
+    // Ocultar la diapositiva original si ambas tablas están vacías y paginadas
+    if ((!data.alertas_vigentes || data.alertas_vigentes.length === 0) && (!data.avisos_alertas_meteorologicas || data.avisos_alertas_meteorologicas.length === 0)) {
+         document.getElementById('slide-alertas-avisos').style.display = 'none';
+    } else {
+         document.getElementById('slide-alertas-avisos').style.display = 'flex';
+    }
+
+    // Renderizar diapositivas de imágenes dinámicas
+    mainElement.querySelectorAll('.dynamic-image-slide').forEach(slide => slide.remove());
+    if (data.dynamic_slides && data.dynamic_slides.length > 0) {
+        data.dynamic_slides.forEach((slideInfo) => {
+            const newSlide = document.createElement('section');
+            newSlide.className = 'slide dynamic-image-slide';
+            newSlide.innerHTML = `<div class="slide-content-wrapper"><h2>${slideInfo.title || 'Imagen de Monitoreo'}</h2><img src="${slideInfo.image_url}" alt="${slideInfo.title || ''}" class="responsive-image">${slideInfo.description ? `<p class="data-source">${slideInfo.description}</p>` : ''}</div>`;
+            mainElement.appendChild(newSlide);                
+        });
+    }
+
+    // Finalmente, actualizar la lista de diapositivas para el carrusel y reiniciar
+    slides = document.querySelectorAll('.slide');
+    showSlide(currentSlide);
+    startSlideshow();
+}
 
     async function fetchAndRenderSismos() {
         try {
