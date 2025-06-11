@@ -17,6 +17,7 @@ import subprocess
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8000
 DATA_FILE = os.path.join('datos_extraidos', 'ultimo_informe.json')
+NOVEDADES_FILE = os.path.join('datos_extraidos', 'novedades.json')
 SERVER_ROOT = os.path.dirname(os.path.abspath(__file__))
 DYNAMIC_SLIDES_FOLDER = os.path.join(SERVER_ROOT, 'assets', 'dynamic_slides')
 
@@ -68,11 +69,30 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self.wfile.write(json.dumps(initial_data, ensure_ascii=False, indent=4).encode('utf-8'))
                 return
 
+            # --- ENDPOINT PARA NOVEDADES ---
+            elif requested_path == '/api/novedades':
+                if not os.path.exists(NOVEDADES_FILE):
+                    # Crear el archivo con estructura por defecto si no existe
+                    os.makedirs(os.path.dirname(NOVEDADES_FILE), exist_ok=True)
+                    default_novedades = {
+                        "numero_informe_manual": "---",
+                        "entradas": []
+                    }
+                    with open(NOVEDADES_FILE, 'w', encoding='utf-8') as f:
+                        json.dump(default_novedades, f, ensure_ascii=False, indent=4)
+
+                with open(NOVEDADES_FILE, 'r', encoding='utf-8') as f:
+                    novedades_data = json.load(f)
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps(novedades_data, ensure_ascii=False, indent=4).encode('utf-8'))
+                return
+            # --- FIN ENDPOINT NOVEDADES ---
+
             # --- RUTA PARA OBTENER LAS HORAS DEL SHOA ---
             elif requested_path == '/api/shoa_times':
                 # --- PARA ASEGURAR IMPORTACIONES NECESARIAS EN ESTE ALCANCE ---
-                from datetime import datetime # Asegura que datetime esté disponible
-                import pytz # Asegura que pytz esté disponible
+                from datetime import datetime 
+                import pytz 
 
                 try:
                     client = ntplib.NTPClient()
@@ -103,12 +123,11 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self.wfile.write(json.dumps({"error": f"Error al obtener hora del SHOA: {e}"}).encode('utf-8'))
                 except Exception as e:
                     print(f"Error inesperado al obtener hora del SHOA: {e}") 
-                    # Si el error es "cannot access local variable 'datetime'", es porque la importación no está en el scope.
                     self._set_headers(500, 'application/json')
                     self.wfile.write(json.dumps({"error": f"Error inesperado al obtener hora: {e}"}).encode('utf-8'))
                 return
             
-            # --- RUTA PARA ESTACIONES METEOROLOGICAS ---
+            # --- RUTA PARA ESTACIONES METEOROLOGICAS (BANNER SUPERIOR) ---
             elif requested_path == '/api/weather':
                 
                 # --- IMPORTACIONES PARA CONVERSIONES ---
@@ -120,9 +139,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 def degrees_to_cardinal(d):
                     try:
                         d = float(str(d).replace('°', '').strip())
-                        # Simplificado a 8 puntos para claridad
                         dirs = ["N", "NE", "E", "SE", "S", "SO", "O", "NO", "N"]
-                        # Cada sector es 360/8 = 45 grados. Ajustamos el inicio para centrar N en 0/360.
                         ix = round(((d % 360) / 45))
                         return dirs[ix]
                     except (ValueError, TypeError):
@@ -137,41 +154,29 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         if "kt" in speed_str or "nudos" in speed_str:
                             kmh = value * 1.852
                             return f"{kmh:.1f} km/h"
-                        # Si no especifica kt o nudos, asumimos que ya está en km/h o es un valor numérico.
                         return f"{value:.1f} km/h"
                     except (ValueError, TypeError):
                         return "---"
                 
                 def convert_utc_to_local_time_str(utc_datetime_str):
                     try:
-                        # Convertir la cadena UTC a un objeto datetime
-                        # Asumimos que el formato es "YYYY-MM-DD HH:MM:SS"
                         utc_dt = datetime.strptime(utc_datetime_str, '%Y-%m-%d %H:%M:%S')
-                        
-                        # Definir la zona horaria UTC
                         utc_timezone = pytz.timezone('UTC')
                         utc_dt = utc_timezone.localize(utc_dt)
-                        
-                        # Definir la zona horaria de Chile Continental
                         chile_timezone = pytz.timezone('America/Santiago')
-                        
-                        # Convertir a la zona horaria de Chile
                         chile_dt = utc_dt.astimezone(chile_timezone)
-                        
-                        # Formatear solo la hora y minutos
                         return chile_dt.strftime('%H:%M')
                     except (ValueError, TypeError, AttributeError):
-                        # Si hay error en formato o valor, devolver un placeholder
                         return "HH:MM"
                 # --- FIN DE FUNCIONES DE CONVERSION ---
 
                 try:
                     DMC_HOME_URL = "https://climatologia.meteochile.gob.cl/"
                     DMC_API_URL = "https://climatologia.meteochile.gob.cl/application/servicios/getDatosRecientesRedEma"
-                    DMC_USUARIO = "feliperamosz@gmail.com" #
-                    DMC_TOKEN = "00746c9061f597a2a41401a9" #
+                    DMC_USUARIO = "feliperamosz@gmail.com" 
+                    DMC_TOKEN = "00746c9061f597a2a41401a9" 
 
-                    session = requests.Session() #
+                    session = requests.Session() 
                     session.headers.update({
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
                         'Referer': DMC_HOME_URL
@@ -179,25 +184,19 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     
                     session.get(DMC_HOME_URL, timeout=15)
 
-                    params = {'usuario': DMC_USUARIO, 'token': DMC_TOKEN} #
-                    response = session.get(DMC_API_URL, params=params, timeout=15) #
+                    params = {'usuario': DMC_USUARIO, 'token': DMC_TOKEN} 
+                    response = session.get(DMC_API_URL, params=params, timeout=15) 
                     response.raise_for_status()
                     response.encoding = 'utf-8'
 
                     json_response = response.json()
                     stations_list = json_response.get('datosEstaciones', [])
                     
-                    # --- AQUI SE COLOCAN LAS ESTACIONES A VISUALIZAR, USAN EL CODIGO NACIONAL --- #
-                    # --- SOLAMENTE SE DEJARON 8 ESTACIONES, SI SE REQUIEREN MAS SE DEBE MODIFICAR EL SCRIPT --- #
                     STATIONS_MAP = {
-                        "320019": "Chincolco, Petorca",
-                        "330007": "Rodelillo, Valparaíso",
-                        "330161": "J. Botánico, Viña del Mar",
-                        "320049": "Lo Zárate, San Antonio",
-                        "320124": "L. Agricola, Quillota",
-                        "320051": "Los Libertadores, Los Andes",
-                        "330031": "Isla Juan Fernández",
-                        "270001": "Isla de Pascua" 
+                        "320019": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
+                        "330161": "J. Botánico, Viña del Mar", "320049": "Lo Zárate, San Antonio",
+                        "320124": "L. Agricola, Quillota", "320051": "Los Libertadores, Los Andes",
+                        "330031": "Isla Juan Fernández", "270001": "Isla de Pascua" 
                     }
                     
                     found_stations = {}
@@ -213,7 +212,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         
                         if station_data and station_data.get('datos'):
                             latest_reading = station_data['datos'][0]
-                            
                             utc_time_str = latest_reading.get('momento', '')
                             local_update_time = convert_utc_to_local_time_str(utc_time_str)
 
@@ -228,8 +226,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             })
                         else:
                             weather_data.append({
-                                'nombre': nombre,
-                                'temperatura': 'Sin datos', 'humedad': '---',
+                                'nombre': nombre, 'temperatura': 'Sin datos', 'humedad': '---',
                                 'viento_direccion': '---', 'viento_velocidad': '---',
                                 'precipitacion_24h': '---', 'hora_actualizacion': 'Offline'
                             })
@@ -245,6 +242,56 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self._set_headers(500, 'application/json')
                     self.wfile.write(json.dumps({"error": f"Error interno del servidor: {e}"}).encode('utf-8'))
                 return
+
+            # --- ENDPOINT PARA MAPA DE ESTACIONES METEOROLÓGICAS ---
+            elif requested_path == '/api/estaciones_meteo_mapa':
+                try:
+                    # Reutilizamos la conexión a la API de DMC
+                    DMC_API_URL = "https://climatologia.meteochile.gob.cl/application/servicios/getDatosRecientesRedEma"
+                    DMC_USUARIO = "feliperamosz@gmail.com"
+                    DMC_TOKEN = "00746c9061f597a2a41401a9"
+
+                    params = {'usuario': DMC_USUARIO, 'token': DMC_TOKEN}
+                    response = requests.get(DMC_API_URL, params=params, timeout=15)
+                    response.raise_for_status()
+                    response.encoding = 'utf-8'
+                    json_response = response.json()
+                    stations_list = json_response.get('datosEstaciones', [])
+
+                    # Mismo mapa de estaciones que el banner para consistencia
+                    STATIONS_MAP = {
+                        "320019": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
+                        "330161": "J. Botánico, Viña del Mar", "320049": "Lo Zárate, San Antonio",
+                        "320124": "L. Agricola, Quillota", "320051": "Los Libertadores, Los Andes",
+                        "330031": "Isla Juan Fernández", "270001": "Isla de Pascua"
+                    }
+                    
+                    map_data = []
+                    for station_data in stations_list:
+                        estacion_info = station_data.get('estacion', {})
+                        codigo = estacion_info.get('codigoNacional')
+
+                        if codigo in STATIONS_MAP and station_data.get('datos'):
+                            latest_reading = station_data['datos'][0]
+                            # Extraemos los datos necesarios para el mapa
+                            map_data.append({
+                                'nombre': STATIONS_MAP[codigo],
+                                'lat': estacion_info.get('latitud'),
+                                'lon': estacion_info.get('longitud'),
+                                'precipitacion': str(latest_reading.get('aguaCaida24Horas', '0')).replace('mm', '').strip()
+                            })
+
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(map_data, ensure_ascii=False).encode('utf-8'))
+
+                except Exception as e:
+                    import traceback
+                    print(f"Error en el endpoint del mapa meteorológico: {e}")
+                    traceback.print_exc()
+                    self._set_headers(500, 'application/json')
+                    self.wfile.write(json.dumps({"error": f"Error interno del servidor al crear datos del mapa: {e}"}).encode('utf-8'))
+                return
+            # --- ENDPOINT PARA MAPA ---
             
             # --- ENDPOINT PARA DATOS DE SISMOS ---
             elif requested_path == '/api/sismos':
@@ -273,7 +320,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             # --- ENDPOINT PARA DATOS DE CALIDAD DEL AIRE ---
             elif requested_path == '/api/calidad_aire':
                 try:
-                    # Se importa 'unescape' para decodificar caracteres HTML como &oacute;
                     from html import unescape
 
                     SINCA_API_URL = "https://sinca.mma.gob.cl/index.php/json/listadomapa2k19/"
@@ -296,18 +342,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             parametros_data = []
                             station_statuses = set()
 
-                            # --- Itera sobre 'realtime' en lugar de 'data' ---
                             if 'realtime' in station and isinstance(station['realtime'], list):
                                 for param in station['realtime']:
-                                    # Los detalles de cada parámetro están en el objeto 'tableRow'
                                     details = param.get('tableRow', {})
-                                    
-                                    # Obtiene el estado directamente del campo 'status'
                                     param_status = details.get('status', 'no_disponible')
                                     if param_status:
                                         station_statuses.add(param_status)
-
-                                    # Decodifica el nombre del parámetro para quitar caracteres HTML
                                     param_name = unescape(details.get('parameter', 'N/A'))
                                     
                                     parametros_data.append({
@@ -319,7 +359,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             
                             final_station_status = "no_disponible"
                             if station_statuses:
-                                # Filtra cualquier estado vacío o nulo antes de buscar el peor
                                 valid_statuses = {s for s in station_statuses if s in status_priority}
                                 if valid_statuses:
                                     final_station_status = min(valid_statuses, key=lambda s: status_priority.get(s, 6))
@@ -332,16 +371,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                                 "parametros": parametros_data
                             })
                     
-                    ## --- CÓDIGO DE SIMULACIÓN DE ALERTA (TEMPORAL) ---
-                    ## Abajo elige el estado que quieres simular: 'alerta', 'preemergencia', o 'emergencia'
-                    #simulated_status = 'alerta' 
-                    
-                    ## Busca la primera estación en la lista para forzar la alerta
-                    #if processed_stations: # Asegurarse de que la lista no esté vacía
-                    #   print(f"--- SIMULACIÓN ACTIVA: Forzando estado '{simulated_status}' en la estación '{processed_stations[0]['nombre_estacion']}' ---")
-                    #processed_stations[0]['estado'] = simulated_status
-                    # --- FIN: CÓDIGO DE SIMULACIÓN --- ##
-
                     self._set_headers(200, 'application/json')
                     self.wfile.write(json.dumps(processed_stations, ensure_ascii=False).encode('utf-8'))
 
@@ -350,7 +379,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self._set_headers(502, 'application/json')
                     self.wfile.write(json.dumps({"error": f"No se pudo conectar con el servicio de SINCA: {e}"}).encode('utf-8'))
                 except Exception as e:
-                    # Imprimir el traceback para un error más detallado en la consola del servidor
                     import traceback
                     print(f"Error inesperado al procesar datos de calidad del aire: {e}")
                     traceback.print_exc()
@@ -406,7 +434,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 with open(DATA_FILE, 'w', encoding='utf-8') as f:
                     json.dump(new_data, f, ensure_ascii=False, indent=4)
                 self._set_headers(200, 'application/json')
-                self.wfile.write(json.dumps({"message": "Datos actualizados correctamente."}, ensure_ascii=False).encode('utf-8'))
+                self.wfile.write(json.dumps({"message": "Datos de informe actualizados correctamente."}, ensure_ascii=False).encode('utf-8'))
             except json.JSONDecodeError:
                 self._set_headers(400, 'application/json')
                 self.wfile.write(json.dumps({"error": "JSON inválido."}).encode('utf-8'))
@@ -415,11 +443,30 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": f"Error al guardar los datos: {e}"}).encode('utf-8'))
             return
 
+        # --- ENDPOINT POST PARA NOVEDADES ---
+        elif self.path == '/api/novedades':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            try:
+                novedades_data = json.loads(post_data.decode('utf-8'))
+                os.makedirs(os.path.dirname(NOVEDADES_FILE), exist_ok=True)
+                with open(NOVEDADES_FILE, 'w', encoding='utf-8') as f:
+                    json.dump(novedades_data, f, ensure_ascii=False, indent=4)
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps({"message": "Novedades actualizadas correctamente."}, ensure_ascii=False).encode('utf-8'))
+            except json.JSONDecodeError:
+                self._set_headers(400, 'application/json')
+                self.wfile.write(json.dumps({"error": "JSON de novedades inválido."}).encode('utf-8'))
+            except Exception as e:
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({"error": f"Error al guardar novedades: {e}"}).encode('utf-8'))
+            return
+        # --- FIN ENDPOINT POST NOVEDADES ---
+
         elif self.path == '/api/trigger-download':
             try:
                 print("INFO: Se ha recibido una solicitud para ejecutar descargar_informe.py manualmente.")
 
-                # Comando para ejecutar el script.
                 command = ["python", "descargar_informe.py"]
                 
                 result = subprocess.run(
@@ -428,10 +475,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     text=True,
                     encoding='utf-8',
                     errors='replace',
-                    timeout=300 # Timeout de 5 minutos por si el proceso se queda pegado
+                    timeout=300 
                 )
 
-                # Verificamos si el script se ejecutó correctamente (código de salida 0)
                 if result.returncode == 0:
                     print("SUCCESS: El script descargar_informe.py se ejecutó correctamente.")
                     self._set_headers(200, 'application/json')
@@ -442,7 +488,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     }
                     self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
                 else:
-                    # Si el script falló, enviamos un error 500 con la salida del error
                     print(f"ERROR: El script descargar_informe.py falló con el código {result.returncode}.")
                     self._set_headers(500, 'application/json')
                     response = {
@@ -514,18 +559,15 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     filename = uploaded_filename
                     file_content = uploaded_file_content
 
-                    # Obtener la extensión original del archivo antes de cualquier procesamiento
                     original_name_base, file_extension = os.path.splitext(filename)
                     file_extension = file_extension.lower()
 
-                    # --- LÓGICA DE REDIMENSIONAMIENTO DE IMAGEN CON PILLOW ---
                     try:
                         image = Image.open(io.BytesIO(file_content))
                         original_width, original_height = image.size
                         print(f"DEBUG: Imagen original: {original_width}x{original_height}")
 
                         if original_width > MAX_IMAGE_WIDTH or original_height > MAX_IMAGE_HEIGHT:
-                            # Calcular nuevas dimensiones manteniendo la proporción
                             ratio = min(MAX_IMAGE_WIDTH / original_width, MAX_IMAGE_HEIGHT / original_height)
                             new_width = int(original_width * ratio)
                             new_height = int(original_height * ratio)
@@ -533,13 +575,10 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
                             print(f"DEBUG: Imagen redimensionada a: {new_width}x{new_height}")
 
-                            # Guardar la imagen redimensionada en un buffer en memoria
                             output_buffer = io.BytesIO()
-                            # Intenta guardar en formato original si es posible, sino PNG
                             try:
                                 image_format = image.format if image.format else 'PNG'
                                 image.save(output_buffer, format=image_format)
-                                # Actualizar la extensión si el formato ha cambiado (ej. de JPG a PNG si hay error)
                                 file_extension = '.' + (image.format.lower() if image.format else 'png')
                             except KeyError:
                                 image.save(output_buffer, format='PNG')
@@ -613,7 +652,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self.wfile.write(json.dumps({"error": "ID o URL de imagen a eliminar no proporcionado."}).encode('utf-8'))
                     return
 
-                # 1. Eliminar la entrada del JSON
                 current_data = {}
                 if os.path.exists(DATA_FILE):
                     with open(DATA_FILE, 'r', encoding='utf-8') as f:
@@ -628,11 +666,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     ]
                     removed_from_json = initial_count > len(current_data['dynamic_slides'])
 
-                # 2. Guardar el JSON actualizado
                 with open(DATA_FILE, 'w', encoding='utf-8') as f:
                     json.dump(current_data, f, ensure_ascii=False, indent=4)
 
-                # 3. Eliminar el archivo físico del disco
                 physical_filepath = None
                 if image_url_to_delete:
                     filename_from_url = os.path.basename(image_url_to_delete.replace('/', os.sep))
@@ -665,6 +701,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
 
 os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
+os.makedirs(os.path.dirname(NOVEDADES_FILE), exist_ok=True)
 os.makedirs(DYNAMIC_SLIDES_FOLDER, exist_ok=True)
 
 

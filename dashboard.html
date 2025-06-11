@@ -27,13 +27,28 @@
     <div id="weather-banner-container" class="weather-banner"></div>
     <main class="dashboard-grid">
         <div class="dashboard-column">
-                    <div id="panel-calidad-aire" class="dashboard-panel">
-                        <h3>Calidad del Aire</h3>
+            <div id="panel-mapas" class="dashboard-panel">
+                <h3 id="map-panel-title">Mapas de Monitoreo</h3>
+
+                <div id="map-carousel-container">
+                    <div id="map-slide-air" class="map-slide active-map-slide">
                         <div id="air-quality-map-container-dashboard"></div>
-                        <div id="air-quality-alert-panel-dashboard">
-                            </div>
+                    </div>
+                    <div id="map-slide-meteo" class="map-slide">
+                        <div id="precipitation-map-container-dashboard"></div>
                     </div>
                 </div>
+
+                <div id="air-quality-alert-panel-dashboard">
+                    </div>
+
+                <div id="map-carousel-controls">
+                    <button id="map-pause-play-btn">Pausar</button>
+                    <button id="map-prev-btn">&lt; Anterior</button>
+                    <button id="map-next-btn">Siguiente &gt;</button>
+                </div>
+            </div>
+        </div>
 
                 <div class="dashboard-column">
                     <div id="panel-alertas" class="dashboard-panel">

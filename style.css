@@ -700,7 +700,7 @@ footer {
     }
 }
 
-/* --- ESTILOS ESPECÍFICOS PARA DASHBOARD.HTML (VERSIÓN FINAL) --- */
+/* --- ESTILOS ESPECÍFICOS PARA DASHBOARD.HTML --- */
 
 /* 1. Body como contenedor flex de pantalla completa */
 body.dashboard-body {
@@ -730,7 +730,7 @@ body.dashboard-body footer {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     margin: 8px 5px;
     box-sizing: border-box;
-    flex-shrink: 0; /* No se encoje */
+    flex-shrink: 0;
 }
 
 .weather-banner .weather-station-box {
@@ -745,10 +745,9 @@ body.dashboard-body footer {
 }
 
 /* 4. Grid principal que crece para llenar el espacio */
-main.dashboard-grid {
-    /* Estilos correctos para el grid */
+main.dashboard-grid {    
     display: grid;
-    grid-template-columns: 0.6fr 0.6fr 1fr 1fr; /* <-- CAMBIO AQUÍ: Definimos 4 columnas */
+    grid-template-columns: 0.6fr 0.6fr 1fr 1fr; 
     gap: 15px;
     padding: 0 5px 15px 5px;
     flex-grow: 1;
@@ -770,7 +769,7 @@ main.dashboard-grid {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    min-height: 0; /* Arreglo para flexbox */
+    min-height: 0;
     min-width: 0;
 }
 
@@ -782,7 +781,7 @@ main.dashboard-grid {
     display: flex;
     flex-direction: column;
     flex: 1;
-    min-height: 0; /* Arreglo para flexbox */
+    min-height: 0;
 }
 
 .dashboard-panel h3 {
@@ -869,11 +868,10 @@ main.dashboard-grid {
 }
 
 /* --- ESTILOS PARA LA MARQUESINA DE CALIDAD DEL AIRE --- */
-
 /* Contenedor principal que reemplaza el antiguo panel de alertas */
 #air-quality-alert-panel-dashboard {
-    flex-shrink: 0; /* No se encoge */
-    flex-grow: 0; /* No crece */
+    flex-shrink: 0;
+    flex-grow: 0;
     margin-top: 15px;
     height: 45px; /* Altura fija para la barra de la marquesina */
     background-color: #e9ecef;
@@ -895,7 +893,7 @@ main.dashboard-grid {
 .marquee-text {
     display: inline-block;
     padding-left: 100%; /* Inicia justo fuera de la vista a la derecha */
-    animation: marquee-scroll 10s linear infinite;
+    animation: marquee-scroll 20s linear infinite;
     font-size: 1.1em;
     color: #343a40;
 }
@@ -910,7 +908,107 @@ main.dashboard-grid {
     100% { transform: translateX(-100%); }
 }
 
-/* Quitamos el título "Estaciones con Novedad" que ya no es necesario */
+/* Quita el título "Estaciones con Novedad" que ya no es necesario */
 #air-quality-alert-panel-dashboard h4 {
     display: none;
+}
+
+/* --- ESTILOS PARA ALERTAS EN DASHBOARD --- */
+.dashboard-list li.alerta-temprana-preventiva {
+    background-color: #d4edda;
+    color: #155724;
+    border-left: 5px solid #28a745;
+    padding-left: 10px;
+    font-weight: bold;
+}
+.dashboard-list li.alerta-amarilla {
+    background-color: #fff3cd;
+    color: #856404;
+    border-left: 5px solid #ffc107;
+    padding-left: 10px;
+    font-weight: bold;
+}
+.dashboard-list li.alerta-roja {
+    background-color: #f8d7da;
+    color: #721c24;
+    border-left: 5px solid #dc3545;
+    padding-left: 10px;
+    font-weight: bold;
+}
+
+#novedades-content p {
+    margin: 5px 0;
+    padding: 5px;
+    border-bottom: 1px solid #f0f0f0;
+}
+#novedades-content p:last-child {
+    border-bottom: none;
+}
+
+/* --- ESTILOS PARA CARRUSEL DE MAPAS --- */
+/* Contenedor principal del carrusel */
+#map-carousel-container {
+    flex-grow: 1;
+    position: relative; /* Clave para posicionar los slides dentro */
+    width: 100%;
+    min-height: 300px; /* Asegura una altura mínima */
+}
+
+/* Estilo para cada slide de mapa */
+.map-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0; /* Oculto por defecto */
+    visibility: hidden;
+    transition: opacity 0.7s ease-in-out;
+    background-color: #f0f0f0; /* Color de fondo mientras carga */
+    border-radius: 5px;
+}
+
+/* Estilo para el slide ACTIVO */
+.map-slide.active-map-slide {
+    opacity: 1;
+    visibility: visible;
+    z-index: 10;
+}
+
+/* Asegura que los contenedores de mapa internos llenen el slide */
+#air-quality-map-container-dashboard,
+#precipitation-map-container-dashboard {
+    width: 100%;
+    height: 100%;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+/* Controles del carrusel */
+#map-carousel-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px; /* Espacio sobre los botones */
+    flex-shrink: 0;
+}
+
+#map-carousel-controls button {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+#map-carousel-controls button:hover {
+    background-color: #e2e6ea;
+    border-color: #adb5bd;
+}
+
+#map-pause-play-btn.paused {
+    background-color: #d4edda; /* Verde cuando está en modo "Reanudar" */
+    border-color: #c3e6cb;
 }

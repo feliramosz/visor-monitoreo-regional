@@ -116,7 +116,7 @@
             font-size: 1em;
             margin-right: 10px;
         }
-        .form-group button.remove {
+        .form-group button.remove, .novedad-actions button.remove {
             background-color: #dc3545;
         }
         .form-group button:hover {
@@ -172,6 +172,38 @@
         .uv-info-admin label {
             font-weight: normal;
         }
+        
+        #novedadesListContainer {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 15px;
+            background-color: #fff;
+        }
+        .novedad-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .novedad-item:last-child {
+            border-bottom: none;
+        }
+        .novedad-text {
+            flex-grow: 1;
+        }
+        .novedad-timestamp {
+            font-size: 0.8em;
+            color: #6c757d;
+            margin-right: 15px;
+        }
+        .novedad-actions button {
+            padding: 5px 10px;
+            font-size: 0.9em;
+            margin-left: 5px;
+        }
     </style>
 </head>
 <body>
@@ -190,7 +222,7 @@
             <h2>Paneles</h2>
             <nav>
                 <ul>
-                    <li><a href="#" data-section="informacion-general" class="active">Modificar fecha y horario</a></li>
+                    <li><a href="#" data-section="informacion-general" class="active">Información del Reporte</a></li>
                     <li><a href="#" data-section="contenido-dashboard">Panel Novedades</a></li>
                     <li><a href="#" data-section="alertas-vigentes">Alertas Vigentes</a></li>
                     <li><a href="#" data-section="avisos-meteorologicos">Avisos Meteorológicos</a></li>
@@ -200,7 +232,7 @@
                     <li><a href="#" data-section="pasos-fronterizos">Pasos Fronterizos</a></li>
                     <li><a href="#" data-section="puertos">Estado de Puertos</a></li>
                     <li><a href="#" data-section="dynamic-slides">Agregar imagenes</a></li> 
-                    <li><a href="#" data-section="accion-manual">Descargar Informe AM o PM fuera de horario</a></li>
+                    <li><a href="#" data-section="accion-manual">Descargar Informe Manual</a></li>
                 </ul>
             </nav>
             <div style="padding: 0 20px;">
@@ -224,7 +256,7 @@
                 <h3>Ejecutar Descarga de Informe AM o PM</h3>
                 <div class="form-group">
                     <p>
-                        Haz clic en el siguiente botón para descarga del último informe desde el correo electrónico.
+                        Haz clic en el siguiente botón para forzar la descarga del último informe desde el correo electrónico.
                         Este proceso puede tardar unos segundos. La salida del proceso se mostrará a continuación.
                     </p>
                     <button type="button" id="runScriptBtn">Comenzar Descarga Manual</button>
@@ -235,26 +267,30 @@
             </section>
 
             <section id="informacion-general" class="admin-section active">
-                <h3>Modificar fecha y horario</h3>
+                <h3>Información General del Reporte</h3>
+                 <p>La hora del reporte y el tipo (AM/PM) se establecerán automáticamente al momento de guardar los cambios.</p>
                 <label for="adminFechaInforme">Fecha del Informe:</label>
                 <input type="text" id="adminFechaInforme" placeholder="Ej: jueves, 22 de mayo de 2025">
-                <label for="adminHoraInforme">Hora del reporte:</label>
-                <input type="time" id="adminHoraInforme" value="10:20">
-                <label for="adminTipoInforme">Tipo de Informe:</label>
-                <select id="adminTipoInforme">
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                    <option value="Desconocido">Desconocido</option>
-                </select>
             </section>
 
             <section id="contenido-dashboard" class="admin-section">
-                <h3>Contenido Específico del Dashboard</h3>
+                <h3>Panel de Novedades del Dashboard</h3>
                 <div class="form-group">
                     <label for="adminNumeroInforme">N° de último informe:</label>
                     <input type="text" id="adminNumeroInforme" placeholder="Ej: 153">
-                    <label for="adminNovedades">Novedades (texto libre):</label>
-                    <textarea id="adminNovedades" rows="4" placeholder="Escriba aquí las novedades para mostrar en el dashboard..."></textarea>
+                    
+                    <hr style="margin: 20px 0;">
+
+                    <h4>Registro de Novedades</h4>
+                    <label for="adminNovedadInput">Texto de la nueva novedad:</label>
+                    <input type="text" id="adminNovedadInput" placeholder="Escriba aquí y presione 'Añadir'...">
+                    <input type="hidden" id="adminNovedadEditIndex">
+                    <button type="button" id="addNovedadBtn">Añadir Novedad</button>
+
+                    <h4>Historial de Novedades:</h4>
+                    <div id="novedadesListContainer">
+                        <p>Cargando novedades...</p>
+                    </div>
                 </div>
             </section>
 
@@ -333,7 +369,7 @@
             </section>
 
             <div class="action-buttons">
-                <button type="button" id="saveDataBtn" class="save-button">Guardar Cambios</button>
+                <button type="button" id="saveDataBtn" class="save-button">Guardar Todos los Cambios</button>
             </div>
         </div>
     </main>

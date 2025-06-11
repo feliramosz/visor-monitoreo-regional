@@ -40,12 +40,12 @@ Este proyecto es una aplicación web diseñada para la visualización y gestión
 ## 4. Próximos Pasos y Tareas
 
 1. Persistencia de Novedades con JSON Independiente
-Problema: Al ejecutar descargar_informe.py, el archivo ultimo_informe.json se sobrescribe por completo, borrando las "Novedades" que se ingresaron manualmente.
+Problema: Al ejecutar descargar_informe.py, el archivo ultimo_informe.json se sobrescribe por completo, borrando las "Novedades" y el "N° de informe" que se ingresaron manualmente.
 Solución: Crearemos un archivo novedades.json separado. El panel de administración leerá y escribirá en este nuevo archivo, mientras que el script de descarga solo modificará ultimo_informe.json. El dashboard cargará datos de ambos archivos.
 
 2. Panel de Novedades estilo "Chat" con Timestamps
 Mejora: Evolucionar el cuadro de texto libre de "Novedades" a un sistema más dinámico.
-Solución: En el panel de administración, crearemos un campo de texto y un botón "Añadir Novedad". Al hacer clic, se guardará la entrada junto con la fecha y hora actual en novedades.json. El dashboard mostrará estas entradas como una lista cronológica, similar a un registro o bitácora.
+Solución: En el panel de administración, crearemos un campo de texto y un botón "Añadir Novedad". Al hacer clic, se guardará la entrada junto con la fecha y hora actual en novedades.json. El dashboard mostrará estas entradas como una lista cronológica, similar a un registro o bitácora pero manteniendo a la vista solamente las que por diseño caen en el cuadro, las que no alcancen se deben ir eliminando.
 
 3. Autocompletar Hora en Panel de Administración
 Problema: La hora del informe en el panel de administración a veces no se actualiza, quedando desfasada.
@@ -54,6 +54,10 @@ Solución: Modificaremos el script admin.js. Cuando el usuario presione el botó
 4. Coloreado Dinámico de Alertas Vigentes en el Dashboard
 Mejora: Resaltar visualmente la severidad de las alertas en la lista del dashboard, tal como se hace en la tabla de index.html.
 Solución: Modificaremos la función de dashboard.js que renderiza la lista de "Alertas Vigentes". Haremos que analice el texto de cada alerta y, si encuentra palabras clave como "Temprana Preventiva", "Amarilla" o "Roja", aplique una clase CSS específica al elemento de la lista (<li>) para darle el color de fondo correspondiente (verde, amarillo o rojo).
+
+5. Incorporar cobertura en los Avisos / Alertas / Alarmas / Marejadas
+Problema: El diseño actual, menciona la descripcion pero falta incorporar la cobertura.
+Solución: Obtener el dato que ya está almacenado en el JSON e incorporarlo al aviso desplegado.
 
 ## Luego de tener solucionado lo anterior:
 
