@@ -1374,3 +1374,15 @@ main.dashboard-grid {
     border-left: 1px solid #0051ff;
     border-right: 1px solid #0051ff;
 }
+
+/* --- Estilo para datos de precipitación anterior en el mapa del dashboard --- */
+.precipitation-label {
+    text-align: center;
+    line-height: 1.1;
+}
+
+.precipitation-label .precip-anterior {
+    font-size: 0.8em;
+    font-weight: normal;
+    color: #333;
+}

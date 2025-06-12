@@ -192,8 +192,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     stations_list = json_response.get('datosEstaciones', [])
                     
                     STATIONS_MAP = {
-                        "320019": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
-                        "330161": "J. Botánico, Viña del Mar", "320049": "Lo Zárate, San Antonio",
+                        "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
+                        "330006": "J. Botánico, Viña del Mar", "330161": "Lo Zárate, San Antonio",
                         "320124": "L. Agricola, Quillota", "320051": "Los Libertadores, Los Andes",
                         "330031": "Isla Juan Fernández", "270001": "Isla de Pascua" 
                     }
@@ -242,58 +242,85 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self.wfile.write(json.dumps({"error": f"Error interno del servidor: {e}"}).encode('utf-8'))
                 return
 
-            # --- ENDPOINT PARA MAPA DE ESTACIONES METEOROLÓGICAS ---
+            # --- ENDPOINT PARA MAPA DE ESTACIONES METEOROLÓGICAS ---           
             elif requested_path == '/api/estaciones_meteo_mapa':
                 try:
-                    # Reutilizamos la conexión a la API de DMC
-                    DMC_API_URL = "https://climatologia.meteochile.gob.cl/application/servicios/getDatosRecientesRedEma"
-                    DMC_USUARIO = "feliperamosz@gmail.com"
-                    DMC_TOKEN = "00746c9061f597a2a41401a9"
-
-                    params = {'usuario': DMC_USUARIO, 'token': DMC_TOKEN}
-                    response = requests.get(DMC_API_URL, params=params, timeout=15)
-                    response.raise_for_status()
-                    response.encoding = 'utf-8'
-                    json_response = response.json()
-                    stations_list = json_response.get('datosEstaciones', [])
-
-                    # Mismo mapa de estaciones que el banner para consistencia
+                    # La importación de datetime y timedelta está al principio del archivo.
+                    
                     STATIONS_MAP = {
                         "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
                         "330161": "Lo Zárate, San Antonio", "320124": "L. Agricola, Quillota",
                         "330031": "Isla Juan Fernández", "270001": "Isla de Pascua",
-                        "320063": "Zapallar, Catapilco", "320019": "San Felipe,",
+                        "320063": "Zapallar, Catapilco", 
                         "320045": "Llay Llay", "330030": "Santo Domingo",
                         "320121": "Putaendo", "320051": "Los Libertadores, Los Andes",
                         "320123": "San Esteban", "330121": "Curacaví"
                     }
                     
-                    map_data = []
-                    for station_data in stations_list:
-                        estacion_info = station_data.get('estacion', {})
-                        codigo = estacion_info.get('codigoNacional')
+                    DMC_API_URL_RECIENTE = "https://climatologia.meteochile.gob.cl/application/servicios/getDatosRecientesRedEma"
+                    DMC_API_URL_AYER_BASE = "https://climatologia.meteochile.gob.cl/application/servicios/getEmaResumenDiario"
+                    
+                    DMC_USUARIO = "feliperamosz@gmail.com"
+                    DMC_TOKEN = "00746c9061f597a2a41401a9"
+                    params = {'usuario': DMC_USUARIO, 'token': DMC_TOKEN}
 
-                        if codigo in STATIONS_MAP and station_data.get('datos'):
-                            latest_reading = station_data['datos'][0]
-                            # Extraemos los datos necesarios para el mapa
-                            map_data.append({
-                                'nombre': STATIONS_MAP[codigo],
-                                'lat': estacion_info.get('latitud'),
-                                'lon': estacion_info.get('longitud'),
-                                'precipitacion': str(latest_reading.get('aguaCaida24Horas', '0')).replace('mm', '').strip()
-                            })
+                    # --- 1. Obtener datos recientes (Últimas 24h) ---
+                    datos_recientes = {}
+                    try:
+                        response_reciente = requests.get(DMC_API_URL_RECIENTE, params=params, timeout=15)
+                        response_reciente.raise_for_status()
+                        for station_data in response_reciente.json().get('datosEstaciones', []):
+                            codigo = station_data.get('estacion', {}).get('codigoNacional')
+                            if codigo in STATIONS_MAP and station_data.get('datos'):
+                                latest_reading = station_data['datos'][0]
+                                datos_recientes[codigo] = {
+                                    'nombre': STATIONS_MAP[codigo], 'lat': station_data.get('estacion', {}).get('latitud'),
+                                    'lon': station_data.get('estacion', {}).get('longitud'),
+                                    'precipitacion_actual': str(latest_reading.get('aguaCaida24Horas', '0')).replace('mm', '').strip()
+                                }
+                    except Exception as e:
+                        print(f"ERROR: Falló la obtención de datos recientes de la DMC. Causa: {e}")
+                        raise e
+
+                    # --- 2. Obtener datos de resumen del día anterior ---
+                    datos_ayer = {}
+                    fecha_ayer_dt = datetime.now() - timedelta(days=1)
+                    fecha_ayer_str = fecha_ayer_dt.strftime('%d-%m-%Y') # Formato de la clave: "11-06-2025"
+                    
+                    print(f"INFO: Buscando datos de precipitación de ayer con la clave de fecha: '{fecha_ayer_str}'")
+
+                    for codigo in STATIONS_MAP.keys():
+                        try:
+                            url_estacion_ayer = f"{DMC_API_URL_AYER_BASE}/{codigo}"
+                            response_ayer = requests.get(url_estacion_ayer, params=params, timeout=10)
+                            response_ayer.raise_for_status()
+                            json_data = response_ayer.json()
+                            
+                            # --- Navegamos la estructura JSON correcta que descubrimos ---
+                            agua_diaria_obj = json_data.get('datos', {}).get('aguaCaidaDiariaEstacion', {})
+                            valor_ayer = agua_diaria_obj.get(fecha_ayer_str, '0') # Usamos la fecha de ayer como clave
+                            
+                            datos_ayer[codigo] = str(valor_ayer).replace('mm', '').strip()
+                        except Exception as e:
+                            print(f"ADVERTENCIA: No se pudo obtener dato de ayer para la estación {codigo}. Causa: {e}")
+                            datos_ayer[codigo] = '0'
+
+                    # --- 3. Combinar los datos ---
+                    map_data_final = []
+                    for codigo, data_reciente in datos_recientes.items():
+                        data_reciente['precipitacion_anterior'] = datos_ayer.get(codigo, '0')
+                        map_data_final.append(data_reciente)
 
                     self._set_headers(200, 'application/json')
-                    self.wfile.write(json.dumps(map_data, ensure_ascii=False).encode('utf-8'))
+                    self.wfile.write(json.dumps(map_data_final, ensure_ascii=False).encode('utf-8'))
 
                 except Exception as e:
                     import traceback
-                    print(f"Error en el endpoint del mapa meteorológico: {e}")
+                    print(f"ERROR CRÍTICO en el endpoint del mapa meteorológico: {e}")
                     traceback.print_exc()
                     self._set_headers(500, 'application/json')
                     self.wfile.write(json.dumps({"error": f"Error interno del servidor al crear datos del mapa: {e}"}).encode('utf-8'))
-                return
-            # --- ENDPOINT PARA MAPA ---
+                return            
             
             # --- ENDPOINT PARA DATOS DE SISMOS ---
             elif requested_path == '/api/sismos':

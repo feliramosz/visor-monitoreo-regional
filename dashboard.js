@@ -419,18 +419,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
             stations.forEach(station => {
                 if (station.lat && station.lon) {
-                    const precip = parseFloat(station.precipitacion) || 0;
+                    const precipActual = parseFloat(station.precipitacion_actual) || 0;
+                    const precipAnterior = parseFloat(station.precipitacion_anterior) || 0;
                     
                     let color = '#a1d99b';
-                    if (precip > 20) color = '#08306b'; else if (precip > 10) color = '#08519c';
-                    else if (precip > 5) color = '#3182bd'; else if (precip > 1) color = '#6baed6';
+                    if (precipActual > 20) color = '#08306b'; else if (precipActual > 10) color = '#08519c';
+                    else if (precipActual > 5) color = '#3182bd'; else if (precipActual > 1) color = '#6baed6';
+
+                    // Formato para el tooltip con el dato de ayer (ambos valores con un decimal)
+                    const tooltipContent = `${precipActual.toFixed(1)}<br><span class="precip-anterior">(${precipAnterior.toFixed(1)})</span>`;
 
                     const marker = L.circleMarker([station.lat, station.lon], {
                         radius: 8, fillColor: color, color: "#000",
                         weight: 1, opacity: 1, fillOpacity: 0.8
                     }).addTo(precipitationMap)
-                      .bindPopup(`<b>${station.nombre}</b><br>Precipitación 24h: ${precip} mm`)                     
-                      .bindTooltip(String(precip), { permanent: true, direction: 'bottom', className: 'precipitation-label', offsetY: 10 });
+                      // Formato para el popup (ambos valores con un decimal)
+                      .bindPopup(`<b>${station.nombre}</b><br>Precipitación 24h: ${precipActual.toFixed(1)} mm<br>Precipitación día anterior: ${precipAnterior.toFixed(1)} mm`)                     
+                      .bindTooltip(tooltipContent, { permanent: true, direction: 'bottom', className: 'precipitation-label', offsetY: 10 });
                       
                     precipitationMarkers.push(marker);
                 }
@@ -466,8 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             let carouselHtml = '';
-            wazePages.forEach((page, pageIndex) => {
-                // --- CAMBIO 1: El HTML del enlace ahora usa atributos 'data-' en lugar de 'onclick' ---
+            wazePages.forEach((page, pageIndex) => {                
                 let listItemsHtml = page.map(accident => {
                     const street = accident.street || 'Ubicación no especificada';
                     const city = accident.city || 'Comuna no especificada';
@@ -490,11 +494,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 carouselHtml += `<div class="waze-slide" data-page-index="${pageIndex}"><ul class="dashboard-list waze-list">${listItemsHtml}</ul></div>`;
             });
             container.innerHTML = carouselHtml;
-
-            // --- CAMBIO 2: Después de crear el HTML, buscamos todos los nuevos enlaces y les asignamos el evento 'click' ---
+            
             document.querySelectorAll('.waze-map-link').forEach(link => {
                 link.addEventListener('click', (event) => {
-                    event.preventDefault(); // Evita que el enlace "#" mueva la página
+                    event.preventDefault(); 
                     const lat = event.currentTarget.dataset.lat;
                     const lon = event.currentTarget.dataset.lon;
                     openMapWindow(lat, lon);
@@ -535,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openMapWindow(lat, lon) {        
         const mapUrl = `https://maps.google.com/?q=${lat},${lon}`;
-        const windowFeatures = 'width=800,height=600,resizable=yes,scrollbars=yes';
+        const windowFeatures = 'width=1280,height=1024,resizable=yes,scrollbars=yes';
         window.open(mapUrl, 'wazeMapWindow', windowFeatures);
     }
 
