@@ -1,7 +1,7 @@
 {
     "tipo_informe": "AM",
-    "fecha_informe": "Martes 10 de junio 2025",
-    "hora_informe": "2:44 h.",
+    "fecha_informe": "Miércoles 11 de junio 2025",
+    "hora_informe": "0:35 h.",
     "alertas_vigentes": [
         {
             "nivel_alerta": "Temprana Preventiva",
@@ -24,10 +24,10 @@
     ],
     "emergencias_ultimas_24_horas": [
         {
-            "n_informe": "152",
-            "fecha_hora": "10/06",
-            "evento_lugar": "Incendio Estructural en la Comuna de Valparaíso",
-            "resumen": "A la hora del presente informe se registra un incendio estructural declarado que de manera preliminar afecta a 01 vivienda, en camino Cintura con Williams Lyon, comuna de Valparaíso, Provincia de Valparaíso. \nDe acuerdo con la evaluación inicial realizada por personal de Bomberos, se trabaja en la contención de la propagación. Personal de la empresa Chilquinta realizo el corte de suministro eléctrico en el sector para el trabajo de seguro de Bomberos"
+            "n_informe": "-",
+            "fecha_hora": "-",
+            "evento_lugar": "-",
+            "resumen": "-"
         }
     ],
     "avisos_alertas_meteorologicas": [
@@ -82,8 +82,8 @@
     ],
     "radiacion_uv": {
         "observado_ayer_label": "Índice observado hoy:",
-        "observado_ayer_value": "2 (Bajo)",
-        "pronosticado_hoy_label": "Índice pronosticado para mañana:",
+        "observado_ayer_value": "1 (Bajo)",
+        "pronosticado_hoy_label": "Índice pronosticado para ayer:",
         "pronosticado_hoy_value": "1-2 (Bajo)"
     },
     "estado_carreteras": [
@@ -111,18 +111,18 @@
         },
         {
             "puerto": "Quintero",
-            "estado_del_puerto": "Sin restricciones.",
-            "condicion": "Normal"
+            "estado_del_puerto": "Restricción: limites operacionales nave mayor",
+            "condicion": "Viento"
         },
         {
             "puerto": "Valparaíso",
-            "estado_del_puerto": "Sin restricciones.",
-            "condicion": "Normal"
+            "estado_del_puerto": "Restricción: limites operacionales nave mayor y menor dentro y fuera del límite del puerto",
+            "condicion": "Ola - Marejada, Viento"
         },
         {
             "puerto": "San Antonio",
-            "estado_del_puerto": "Sin restricciones.",
-            "condicion": "Normal"
+            "estado_del_puerto": "Puerto cerrado para embarcaciones mayores dentro y fuera de la bahía",
+            "condicion": "Ola - Marejada"
         },
         {
             "puerto": "Algarrobo",
@@ -132,14 +132,14 @@
         {
             "puerto": "Juan Fernández",
             "estado_del_puerto": "Puerto cerrado para embarcaciones menores dentro y fuera de la bahía",
-            "condicion": "Ola - Marejada"
+            "condicion": "Viento"
         }
     ],
     "estado_pasos_fronterizos": [
         {
             "nombre_paso": "Los Libertadores",
-            "condicion": "Abierto",
-            "observaciones": "A partir del domingo 1 de junio comienza el horario de invierno en el Paso Fronterizo Los Libertadores. De 08:00 a 20:00 hrs con corte de tránsito a las 18:00 en Guardia Vieja."
+            "condicion": "Cerrado",
+            "observaciones": "Hasta nuevo aviso por condición meteorológica"
         }
     ],
     "dynamic_slides": [],

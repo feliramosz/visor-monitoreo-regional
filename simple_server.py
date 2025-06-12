@@ -14,6 +14,7 @@ import requests
 import ntplib
 import subprocess
 
+
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8000
 DATA_FILE = os.path.join('datos_extraidos', 'ultimo_informe.json')
@@ -90,8 +91,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
             # --- RUTA PARA OBTENER LAS HORAS DEL SHOA ---
             elif requested_path == '/api/shoa_times':
-                # --- PARA ASEGURAR IMPORTACIONES NECESARIAS EN ESTE ALCANCE ---
-                from datetime import datetime 
+                # --- PARA ASEGURAR IMPORTACIONES NECESARIAS EN ESTE ALCANCE ---                 
                 import pytz 
 
                 try:
@@ -130,8 +130,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             # --- RUTA PARA ESTACIONES METEOROLOGICAS (BANNER SUPERIOR) ---
             elif requested_path == '/api/weather':
                 
-                # --- IMPORTACIONES PARA CONVERSIONES ---
-                from datetime import datetime 
+                # --- IMPORTACIONES PARA CONVERSIONES ---                 
                 import pytz 
                 import re   # Para la función de velocidad del viento
 
@@ -388,6 +387,90 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self._set_headers(500, 'application/json')
                     self.wfile.write(json.dumps({"error": f"Error interno del servidor: {e}"}).encode('utf-8'))
                 return
+
+            # --- ENDPOINT PARA DATOS DE WAZE (CON GEOCODIFICACIÓN Y COORDENADAS) ---
+            elif requested_path == '/api/waze':
+                if not hasattr(self.server, 'waze_cache'):
+                    self.server.waze_cache = {'data': None, 'time': 0, 'coords_cache': {}}
+                
+                current_time = datetime.now().timestamp()
+                cache_age = current_time - self.server.waze_cache['time']
+
+                if self.server.waze_cache['data'] and cache_age < 120:
+                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Sirviendo datos de Waze desde caché.")
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(self.server.waze_cache['data'], ensure_ascii=False).encode('utf-8'))
+                    return
+
+                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Obteniendo nuevos datos de Waze.")
+
+                def get_address_from_coords(lat, lon, cache):
+                    cache_key = (round(lat, 4), round(lon, 4))
+                    if cache_key in cache:
+                        return cache[cache_key]
+                    try:
+                        GEO_URL = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=18"
+                        geo_headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
+                        geo_response = requests.get(GEO_URL, headers=geo_headers, timeout=10)
+                        geo_response.raise_for_status()
+                        address_data = geo_response.json().get('address', {})
+                        street = address_data.get('road', '')
+                        city = address_data.get('city') or address_data.get('town') or address_data.get('village') or address_data.get('county', '')
+                        address = {'street': street, 'city': city}
+                        cache[cache_key] = address
+                        return address
+                    except Exception as e:
+                        print(f"Error en geocodificación inversa: {e}")
+                        return {'street': '', 'city': 'No se pudo determinar'}
+
+                try:
+                    WAZE_FEED_URL = "https://www.waze.com/row-partnerhub-api/partners/11528835310/waze-feeds/2e31f9b4-1030-4c4b-8b62-a8c6478386f9?format=1"
+                    headers = {'User-Agent': 'Mozilla/5.0'}
+                    response = requests.get(WAZE_FEED_URL, headers=headers, timeout=15)
+                    response.raise_for_status()
+                    waze_data = response.json()
+                    accident_alerts = [alert for alert in waze_data.get('alerts', []) if alert.get('type') == 'ACCIDENT']
+                    
+                    processed_accidents = []
+                    coords_cache = self.server.waze_cache['coords_cache']
+
+                    for alert in accident_alerts:
+                        street = alert.get('street')
+                        city = alert.get('city')
+                        location = alert.get('location', {})
+                        lat = location.get('y')
+                        lon = location.get('x')
+
+                        if not street or not city:
+                            if lat and lon:
+                                inferred_address = get_address_from_coords(lat, lon, coords_cache)
+                                if not street:
+                                    street = inferred_address.get('street', 'Ubicación no especificada')
+                                if not city:
+                                    city = inferred_address.get('city', 'Comuna no especificada')
+
+                        processed_accidents.append({
+                            "uuid": alert.get('uuid'),
+                            "street": street or "Ubicación no especificada",
+                            "city": city or "Comuna no especificada",
+                            "pubMillis": alert.get('pubMillis'),
+                            "reliability": alert.get('reliability'),
+                            "lat": lat, # <-- NUEVO
+                            "lon": lon  # <-- NUEVO
+                        })
+                    
+                    self.server.waze_cache['data'] = processed_accidents
+                    self.server.waze_cache['time'] = current_time
+                    self.server.waze_cache['coords_cache'] = coords_cache
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(processed_accidents, ensure_ascii=False).encode('utf-8'))
+
+                except Exception as e:
+                    print(f"Error inesperado al procesar datos de Waze: {e}")
+                    self._set_headers(500, 'application/json')
+                    self.wfile.write(json.dumps({"error": f"Error interno del servidor en Waze: {e}"}).encode('utf-8'))
+                return
+            # --- FIN ENDPOINT WAZE ---
 
 
             file_to_serve = os.path.join(SERVER_ROOT, requested_path.lstrip('/'))

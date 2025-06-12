@@ -1180,3 +1180,197 @@ main.dashboard-grid {
 #avisos-carousel-controls button.paused {
     background-color: #e2e6ea;
 }
+
+/* --- ESTILOS PARA PANEL DE WAZE --- */
+#waze-incidents-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    /* Efecto de degradado para indicar que hay más contenido */
+    -webkit-mask-image: linear-gradient(black 90%, transparent);
+    mask-image: linear-gradient(black 90%, transparent);
+}
+
+.waze-list {
+    padding-right: 10px; /* Espacio para la barra de scroll */
+}
+
+.waze-incident-item {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 5px;
+    border-bottom: 1px solid #f0f0f0;
+    line-height: 1.4;
+}
+
+.waze-incident-item .waze-street {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: #333;
+}
+
+.waze-incident-item .waze-city {
+    font-size: 0.95em;
+    color: #555;
+}
+
+.waze-incident-item .waze-time {
+    font-size: 0.8em;
+    color: #888;
+    margin-top: 4px;
+    text-align: right;
+}
+
+.no-waze-incidents {
+    font-size: 1.1em;
+    color: #155724;
+    text-align: center;
+    padding-top: 20px;
+}
+
+/* --- ESTILOS MEJORADOS PARA PANEL DE WAZE --- */
+
+/* Contenedor principal del carrusel de Waze */
+#waze-incidents-container {
+    flex-grow: 1;
+    overflow: hidden;
+    position: relative; /* Necesario para posicionar los slides */
+}
+
+/* Estilo para cada slide/página del carrusel */
+.waze-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1);
+    padding-right: 10px;
+}
+
+/* Nuevo contenedor para la primera línea (Calle y Comuna) */
+.waze-incident-header {
+    display: flex;
+    justify-content: space-between; /* Alinea los elementos a los extremos */
+    align-items: center;
+    gap: 15px;
+}
+
+.waze-incident-item .waze-street {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #333;
+    text-align: left; /* Alineado a la izquierda */
+}
+
+.waze-incident-item .waze-city {
+    font-size: 0.9em;
+    color: #555;
+    text-align: right; /* Alineado a la derecha */
+    white-space: nowrap; /* Evita que el nombre de la comuna se parta */
+    flex-shrink: 0; /* Evita que se encoja si el nombre de la calle es largo */
+}
+
+/* Controles del carrusel de Waze (similar a los de Avisos) */
+#waze-carousel-controls {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid #f0f0f0;
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+#waze-carousel-controls button {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    width: 35px;
+    height: 30px;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #495057;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#waze-carousel-controls button:hover {
+    background-color: #e9ecef;
+}
+
+#waze-carousel-controls button.paused {
+    background-color: #e2e6ea;
+}
+
+/* --- ESTILOS PARA EL ENLACE DEL MAPA DE WAZE --- */
+.waze-map-link {
+    text-decoration: none;
+    font-size: 1.5em; /* Aumenta el tamaño del ícono emoji */
+    margin-right: 12px;
+    transition: transform 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.waze-map-link:hover {
+    transform: scale(1.25); /* Efecto de zoom al pasar el mouse */
+}
+
+/* Ajuste al header del incidente para alinear correctamente el nuevo ícono */
+.waze-incident-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center; /* Clave para centrar verticalmente el ícono y el texto */
+    gap: 15px;
+}
+
+/* --- ESTILOS PARA ESTADO DE PASO FRONTERIZO --- */
+.weather-box-footer {
+    display: flex;
+    justify-content: space-between; /* Alinea los elementos a los extremos */
+    align-items: center;
+    margin-top: 8px;
+    padding-top: 5px;
+    border-top: 1px solid #eee; /* Línea separadora sutil */
+}
+
+.pass-status {
+    font-weight: bold;
+    font-size: 0.9em;
+    color: #343a40; /* Color por defecto para "Paso: " */
+}
+
+/* Clases para colorear solo la palabra del estado */
+.status-habilitado {
+    color: #28a745; /* Verde */
+}
+
+.status-cerrado {
+    color: #dc3545; /* Rojo */
+}
+
+.status-no-informado {
+    color: #6c757d; /* Gris */
+}
+
+/* Ajuste a la hora para que conviva en el footer */
+.station-update-time {
+    margin: 0;
+    padding: 0;
+    border: none;
+    font-size: 0.8em !important; /* Aseguramos el tamaño */
+}
+
+/* Esta regla se aplica a las tarjetas del dashboard */
+.dashboard-panel {
+    border-top: 3px solid #0051ff;
+    border-bottom: 3px solid #0051ff; 
+}
+
+/* Esta regla se aplica a las tarjetas más pequeñas del banner meteorológico */
+.weather-banner .weather-station-box {
+    border-left: 1px solid #0051ff;
+    border-right: 1px solid #0051ff;
+}

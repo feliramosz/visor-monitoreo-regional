@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let avisoPages = [];
     const avisoPageDuration = 15000;
     let isAvisoCarouselPaused = false;
+    let borderPassStatus = {};
 
     // Variables de los mapas y marcadores
     const stateToColor = {'bueno': '#4caf50', 'regular': '#ffeb3b', 'alerta': '#ff9800', 'preemergencia': '#f44336', 'emergencia': '#9c27b0', 'no_disponible': '#9e9e9e'};
@@ -51,6 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let airQualityMarkers = [];
     let precipitationMap = null;
     let precipitationMarkers = [];
+
+    // Estado del carrusel de WAZE
+    let wazeCarouselInterval;
+    let currentWazeSlide = 0;
+    let wazePages = [];
+    const wazePageDuration = 15000; // 15 segundos por página
+    let isWazeCarouselPaused = false;    
     
     // Lógica de Relojes
     async function updateClocks() {
@@ -87,14 +95,43 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(WEATHER_API_URL);
             const weatherData = await response.json();
-            weatherBannerContainer.innerHTML = weatherData.map(station => `
-                <div class="weather-station-box">
-                    <h4>${station.nombre}</h4>
-                    <p><strong>Temp:</strong> ${station.temperatura}°C</p>
-                    <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p> <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
-                    <p class="station-update-time">Act: ${station.hora_actualizacion}h</p>
-                </div>
-            `).join('');
+            weatherBannerContainer.innerHTML = weatherData.map(station => {
+                
+                let passStatusText = '';
+                let passStatusWord = '';
+                let statusClass = '';
+
+                if (station.nombre === 'Los Libertadores, Los Andes') {
+                    // El usuario confirmó que usa "Los Libertadores" en su informe.
+                    const status = borderPassStatus['Los Libertadores'] || 'No informado';
+                    
+                    passStatusText = 'Paso: ';
+                    passStatusWord = status;
+                    
+                    statusClass = 'status-no-informado'; // Color por defecto (gris)
+
+                    // --- LÍNEA CORREGIDA: Ahora también busca la palabra "abierto" ---
+                    if (status.toLowerCase().includes('habilitado') || status.toLowerCase().includes('abierto')) {
+                        statusClass = 'status-habilitado'; // Verde
+                    } else if (status.toLowerCase().includes('cerrado') || status.toLowerCase().includes('suspendido')) {
+                        statusClass = 'status-cerrado'; // Rojo
+                    }
+                }
+
+                return `
+                    <div class="weather-station-box">
+                        <h4>${station.nombre}</h4>
+                        <p><strong>Temp:</strong> ${station.temperatura}°C</p>
+                        <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
+                        <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
+                        
+                        <div class="weather-box-footer">
+                            <span class="pass-status">${passStatusText}<span class="${statusClass}">${passStatusWord}</span></span>
+                            <span class="station-update-time">Act: ${station.hora_actualizacion}h</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         } catch (error) {
             weatherBannerContainer.innerHTML = '<p>Error al cargar datos del clima.</p>'; 
         }
@@ -117,6 +154,17 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 novedadesContent.textContent = 'No hay novedades para mostrar.';
             }
+
+            // --- NUEVA LÓGICA: Guardar estado de pasos fronterizos ---
+            if (data.estado_pasos_fronterizos && data.estado_pasos_fronterizos.length > 0) {
+                data.estado_pasos_fronterizos.forEach(paso => {
+                    // Usamos el nombre del paso como clave para fácil acceso
+                    borderPassStatus[paso.nombre_paso] = paso.condicion;
+                });
+                // Volvemos a renderizar el clima por si los datos del paso llegaron después
+                fetchAndRenderWeather(); 
+            }
+            // --- FIN NUEVA LÓGICA ---
 
             renderAlertasList(alertasListContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
             setupAvisosCarousel(data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
@@ -262,6 +310,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 100);
     }
 
+    function showWazeSlide(index) {
+        document.querySelectorAll('.waze-slide').forEach((slide, i) => {
+            slide.style.transform = `translateX(${(i - index) * 100}%)`;
+        });
+    }
+    
+    function nextWazeSlide() {
+        if (wazePages.length <= 1) return;
+        currentWazeSlide = (currentWazeSlide + 1) % wazePages.length;
+        showWazeSlide(currentWazeSlide);
+    }
+
+    function prevWazeSlide() {
+        if (wazePages.length <= 1) return;
+        currentWazeSlide = (currentWazeSlide - 1 + wazePages.length) % wazePages.length;
+        showWazeSlide(currentWazeSlide);
+    }
+    
+    function toggleWazePausePlay() {
+        isWazeCarouselPaused = !isWazeCarouselPaused;
+        const btn = document.getElementById('waze-pause-play-btn');
+        if (isWazeCarouselPaused) {
+            clearInterval(wazeCarouselInterval);
+            btn.textContent = '▶';
+            btn.classList.add('paused');
+        } else {
+            wazeCarouselInterval = setInterval(nextWazeSlide, wazePageDuration);
+            btn.textContent = '||';
+            btn.classList.remove('paused');
+        }
+    }
+
+    function resetWazeInterval() {
+        if (!isWazeCarouselPaused) {
+            clearInterval(wazeCarouselInterval);
+            wazeCarouselInterval = setInterval(nextWazeSlide, wazePageDuration);
+        }
+    }
+
     // LÓGICA DE MAPAS
     function initializeAirQualityMap() {
         if (airQualityMap) return;
@@ -351,6 +438,107 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Error al cargar datos del mapa meteorológico:", error); }
     }
 
+    async function fetchAndRenderWazeData() {
+        const container = document.getElementById('waze-incidents-container');
+        const controls = document.getElementById('waze-carousel-controls');
+        if (!container || !controls) return;
+
+        clearInterval(wazeCarouselInterval);
+
+        try {
+            const response = await fetch('/api/waze');
+            const accidents = await response.json();
+
+            if (accidents.error) throw new Error(accidents.error);
+            
+            if (accidents.length === 0) {
+                container.innerHTML = '<p class="no-waze-incidents">✅ No hay accidentes reportados en este momento.</p>';
+                controls.style.display = 'none';
+                return;
+            }
+
+            accidents.sort((a, b) => b.pubMillis - a.pubMillis);
+
+            const ITEMS_PER_PAGE = 4;
+            wazePages = [];
+            for (let i = 0; i < accidents.length; i += ITEMS_PER_PAGE) {
+                wazePages.push(accidents.slice(i, i + ITEMS_PER_PAGE));
+            }
+
+            let carouselHtml = '';
+            wazePages.forEach((page, pageIndex) => {
+                // --- CAMBIO 1: El HTML del enlace ahora usa atributos 'data-' en lugar de 'onclick' ---
+                let listItemsHtml = page.map(accident => {
+                    const street = accident.street || 'Ubicación no especificada';
+                    const city = accident.city || 'Comuna no especificada';
+                    
+                    const mapLink = (accident.lat && accident.lon)
+                        ? `<a href="#" class="waze-map-link" data-lat="${accident.lat}" data-lon="${accident.lon}" title="Ver en Google Maps">📍</a>`
+                        : '';
+
+                    return `
+                        <li class="waze-incident-item">
+                            <div class="waze-incident-header">
+                                ${mapLink}
+                                <span class="waze-street">${street}</span>
+                                <span class="waze-city">Comuna: ${city}</span>
+                            </div>
+                            <span class="waze-time">Reportado ${formatTimeAgo(accident.pubMillis)}</span>
+                        </li>
+                    `;
+                }).join('');
+                carouselHtml += `<div class="waze-slide" data-page-index="${pageIndex}"><ul class="dashboard-list waze-list">${listItemsHtml}</ul></div>`;
+            });
+            container.innerHTML = carouselHtml;
+
+            // --- CAMBIO 2: Después de crear el HTML, buscamos todos los nuevos enlaces y les asignamos el evento 'click' ---
+            document.querySelectorAll('.waze-map-link').forEach(link => {
+                link.addEventListener('click', (event) => {
+                    event.preventDefault(); // Evita que el enlace "#" mueva la página
+                    const lat = event.currentTarget.dataset.lat;
+                    const lon = event.currentTarget.dataset.lon;
+                    openMapWindow(lat, lon);
+                });
+            });
+
+            currentWazeSlide = 0;
+            showWazeSlide(currentWazeSlide);
+
+            if (wazePages.length > 1) {
+                controls.style.display = 'flex';
+                wazeCarouselInterval = setInterval(nextWazeSlide, wazePageDuration);
+            } else {
+                controls.style.display = 'none';
+            }
+
+        } catch (error) {
+            console.error("Error al cargar datos de Waze:", error);
+            container.innerHTML = '<p style="color:red;">No se pudieron cargar los datos de Waze.</p>';
+            controls.style.display = 'none';
+        }
+    }
+
+    function formatTimeAgo(millis) {
+        const seconds = Math.floor((Date.now() - millis) / 1000);
+        let interval = seconds / 31536000;
+        if (interval > 1) return `hace ${Math.floor(interval)} años`;
+        interval = seconds / 2592000;
+        if (interval > 1) return `hace ${Math.floor(interval)} meses`;
+        interval = seconds / 86400;
+        if (interval > 1) return `hace ${Math.floor(interval)} días`;
+        interval = seconds / 3600;
+        if (interval > 1) return `hace ${Math.floor(interval)} horas`;
+        interval = seconds / 60;
+        if (interval > 1) return `hace ${Math.floor(interval)} minutos`;
+        return `hace ${Math.floor(seconds)} segundos`;
+    }
+
+    function openMapWindow(lat, lon) {        
+        const mapUrl = `https://maps.google.com/?q=${lat},${lon}`;
+        const windowFeatures = 'width=800,height=600,resizable=yes,scrollbars=yes';
+        window.open(mapUrl, 'wazeMapWindow', windowFeatures);
+    }
+
     function showMapSlide(index) {
         mapSlides.forEach((slide, i) => { slide.classList.toggle('active-map-slide', i === index); });
         mapPanelTitle.textContent = mapTitles[index];
@@ -382,7 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchAndRenderMainData();
         initializeAirQualityMap(); fetchAndRenderAirQuality();
         initializePrecipitationMap(); fetchAndRenderPrecipitationData();
-        showMapSlide(0);
+        showMapSlide(0); fetchAndRenderWazeData();
         mapCarouselInterval = setInterval(nextMapSlide, mapSlideDuration);
         
         // Listeners para carrusel de MAPAS
@@ -395,11 +583,17 @@ document.addEventListener('DOMContentLoaded', () => {
         avisoPrevBtn.addEventListener('click', () => { prevAvisoPage(); resetAvisoInterval(); });
         avisoPausePlayBtn.addEventListener('click', toggleAvisoPausePlay);
 
+        // Listeners para carrusel de WAZE (NUEVO)
+        document.getElementById('waze-next-btn').addEventListener('click', () => { nextWazeSlide(); resetWazeInterval(); });
+        document.getElementById('waze-prev-btn').addEventListener('click', () => { prevWazeSlide(); resetWazeInterval(); });
+        document.getElementById('waze-pause-play-btn').addEventListener('click', toggleWazePausePlay);
+
         // Intervalos de actualización de datos
         setInterval(fetchAndRenderMainData, 60 * 1000);
         setInterval(fetchAndRenderWeather, 10 * 60 * 1000);
         setInterval(fetchAndRenderAirQuality, 5 * 60 * 1000);
-        setInterval(fetchAndRenderPrecipitationData, 5 * 60 * 1000); 
+        setInterval(fetchAndRenderPrecipitationData, 5 * 60 * 1000);
+        setInterval(fetchAndRenderWazeData, 2 * 60 * 1000); 
     }
 
     initializeApp();

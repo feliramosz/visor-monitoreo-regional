@@ -191,8 +191,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-// REEMPLAZA LA FUNCIÓN renderData ANTIGUA CON ESTA NUEVA VERSIÓN:
-function renderData(data) {
+    // REEMPLAZA LA FUNCIÓN renderData ANTIGUA CON ESTA NUEVA VERSIÓN:
+    function renderData(data) {
     if (!data) {
         fechaInformeSpan.textContent = 'No se pudo cargar el informe.';
         return;
@@ -306,8 +306,8 @@ function renderData(data) {
         noDataMessage: "No hay emergencias registradas.",
         tableClass: "table-layout-auto",
         headers: "<th>N° Informe</th><th>Fecha y Hora</th><th>Evento/Lugar</th><th>Resumen</th>",
-        source: "Fuente: Servicio Nacional de Prevención y Respuesta ante Desastres (SENAPRED)",
-        rowBuilder: item => `<tr class="v-align-middle"><td class="v-align-middle"><span class="math-inline">\{item\.n\_informe\}</td\><td class\="v\-align\-middle"\></span>{item.fecha_hora}</td><td class="v-align-middle"><span class="math-inline">\{item\.evento\_lugar\}</td\><td class\="text\-justify"\></span>{item.resumen}</td></tr>`
+        source: "Fuente: Servicio Nacional de Prevención y Respuesta ante Desastres (SENAPRED)",        
+        rowBuilder: item => `<tr class="v-align-middle"><td class="v-align-middle">${item.n_informe}</td><td class="v-align-middle">${item.fecha_hora}</td><td class="v-align-middle">${item.evento_lugar}</td><td class="text-justify">${item.resumen}</td></tr>`
     });
 
     // Insertar las nuevas diapositivas (si las hay) después de la original
