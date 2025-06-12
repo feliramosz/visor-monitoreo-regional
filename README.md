@@ -13,6 +13,7 @@ Este proyecto es una aplicación web diseñada para la visualización y gestión
     -   Calidad del Aire del SINCA.
     -   Últimos sismos sensibles del CSN.
     -   Hora oficial del SHOA.
+    -   Feed de incidentes de **Waze** (Waze for Cities).
 -   **Panel de Administración Centralizado**: Una interfaz web (`admin.html`) que permite a los operadores:
     -   Editar y guardar manualmente toda la información extraída del informe.
     -   Añadir, editar o eliminar alertas, avisos, estados de rutas, puertos, etc.
@@ -31,7 +32,7 @@ Este proyecto es una aplicación web diseñada para la visualización y gestión
 ## Puesta en Marcha
 
 1.  Asegurarse de tener Python y las dependencias listadas en `requirements.txt` instaladas.
-2.  Configurar las variables de entorno para el acceso a Gmail (`GMAIL_USER`, `GMAIL_APP_PASSWORD`).
+2.  Configurar las variables de entorno para el acceso a Gmail (`GMAIL_APP_PASSWORD`) y Waze (`WAZE_FEED_URL`).
 3.  Ejecutar el servidor con el comando: `python simple_server.py`.
 4.  Acceder a las vistas a través del navegador en la dirección del servidor (ej. `http://localhost:8000`).
 
@@ -39,31 +40,15 @@ Este proyecto es una aplicación web diseñada para la visualización y gestión
 
 ## ✅ Mejoras Implementadas Recientemente
 
-* **Carrusel Interno con Agrupación (Dashboard):** Se rediseñó el panel de "Avisos" en el `dashboard.html`, transformándolo en un carrusel interno que agrupa los ítems por categoría (Avisos, Alertas, Alarmas, Marejadas). Incluye controles manuales de navegación y pausa para una mejor interacción.
-* **Paginación Automática de Diapositivas (Carrusel Principal):** Se implementó una lógica de paginación automática en la vista `index.html`. Las secciones de "Alertas Vigentes", "Avisos / Alertas" e "Informes Emitidos" ahora se dividen en múltiples diapositivas si el contenido excede el espacio disponible, asegurando que toda la información sea siempre visible.
-* **Manejo de Desborde con Auto-Scroll (Dashboard):** Para los paneles del dashboard cuyas listas son demasiado largas (como "Alertas Vigentes" o una página del carrusel de avisos), se activa un desplazamiento vertical automático para mostrar todos los ítems sin necesidad de interacción.
-* **Coloreado Dinámico de Alertas (Dashboard):** Se implementó el resaltado visual de las "Alertas Vigentes" en el dashboard, aplicando colores según la severidad para una rápida identificación.
-* **Inclusión de Cobertura en Avisos:** Se añadió la información de "Cobertura" a la descripción de cada ítem en el panel de "Avisos / Alertas / Alarmas / Marejadas".
+* **Integración de Reportes de Accidentes de Waze:** Se ha integrado el feed de datos de Waze for Cities para mostrar los reportes de accidentes en un panel dedicado en el `dashboard.html`.
+    * **Geocodificación Inversa:** El sistema enriquece los datos de Waze, utilizando las coordenadas para inferir y mostrar la comuna o el nombre de la calle cuando estos no son proporcionados en el reporte original.
+    * **Carrusel y Mapa Interactivo:** El panel maneja múltiples reportes a través de un carrusel paginado y cada incidente incluye un ícono que abre su ubicación en Google Maps en una nueva ventana.
+* **Indicador de Estado de Paso Fronterizo:** La tarjeta de la estación meteorológica "Los Libertadores" en el dashboard ahora muestra el estado actual del paso fronterizo ("Abierto" o "Cerrado"), con colores distintivos para una rápida identificación.
+* **Panel de Novedades Dinámico:** Se implementó un sistema de novedades persistente, separado del informe principal. Desde el panel de administración, los operadores pueden añadir nuevas entradas que se guardan con su fecha y hora en un archivo `novedades.json`, mostrándose en el dashboard como una lista cronológica.
+* **Autocompletado de Hora del Informe:** Al guardar cambios desde el panel de administración, el sistema ahora captura y asigna automáticamente la hora actual al informe, asegurando que los datos siempre reflejen el momento de la última actualización manual.
+* **Mejoras de Diseño y Estilo:** Se aplicaron nuevos estilos en el `dashboard.html` para unificar la apariencia visual con la de `index.html`, añadiendo bordes de color a los paneles para una mejor definición.
 
 ## 📝 Próximos Pasos y Tareas Pendientes
-
-1.  **Persistencia de Novedades con JSON Independiente**
-    * **Problema:** Al ejecutar `descargar_informe.py`, el archivo `ultimo_informe.json` se sobrescribe por completo, borrando las "Novedades" y el "N° de informe" que se ingresaron manualmente.
-    * **Solución:** Crear un archivo `novedades.json` separado. El panel de administración leerá y escribirá en este nuevo archivo, mientras que el script de descarga solo modificará `ultimo_informe.json`. El dashboard cargará datos de ambos archivos.
-
-2.  **Panel de Novedades estilo "Chat" con Timestamps**
-    * **Mejora:** Evolucionar el cuadro de texto libre de "Novedades" a un sistema más dinámico.
-    * **Solución:** En el panel de administración, crear un campo de texto y un botón "Añadir Novedad". Al hacer clic, se guardará la entrada junto con la fecha y hora actual en `novedades.json`. El dashboard mostrará estas entradas como una lista cronológica.
-
-3.  **Autocompletar Hora en Panel de Administración**
-    * **Problema:** La hora del informe en el panel de administración a veces no se actualiza, quedando desfasada.
-    * **Solución:** Modificar `admin.js` para que al presionar "Guardar Cambios", se capture la hora actual del sistema y se inserte automáticamente en el campo "Hora del reporte".
-
----
-### Tareas a Futuro
-
-* **Verificar si se puede implementar Waze:**
-    * **Objetivo:** Integrar un panel que permita mostrar los últimos accidentes que reportan los usuarios de Waze.
 
 * **Implementar un Sistema de Autenticación Seguro (Tarea para Depto. TIC):**
     * **Objetivo:** Proteger el panel de administración (`admin.html`) y las APIs de escritura para que solo usuarios autorizados puedan modificar el contenido.
