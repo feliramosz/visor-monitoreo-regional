@@ -15,6 +15,9 @@ import ntplib
 import subprocess
 import sys
 from dotenv import load_dotenv
+import sqlite3
+import uuid
+from werkzeug.security import check_password_hash
 
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8000
@@ -25,6 +28,8 @@ DATA_FILE = os.path.join(DATA_FOLDER_PATH, 'ultimo_informe.json')
 NOVEDADES_FILE = os.path.join(DATA_FOLDER_PATH, 'novedades.json')
 SERVER_ROOT = os.path.dirname(os.path.abspath(__file__))
 DYNAMIC_SLIDES_FOLDER = os.path.join(SERVER_ROOT, 'assets', 'dynamic_slides')
+SESSIONS = {} # Un diccionario para guardar las sesiones activas: { 'token': 'username' }
+DATABASE_FILE = 'database.db' # La ruta a nuestra base de datos
 
 # --- CONFIGURACIÓN DE REDIMENSIONAMIENTO DE IMÁGENES ---
 MAX_IMAGE_WIDTH = 1200
@@ -34,6 +39,16 @@ MAX_IMAGE_HEIGHT = 800
 NTP_SERVER = 'ntp.shoa.cl'
 
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
+    def _get_user_from_token(self):
+        """Valida el token de la cabecera y devuelve el nombre de usuario."""
+        auth_header = self.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return None
+        
+        token = auth_header.split(' ')[1]
+        # Comprueba si el token está en las sesiones activas y devuelve el usuario asociado
+        return SESSIONS.get(token)
+    
     def _set_headers(self, status_code=200, content_type='text/html'):
         self.send_response(status_code)
         self.send_header('Content-type', content_type)
@@ -540,7 +555,48 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(f"Error interno del servidor: {e}".encode('utf-8'))
 
     def do_POST(self):
+        # --- NUEVO: Endpoint de Login ---
+        if self.path == '/api/login':
+            content_length = int(self.headers['Content-Length'])
+            post_data = json.loads(self.rfile.read(content_length))
+            username = post_data.get('username')
+            password = post_data.get('password')
+
+            conn = sqlite3.connect(DATABASE_FILE)
+            cursor = conn.cursor()
+            cursor.execute("SELECT password_hash FROM users WHERE username = ?", (username,))
+            result = cursor.fetchone()
+            conn.close()
+
+            if result and check_password_hash(result[0], password):
+                token = str(uuid.uuid4())
+                SESSIONS[token] = username
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps({'message': 'Login exitoso', 'token': token}).encode('utf-8'))
+            else:
+                self._set_headers(401, 'application/json')
+                self.wfile.write(json.dumps({'error': 'Usuario o contraseña inválidos'}).encode('utf-8'))
+            return # Termina la función aquí
+
+        # --- NUEVO: Endpoint de Logout ---
+        if self.path == '/api/logout':
+            auth_header = self.headers.get('Authorization')
+            if auth_header and auth_header.startswith('Bearer '):
+                token_to_invalidate = auth_header.split(' ')[1]
+                if token_to_invalidate in SESSIONS:
+                    del SESSIONS[token_to_invalidate] # Borra el token de las sesiones activas
+            self._set_headers(200, 'application/json')
+            self.wfile.write(json.dumps({'message': 'Logout exitoso'}).encode('utf-8'))
+            return
+        
         if self.path == '/api/data':
+            username = self._get_user_from_token() 
+                        
+            if not username:
+                self._set_headers(401, 'application/json')
+                self.wfile.write(json.dumps({'error': 'No autorizado. Se requiere iniciar sesión.'}).encode('utf-8'))
+                return
+            
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             try:
@@ -550,6 +606,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
                 with open(DATA_FILE, 'w', encoding='utf-8') as f:
                     json.dump(new_data, f, ensure_ascii=False, indent=4)
+                
+                # Aquí añadiremos el registro de actividad en el siguiente paso
+
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps({"message": "Datos de informe actualizados correctamente."}, ensure_ascii=False).encode('utf-8'))
             except json.JSONDecodeError:
