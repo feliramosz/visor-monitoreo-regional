@@ -14,11 +14,13 @@ import requests
 import ntplib
 import subprocess
 import sys
-
+from dotenv import load_dotenv
 
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8000
-DATA_FOLDER_PATH = os.path.join(os.getenv('PROGRAMDATA'), 'SistemaMonitoreoSENAPRED', 'datos_extraidos')
+load_dotenv(dotenv_path=os.path.join(os.path.expanduser('~'), 'senapred-monitor.env'))
+#DATA_FOLDER_PATH = os.path.join(os.getenv('PROGRAMDATA'), 'SistemaMonitoreoSENAPRED', 'datos_extraidos')
+DATA_FOLDER_PATH = os.path.join(os.path.expanduser('~'), 'SistemaMonitoreoSENAPRED', 'datos_extraidos')
 DATA_FILE = os.path.join(DATA_FOLDER_PATH, 'ultimo_informe.json')
 NOVEDADES_FILE = os.path.join(DATA_FOLDER_PATH, 'novedades.json')
 SERVER_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -582,20 +584,20 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     try:
                         print("INFO: Se ha recibido una solicitud para ejecutar descargar_informe.py manualmente.")
                                                 
-                        # Determinar la ruta base donde se está ejecutando el .exe
                         if getattr(sys, 'frozen', False):
-                            # Si estamos en el modo compilado (.exe)
                             application_path = os.path.dirname(sys.executable)
                         else:
-                            # Si estamos en modo de desarrollo (.py)
                             application_path = os.path.dirname(os.path.abspath(__file__))
 
-                        # La ruta al ejecutable de descarga
-                        download_script_exe = os.path.join(application_path, "descargar_informe.exe")
-                        
-                        # Comando para forzar la descarga
-                        command = [download_script_exe, "--force"]                       
-                        
+                        # Definimos la ruta al script .py
+                        download_script_py = os.path.join(application_path, "descargar_informe.py")
+
+                        # Definimos la ruta al ejecutable de Python DENTRO del venv
+                        python_executable = os.path.join(application_path, "venv/bin/python3")
+
+                        # El comando ahora usa ambas variables definidas
+                        command = [python_executable, download_script_py, "--force"]
+
                         result = subprocess.run(
                             command, 
                             capture_output=True, 
