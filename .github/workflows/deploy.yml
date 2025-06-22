@@ -1,0 +1,39 @@
+# Nombre del flujo de trabajo que verás en la pestaña "Actions"
+name: Despliegue al Servidor
+
+# Disparador: Este workflow se ejecutará cada vez que hagas un "push" a la rama "main"
+on:
+  push:
+    branches:
+      - main
+
+# Tareas a ejecutar
+jobs:
+  deploy:
+    # El tipo de máquina virtual que usará GitHub para ejecutar las tareas
+    runs-on: ubuntu-latest
+
+    # Pasos a seguir
+    steps:
+      # 1. Nombre del paso
+      - name: Desplegar en el servidor Vultr
+        # Usamos una acción pre-hecha de la comunidad para conectarse por SSH
+        uses: appleboy/ssh-action@master
+        with:
+          # Aquí usamos los "Secretos" que configuraremos en GitHub
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          # El script que se ejecutará en el servidor una vez conectado
+          script: |
+            # Navega a la carpeta del proyecto
+            cd /home/linuxuser/visor-monitoreo-regional
+            
+            # Descarga los últimos cambios desde GitHub
+            git pull
+            
+            # Reinicia los servicios usando la contraseña de sudo
+            # El comando "echo ... | sudo -S" permite pasar la contraseña a sudo de forma no interactiva
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart senapred-monitor.service
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart nginx
