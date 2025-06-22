@@ -174,9 +174,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const editIndex = adminNovedadEditIndex.value;
 
-        if (editIndex) { // Estamos editando
+        if (editIndex) {
             novedadesData.entradas[editIndex].texto = texto;
-        } else { // Estamos añadiendo
+        } else {
             const now = new Date();            
             const timestamp = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             novedadesData.entradas.push({ timestamp, texto });
