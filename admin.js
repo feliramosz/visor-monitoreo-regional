@@ -2,10 +2,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('session_token');
     if (!token) {
         window.location.href = '/login.html';
-        return; // Detiene la ejecución del resto del script si no hay token
-    }// URLs de las APIs
+        return; 
+    }
     const DATA_API_URL = '/api/data';
-    const NOVEDADES_API_URL = '/api/novedades'; // <--- NUEVO
+    const NOVEDADES_API_URL = '/api/novedades'; 
     const UPLOAD_IMAGE_API_URL = '/api/upload_image';
     const DELETE_IMAGE_API_URL = '/api/delete_image';
     const TRIGGER_DOWNLOAD_API_URL = '/api/trigger-download';
