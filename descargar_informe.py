@@ -4,20 +4,48 @@ import os
 from datetime import datetime
 from docx import Document
 import json
+import argparse
+import re
+import tempfile
 
 # --- CONFIGURACIÓN ---
-EMAIL_USER = os.getenv('GMAIL_USER', 'monitoreoregionaleco5@gmail.com') #-- AQUI LA CUENTA DE GMAIL QUE RECIBIRÁ EL INFORME EN FORMATO DOCX
-EMAIL_PASSWORD = os.getenv('GMAIL_APP_PASSWORD') #-- ESTA CONTRASEÑA DEBE SER GENERADA COMO CONTRASEÑA DE APLICACION EN GOOGLE Y USADA EN LA CONSOLA CON EL COMANDO [System.Environment]::SetEnvironmentVariable('GMAIL_APP_PASSWORD', 'AQUI LA CONTRASEÑA DE 16 DIGITOS', 'User')
+EMAIL_USER = os.getenv('GMAIL_USER', 'monitoreoregionaleco5@gmail.com')
+EMAIL_PASSWORD = os.getenv('GMAIL_APP_PASSWORD')
 IMAP_SERVER = "imap.gmail.com"
-DOWNLOAD_FOLDER = "informes_descargados"
-DATA_OUTPUT_FOLDER = "datos_extraidos"
+DOWNLOAD_FOLDER = os.path.join(tempfile.gettempdir(), 'informes_descargados_senapred')
+DATA_OUTPUT_FOLDER = os.path.join(os.getenv('PROGRAMDATA'), 'SistemaMonitoreoSENAPRED', 'datos_extraidos')
+DATA_FILE = os.path.join(DATA_OUTPUT_FOLDER, "ultimo_informe.json")
 
-# --- Verificación de que las variables de entorno están cargadas ---
-if not EMAIL_PASSWORD:
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ERROR: La variable de entorno GMAIL_APP_PASSWORD no está configurada. El script no puede continuar.")
-    exit() 
+# --- FUNCIÓN MEJORADA PARA OBTENER UN ID ÚNICO DEL INFORME ---
+def obtener_id_del_informe(nombre_archivo):
+    """
+    Extrae un ID único del nombre del archivo, como 'AM-2025-06-12'.
+    Ahora maneja formatos de fecha más flexibles (DD MM YY, DD-MM-YYYY, etc.).
+    """
+    nombre_archivo_upper = nombre_archivo.upper()
+    
+    tipo_informe = "AM" if "AM" in nombre_archivo_upper else "PM" if "PM" in nombre_archivo_upper else None
+    if not tipo_informe:
+        return None
 
-# --- FUNCIÓN PARA DESCARGAR INFORMES ---
+    # Regex mejorado: busca DD, MM, y YY o YYYY, separados por espacio, punto o guion.
+    match = re.search(r'(\d{1,2})[\s.-]+(\d{1,2})[\s.-]+(\d{2,4})', nombre_archivo)
+    if match:
+        dia, mes, anio = match.groups()
+        
+        # Asegurar que día y mes tengan dos dígitos
+        dia = dia.zfill(2)
+        mes = mes.zfill(2)
+
+        # Convertir año de 2 dígitos a 4 dígitos
+        if len(anio) == 2:
+            anio = f"20{anio}"
+            
+        return f"{tipo_informe}-{anio}-{mes}-{dia}"
+        
+    return None
+
+# --- FUNCIÓN PARA DESCARGAR INFORMES (sin cambios) ---
 def descargar_ultimo_informe(email_user, email_password, imap_server, download_folder):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Iniciando descarga del último informe...")
 
@@ -50,9 +78,7 @@ def descargar_ultimo_informe(email_user, email_password, imap_server, download_f
         print(f"Procesando el último correo: '{subject}' de '{msg['from']}'")
 
         for part in msg.walk():
-            if part.get_content_maintype() == 'multipart':
-                continue
-            if part.get('Content-Disposition') is None:
+            if part.get_content_maintype() == 'multipart' or part.get('Content-Disposition') is None:
                 continue
 
             file_name = part.get_filename()
@@ -79,14 +105,19 @@ def descargar_ultimo_informe(email_user, email_password, imap_server, download_f
         print(f"Error al descargar el informe: {e}")
         return None, None
 
-# --- FUNCIÓN PARA EXTRAER DATOS DEL DOCX ---
-def extraer_datos_docx(docx_filepath, subject_email):
+# --- FUNCIÓN PARA EXTRAER DATOS (MODIFICADA para recibir el ID del informe) ---
+def extraer_datos_docx(docx_filepath, subject_email, report_id):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Iniciando extracción de datos de: {docx_filepath}")
     datos_extraidos = {}
 
     try:
+        # --- NUEVO: Añadir el ID del informe al principio ---
+        datos_extraidos['id_informe_origen'] = report_id
+        
         document = Document(docx_filepath)
         
+        # El resto de la función de extracción permanece igual...
+        # ... (código de extracción de tablas omitido por brevedad, es idéntico al anterior) ...
         datos_extraidos['tipo_informe'] = 'Desconocido'
 
         nombre_base_archivo = os.path.basename(docx_filepath).upper()
@@ -268,41 +299,74 @@ def extraer_datos_docx(docx_filepath, subject_email):
 
         # --- GUARDAR LOS DATOS EXTRAÍDOS EN UN ARCHIVO JSON ---
         os.makedirs(DATA_OUTPUT_FOLDER, exist_ok=True)
-        json_filename = "ultimo_informe.json"
-        json_filepath = os.path.join(DATA_OUTPUT_FOLDER, json_filename)
-
-        with open(json_filepath, 'w', encoding='utf-8') as f:
+        with open(DATA_FILE, 'w', encoding='utf-8') as f:
             json.dump(datos_extraidos, f, ensure_ascii=False, indent=4)
-        print(f"Datos extraídos guardados en: {json_filepath}")
+        print(f"Datos extraídos guardados en: {DATA_FILE}")
 
-        return json_filepath
+        return DATA_FILE
 
     except Exception as e:
         print(f"Error al extraer datos del Word: {e}")
         return None
 
-# --- EJECUCIÓN DEL SCRIPT ---
-if __name__ == "__main__":
-    os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+# --- EJECUCIÓN DEL SCRIPT (MODIFICADA) ---
+def main():
+    # --- Verificación de variables de entorno ---
+    if not EMAIL_PASSWORD:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ERROR: La variable de entorno GMAIL_APP_PASSWORD no está configurada. El script no puede continuar.")
+        exit()
+
+    parser = argparse.ArgumentParser(description="Descarga y procesa el último informe de monitoreo.")
+    parser.add_argument('--force', action='store_true', help='Forzar el procesamiento incluso si el informe ya fue procesado.')
+    args = parser.parse_args()
+
+    if args.force:
+        print("--- MODO FORZADO ACTIVADO ---")
 
     ruta_informe_descargado, subject_del_correo = descargar_ultimo_informe(
-        EMAIL_USER,
-        EMAIL_PASSWORD,
-        IMAP_SERVER,
-        DOWNLOAD_FOLDER
+        EMAIL_USER, EMAIL_PASSWORD, IMAP_SERVER, DOWNLOAD_FOLDER
     )
 
-    if ruta_informe_descargado:
-        json_ruta = extraer_datos_docx(ruta_informe_descargado, subject_del_correo)
-        if json_ruta:
-            print(f"Proceso de extracción completado exitosamente para: {json_ruta}")
-            # --- Eliminar el archivo .docx después de extraer datos ---
-            try:
-                os.remove(ruta_informe_descargado)
-                print(f"Archivo de informe '{os.path.basename(ruta_informe_descargado)}' eliminado después de procesar.")
-            except OSError as e:
-                print(f"Error al intentar eliminar el archivo del informe: {e}")
-        else:            
-            print("FALLO: No se pudo extraer y guardar los datos del informe.")
-    else:
+    if not ruta_informe_descargado:
         print("FALLO: No se pudo descargar el informe para procesar.")
+        return
+
+    # --- Lógica de verificación ---
+    nombre_archivo = os.path.basename(ruta_informe_descargado)
+    id_informe_nuevo = obtener_id_del_informe(nombre_archivo)
+
+    if not id_informe_nuevo:
+        print(f"ADVERTENCIA: No se pudo generar un ID para el archivo '{nombre_archivo}'. Se procesará de todas formas.")
+    else:
+        id_existente = None
+        try:
+            with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                datos_existentes = json.load(f)
+                id_existente = datos_existentes.get('id_informe_origen')
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass # Si el archivo no existe o está corrupto, procedemos.
+
+        if not args.force and id_informe_nuevo == id_existente:
+            print(f"VERIFICACIÓN: El informe '{id_informe_nuevo}' ya ha sido procesado. Para volver a procesarlo, use --force.")
+            print("Proceso omitido para evitar sobreescribir datos.")
+            os.remove(ruta_informe_descargado) # Limpiamos el docx descargado
+            return # Termina la ejecución
+
+    # --- Si pasa la verificación (o es forzado), procesa ---
+    json_ruta = extraer_datos_docx(ruta_informe_descargado, subject_del_correo, id_informe_nuevo)
+
+    if json_ruta:
+        print(f"Proceso de extracción completado exitosamente para: {json_ruta}")
+        try:
+            os.remove(ruta_informe_descargado)
+            print(f"Archivo de informe '{nombre_archivo}' eliminado después de procesar.")
+        except OSError as e:
+            print(f"Error al intentar eliminar el archivo del informe: {e}")
+    else:
+        print("FALLO: No se pudo extraer y guardar los datos del informe.")
+
+
+if __name__ == "__main__":
+    os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+    os.makedirs(DATA_OUTPUT_FOLDER, exist_ok=True)
+    main()

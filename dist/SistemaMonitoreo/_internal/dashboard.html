@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Monitoreo Regional - SENAPRED Valparaíso</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dashboard-body">
+    <header>
+        <div class="logo-left"><img src="assets/bnnr_line_sup.png" alt="Logo SENAPRED"></div>
+        <div class="header-clock">
+            <div class="led-clock" id="clock-continental"><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span></div>
+            <h3>HORA DE CHILE CONTINENTAL</h3>
+        </div>
+        <div class="header-title-container">
+            <h1>ESTADO DE SITUACION REGIONAL  -  SENAPRED VALPARAISO</h1>
+            <div id="header-alert-banner" class="hidden"></div>
+        </div>
+        <div class="header-clock">
+            <div class="led-clock" id="clock-rapa-nui"><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span></div>
+            <h3>HORA RAPA NUI</h3>
+        </div>
+        <div class="logo-right"><img src="assets/logo_circ.jpg" alt="Logo Gobierno de Chile"></div>
+    </header>
+    <div id="weather-banner-container" class="weather-banner"></div>
+    <main class="dashboard-grid">
+        <div class="dashboard-column">
+            <div id="panel-mapas" class="dashboard-panel">
+                <h3 id="map-panel-title">Mapas de Monitoreo</h3>
+
+                <div id="map-carousel-container">
+                    <div id="map-slide-air" class="map-slide active-map-slide">
+                        <div id="air-quality-map-container-dashboard"></div>
+                    </div>
+                    <div id="map-slide-meteo" class="map-slide">
+                        <div id="precipitation-map-container-dashboard"></div>
+                    </div>
+                </div>
+
+                <div id="air-quality-alert-panel-dashboard">
+                    </div>
+
+                <div id="map-carousel-controls">
+                    <button id="map-pause-play-btn">Pausar</button>
+                    <button id="map-prev-btn">&lt; Anterior</button>
+                    <button id="map-next-btn">Siguiente &gt;</button>
+                </div>
+            </div>
+        </div>
+
+                <div class="dashboard-column">
+                    <div id="panel-alertas" class="dashboard-panel">
+                        <h3>Alertas Vigentes</h3>
+                        <div id="alertas-list-container"></div>
+                    </div>
+                </div>
+
+                <div class="dashboard-column">
+                    <div id="panel-avisos" class="dashboard-panel">
+                        <h3 class="dynamic-title">
+                            <span data-title-key="avisos">Avisos</span> / 
+                            <span data-title-key="alertas">Alertas</span> / 
+                            <span data-title-key="alarmas">Alarmas</span> / 
+                            <span data-title-key="marejadas">Marejadas</span>
+                        </h3>
+                        <div id="avisos-list-container">
+                            </div>
+                        <div id="avisos-carousel-controls">
+                            <button id="aviso-prev-btn">&lt;</button>
+                            <button id="aviso-pause-play-btn">||</button>
+                            <button id="aviso-next-btn">&gt;</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-column">
+                    <div id="panel-novedades" class="dashboard-panel">
+                        <div class="novedades-header">
+                            <h3>Novedades</h3>
+                            <div id="informe-correlativo">N° último informe: <span id="numero-informe-display">---</span></div>
+                        </div>
+                        <div id="novedades-content"></div>
+                    </div>
+                    <div id="panel-waze" class="dashboard-panel">
+                        <h3>Accidentes reportados en Waze</h3>
+                        <div id="waze-incidents-container">
+                            <p><i>Cargando reportes...</i></p>
+                        </div>
+                        <div id="waze-carousel-controls" style="display: none;">
+                            <button id="waze-prev-btn">&lt;</button>
+                            <button id="waze-pause-play-btn">||</button>
+                            <button id="waze-next-btn">&gt;</button>
+                        </div>
+                    </div>
+    </main>
+    <footer>
+        <p>&copy; 2025 Sitio desarrollado por la UNIDAD DE ALERTA TEMPRANA de SENAPRED Valparaíso - Felipe Ramos Zamora</p>
+    </footer>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>

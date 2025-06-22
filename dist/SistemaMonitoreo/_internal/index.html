@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoreo Diario Regional</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>    
+    <header>
+        <div class="logo-left">
+            <img src="assets/bnnr_line_sup.png" alt="Logo SENAPRED">
+        </div>
+        <div class="header-clock">
+            <div class="led-clock" id="clock-continental">
+                <span class="digit">0</span><span class="digit">0</span>
+                <span class="separator">:</span>
+                <span class="digit">0</span><span class="digit">0</span>
+                <span class="separator">:</span>
+                <span class="digit">0</span><span class="digit">0</span>
+            </div>
+            <h3>HORA DE CHILE CONTINENTAL</h3>
+        </div>
+        <div class="header-title-container">
+            <h1>ESTADO DE SITUACION REGIONAL  -  SENAPRED VALPARAISO</h1>
+            <div id="header-alert-banner" class="hidden"></div>
+        </div>
+        <div class="header-clock">
+            <div class="led-clock" id="clock-rapa-nui">
+                <span class="digit">0</span><span class="digit">0</span>
+                <span class="separator">:</span>
+                <span class="digit">0</span><span class="digit">0</span>
+                <span class="separator">:</span>
+                <span class="digit">0</span><span class="digit">0</span>
+            </div>
+            <h3>HORA RAPA NUI</h3>
+        </div>
+        <div class="logo-right">
+            <img src="assets/logo_circ.jpg" alt="Logo Gobierno de Chile">
+        </div>
+    </header>
+
+    <main>
+        <div class="informe-header-fijo">
+            <p>Fecha: <span id="fecha-informe"></span></p>
+            <p>Hora de útlima actualización: <span id="hora-informe"></span></p>
+        </div>
+
+        <section id="slide-alertas-avisos" class="slide active">
+            <h2>Resumen de Alertas Vigentes</h2>
+            <table id="table-alertas">
+                <thead>
+                    <tr>
+                        <th>Nivel de Alerta</th>
+                        <th>Evento</th>
+                        <th>Cobertura</th>
+                        <th>Amplitud</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            <p class="data-source">Fuente: Servicio Nacional de Prevención y Respuesta ante Desastres (SENAPRED)</p>
+
+            <br>
+            <h2>Avisos / Alertas / Alarmas Meteorológicas y Marejadas</h2>
+            <table id="table-avisos-meteorologicos" class="table-layout-auto">
+                <thead>
+                    <tr>
+                        <th>Aviso / Alerta / Alarma</th>
+                        <th>Fecha y Hora de Emisión</th>
+                        <th>Descripción</th>
+                        <th>Cobertura</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            <p class="data-source">Fuente: Dirección Meteorológica de Chile (DMC) - Dirección General del Territorio Marítimo y de Marina Mercante (DIRECTEMAR)</p>
+        </section>
+
+        <section id="emergencias" class="slide">
+            <h2>Informes emitidos en las Últimas 24 Horas</h2>
+            <table id="table-emergencias" class="table-layout-auto">
+                <thead>
+                    <tr>
+                        <th>N° Informe</th>
+                        <th>Fecha y Hora</th>
+                        <th>Evento/Lugar</th>
+                        <th>Resumen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            <p class="data-source">Fuente: Servicio Nacional de Prevención y Respuesta ante Desastres (SENAPRED)</p>
+        </section>
+
+        <section id="slide-carreteras-pasos-uv" class="slide">
+            <h2>Estado de Carreteras</h2>
+            <table id="table-carreteras" class="table-layout-auto">
+                <thead>
+                    <tr>
+                        <th>Carretera</th>
+                        <th>Estado</th>
+                        <th>Condición</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            <p class="data-source">Fuente: Ministerio de Obras Públicas (MOP) / Carabineros de Chile</p>
+
+            <br>
+            <h2>Estado del Paso Fronterizo</h2>
+            <table id="table-pasos-fronterizos" class="table-layout-auto">
+                <thead>
+                    <tr>
+                        <th>Nombre del Paso</th>
+                        <th>Condición</th>
+                        <th>Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            <p class="data-source">Fuente: Unidad de Pasos Fronterizos - Ministerio del Interior</p>
+
+            <br>
+            <h2>Índice de Radiación Ultravioleta</h2>
+            <div class="uv-info">
+                <img src="assets/uv_icon.png" alt="Icono de Radiación UV" class="uv-icon">
+                <div class="uv-text-content">
+                    <p><strong id="uv-observado-label">Observado ayer:</strong> <span id="uv-observado-value">N/A</span></p>
+                    <p><strong id="uv-pronosticado-label">Pronosticado para hoy:</strong> <span id="uv-pronosticado-value">N/A</span></p>
+                </div>
+            </div>
+            <p class="data-source">Fuente: Dirección Meteorológica de Chile (DMC)</p>
+        </section>
+
+        <section id="puertos" class="slide">
+            
+            <h2>Estado de Puertos</h2>
+            <table id="table-puertos" class="table-layout-auto">
+                <thead>
+                    <tr>
+                        <th>Puerto</th>
+                        <th>Estado del Puerto</th>
+                        <th>Condición</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            <p class="data-source">Fuente: Dirección General del Territorio Marítimo y de Marina Mercante (DIRECTEMAR)</p>
+
+            <br>
+            <h2>Últimos Sismos Sensibles</h2>
+            <table id="table-sismos">
+                <thead>
+                    <tr>
+                        <th>Fecha Local</th>
+                        <th>Lugar</th>
+                        <th>Magnitud</th>
+                        <th>Profundidad</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            <p class="data-source">Fuente: Centro Sismológico Nacional (CSN) - Universidad de Chile</p>
+        </section>
+        
+        <section id="slide-calidad-aire" class="slide">
+            <h2>Monitoreo de Calidad del Aire</h2>
+            <div id="air-quality-main-container">
+                <div id="air-quality-map-container"></div>
+                <div id="air-quality-alert-panel">
+                    </div>
+            </div>
+            <p class="data-source">Fuente: Sistema de Información Nacional de Calidad del Aire (SINCA) - Ministerio del Medio Ambiente</p>
+        </section>
+
+
+        <div id="dynamicSlidesOutput" class="slides-dynamic-container">
+            </div>
+
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Sitio desarrollado por la UNIDAD DE ALERTA TEMPRANA de SENAPRED Valparaíso - Felipe Ramos Zamora</p>
+    </footer>
+
+    <div id="weather-sidebar-left" class="weather-sidebar"></div>
+    <div id="weather-sidebar-right" class="weather-sidebar"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+    <script src="script.js"></script>
+</body>
+</html>

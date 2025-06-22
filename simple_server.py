@@ -13,12 +13,14 @@ import uuid
 import requests
 import ntplib
 import subprocess
+import sys
 
 
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8000
-DATA_FILE = os.path.join('datos_extraidos', 'ultimo_informe.json')
-NOVEDADES_FILE = os.path.join('datos_extraidos', 'novedades.json')
+DATA_FOLDER_PATH = os.path.join(os.getenv('PROGRAMDATA'), 'SistemaMonitoreoSENAPRED', 'datos_extraidos')
+DATA_FILE = os.path.join(DATA_FOLDER_PATH, 'ultimo_informe.json')
+NOVEDADES_FILE = os.path.join(DATA_FOLDER_PATH, 'novedades.json')
 SERVER_ROOT = os.path.dirname(os.path.abspath(__file__))
 DYNAMIC_SLIDES_FOLDER = os.path.join(SERVER_ROOT, 'assets', 'dynamic_slides')
 
@@ -578,17 +580,21 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
         elif self.path == '/api/trigger-download':
                     try:
-                        print("INFO: Se ha recibido una solicitud para ejecutar descargar_informe.py manualmente.")                        
-                        server_root = os.path.dirname(os.path.abspath(__file__))                        
-                        if os.name == 'nt': # Para Windows
-                            python_executable = os.path.join(server_root, 'venv', 'Scripts', 'python.exe')
-                        else: # Para Linux, macOS, etc.
-                            python_executable = os.path.join(server_root, 'venv', 'bin', 'python')                        
-                        if not os.path.exists(python_executable):
-                            print(f"ADVERTENCIA: No se encontró el ejecutable de Python en '{python_executable}'. Usando el 'python' global. Esto podría causar errores de módulos.")
-                            python_executable = "python"                        
+                        print("INFO: Se ha recibido una solicitud para ejecutar descargar_informe.py manualmente.")
+                                                
+                        # Determinar la ruta base donde se está ejecutando el .exe
+                        if getattr(sys, 'frozen', False):
+                            # Si estamos en el modo compilado (.exe)
+                            application_path = os.path.dirname(sys.executable)
+                        else:
+                            # Si estamos en modo de desarrollo (.py)
+                            application_path = os.path.dirname(os.path.abspath(__file__))
+
+                        # La ruta al ejecutable de descarga
+                        download_script_exe = os.path.join(application_path, "descargar_informe.exe")
                         
-                        command = [python_executable, "descargar_informe.py"]                       
+                        # Comando para forzar la descarga
+                        command = [download_script_exe, "--force"]                       
                         
                         result = subprocess.run(
                             command, 
@@ -596,7 +602,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             text=True,
                             encoding='utf-8',
                             errors='replace',
-                            timeout=300 # Timeout de 5 minutos por si el proceso se queda pegado
+                            timeout=300
                         )
 
                         # Verificamos si el script se ejecutó correctamente (código de salida 0)
