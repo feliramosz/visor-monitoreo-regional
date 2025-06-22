@@ -1,5 +1,9 @@
-document.addEventListener('DOMContentLoaded', async () => {
-    // URLs de las APIs
+Ddocument.addEventListener('DOMContentLoaded', async () => {
+    const token = localStorage.getItem('session_token');
+    if (!token) {
+        window.location.href = '/login.html';
+        return; // Detiene la ejecución del resto del script si no hay token
+    }// URLs de las APIs
     const DATA_API_URL = '/api/data';
     const NOVEDADES_API_URL = '/api/novedades'; // <--- NUEVO
     const UPLOAD_IMAGE_API_URL = '/api/upload_image';
@@ -348,7 +352,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         formData.append('image_title', imageTitle.value);
         formData.append('image_description', imageDescription.value);
         try {
-            const response = await fetch(UPLOAD_IMAGE_API_URL, { method: 'POST', body: formData });
+            const response = await fetch(UPLOAD_IMAGE_API_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}` // <-- AÑADIDO
+            },
+            body: formData
+            })
             if (!response.ok) throw new Error((await response.json()).error);
             const result = await response.json();
             showMessage(result.message, 'success');
@@ -361,10 +371,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     async function handleDeleteSlide(slide) {
         if (!confirm("¿Estás seguro de que quieres eliminar esta slide e imagen?")) return;
+        const token = localStorage.getItem('session_token');
         try {
             const response = await fetch(DELETE_IMAGE_API_URL, {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
                 body: JSON.stringify({ id: slide.id, image_url: slide.image_url })
             });
             if (!response.ok) throw new Error((await response.json()).error);
@@ -408,7 +422,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const [informeResponse, novedadesResponse] = await Promise.all([
                 fetch(DATA_API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` // <--- LÍNEA AÑADIDA
+                    },
                     body: JSON.stringify(updatedInformeData)
                 }),
                 fetch(NOVEDADES_API_URL, {
@@ -432,4 +449,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Inicio: Cargar todos los datos al iniciar la página ---
     loadDataForAdmin(); 
+
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            const token = localStorage.getItem('session_token');
+            localStorage.removeItem('session_token');
+            
+            // Notifica al servidor que el token se está invalidando
+            fetch('/api/logout', { 
+                method: 'POST', 
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            window.location.href = '/login.html';
+        });
+    }
 });
