@@ -11,7 +11,7 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    width: 100vw; 
+    width: 1920px; 
     overflow-x: hidden; 
     overflow-y: hidden; 
     align-items: center; 
