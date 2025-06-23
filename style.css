@@ -889,7 +889,7 @@ main.dashboard-grid {
     overflow: hidden;
 }
 
-/* El texto que se va a animar */
+
 .marquee-text {
     display: inline-block;
     padding-left: 100%; /* Inicia justo fuera de la vista a la derecha */
@@ -908,7 +908,7 @@ main.dashboard-grid {
     100% { transform: translateX(-100%); }
 }
 
-/* Quita el título "Estaciones con Novedad" que ya no es necesario */
+
 #air-quality-alert-panel-dashboard h4 {
     display: none;
 }
@@ -1106,10 +1106,10 @@ main.dashboard-grid {
 
 @keyframes vertical-scroll {
     from { transform: translateY(0); }
-    to { transform: translateY(-50%); } /* Se desplaza hasta la mitad (donde empieza el clon) */
+    to { transform: translateY(-50%); }
 }
 
-/* --- 5. Estilos para el resaltado de títulos dentro de la lista (ya existentes, pero los muevo aquí para agrupar) --- */
+/* --- 5. Estilos para el resaltado de títulos dentro de la lista --- */
 .dashboard-list strong[class^="aviso-"] {
     font-weight: bold;
     padding: 3px 6px;
@@ -1140,7 +1140,7 @@ main.dashboard-grid {
     width: 100%;
     height: 100%;
     transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1);
-    /* El degradado ahora es mucho más corto (2%) para no afectar la lectura */
+    
     -webkit-mask-image: linear-gradient(transparent, black 2%, black 98%, transparent);
     mask-image: linear-gradient(transparent, black 2%, black 98%, transparent);
 }
@@ -1150,10 +1150,10 @@ main.dashboard-grid {
     display: flex;
     justify-content: center;
     gap: 8px;
-    padding-top: 10px; /* Espacio entre la lista y los botones */
-    border-top: 1px solid #f0f0f0; /* Línea separadora sutil */
-    margin-top: auto; /* Empuja los controles a la parte inferior del panel */
-    flex-shrink: 0; /* Evita que los botones se encojan */
+    padding-top: 10px;
+    border-top: 1px solid #f0f0f0;
+    margin-top: auto;
+    flex-shrink: 0;
 }
 
 #avisos-carousel-controls button {
@@ -1185,13 +1185,13 @@ main.dashboard-grid {
 #waze-incidents-container {
     flex-grow: 1;
     overflow-y: auto;
-    /* Efecto de degradado para indicar que hay más contenido */
+
     -webkit-mask-image: linear-gradient(black 90%, transparent);
     mask-image: linear-gradient(black 90%, transparent);
 }
 
 .waze-list {
-    padding-right: 10px; /* Espacio para la barra de scroll */
+    padding-right: 10px;
 }
 
 .waze-incident-item {
@@ -1227,7 +1227,7 @@ main.dashboard-grid {
     padding-top: 20px;
 }
 
-/* --- ESTILOS MEJORADOS PARA PANEL DE WAZE --- */
+/* --- ESTILOS PARA PANEL DE WAZE --- */
 
 /* Contenedor principal del carrusel de Waze */
 #waze-incidents-container {
@@ -1250,7 +1250,7 @@ main.dashboard-grid {
 /* Nuevo contenedor para la primera línea (Calle y Comuna) */
 .waze-incident-header {
     display: flex;
-    justify-content: space-between; /* Alinea los elementos a los extremos */
+    justify-content: space-between;
     align-items: center;
     gap: 15px;
 }
@@ -1259,15 +1259,15 @@ main.dashboard-grid {
     font-size: 1.1em;
     font-weight: bold;
     color: #333;
-    text-align: left; /* Alineado a la izquierda */
+    text-align: left;
 }
 
 .waze-incident-item .waze-city {
     font-size: 0.9em;
     color: #555;
-    text-align: right; /* Alineado a la derecha */
-    white-space: nowrap; /* Evita que el nombre de la comuna se parta */
-    flex-shrink: 0; /* Evita que se encoja si el nombre de la calle es largo */
+    text-align: right;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 /* Controles del carrusel de Waze (similar a los de Avisos) */
@@ -1308,21 +1308,21 @@ main.dashboard-grid {
 /* --- ESTILOS PARA EL ENLACE DEL MAPA DE WAZE --- */
 .waze-map-link {
     text-decoration: none;
-    font-size: 1.5em; /* Aumenta el tamaño del ícono emoji */
+    font-size: 1.5em;
     margin-right: 12px;
     transition: transform 0.2s ease-in-out;
     cursor: pointer;
 }
 
 .waze-map-link:hover {
-    transform: scale(1.25); /* Efecto de zoom al pasar el mouse */
+    transform: scale(1.25);
 }
 
 /* Ajuste al header del incidente para alinear correctamente el nuevo ícono */
 .waze-incident-header {
     display: flex;
     justify-content: space-between;
-    align-items: center; /* Clave para centrar verticalmente el ícono y el texto */
+    align-items: center;
     gap: 15px;
 }
 
@@ -1333,7 +1333,7 @@ main.dashboard-grid {
     align-items: center;
     margin-top: 8px;
     padding-top: 5px;
-    border-top: 1px solid #eee; /* Línea separadora sutil */
+    border-top: 1px solid #eee; /* Línea separadora */
 }
 
 .pass-status {
@@ -1360,7 +1360,7 @@ main.dashboard-grid {
     margin: 0;
     padding: 0;
     border: none;
-    font-size: 0.8em !important; /* Aseguramos el tamaño */
+    font-size: 0.8em !important;
 }
 
 /* Esta regla se aplica a las tarjetas del dashboard */
@@ -1388,13 +1388,11 @@ main.dashboard-grid {
 }
 
 /* --- ANIMACIÓN PARA ENCABEZADO TIPO BANDERA --- */
-
 header {
-    position: relative; /* Necesario para posicionar la animación por debajo del contenido */
-    overflow: hidden;   /* Evita que la animación se salga del header */
+    position: relative;
+    overflow: hidden;
 }
 
-/* Creamos una capa (pseudo-elemento) que contendrá la animación del gradiente */
 header::after {
     content: '';
     position: absolute;
@@ -1402,39 +1400,34 @@ header::after {
     left: 0;
     width: 100%;
     height: 100%;
-    /* Un gradiente muy sutil que simula una onda de luz */
     background: linear-gradient(
         110deg,
         rgba(255, 255, 255, 0) 40%,
         rgba(255, 255, 255, 0.15) 50%,
         rgba(255, 255, 255, 0) 60%
     );
-    background-size: 200% 100%; /* Hacemos el gradiente más grande que el header para poder moverlo */
-    
-    /* La animación que mueve el gradiente de izquierda a derecha */
+    background-size: 200% 100%;
+
     animation: wave-animation 8s linear infinite;
 }
 
-/* Nos aseguramos de que todo el contenido del header (logos, títulos, relojes)
-   se muestre por ENCIMA de la capa de animación */
 header > * {
     position: relative;
     z-index: 2;
 }
 
-/* Definimos los pasos de la animación */
 @keyframes wave-animation {
     0% {
-        background-position: 200% 0; /* Inicia a la derecha (fuera de vista) */
+        background-position: 200% 0;
     }
     100% {
-        background-position: -200% 0; /* Termina a la izquierda (fuera de vista) */
+        background-position: -200% 0;
     }
 }
 
 /* --- ANIMACIÓN PARA EL CHECK DE WAZE --- */
 .no-waze-incidents .checkmark-icon {
-    display: inline-block; /* Necesario para que la transformación funcione correctamente */
+    display: inline-block;
     animation: slow-pulse 4s ease-in-out infinite;
 }
 
@@ -1455,20 +1448,20 @@ header > * {
 .weather-banner .weather-station-box strong,
 .weather-banner .weather-station-box .pass-status,
 .weather-banner .weather-station-box .station-update-time {
-    color: #333 !important; /* Asegura que el texto base sea oscuro */
+    color: #333 !important;
 }
 
 .weather-banner .weather-station-box h4 {
-    color: #004d99 !important; /* Restablece el color azul del título de la estación */
+    color: #004d99 !important;
 
     /* --- TRANSICIÓN REFORZADA PARA EL BANNER DEL CLIMA --- */
 .weather-banner {
     transition: opacity 0.5s ease-in-out;
-    opacity: 1; /* Estado por defecto: completamente visible */
+    opacity: 1;
 }
 
 .weather-banner.fading-out {
-    opacity: 0; /* Cuando tiene esta clase, se vuelve invisible */
+    opacity: 0;
 }
 }
 
@@ -1478,27 +1471,22 @@ header > * {
 header::before {
     content: '';
     position: absolute;
-    z-index: 0; /* Lo ponemos detrás de todo, incluso del brillo */
+    z-index: 0;
     left: 0;
-    bottom: -20px; /* Lo posicionamos ligeramente por debajo para crear la forma */
+    bottom: -20px; 
     width: 100%;
-    height: 40px; /* La altura de nuestra "ola" */
-
-    /* Creamos una onda usando un gradiente radial.
-       Esto dibuja un círculo muy ancho (una elipse) que simula una curva suave. */
+    height: 40px; 
     background: radial-gradient(ellipse at 50% 100%, #004d99 50%, transparent 51%);
-    background-size: 50% 100%; /* Hacemos que la "ola" no ocupe todo el ancho */
-
-    /* La animación que mueve la posición de la onda */
+    background-size: 50% 100%;   
     animation: wave-bottom 15s cubic-bezier(0.5, 0, 0.5, 1) infinite;
 }
 
-/* Definimos el movimiento de la ola */
+
 @keyframes wave-bottom {
     0%, 100% {
-        background-position: 0% 0; /* Inicia a la izquierda */
+        background-position: 0% 0;
     }
     50% {
-        background-position: 100% 0; /* A la mitad de la animación, está a la derecha */
+        background-position: 100% 0;
     }
 }
