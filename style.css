@@ -132,7 +132,17 @@ main {
     width: 100%; 
     margin: 8px auto 20px auto;
     background-color: white;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    box-shadow:
+    /*superior*/
+    0px -1px 1px rgba(0,0,0,0.2),
+    /*inferior*/
+    0px 1px 3px rgba(0,0,0,0.4),
+    /*izquierda*/
+    -1px 0px 3px rgba(0,0,0,0.4),
+    /*derecha*/
+    1px 0px 3px rgba(0,0,0,0.4),
+    /*interior*/
+    inset 1px 1px 3px rgba(0,0,0,0.4); 
     border-radius: 8px;
     position: relative;
     min-height: 60vh;
