@@ -91,36 +91,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Lógica de Renderizado de Paneles
+    // En dashboard.js, reemplaza la función fetchAndRenderWeather entera por esta:
     async function fetchAndRenderWeather() {
+        const weatherBannerContainer = document.getElementById('weather-banner-container');
         try {
-            // Hacemos que el contenedor se vuelva transparente
-            weatherBannerContainer.style.opacity = '0';
-        
-            // Esperamos medio segundo para que la transición CSS se complete
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // 1. Añadimos una clase para iniciar la animación de desaparición
+            weatherBannerContainer.classList.add('fading-out');
             
+            // 2. Esperamos a que la animación CSS termine
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             const response = await fetch(WEATHER_API_URL);
+            if (!response.ok) {
+                throw new Error(`Error de red: ${response.statusText}`);
+            }
             const weatherData = await response.json();
+            
+            // Se construye el HTML con los datos nuevos
             weatherBannerContainer.innerHTML = weatherData.map(station => {
-                
                 let passStatusText = '';
                 let passStatusWord = '';
                 let statusClass = '';
 
                 if (station.nombre === 'Los Libertadores, Los Andes') {
-                    // El usuario confirmó que usa "Los Libertadores" en su informe.
                     const status = borderPassStatus['Los Libertadores'] || 'No informado';
-                    
                     passStatusText = 'Paso: ';
                     passStatusWord = status;
-                    
-                    statusClass = 'status-no-informado'; // Color por defecto (gris)
-
-                    // --- LÍNEA CORREGIDA: Ahora también busca la palabra "abierto" ---
+                    statusClass = 'status-no-informado';
                     if (status.toLowerCase().includes('habilitado') || status.toLowerCase().includes('abierto')) {
-                        statusClass = 'status-habilitado'; // Verde
+                        statusClass = 'status-habilitado';
                     } else if (status.toLowerCase().includes('cerrado') || status.toLowerCase().includes('suspendido')) {
-                        statusClass = 'status-cerrado'; // Rojo
+                        statusClass = 'status-cerrado';
                     }
                 }
 
@@ -138,8 +139,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             }).join('');
+
         } catch (error) {
-            weatherBannerContainer.innerHTML = '<p>Error al cargar datos del clima.</p>'; 
+            console.error("Error al cargar datos del clima:", error);
+            weatherBannerContainer.innerHTML = '<p>Error al cargar datos del clima.</p>';
+        } finally {
+            weatherBannerContainer.classList.remove('fading-out');
         }
     }
 

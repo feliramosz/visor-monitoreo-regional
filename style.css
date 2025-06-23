@@ -731,7 +731,6 @@ body.dashboard-body footer {
     margin: 8px 5px;
     box-sizing: border-box;
     flex-shrink: 0;
-    transition: opacity 0.5s ease-in-out;
 }
 
 .weather-banner .weather-station-box {
@@ -1461,4 +1460,14 @@ header > * {
 
 .weather-banner .weather-station-box h4 {
     color: #004d99 !important; /* Restablece el color azul del título de la estación */
+
+    /* --- TRANSICIÓN REFORZADA PARA EL BANNER DEL CLIMA --- */
+.weather-banner {
+    transition: opacity 0.5s ease-in-out;
+    opacity: 1; /* Estado por defecto: completamente visible */
+}
+
+.weather-banner.fading-out {
+    opacity: 0; /* Cuando tiene esta clase, se vuelve invisible */
+}
 }
