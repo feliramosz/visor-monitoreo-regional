@@ -13,7 +13,7 @@ EMAIL_USER = os.getenv('GMAIL_USER', 'monitoreoregionaleco5@gmail.com')
 EMAIL_PASSWORD = os.getenv('GMAIL_APP_PASSWORD')
 IMAP_SERVER = "imap.gmail.com"
 DOWNLOAD_FOLDER = os.path.join(tempfile.gettempdir(), 'informes_descargados_senapred')
-DATA_OUTPUT_FOLDER = os.path.join(os.getenv('PROGRAMDATA'), 'SistemaMonitoreoSENAPRED', 'datos_extraidos')
+DATA_OUTPUT_FOLDER = os.path.join(os.path.expanduser('~'), 'SistemaMonitoreoSENAPRED', 'datos_extraidos')
 DATA_FILE = os.path.join(DATA_OUTPUT_FOLDER, "ultimo_informe.json")
 
 # --- FUNCIÓN MEJORADA PARA OBTENER UN ID ÚNICO DEL INFORME ---
