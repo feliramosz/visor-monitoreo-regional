@@ -443,15 +443,15 @@ footer {
     border-radius: 8px;
     box-shadow: 
     /*superior*/
-    0px -5px 5px rgba(0,0,0,0.2),
+    0px -3px 3px rgba(0,0,0,0.2),
     /*inferior*/
-    0px 5px 10px rgba(0,0,0,0.4),
+    0px 3px 6px rgba(0,0,0,0.4),
     /*izquierda*/
-    -5px 0px 10px rgba(0,0,0,0.4),
+    -3px 0px 6px rgba(0,0,0,0.4),
     /*derecha*/
-    5px 0px 210px rgba(0,0,0,0.4),
+    3px 0px 6px rgba(0,0,0,0.4),
     /*interior*/
-    inset 1px 1px 10px rgba(0,0,0,0.4);
+    inset 1px 1px 6px rgba(0,0,0,0.4);
     backdrop-filter: blur(5px);
 }
 
@@ -752,6 +752,17 @@ body.dashboard-body footer {
     padding: 10px 10px 5px 10px;
     background-color: #f9f9f9;
     border-radius: 5px;
+    box-shadow:
+    /*superior*/
+    0px -3px 3px rgba(0,0,0,0.2),
+    /*inferior*/
+    0px 3px 6px rgba(0,0,0,0.4),
+    /*izquierda*/
+    -3px 0px 6px rgba(0,0,0,0.4),
+    /*derecha*/
+    3px 0px 6px rgba(0,0,0,0.4),
+    /*interior*/
+    inset 1px 1px 6px rgba(0,0,0,0.4);
 }
 
 /* 4. Grid principal que crece para llenar el espacio */
