@@ -93,6 +93,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Lógica de Renderizado de Paneles
     async function fetchAndRenderWeather() {
         try {
+            // Hacemos que el contenedor se vuelva transparente
+            weatherBannerContainer.style.opacity = '0';
+        
+            // Esperamos medio segundo para que la transición CSS se complete
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
             const response = await fetch(WEATHER_API_URL);
             const weatherData = await response.json();
             weatherBannerContainer.innerHTML = weatherData.map(station => {
@@ -457,9 +463,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (accidents.error) throw new Error(accidents.error);
             
             if (accidents.length === 0) {
-                container.innerHTML = '<p class="no-waze-incidents">✅ No hay accidentes reportados en este momento.</p>';
+                // Añadimos la clase 'checkmark-icon' al span
+                container.innerHTML = '<p class="no-waze-incidents"><span class="checkmark-icon">✅</span> No hay accidentes reportados en este momento.</p>';
                 controls.style.display = 'none';
-                return;
+            return;
             }
 
             accidents.sort((a, b) => b.pubMillis - a.pubMillis);

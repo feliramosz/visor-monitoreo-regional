@@ -731,6 +731,7 @@ body.dashboard-body footer {
     margin: 8px 5px;
     box-sizing: border-box;
     flex-shrink: 0;
+    transition: opacity 0.5s ease-in-out;
 }
 
 .weather-banner .weather-station-box {
@@ -1429,5 +1430,22 @@ header > * {
     }
     100% {
         background-position: -200% 0; /* Termina a la izquierda (fuera de vista) */
+    }
+}
+
+/* --- ANIMACIÓN PARA EL CHECK DE WAZE --- */
+.no-waze-incidents .checkmark-icon {
+    display: inline-block; /* Necesario para que la transformación funcione correctamente */
+    animation: slow-pulse 4s ease-in-out infinite;
+}
+
+@keyframes slow-pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.05);
     }
 }
