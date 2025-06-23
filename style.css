@@ -1490,3 +1490,18 @@ header::before {
         background-position: 100% 0;
     }
 }
+
+/* =================================================================== */
+/* CORRECCIÓN PARA FORMULARIOS DEL PANEL DE ADMINISTRACIÓN */
+/* =================================================================== */
+.alert-item, .emergency-item, .avisos-item, .carretera-item, .puerto-item, .paso-item {
+    border: 1px dashed #ced4da;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    background-color: #e9ecef;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px 20px;
+    align-items: center;
+}
