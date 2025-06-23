@@ -1449,3 +1449,16 @@ header > * {
         transform: scale(1.05);
     }
 }
+
+/* --- CORRECCIÓN DE COLOR PARA TEXTO DEL BANNER DEL CLIMA --- */
+.weather-banner .weather-station-box,
+.weather-banner .weather-station-box p,
+.weather-banner .weather-station-box strong,
+.weather-banner .weather-station-box .pass-status,
+.weather-banner .weather-station-box .station-update-time {
+    color: #333; /* Asegura que todo el texto base sea oscuro */
+}
+
+.weather-banner .weather-station-box h4 {
+    color: #004d99; /* Restablece el color azul del título de la estación */
+}
