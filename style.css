@@ -1453,8 +1453,9 @@ header > * {
 
 .weather-banner .weather-station-box h4 {
     color: #004d99 !important;
+} 
 
-    /* --- TRANSICIÓN REFORZADA PARA EL BANNER DEL CLIMA --- */
+/* --- TRANSICIÓN REFORZADA PARA EL BANNER DEL CLIMA --- */
 .weather-banner {
     transition: opacity 0.5s ease-in-out;
     opacity: 1;
@@ -1462,7 +1463,6 @@ header > * {
 
 .weather-banner.fading-out {
     opacity: 0;
-}
 }
 
 /* --- ANIMACIÓN ONDULANTE PARA BORDE INFERIOR DEL HEADER --- */
