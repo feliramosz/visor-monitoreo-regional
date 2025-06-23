@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const generatePaginatedSlides = (items, config) => {
         if (!items || items.length === 0) {
             document.querySelector(config.firstPageTbodySelector).innerHTML = `<tr><td colspan="${config.colspan}" class="no-data-cell">${config.noDataMessage}</td></tr>`;
-            return;
+            return '';
         }
 
         const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
