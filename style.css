@@ -1456,9 +1456,9 @@ header > * {
 .weather-banner .weather-station-box strong,
 .weather-banner .weather-station-box .pass-status,
 .weather-banner .weather-station-box .station-update-time {
-    color: #333; /* Asegura que todo el texto base sea oscuro */
+    color: #333 !important; /* Asegura que el texto base sea oscuro */
 }
 
 .weather-banner .weather-station-box h4 {
-    color: #004d99; /* Restablece el color azul del título de la estación */
+    color: #004d99 !important; /* Restablece el color azul del título de la estación */
 }
