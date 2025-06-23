@@ -441,17 +441,17 @@ footer {
     border-bottom: 2px solid #007bff;
     padding: 15px;
     border-radius: 8px;
-    box-shadow: 
+    box-shadow:
     /*superior*/
-    0px -3px 3px rgba(0,0,0,0.2),
+    0px -1px 1px rgba(0,0,0,0.2),
     /*inferior*/
-    0px 3px 6px rgba(0,0,0,0.4),
+    0px 1px 3px rgba(0,0,0,0.4),
     /*izquierda*/
-    -3px 0px 6px rgba(0,0,0,0.4),
+    -1px 0px 3px rgba(0,0,0,0.4),
     /*derecha*/
-    3px 0px 6px rgba(0,0,0,0.4),
+    1px 0px 3px rgba(0,0,0,0.4),
     /*interior*/
-    inset 1px 1px 6px rgba(0,0,0,0.4);
+    inset 1px 1px 3px rgba(0,0,0,0.4); 
     backdrop-filter: blur(5px);
 }
 
@@ -747,22 +747,21 @@ body.dashboard-body footer {
     flex: 1;
     min-width: 205px;
     max-width: 220px;
-    border: 1px solid #e0e0e0;
-    box-shadow: none;
+    border: 1px solid #e0e0e0;    
     padding: 10px 10px 5px 10px;
     background-color: #f9f9f9;
     border-radius: 5px;
     box-shadow:
     /*superior*/
-    0px -3px 3px rgba(0,0,0,0.2),
+    0px -1px 1px rgba(0,0,0,0.2),
     /*inferior*/
-    0px 3px 6px rgba(0,0,0,0.4),
+    0px 1px 3px rgba(0,0,0,0.4),
     /*izquierda*/
-    -3px 0px 6px rgba(0,0,0,0.4),
+    -1px 0px 3px rgba(0,0,0,0.4),
     /*derecha*/
-    3px 0px 6px rgba(0,0,0,0.4),
+    1px 0px 3px rgba(0,0,0,0.4),
     /*interior*/
-    inset 1px 1px 6px rgba(0,0,0,0.4);
+    inset 1px 1px 3px rgba(0,0,0,0.4); 
 }
 
 /* 4. Grid principal que crece para llenar el espacio */
@@ -800,15 +799,15 @@ main.dashboard-grid {
     padding: 20px;
     box-shadow:
     /*superior*/
-    0px -3px 3px rgba(0,0,0,0.2),
+    0px -1px 1px rgba(0,0,0,0.2),
     /*inferior*/
-    0px 3px 6px rgba(0,0,0,0.4),
+    0px 1px 3px rgba(0,0,0,0.4),
     /*izquierda*/
-    -3px 0px 6px rgba(0,0,0,0.4),
+    -1px 0px 3px rgba(0,0,0,0.4),
     /*derecha*/
-    3px 0px 6px rgba(0,0,0,0.4),
+    1px 0px 3px rgba(0,0,0,0.4),
     /*interior*/
-    inset 1px 1px 6px rgba(0,0,0,0.4);
+    inset 1px 1px 3px rgba(0,0,0,0.4); 
     display: flex;
     flex-direction: column;
     flex: 1;
