@@ -11,8 +11,7 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    width: 1900px;
-    position: relative; 
+    width: 100vw;
     overflow-x: hidden; 
     overflow-y: hidden; 
     align-items: center; 
@@ -1502,15 +1501,4 @@ header::before {
     50% {
         background-position: 100% 0; /* A la mitad de la animación, está a la derecha */
     }
-}
-
-/* =================================================================== */
-/* AJUSTES PARA PANTALLAS DE ESCRITORIO MENORES A 1920px DE ANCHO */
-/* =================================================================== */
-
-@media screen and (max-width: 1900px) {
-    .weather-sidebar {
-        position: absolute;
-    }
-
 }
