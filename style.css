@@ -1386,3 +1386,48 @@ main.dashboard-grid {
     font-weight: normal;
     color: #333;
 }
+
+/* --- ANIMACIÓN PARA ENCABEZADO TIPO BANDERA --- */
+
+header {
+    position: relative; /* Necesario para posicionar la animación por debajo del contenido */
+    overflow: hidden;   /* Evita que la animación se salga del header */
+}
+
+/* Creamos una capa (pseudo-elemento) que contendrá la animación del gradiente */
+header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Un gradiente muy sutil que simula una onda de luz */
+    background: linear-gradient(
+        110deg,
+        rgba(255, 255, 255, 0) 40%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0) 60%
+    );
+    background-size: 200% 100%; /* Hacemos el gradiente más grande que el header para poder moverlo */
+    
+    /* La animación que mueve el gradiente de izquierda a derecha */
+    animation: wave-animation 8s linear infinite;
+}
+
+/* Nos aseguramos de que todo el contenido del header (logos, títulos, relojes)
+   se muestre por ENCIMA de la capa de animación */
+header > * {
+    position: relative;
+    z-index: 2;
+}
+
+/* Definimos los pasos de la animación */
+@keyframes wave-animation {
+    0% {
+        background-position: 200% 0; /* Inicia a la derecha (fuera de vista) */
+    }
+    100% {
+        background-position: -200% 0; /* Termina a la izquierda (fuera de vista) */
+    }
+}
