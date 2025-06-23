@@ -798,7 +798,17 @@ main.dashboard-grid {
     background-color: #ffffff;
     border-radius: 8px;
     padding: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow:
+    /*superior*/
+    0px -3px 3px rgba(0,0,0,0.2),
+    /*inferior*/
+    0px 3px 6px rgba(0,0,0,0.4),
+    /*izquierda*/
+    -3px 0px 6px rgba(0,0,0,0.4),
+    /*derecha*/
+    3px 0px 6px rgba(0,0,0,0.4),
+    /*interior*/
+    inset 1px 1px 6px rgba(0,0,0,0.4);
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -1387,7 +1397,18 @@ main.dashboard-grid {
 /* Esta regla se aplica a las tarjetas del dashboard */
 .dashboard-panel {
     border-top: 3px solid #0051ff;
-    border-bottom: 3px solid #0051ff; 
+    border-bottom: 3px solid #0051ff;
+    box-shadow:
+    /*superior*/
+    0px -3px 3px rgba(0,0,0,0.2),
+    /*inferior*/
+    0px 3px 6px rgba(0,0,0,0.4),
+    /*izquierda*/
+    -3px 0px 6px rgba(0,0,0,0.4),
+    /*derecha*/
+    3px 0px 6px rgba(0,0,0,0.4),
+    /*interior*/
+    inset 1px 1px 6px rgba(0,0,0,0.4); 
 }
 
 /* Esta regla se aplica a las tarjetas más pequeñas del banner meteorológico */
@@ -1429,7 +1450,7 @@ header::after {
     );
     background-size: 200% 100%;
 
-    animation: wave-animation 8s linear infinite;
+    animation: wave-animation 7s linear infinite;
 }
 
 header > * {
