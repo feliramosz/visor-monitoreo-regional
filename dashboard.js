@@ -185,6 +185,33 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function renderAlertasList(container, items, noItemsText) {
         if (items && items.length > 0) {
+            // --- INICIO DE CÓDIGO AÑADIDO ---
+
+            // 1. Definimos el orden de prioridad. Menor número = mayor prioridad.
+            const priorityOrder = {
+                'roja': 1,
+                'amarilla': 2,
+                'temprana preventiva': 3
+            };
+
+            // 2. Ordenamos la lista 'items'
+            items.sort((a, b) => {
+                const nivelA = a.nivel_alerta.toLowerCase();
+                const nivelB = b.nivel_alerta.toLowerCase();
+
+                // Encontramos la prioridad de cada alerta basándonos en las palabras clave
+                const priorityA = Object.keys(priorityOrder).find(key => nivelA.includes(key));
+                const priorityB = Object.keys(priorityOrder).find(key => nivelB.includes(key));
+
+                // Obtenemos el valor numérico (1, 2, 3) o un valor alto (99) si no se encuentra
+                const scoreA = priorityA ? priorityOrder[priorityA] : 99;
+                const scoreB = priorityB ? priorityOrder[priorityB] : 99;
+                
+                return scoreA - scoreB;
+            });
+
+            // --- FIN DE CÓDIGO AÑADIDO ---
+
             const listHtml = items.map(item => {
                 let itemClass = '';
                 const nivel = item.nivel_alerta.toLowerCase();

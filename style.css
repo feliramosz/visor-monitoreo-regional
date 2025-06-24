@@ -1145,7 +1145,7 @@ main.dashboard-grid {
     position: relative;
     
     /* La máscara que crea el efecto de desvanecimiento (fade) en los bordes */
-    -webkit-mask-image: linear-gradient(transparent, black 2%, black 98%, transparent);
+    -webkit-mask-image: linear-gradient(transparent, black 1%, black 98%, transparent);
     mask-image: linear-gradient(transparent, black 2%, black 98%, transparent);
 }
 
