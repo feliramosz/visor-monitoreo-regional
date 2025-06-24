@@ -725,9 +725,14 @@ footer {
 /* --- ESTILOS PARA CARRUSEL CENTRAL DEL DASHBOARD --- */
 
 #central-carousel-container {
-    position: relative; /* Base para el posicionamiento absoluto de los slides */
+    position: relative;
     overflow: hidden;
-    display: flex; /* Por defecto, muestra los dos paneles uno al lado del otro */
+    height: 100%; /* Asegura que ocupe toda la altura de la celda del grid */
+}
+
+/* NUEVA REGLA: Solo cuando estemos en MODO ESTÁTICO, usamos flexbox para los dos paneles */
+#central-carousel-container.static-mode {
+    display: flex;
     gap: 15px;
 }
 
@@ -740,14 +745,14 @@ footer {
     opacity: 0;
     visibility: hidden;
     transition: opacity 1s ease-in-out;
-    display: flex;
+    display: flex; 
     gap: 15px;
 }
 
 .central-slide.active-central-slide {
     opacity: 1;
     visibility: visible;
-    position: relative;
+    position: relative; 
 }
 
 /* Estilos específicos para el slide de imágenes dinámicas */

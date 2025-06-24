@@ -64,19 +64,21 @@ document.addEventListener('DOMContentLoaded', () => {
     let centralCarouselInterval;
     let currentCentralSlide = 0;
     const centralSlideDuration = 15000; // 15 segundos por slide
-
+    
     function setupCentralContent(data) {
         const container = document.getElementById('central-carousel-container');
         if (!container) return;
 
-        // Detenemos cualquier carrusel anterior para evitar fugas de memoria
         clearInterval(centralCarouselInterval);
-        container.innerHTML = ''; // Limpiamos el contenedor
+        container.innerHTML = ''; 
 
         const useCarousel = data.dashboard_carousel_enabled && data.dynamic_slides && data.dynamic_slides.length > 0;
 
         if (useCarousel) {
-            // MODO CARRUSEL: Hay imágenes y la función está habilitada
+            // MODO CARRUSEL
+            // 1. Limpiamos cualquier clase de modo estático anterior
+            container.className = ''; 
+            
             const slides = [];
 
             // Slide 1: Paneles de Alertas y Avisos
@@ -97,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             slides.push(infoPanelsSlide);
 
-            // Slides siguientes: Imágenes dinámicas
+            // Slides de imágenes
             data.dynamic_slides.forEach(slideInfo => {
                 const imageSlide = `
                     <div class="central-slide dynamic-image-slide">
@@ -112,16 +114,21 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             container.innerHTML = slides.join('');
-
-            // Ahora poblamos el contenido de los paneles que acabamos de crear en el primer slide
+            
+            // Poblamos el contenido después de que el HTML exista en el DOM
             renderAlertasList(document.getElementById('alertas-list-container'), data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
             setupAvisosCarousel(data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
 
-            // Iniciar el carrusel
+            // Reiniciamos el carrusel
+            currentCentralSlide = 0; // Asegurarse de empezar desde el primer slide
             centralCarouselInterval = setInterval(nextCentralSlide, centralSlideDuration);
 
         } else {
-            // MODO ESTÁTICO: No hay imágenes o la función está deshabilitada
+            // MODO ESTÁTICO
+            // 1. Añadimos la clase 'static-mode' para que el CSS aplique 'display: flex'
+            container.className = 'static-mode'; 
+            
+            // 2. Insertamos los dos paneles directamente
             container.innerHTML = `
                 <div id="panel-alertas" class="dashboard-panel">
                     <h3>Alertas Vigentes</h3>
@@ -135,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div id="avisos-carousel-controls" style="display: none;"></div>
                 </div>
             `;
+            
             // Poblamos los paneles estáticos
             renderAlertasList(document.getElementById('alertas-list-container'), data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
             setupAvisosCarousel(data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
