@@ -412,6 +412,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updatedInformeData.estado_pasos_fronterizos = Array.from(pasosFronterizosContainer.querySelectorAll('.paso-item')).map(item => ({ nombre_paso: item.querySelector('.paso-nombre').value, condicion: item.querySelector('.paso-condicion').value, observaciones: item.querySelector('.paso-observaciones').value }));
         updatedInformeData.estado_puertos = Array.from(puertosContainer.querySelectorAll('.puerto-item')).map(item => ({ puerto: item.querySelector('.puerto-nombre').value, estado_del_puerto: item.querySelector('.puerto-estado').value, condicion: item.querySelector('.puerto-condicion').value }));
         updatedInformeData.dynamic_slides = Array.from(dynamicSlidesContainer.querySelectorAll('.dynamic-slide-item')).map(item => ({ id: item.dataset.id, image_url: item.querySelector('.slide-image-url').value, title: item.querySelector('.slide-title').value, description: item.querySelector('.slide-description').value }));
+        updatedInformeData.dashboard_carousel_enabled = document.getElementById('adminEnableDashboardCarousel').checked;
         updatedInformeData.slide_interval = parseInt(document.getElementById('adminIntervaloSlide').value, 10);
         
         // --- 2. Guardar datos de novedades ---

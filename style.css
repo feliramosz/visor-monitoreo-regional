@@ -722,6 +722,61 @@ footer {
 
 /* --- ESTILOS ESPECÍFICOS PARA DASHBOARD.HTML --- */
 
+/* --- ESTILOS PARA CARRUSEL CENTRAL DEL DASHBOARD --- */
+
+#central-carousel-container {
+    position: relative; /* Base para el posicionamiento absoluto de los slides */
+    overflow: hidden;
+    display: flex; /* Por defecto, muestra los dos paneles uno al lado del otro */
+    gap: 15px;
+}
+
+.central-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 1s ease-in-out;
+    display: flex;
+    gap: 15px;
+}
+
+.central-slide.active-central-slide {
+    opacity: 1;
+    visibility: visible;
+    position: relative;
+}
+
+/* Estilos específicos para el slide de imágenes dinámicas */
+.central-slide.dynamic-image-slide {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.dynamic-image-slide .image-slide-content {
+    text-align: center;
+}
+
+.dynamic-image-slide .responsive-image {
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: 5px;
+    object-fit: contain;
+}
+
+.dynamic-image-slide h2 {
+    color: #004d99;
+    margin-bottom: 15px;
+}
+
 /* 1. Body como contenedor flex de pantalla completa */
 body.dashboard-body {
     display: flex;
@@ -777,7 +832,7 @@ body.dashboard-body footer {
 /* 4. Grid principal que crece para llenar el espacio */
 main.dashboard-grid {    
     display: grid;
-    grid-template-columns: 0.6fr 0.6fr 1fr 1fr; 
+    grid-template-columns: 0.6fr 1.2fr 1fr; 
     gap: 15px;
     padding: 0 5px 15px 5px;
     flex-grow: 1;

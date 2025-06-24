@@ -59,6 +59,96 @@ document.addEventListener('DOMContentLoaded', () => {
     let wazePages = [];
     const wazePageDuration = 15000; // 15 segundos por página
     let isWazeCarouselPaused = false;    
+
+    // Lógica carrusel central
+    let centralCarouselInterval;
+    let currentCentralSlide = 0;
+    const centralSlideDuration = 15000; // 15 segundos por slide
+
+    function setupCentralContent(data) {
+        const container = document.getElementById('central-carousel-container');
+        if (!container) return;
+
+        // Detenemos cualquier carrusel anterior para evitar fugas de memoria
+        clearInterval(centralCarouselInterval);
+        container.innerHTML = ''; // Limpiamos el contenedor
+
+        const useCarousel = data.dashboard_carousel_enabled && data.dynamic_slides && data.dynamic_slides.length > 0;
+
+        if (useCarousel) {
+            // MODO CARRUSEL: Hay imágenes y la función está habilitada
+            const slides = [];
+
+            // Slide 1: Paneles de Alertas y Avisos
+            const infoPanelsSlide = `
+                <div class="central-slide active-central-slide">
+                    <div id="panel-alertas" class="dashboard-panel">
+                        <h3>Alertas Vigentes</h3>
+                        <div id="alertas-list-container"></div>
+                    </div>
+                    <div id="panel-avisos" class="dashboard-panel">
+                        <h3 class="dynamic-title">
+                            <span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarmas</span> / <span data-title-key="marejadas">Marejadas</span>
+                        </h3>
+                        <div id="avisos-list-container"></div>
+                        <div id="avisos-carousel-controls" style="display: none;"></div>
+                    </div>
+                </div>
+            `;
+            slides.push(infoPanelsSlide);
+
+            // Slides siguientes: Imágenes dinámicas
+            data.dynamic_slides.forEach(slideInfo => {
+                const imageSlide = `
+                    <div class="central-slide dynamic-image-slide">
+                        <div class="image-slide-content">
+                            <h2>${slideInfo.title || 'Visor de Monitoreo'}</h2>
+                            <img src="${slideInfo.image_url}" alt="${slideInfo.title || ''}" class="responsive-image">
+                            ${slideInfo.description ? `<p>${slideInfo.description}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+                slides.push(imageSlide);
+            });
+
+            container.innerHTML = slides.join('');
+
+            // Ahora poblamos el contenido de los paneles que acabamos de crear en el primer slide
+            renderAlertasList(document.getElementById('alertas-list-container'), data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
+            setupAvisosCarousel(data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
+
+            // Iniciar el carrusel
+            centralCarouselInterval = setInterval(nextCentralSlide, centralSlideDuration);
+
+        } else {
+            // MODO ESTÁTICO: No hay imágenes o la función está deshabilitada
+            container.innerHTML = `
+                <div id="panel-alertas" class="dashboard-panel">
+                    <h3>Alertas Vigentes</h3>
+                    <div id="alertas-list-container"></div>
+                </div>
+                <div id="panel-avisos" class="dashboard-panel">
+                    <h3 class="dynamic-title">
+                        <span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarmas</span> / <span data-title-key="marejadas">Marejadas</span>
+                    </h3>
+                    <div id="avisos-list-container"></div>
+                    <div id="avisos-carousel-controls" style="display: none;"></div>
+                </div>
+            `;
+            // Poblamos los paneles estáticos
+            renderAlertasList(document.getElementById('alertas-list-container'), data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
+            setupAvisosCarousel(data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
+        }
+    }
+
+    function nextCentralSlide() {
+        const slides = document.querySelectorAll('.central-slide');
+        if (slides.length <= 1) return;
+        
+        slides[currentCentralSlide].classList.remove('active-central-slide');
+        currentCentralSlide = (currentCentralSlide + 1) % slides.length;
+        slides[currentCentralSlide].classList.add('active-central-slide');
+    }    
     
     // Lógica de Relojes
     async function updateClocks() {
@@ -177,8 +267,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             // --- FIN NUEVA LÓGICA ---
 
-            renderAlertasList(alertasListContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
-            setupAvisosCarousel(data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
+            //Logica anterior
+            //renderAlertasList(alertasListContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
+            //setupAvisosCarousel(data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
+
+            //Nueva funcion para gestionar contenedor central
+            setupCentralContent(data);
 
         } catch (error) { console.error("Error al cargar datos principales:", error); }
     }
