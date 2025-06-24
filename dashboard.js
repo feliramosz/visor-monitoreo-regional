@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const avisoPrevBtn = document.getElementById('aviso-prev-btn');
     const avisoPausePlayBtn = document.getElementById('aviso-pause-play-btn');
     const avisoNextBtn = document.getElementById('aviso-next-btn');
+    let lastDataTimestamp = 0;
 
     // Estado del carrusel de mapas
     let mapCarouselInterval;
@@ -39,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let avisosCarouselInterval;
     let currentAvisoPage = 0;
     let avisoPages = [];
-    const avisoPageDuration = 15000;
+    const avisoPageDuration = 10000;
     let isAvisoCarouselPaused = false;
     let borderPassStatus = {};
 
@@ -678,6 +679,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return `hace ${Math.floor(seconds)} segundos`;
     }
 
+    async function checkForUpdates() {
+        try {
+            const response = await fetch('/api/last_update_timestamp');
+            const data = await response.json();            
+            if (data.last_update > lastDataTimestamp) {
+                console.log('Nuevos datos disponibles en el servidor. Actualizando dashboard...');                
+                lastDataTimestamp = data.last_update;                
+                fetchAndRenderMainData();
+            }
+        } catch (error) {
+            console.error("Error al verificar actualizaciones:", error);
+        }
+    }
+
     function openMapWindow(lat, lon) {        
         const mapUrl = `https://maps.google.com/?q=${lat},${lon}`;
         const windowFeatures = 'width=1280,height=1024,resizable=yes,scrollbars=yes';
@@ -717,6 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initializePrecipitationMap(); fetchAndRenderPrecipitationData();
         showMapSlide(0); fetchAndRenderWazeData();
         mapCarouselInterval = setInterval(nextMapSlide, mapSlideDuration);
+        setInterval(checkForUpdates, 5000);
         
         // Listeners para carrusel de MAPAS
         pausePlayBtn.addEventListener('click', toggleMapPausePlay);

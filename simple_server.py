@@ -434,6 +434,29 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self.wfile.write(json.dumps({"error": f"Error interno del servidor: {e}"}).encode('utf-8'))
                 return
 
+            # --- ENDPOINT DE TIMESTAMP ---
+            elif requested_path == '/api/last_update_timestamp':
+                try:
+                    # Obtenemos la fecha de modificación de ambos archivos
+                    ts_informe = 0
+                    ts_novedades = 0
+                    if os.path.exists(DATA_FILE):
+                        ts_informe = os.path.getmtime(DATA_FILE)
+                    
+                    if os.path.exists(NOVEDADES_FILE):
+                        ts_novedades = os.path.getmtime(NOVEDADES_FILE)
+                    
+                    # Devolvemos el timestamp más reciente de los dos
+                    latest_timestamp = max(ts_informe, ts_novedades)
+                    
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps({"last_update": latest_timestamp}).encode('utf-8'))
+                except Exception as e:
+                    self._set_headers(500, 'application/json')
+                    self.wfile.write(json.dumps({"error": f"Error al obtener timestamp: {e}"}).encode('utf-8'))
+                return
+            # --- FIN DEL NUEVO ENDPOINT ---
+
             # --- ENDPOINT PARA DATOS DE WAZE (CON GEOCODIFICACIÓN Y COORDENADAS) ---
             elif requested_path == '/api/waze':
                 if not hasattr(self.server, 'waze_cache'):
