@@ -231,64 +231,44 @@
                     <li><a href="#" data-section="carreteras">Estado de Carreteras</a></li>
                     <li><a href="#" data-section="pasos-fronterizos">Pasos Fronterizos</a></li>
                     <li><a href="#" data-section="puertos">Estado de Puertos</a></li>
-                    <li><a href="#" data-section="dynamic-slides">Agregar imagenes</a></li> 
+                    <li><a href="#" data-section="dynamic-slides">Agregar imagenes</a></li>
                     <li><a href="#" data-section="accion-manual">Descargar Informe Manual</a></li>
                 </ul>
             </nav>
-            
-            </ul>
-
-        <div class="form-group" style="margin-top: 20px;">
-            <h3>Configuración del Dashboard</h3>
-            <label for="adminEnableDashboardCarousel">
-                <input type="checkbox" id="adminEnableDashboardCarousel" style="width: auto;">
-                Habilitar carrusel central en Dashboard (reemplaza Alertas y Avisos por slides si hay imágenes).
-            </label>
-        </div>
-
-        </nav> <div style="padding: 0 20px; margin-top: 30px;">
-            <button id="logoutBtn" style="width: 100%; padding: 12px; background-color: #c82333; color: white; border: none; cursor: pointer; border-radius: 5px; font-size: 1.1em;">
-                Cerrar Sesión
-            </button>
-        </div>
-        
-            <div style="padding: 0 20px;">
-                <h4 style="margin-bottom: 10px; color: white; border-bottom: 1px solid #495057; padding-bottom: 10px;">Velocidad del Carrusel</h4>
-                <label for="adminIntervaloSlide" style="display: block; margin-bottom: 8px; font-weight: bold; color: #ccc;">Segundos por slide:</label>
-                <select id="adminIntervaloSlide" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                    <option value="5000">5 segundos</option>
-                    <option value="10000">10 segundos</option>
-                    <option value="15000">15 segundos</option>
-                    <option value="20000">20 segundos</option>
-                    <option value="25000">25 segundos</option>
-                    <option value="30000">30 segundos</option>
-                </select>
+            <div style="padding: 0 20px; margin-top: 30px;">
+                <button id="logoutBtn" style="width: 100%; padding: 12px; background-color: #c82333; color: white; border: none; cursor: pointer; border-radius: 5px; font-size: 1.1em;">
+                    Cerrar Sesión
+                </button>
             </div>
         </aside>
 
         <div class="admin-content">
             <div class="message" id="adminMessage"></div>
 
-            <section id="accion-manual" class="admin-section">
-                <h3>Ejecutar Descarga de Informe AM o PM</h3>
-                <div class="form-group">
-                    <p>
-                        Haz clic en el siguiente botón para forzar la descarga del último informe desde el correo electrónico.
-                        Este proceso puede tardar unos segundos. La salida del proceso se mostrará a continuación.
-                    </p>
-                    <button type="button" id="runScriptBtn">Comenzar Descarga Manual</button>
-
-                    <h4>Salida del Proceso:</h4>
-                    <pre id="scriptOutput" style="background-color: #333; color: #fff; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto;"></pre>
-                </div>
-            </section>
-
             <section id="informacion-general" class="admin-section active">
                 <h3>Información General del Reporte</h3>
-                 <p>La hora del reporte y el tipo (AM/PM) se establecerán automáticamente al momento de guardar los cambios.</p>
+                <p>La hora del reporte y el tipo (AM/PM) se establecerán automáticamente al momento de guardar los cambios.</p>
                 <label for="adminFechaInforme">Fecha del Informe:</label>
-                <input type="text" id="adminFechaInforme" placeholder="Ej: jueves, 22 de mayo de 2025">
-            </section>
+                <input type="text" id="adminFechaInforme" placeholder="Ej: martes, 24 de junio de 2025">
+
+                <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
+                    <h4 style="margin-top:0;">Configuración del Dashboard</h4>
+                    <label for="adminEnableDashboardCarousel" style="display:flex; align-items:center; gap:10px;">
+                        <input type="checkbox" id="adminEnableDashboardCarousel" style="width: auto; height: 18px; flex-shrink:0;">
+                        Habilitar carrusel central en Dashboard (reemplaza Alertas y Avisos por slides si hay imágenes).
+                    </label>
+                    <br>
+                    <label for="adminIntervaloSlide" style="font-weight: bold; color: #555;">Velocidad del Carrusel Principal:</label>
+                    <select id="adminIntervaloSlide" style="width: 100%; max-width:250px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                        <option value="5000">5 segundos</option>
+                        <option value="10000" selected>10 segundos</option>
+                        <option value="15000">15 segundos</option>
+                        <option value="20000">20 segundos</option>
+                        <option value="25000">25 segundos</option>
+                        <option value="30000">30 segundos</option>
+                    </select>
+                </div>
+                </section>
 
             <section id="contenido-dashboard" class="admin-section">
                 <h3>Panel de Novedades del Dashboard</h3>
