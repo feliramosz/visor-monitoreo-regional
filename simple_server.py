@@ -589,6 +589,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({'message': 'Logout exitoso'}).encode('utf-8'))
             return
         
+        # --- Endpoint para guardar /api/data
         if self.path == '/api/data':
             username = self._get_user_from_token() 
                         
@@ -621,6 +622,11 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
         # --- ENDPOINT POST PARA NOVEDADES ---
         elif self.path == '/api/novedades':
+            username = self._get_user_from_token()
+            if not username:
+                self._set_headers(401, 'application/json')
+                self.wfile.write(json.dumps({'error': 'No autorizado. Se requiere iniciar sesión.'}).encode('utf-8'))
+                return            
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             try:
@@ -640,6 +646,11 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         # --- FIN ENDPOINT POST NOVEDADES ---
 
         elif self.path == '/api/trigger-download':
+                    username = self._get_user_from_token()
+                    if not username:
+                        self._set_headers(401, 'application/json')
+                        self.wfile.write(json.dumps({'error': 'No autorizado. Se requiere iniciar sesión.'}).encode('utf-8'))
+                        return
                     try:
                         print("INFO: Se ha recibido una solicitud para ejecutar descargar_informe.py manualmente.")
                                                 
@@ -700,6 +711,11 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     return
 
         elif self.path == '/api/upload_image':
+            username = self._get_user_from_token()
+            if not username:
+                self._set_headers(401, 'application/json')
+                self.wfile.write(json.dumps({"error": 'No autorizado. Se requiere iniciar sesión.'}).encode('utf-8'))
+                return
             content_type_header = self.headers.get('Content-Type', '')
             if not content_type_header.startswith('multipart/form-data'):
                 self._set_headers(400, 'application/json')
@@ -830,6 +846,11 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def do_DELETE(self):
         if self.path == '/api/delete_image':
+            username = self._get_user_from_token()
+            if not username:
+                self._set_headers(401, 'application/json')
+                self.wfile.write(json.dumps({'error': 'No autorizado. Se requiere iniciar sesión.'}).encode('utf-8'))
+                return
             content_length = int(self.headers.get('Content-Length', 0))
             post_data = self.rfile.read(content_length)
             try:

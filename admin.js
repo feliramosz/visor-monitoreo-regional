@@ -319,7 +319,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         runScriptBtn.textContent = 'Ejecutando...';
         scriptOutput.textContent = 'Iniciando proceso, por favor espera...';
         try {
-            const response = await fetch(TRIGGER_DOWNLOAD_API_URL, { method: 'POST' });
+            const response = await fetch(TRIGGER_DOWNLOAD_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             const result = await response.json();
             let formattedOutput = `--- ESTADO: ${response.ok ? 'ÉXITO' : 'FALLO'} ---\nMENSAJE: ${result.message}\n\n`;
             if (result.output) formattedOutput += `--- SALIDA DEL SCRIPT ---\n${result.output}\n`;
