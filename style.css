@@ -837,7 +837,7 @@ body.dashboard-body footer {
 /* 4. Grid principal que crece para llenar el espacio */
 main.dashboard-grid {    
     display: grid;
-    grid-template-columns: 0.6fr 1.2fr 1fr; 
+    grid-template-columns: 0.6fr 1.2fr 0.8fr; 
     gap: 15px;
     padding: 0 5px 15px 5px;
     flex-grow: 1;

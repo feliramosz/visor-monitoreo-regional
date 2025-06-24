@@ -371,13 +371,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function showAvisoPage(index) {
-        document.querySelectorAll('.aviso-slide').forEach((slide, i) => {
+    function showAvisoPage(index) {        
+        const titleContainer = document.querySelector('#panel-avisos .dynamic-title');
+        const slides = document.querySelectorAll('.aviso-slide');
+
+        if (!titleContainer || slides.length === 0) return; 
+
+        slides.forEach((slide, i) => {
             slide.style.transform = `translateX(${(i - index) * 100}%)`;
         });
 
         const activeKey = avisoPages[index].key;
-        avisosTitleContainer.querySelectorAll('span').forEach(span => {
+        titleContainer.querySelectorAll('span').forEach(span => {
             span.classList.toggle('active-title', span.dataset.titleKey === activeKey);
         });
 
@@ -735,6 +740,14 @@ document.addEventListener('DOMContentLoaded', () => {
         setInterval(fetchAndRenderPrecipitationData, 5 * 60 * 1000);
         setInterval(fetchAndRenderWazeData, 2 * 60 * 1000); 
     }
+
+    // --- Lógica para escuchar cambios desde otras pestañas ---
+    window.addEventListener('storage', (event) => {        
+        if (event.key === 'data_updated') {
+            console.log('Se detectó un cambio de datos desde el panel de administración. Actualizando dashboard...');            
+            fetchAndRenderMainData();
+        }
+    });
 
     initializeApp();
 });

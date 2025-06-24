@@ -447,9 +447,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!informeResponse.ok || !novedadesResponse.ok) {
                 throw new Error('Falló al guardar uno o ambos archivos de datos.');
             }
-
             showMessage('Todos los cambios han sido guardados correctamente.', 'success');
-            
+            localStorage.setItem('data_updated', Date.now());
+
         } catch (error) {
             console.error("Error al guardar datos:", error);
             showMessage(`Error al guardar: ${error.message}`, 'error');
