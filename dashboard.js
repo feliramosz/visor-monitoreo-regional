@@ -494,7 +494,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // LÓGICA DE MAPAS
     function initializeAirQualityMap() {
         if (airQualityMap) return;
-        const mapCenter = [-32.90, -71.50];
+        const mapCenter = [-32.93, -71.46];
         airQualityMap = L.map(airQualityMapContainer).setView(mapCenter, 10);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(airQualityMap);
     }
