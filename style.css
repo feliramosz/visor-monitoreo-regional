@@ -1138,6 +1138,17 @@ main.dashboard-grid {
     mask-image: linear-gradient(transparent, black 10%, black 90%, transparent);
 }
 
+/* --- ESTILOS PARA SCROLL VERTICAL EN PANEL DE ALERTAS --- */
+#alertas-list-container {
+    flex-grow: 1;
+    overflow: hidden;
+    position: relative;
+    
+    /* La máscara que crea el efecto de desvanecimiento (fade) en los bordes */
+    -webkit-mask-image: linear-gradient(transparent, black 2%, black 98%, transparent);
+    mask-image: linear-gradient(transparent, black 2%, black 98%, transparent);
+}
+
 /* --- 4. Estilos para el scroll vertical DENTRO de una diapositiva --- */
 .is-scrolling .dashboard-list {
     /* Animación de desplazamiento vertical */
