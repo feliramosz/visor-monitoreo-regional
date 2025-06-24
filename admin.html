@@ -364,6 +364,20 @@
                     <p>No hay slides dinámicas añadidas.</p>
                 </div>
             </section>
+            
+            <section id="accion-manual" class="admin-section">
+                <h3>Descargar Informe Manual</h3>
+                <div class="form-group">
+                    <p>
+                        Haz clic en este botón para forzar la descarga y procesamiento del último informe
+                        disponible en el correo electrónico. Esto sobreescribirá los datos actuales
+                        del informe con los datos extraídos del archivo .docx.
+                    </p>
+                    <button type="button" id="runScriptBtn" style="background-color: #0056b3;">Iniciar Descarga Manual</button>
+                    <h4>Salida del Proceso:</h4>
+                    <pre id="scriptOutput" style="background-color: #333; color: #fff; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">La salida del script aparecerá aquí...</pre>
+                </div>
+            </section>
 
             <div class="action-buttons">
                 <button type="button" id="saveDataBtn" class="save-button">Guardar Todos los Cambios</button>

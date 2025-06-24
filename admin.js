@@ -425,13 +425,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` // <--- LÍNEA AÑADIDA
+                        'Authorization': `Bearer ${token}` 
                     },
                     body: JSON.stringify(updatedInformeData)
                 }),
                 fetch(NOVEDADES_API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
                     body: JSON.stringify(updatedNovedadesData)
                 })
             ]);
