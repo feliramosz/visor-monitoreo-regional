@@ -1,5 +1,12 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('session_token');
+
+    // --- Bloque de protección con redirección inteligente ---
+    if (!token) {
+        // Si no hay token, redirige al login, pasando la página actual para poder volver.
+        window.location.href = `/login.html?redirect_to=${window.location.pathname}`;
+        return; 
+    }
     
     // --- Función para gestionar la UI según el rol del usuario ---
     async function setupUIForUserRole() {
@@ -27,10 +34,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Llamamos a la función para que se ejecute al cargar la página
     setupUIForUserRole();
-    if (!token) {
-        window.location.href = '/login.html';
-        return; 
-    }
 
     const DATA_API_URL = '/api/data';
     const NOVEDADES_API_URL = '/api/novedades'; 
@@ -89,7 +92,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             sidebarLinks.forEach(l => l.classList.remove('active'));
             adminSections.forEach(s => s.classList.remove('active'));
             this.classList.add('active');
-            document.getElementById(this.dataset.section).classList.add('active');
+            const sectionId = this.dataset.section;
+            document.getElementById(sectionId).classList.add('active');
+            
+            if (sectionId === 'gestion-usuarios') {
+                loadUsers();
+            } else if (sectionId === 'log-actividad') {
+                loadActivityLog();
+            }
         });
     });
 
@@ -187,8 +197,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
             novedadesListContainer.appendChild(div);
         });
-
-        // Add event listeners for new buttons
+        
         document.querySelectorAll('.edit-novedad-btn').forEach(btn => btn.addEventListener('click', handleEditNovedad));
         document.querySelectorAll('.remove-novedad-btn').forEach(btn => btn.addEventListener('click', handleDeleteNovedad));
     }
@@ -484,7 +493,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // --- Lógica para Gestión de Usuarios y Logs ---
+    // --- Para Gestión de Usuarios y Logs ---
     const usersTableBody = document.querySelector('#usersTable tbody');
     const logTableBody = document.querySelector('#logTable tbody');
 
@@ -530,6 +539,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </td>
                 `;
             });
+             // Añadir listeners a los nuevos botones
+            usersTableBody.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', handleEditUser));
+            usersTableBody.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', handleDeleteUser));
         } catch (error) {
             showMessage(error.message, 'error');
             usersTableBody.innerHTML = `<tr><td colspan="4">${error.message}</td></tr>`;
@@ -551,7 +563,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             logs.forEach(log => {
                 const row = logTableBody.insertRow();
                 row.innerHTML = `
-                    <td>${log.timestamp}</td>
+                    <td>${new Date(log.timestamp).toLocaleString('es-CL')}</td>
                     <td>${log.username}</td>
                     <td>${log.action}</td>
                     <td>${log.ip_address || 'N/A'}</td>
@@ -610,43 +622,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Event listener para los botones de la tabla (editar y eliminar)
-    usersTableBody.addEventListener('click', async (e) => {
+    function handleEditUser(e) {
         const target = e.target;
-        const id = target.dataset.id;
+        adminUserId.value = target.dataset.id;
+        adminUsername.value = target.dataset.username;
+        adminRole.value = target.dataset.role;
+        adminPassword.value = '';
+        saveUserBtn.textContent = 'Actualizar Usuario';
+        cancelEditBtn.style.display = 'inline-block';
+        document.getElementById('adminUsername').focus();
+    }
+    async function handleDeleteUser(e) {
+        const id = e.target.dataset.id;
+        if (!confirm(`¿Estás seguro de que quieres eliminar al usuario con ID ${id}?`)) return;
 
-        // Si se hace clic en Editar
-        if (target.classList.contains('edit-btn')) {
-            adminUserId.value = id;
-            adminUsername.value = target.dataset.username;
-            adminRole.value = target.dataset.role;
-            adminPassword.value = '';
-            saveUserBtn.textContent = 'Actualizar Usuario';
-            cancelEditBtn.style.display = 'inline-block';
-            document.getElementById('adminUsername').focus();
+        try {
+            const response = await fetch('/api/users/delete', { // Endpoint que debemos crear en el servidor
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ id: id })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error);
+            showMessage(result.message, 'success');
+            loadUsers(); // Recargar la lista
+        } catch (error) {
+            showMessage(error.message, 'error');
         }
-
-        // Si se hace clic en Eliminar
-        if (target.classList.contains('delete-btn')) {
-            if (!confirm(`¿Estás seguro de que quieres eliminar al usuario con ID ${id}?`)) return;
-
-            try {
-                const response = await fetch('/api/users/delete', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` 
-                    },
-                    body: JSON.stringify({ id: id })
-                });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error);
-                showMessage(result.message, 'success');
-                loadUsers(); // Recargar la lista
-            } catch (error) {
-                showMessage(error.message, 'error');
-            }
-        }
-    });
+    }
 
     // Event listener para cancelar edición
     cancelEditBtn.addEventListener('click', resetUserForm);

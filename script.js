@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('session_token');
     if (!token) {
-        window.location.href = '/login.html';
+        window.location.href = `/login.html?redirect_to=${window.location.pathname}`;
         return; // Detiene la ejecución del resto del script
     }
     // URLs de las APIs
