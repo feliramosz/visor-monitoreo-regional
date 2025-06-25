@@ -955,11 +955,10 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 print(f"Error al subir imagen (nueva logica): {e}")
                 self._set_headers(500, 'application/json')
                 self.wfile.write(json.dumps({"error": f"Error al subir imagen: {e}"}).encode('utf-8'))
-        else:
-            self._set_headers(404, 'text/plain')
-            self.wfile.write(b"Ruta POST no encontrada")
+                pass
+            return    
 
-        # --- NUEVOS ENDPOINTS PARA GESTIÓN DE USUARIOS (POST) ---
+    # --- NUEVOS ENDPOINTS PARA GESTIÓN DE USUARIOS (POST) ---
         elif self.path == '/api/users/add':
             if self._get_user_role(username) != 'administrador':
                 self._set_headers(403, 'application/json')
@@ -985,7 +984,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         
         else:
             self._set_headers(404, 'text/plain')
-            self.wfile.write(b"Ruta POST no encontrada")
+            self.wfile.write(b"Ruta POST no encontrada")    
 
     def do_DELETE(self):
         if self.path == '/api/delete_image':
