@@ -17,7 +17,7 @@ import sys
 from dotenv import load_dotenv
 import sqlite3
 import uuid
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8000
@@ -38,7 +38,32 @@ MAX_IMAGE_HEIGHT = 800
 # --- SERVIDOR NTP DEL SHOA ---
 NTP_SERVER = 'ntp.shoa.cl'
 
-class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
+class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
+    # --- Función para registrar logs ---
+    def _log_activity(self, username, action, ip_address=None, details=''):
+        """Registra una acción en la base de datos."""
+        conn = sqlite3.connect(DATABASE_FILE)
+        cursor = conn.cursor()
+        # Usamos CURRENT_TIMESTAMP para que SQLite ponga la hora
+        cursor.execute(
+            "INSERT INTO activity_log (timestamp, username, ip_address, action, details) VALUES (CURRENT_TIMESTAMP, ?, ?, ?, ?)",
+            (username, ip_address, action, details)
+        )
+        conn.commit()
+        conn.close()
+
+    # --- Función para verificar el rol de un usuario ---
+    def _get_user_role(self, username):
+        """Obtiene el rol de un usuario desde la base de datos."""
+        if not username:
+            return None
+        conn = sqlite3.connect(DATABASE_FILE)
+        cursor = conn.cursor()
+        cursor.execute("SELECT role FROM users WHERE username = ?", (username,))
+        result = cursor.fetchone()
+        conn.close()
+        return result[0] if result else None
+    
     def _get_user_from_token(self):
         """Valida el token de la cabecera y devuelve el nombre de usuario."""
         auth_header = self.headers.get('Authorization')
@@ -65,6 +90,52 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             parsed_path = urllib.parse.urlparse(self.path)
             requested_path = urllib.parse.unquote(parsed_path.path)
 
+            # --- Protección de rutas principales ---            
+            if requested_path in ['/', '/index.html', '/dashboard', '/dashboard.html', '/admin', '/admin.html']:
+                if not self._get_user_from_token():
+                    # Si no hay token, redirigir al login
+                    self.send_response(302)
+                    self.send_header('Location', '/login.html')
+                    self.end_headers()
+                    return
+
+            # --- NUEVOS ENDPOINTS DE API (GET) ---
+            if requested_path == '/api/users':
+                username = self._get_user_from_token()
+                if self._get_user_role(username) != 'administrador':
+                    self._set_headers(403, 'application/json')
+                    self.wfile.write(json.dumps({'error': 'Acceso denegado. Se requiere rol de administrador.'}).encode('utf-8'))
+                    return
+                
+                conn = sqlite3.connect(DATABASE_FILE)
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("SELECT id, username, role FROM users")
+                users = [dict(row) for row in cursor.fetchall()]
+                conn.close()
+                
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps(users).encode('utf-8'))
+                return
+
+            elif requested_path == '/api/activity_log':
+                username = self._get_user_from_token()
+                if self._get_user_role(username) != 'administrador':
+                    self._set_headers(403, 'application/json')
+                    self.wfile.write(json.dumps({'error': 'Acceso denegado. Se requiere rol de administrador.'}).encode('utf-8'))
+                    return
+                
+                conn = sqlite3.connect(DATABASE_FILE)
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM activity_log ORDER BY timestamp DESC LIMIT 100") # Limitamos a 100 para no sobrecargar
+                logs = [dict(row) for row in cursor.fetchall()]
+                conn.close()
+                
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps(logs).encode('utf-8'))
+                return
+            
             if requested_path == '/api/data':
                 if os.path.exists(DATA_FILE):
                     with open(DATA_FILE, 'r', encoding='utf-8') as f:
@@ -576,9 +647,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             print(f"Error en do_GET al servir archivo: {e}")
             self._set_headers(500, 'text/plain')
             self.wfile.write(f"Error interno del servidor: {e}".encode('utf-8'))
-
+        
     def do_POST(self):
-        # --- NUEVO: Endpoint de Login ---
+        # --- Endpoint de Login ---
         if self.path == '/api/login':
             content_length = int(self.headers['Content-Length'])
             post_data = json.loads(self.rfile.read(content_length))
@@ -594,23 +665,37 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             if result and check_password_hash(result[0], password):
                 token = str(uuid.uuid4())
                 SESSIONS[token] = username
+                ip_address = self.client_address[0]
+                self._log_activity(username, "Inicio de Sesión Exitoso", ip_address=ip_address)
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps({'message': 'Login exitoso', 'token': token}).encode('utf-8'))
             else:
+                ip_address = self.client_address[0]
+                self._log_activity(username, "Intento de Login Fallido", ip_address=ip_address)
                 self._set_headers(401, 'application/json')
                 self.wfile.write(json.dumps({'error': 'Usuario o contraseña inválidos'}).encode('utf-8'))
             return # Termina la función aquí
 
-        # --- NUEVO: Endpoint de Logout ---
+        # --- Endpoint de Logout ---
         if self.path == '/api/logout':
+            username = self._get_user_from_token()
             auth_header = self.headers.get('Authorization')
             if auth_header and auth_header.startswith('Bearer '):
                 token_to_invalidate = auth_header.split(' ')[1]
                 if token_to_invalidate in SESSIONS:
-                    del SESSIONS[token_to_invalidate] # Borra el token de las sesiones activas
+                    if username:
+                       self._log_activity(username, "Cierre de Sesión")
+                    del SESSIONS[token_to_invalidate]
             self._set_headers(200, 'application/json')
             self.wfile.write(json.dumps({'message': 'Logout exitoso'}).encode('utf-8'))
             return
+
+        # --- El resto de los endpoints ahora están protegidos y registran actividad ---
+        username = self._get_user_from_token()
+        if not username:
+            self._set_headers(401, 'application/json')
+            self.wfile.write(json.dumps({'error': 'No autorizado. Se requiere iniciar sesión.'}).encode('utf-8'))
+            return    
         
         # --- Endpoint para guardar /api/data
         if self.path == '/api/data':
@@ -632,7 +717,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     json.dump(new_data, f, ensure_ascii=False, indent=4)
                 
                 # Aquí añadiremos el registro de actividad en el siguiente paso
-
+                self._log_activity(username, "Informe Principal Actualizado")
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps({"message": "Datos de informe actualizados correctamente."}, ensure_ascii=False).encode('utf-8'))
             except json.JSONDecodeError:
@@ -647,6 +732,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         elif self.path == '/api/novedades':
             username = self._get_user_from_token()
             if not username:
+                self._log_activity(username, "Panel de Novedades Actualizado")
                 self._set_headers(401, 'application/json')
                 self.wfile.write(json.dumps({'error': 'No autorizado. Se requiere iniciar sesión.'}).encode('utf-8'))
                 return            
@@ -668,6 +754,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             return
         # --- FIN ENDPOINT POST NOVEDADES ---
 
+        # --- Endpoint para descargar informe manual ---
         elif self.path == '/api/trigger-download':
                     username = self._get_user_from_token()
                     if not username:
@@ -702,6 +789,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
                         # Verificamos si el script se ejecutó correctamente (código de salida 0)
                         if result.returncode == 0:
+                            self._log_activity(username, "Descarga Manual de Informe Ejecutada")
                             print("SUCCESS: El script descargar_informe.py se ejecutó correctamente.")
                             self._set_headers(200, 'application/json')
                             response = {
@@ -712,6 +800,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
                         else:
                             # Si el script falló, enviamos un error 500 con la salida del error
+                            self._log_activity(username, "Descarga Manual de Informe Fallida")
                             print(f"ERROR: El script descargar_informe.py falló con el código {result.returncode}.")
                             self._set_headers(500, 'application/json')
                             response = {
@@ -733,6 +822,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         self.wfile.write(json.dumps({"error": f"Ocurrió un error inesperado en el servidor: {e}"}).encode('utf-8'))
                     return
 
+        # --- Endpoint para cargar imagenes --- #
         elif self.path == '/api/upload_image':
             username = self._get_user_from_token()
             if not username:
@@ -850,7 +940,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
                     with open(DATA_FILE, 'w', encoding='utf-8') as f:
                         json.dump(current_data, f, ensure_ascii=False, indent=4)
-
+                    
+                    details = f"Archivo: {unique_filename}, Título: {image_title}"
+                    self._log_activity(username, "Subida de Nueva Imagen", details=details)
                     self._set_headers(200, 'application/json')
                     self.wfile.write(json.dumps({
                         "message": "Imagen subida y datos actualizados.",
@@ -863,6 +955,34 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 print(f"Error al subir imagen (nueva logica): {e}")
                 self._set_headers(500, 'application/json')
                 self.wfile.write(json.dumps({"error": f"Error al subir imagen: {e}"}).encode('utf-8'))
+        else:
+            self._set_headers(404, 'text/plain')
+            self.wfile.write(b"Ruta POST no encontrada")
+
+        # --- NUEVOS ENDPOINTS PARA GESTIÓN DE USUARIOS (POST) ---
+        elif self.path == '/api/users/add':
+            if self._get_user_role(username) != 'administrador':
+                self._set_headers(403, 'application/json')
+                self.wfile.write(json.dumps({'error': 'Acceso denegado'}).encode('utf-8'))
+                return
+            
+            content_length = int(self.headers['Content-Length'])
+            data = json.loads(self.rfile.read(content_length))
+            
+            new_user = data.get('username')
+            new_pass = data.get('password')
+            new_role = data.get('role', 'operador')
+
+            # Lógica para añadir el usuario a la DB...
+            # ... (usando generate_password_hash) ...
+            
+            self._log_activity(username, f"Creación de Usuario: {new_user}", details=f"Rol asignado: {new_role}")
+            self._set_headers(200, 'application/json')
+            self.wfile.write(json.dumps({'message': f"Usuario {new_user} creado."}).encode('utf-8'))
+            return
+
+        # (Aquí van a ir endpoints para actualizar y eliminar usuarios que podemos añadir después)
+        
         else:
             self._set_headers(404, 'text/plain')
             self.wfile.write(b"Ruta POST no encontrada")
