@@ -90,15 +90,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             parsed_path = urllib.parse.urlparse(self.path)
             requested_path = urllib.parse.unquote(parsed_path.path)
 
-            # --- Protección de rutas principales ---            
-            if requested_path in ['/', '/index.html', '/dashboard', '/dashboard.html', '/admin', '/admin.html']:
-                if not self._get_user_from_token():
-                    # Si no hay token, redirigir al login
-                    self.send_response(302)
-                    self.send_header('Location', '/login.html')
-                    self.end_headers()
-                    return
-
             # --- NUEVOS ENDPOINTS DE API (GET) ---
             if requested_path == '/api/users':
                 username = self._get_user_from_token()
