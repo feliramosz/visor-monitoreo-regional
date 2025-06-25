@@ -100,15 +100,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             parsed_path = urllib.parse.urlparse(self.path)
             requested_path = urllib.parse.unquote(parsed_path.path)
 
-            # --- Protección de rutas y redirección inteligente ---
-            if requested_path in ['/', '/index.html', '/dashboard', '/dashboard.html', '/admin', '/admin.html']:
-                if not self._get_user_from_token():
-                    # Si no hay token, redirigir a login.html, pasando la página solicitada como parámetro
-                    self.send_response(302)
-                    self.send_header('Location', f'/login.html?redirect_to={urllib.parse.quote(requested_path)}')
-                    self.end_headers()
-                    return
-
             # --- ENDPOINTS DE API (GET) ---
             if requested_path == '/api/users':
                 username = self._get_user_from_token()
