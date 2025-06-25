@@ -18,7 +18,7 @@ DOWNLOAD_FOLDER = os.path.join(tempfile.gettempdir(), 'informes_descargados_sena
 DATA_OUTPUT_FOLDER = os.path.join(os.path.expanduser('~'), 'SistemaMonitoreoSENAPRED', 'datos_extraidos')
 DATA_FILE = os.path.join(DATA_OUTPUT_FOLDER, "ultimo_informe.json")
 
-# --- FUNCIÓN MEJORADA PARA OBTENER UN ID ÚNICO DEL INFORME ---
+# --- FUNCIÓN PARA OBTENER UN ID ÚNICO DEL INFORME ---
 def obtener_id_del_informe(nombre_archivo):
     """
     Extrae un ID único del nombre del archivo, como 'AM-2025-06-12'.
@@ -30,7 +30,7 @@ def obtener_id_del_informe(nombre_archivo):
     if not tipo_informe:
         return None
 
-    # Regex mejorado: busca DD, MM, y YY o YYYY, separados por espacio, punto o guion.
+    # Regex : busca DD, MM, y YY o YYYY, separados por espacio, punto o guion.
     match = re.search(r'(\d{1,2})[\s.-]+(\d{1,2})[\s.-]+(\d{2,4})', nombre_archivo)
     if match:
         dia, mes, anio = match.groups()
@@ -47,7 +47,7 @@ def obtener_id_del_informe(nombre_archivo):
         
     return None
 
-# --- FUNCIÓN PARA DESCARGAR INFORMES (sin cambios) ---
+# --- FUNCIÓN PARA DESCARGAR INFORMES ---
 def descargar_ultimo_informe(email_user, email_password, imap_server, download_folder):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Iniciando descarga del último informe...")
 
@@ -113,13 +113,11 @@ def extraer_datos_docx(docx_filepath, subject_email, report_id):
     datos_extraidos = {}
 
     try:
-        # --- NUEVO: Añadir el ID del informe al principio ---
+        # --- Añadir el ID del informe al principio ---
         datos_extraidos['id_informe_origen'] = report_id
         
         document = Document(docx_filepath)
-        
-        # El resto de la función de extracción permanece igual...
-        # ... (código de extracción de tablas omitido por brevedad, es idéntico al anterior) ...
+               
         datos_extraidos['tipo_informe'] = 'Desconocido'
 
         nombre_base_archivo = os.path.basename(docx_filepath).upper()
@@ -156,7 +154,6 @@ def extraer_datos_docx(docx_filepath, subject_email, report_id):
             print("No se encontraron tablas en el documento para fecha/hora.")
 
         print(f"Tipo de informe identificado: {datos_extraidos['tipo_informe']}")
-
 
         # --- EXTRAER RESUMEN DE ALERTAS VIGENTES  ---
         datos_extraidos['alertas_vigentes'] = []
@@ -311,7 +308,7 @@ def extraer_datos_docx(docx_filepath, subject_email, report_id):
         print(f"Error al extraer datos del Word: {e}")
         return None
 
-# --- EJECUCIÓN DEL SCRIPT (MODIFICADA) ---
+# --- EJECUCIÓN DEL SCRIPT ---
 def main():
     # --- Verificación de variables de entorno ---
     if not EMAIL_PASSWORD:

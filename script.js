@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // REEMPLAZA LA FUNCIÓN renderData ANTIGUA CON ESTA NUEVA VERSIÓN:
+    // FUNCIÓN de paginaciónrenderData:
     function renderData(data) {
     if (!data) {
         fechaInformeSpan.textContent = 'No se pudo cargar el informe.';
@@ -291,8 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
         rowBuilder: item => `<tr><td class="v-align-middle">${item.aviso_alerta_alarma}</td><td class="v-align-middle">${item.fecha_hora_emision}</td><td class="text-justify">${item.descripcion}</td><td class="v-align-middle">${item.cobertura}</td></tr>`
     });
     
-    // --- FIN LÓGICA DE PAGINACIÓN ---
-
+    
     // Renderizar el resto de las tablas 
     const renderStaticTable = (tbody, items, rowBuilder, colspan, noDataMessage) => {
         tbody.innerHTML = '';
