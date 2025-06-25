@@ -1,6 +1,6 @@
 # Sistema de Monitoreo Regional - SENAPRED Valparaíso
 
-_Última actualización: 24 de junio de 2025_
+_Última actualización: 25 de junio de 2025_
 
 ![Estado](https://img.shields.io/badge/estado-en_producción-green)
 ![Python](https://img.shields.io/badge/python-3.x-blue.svg)
@@ -12,7 +12,7 @@ _Última actualización: 24 de junio de 2025_
 
 Este proyecto es una aplicación web en producción diseñada para la visualización y gestión de información de monitoreo para la Dirección Regional de SENAPRED Valparaíso. El sistema automatiza la extracción de datos desde informes `.docx`, los presenta en diferentes formatos visuales, integra datos en tiempo real de fuentes externas y cuenta con capacidades de **sincronización en tiempo real para múltiples operadores**.
 
-Cuenta con un panel de administración protegido por contraseña, registro de auditoría y un flujo de despliegue continuo (CI/CD) completamente automatizado.
+Cuenta con un panel de administración protegido por un sistema de login y roles, un completo **registro de auditoría de actividad** y un flujo de despliegue continuo (CI/CD) completamente automatizado.
 
 ---
 
@@ -21,11 +21,11 @@ Cuenta con un panel de administración protegido por contraseña, registro de au
 El sistema ha sido migrado de un entorno local a un servidor de producción dedicado, asegurando alta disponibilidad y un rendimiento robusto.
 
 -   **Infraestructura**: Desplegado en un Servidor Privado Virtual (VPS) con **Ubuntu Linux**.
--   **Servidor Web**: **Nginx** actúa como un proxy inverso, gestionando el tráfico público y sirviendo los archivos estáticos de la aplicación.
--   **Seguridad**: La comunicación está cifrada mediante un certificado **SSL/TLS (HTTPS)** gestionado por Let's Encrypt.
+-   **Servidor Web**: **Nginx** actúa como un proxy inverso, gestionando el tráfico público, sirviendo los archivos estáticos y manejando las conexiones seguras.
+-   **Seguridad**: La comunicación está cifrada mediante un certificado **SSL/TLS (HTTPS)** gestionado por Let's Encrypt. Todas las vistas de la aplicación requieren autenticación.
 -   **Aplicación Backend**: El servidor `simple_server.py` se ejecuta como un **servicio de systemd** (`senapred-monitor.service`), lo que garantiza que la aplicación se inicie automáticamente y se reinicie en caso de fallo.
 -   **Tareas Automatizadas**: El script `descargar_informe.py` se ejecuta automáticamente mediante un **cron job** en horarios definidos (11:00 y 20:00) para procesar los informes AM y PM.
--   **Base de Datos**: Utiliza **SQLite** para la gestión de usuarios y el registro de actividad, proporcionando una solución de persistencia ligera y eficaz.
+-   **Base de Datos**: Utiliza **SQLite** para la gestión de usuarios (con roles) y el registro de auditoría de actividad, proporcionando una solución de persistencia ligera y eficaz.
 
 ---
 
@@ -44,23 +44,27 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 
 -   **Extracción Automática Programada**: Un script en Python (`descargar_informe.py`) se conecta a Gmail en horarios fijos para descargar y procesar los informes `.docx`.
 -   **Sincronización Multi-Usuario en Tiempo Real**: Mediante un eficiente sistema de *timestamp polling*, todos los dashboards conectados se actualizan automáticamente segundos después de que un operador guarda cambios, sin necesidad de recargar la página.
--   **Autenticación Segura y Endpoints Reforzados**:
-    -   El panel de administración está protegido por un sistema de **usuario y contraseña**.
+-   **Autenticación Segura y Control de Acceso por Roles**:
+    -   Todas las vistas de la aplicación (`index`, `dashboard`, `admin`) están protegidas por un sistema de **usuario y contraseña**.
+    -   Se han definido roles de **administrador** y **operador**, donde solo los administradores pueden acceder a las secciones de gestión de usuarios y logs.
     -   Las contraseñas se almacenan de forma segura (hasheadas) en una base de datos SQLite.
-    -   Todos los endpoints de escritura y ejecución de acciones en la API están protegidos y requieren un token de sesión válido.
+    -   Todos los endpoints de la API están protegidos y requieren un token de sesión válido.
 -   **Panel de Administración Centralizado**: Una interfaz (`admin.html`) que permite a los operadores autorizados:
     -   Editar manualmente toda la información extraída del informe.
     -   Gestionar el panel de "Novedades" del dashboard.
     -   Subir imágenes para crear slides dinámicas en los carruseles.
-    -   **Controlar la configuración de visualización del dashboard** (ej. activar el carrusel central).
+    -   Controlar la configuración de visualización del dashboard (ej. activar el carrusel central).
+-   **Gestión de Usuarios y Auditoría (Solo Administradores)**:
+    -   **Gestión de Usuarios desde la Interfaz**: Los administradores pueden crear, editar y eliminar cuentas de usuario directamente desde el panel de administración.
+    -   **Log de Actividad del Sistema**: El sistema registra todas las acciones importantes (inicios de sesión, intentos fallidos, cambios de datos, creación de usuarios) con **usuario, fecha, hora y dirección IP**, visible solo para administradores.
 -   **Integración de APIs Externas**: Consume y muestra datos en tiempo real de la DMC, SINCA, CSN, SHOA y Waze for Cities.
 -   **Múltiples Vistas de Despliegue**:
     -   `index.html`: **Carrusel público** para pantallas de visualización general, con paginación inteligente de tablas largas.
-    -   `dashboard.html`: **Panel de operaciones avanzado** para operadores, con una disposición de múltiples columnas, mapas interactivos, carruseles internos y un layout condicional que puede mostrar slides de imágenes.
+    -   `dashboard.html`: **Panel de operaciones avanzado** para operadores, con una disposición de múltiples columnas, mapas interactivos y carruseles internos.
     -   `admin.html` y `login.html`: Interfaz de gestión de contenidos y portal de acceso.
 -   **Mejoras de Experiencia de Usuario (UX)**:
     -   Priorización automática de alertas por nivel de criticidad (Roja, Amarilla, etc.).
-    -   Auto-scroll vertical en paneles con contenido extenso para asegurar la visibilidad sin desbordes.
+    * Auto-scroll vertical en paneles con contenido extenso para asegurar la visibilidad sin desbordes.
 
 ---
 
@@ -68,13 +72,15 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 
 -   **Desplegado en Entorno de Producción:** La aplicación está funcionando en un servidor en la nube con Nginx y SSL.
 -   **Implementado Flujo de CI/CD:** El despliegue de actualizaciones ahora es 100% automático a través de GitHub Actions.
--   **Diseñado y Construido un Dashboard de Operaciones Avanzado:** Se creó una nueva vista (`dashboard.html`) optimizada para el monitoreo activo por parte de los operadores.
--   **Desarrollado un Sistema de Sincronización en Tiempo Real:** Todos los usuarios que ven el dashboard reciben actualizaciones automáticas sin necesidad de refrescar la página.
--   **Implementado un Layout de Dashboard Dinámico y Condicional:** El dashboard puede cambiar su estructura para mostrar contenido multimedia, controlado desde el panel de administración.
--   **Reforzada la Seguridad de Endpoints:** Se protegió toda la API de escritura (`POST`/`DELETE`) con un sistema de autenticación basado en tokens.
+-   **Implementado un Sistema de Autenticación y Control de Acceso por Roles:** Todas las vistas (`index`, `dashboard`, `admin`) ahora requieren inicio de sesión. Se han definido roles de 'administrador' y 'operador' para restringir el acceso a funciones sensibles.
+-   **Añadida Gestión de Usuarios desde la Interfaz:** Los administradores ahora pueden crear, editar y eliminar cuentas de usuario directamente desde el panel de administración.
+-   **Creado un Log de Auditoría de Actividad:** El sistema ahora registra todas las acciones importantes en un log de actividad visible para los administradores.
+-   **Desarrollado un Dashboard de Operaciones Avanzado:** Se creó una nueva vista (`dashboard.html`) optimizada para el monitoreo activo por parte de los operadores.
+-   **Desarrollado un Sistema de Sincronización en Tiempo Real:** Todos los usuarios que ven el dashboard reciben actualizaciones automáticas.
 
 ## 📝 Próximos Pasos y Tareas Pendientes
 
-* **Visualizar el Registro de Actividad:** Crear una nueva sección en el panel de administración para que los administradores puedan ver el "timeline" de cambios realizados por cada usuario.
-* **Gestión de Usuarios desde la Interfaz:** Añadir un panel para que un administrador pueda crear, editar o eliminar usuarios directamente desde la interfaz web, sin necesidad de usar la línea de comandos.
+* **Función 'Cambiar Mi Contraseña' para Usuarios:** Permitir que los usuarios cambien su propia contraseña desde el panel, en lugar de tener que solicitarlo a un administrador.
 * **Sistema de Notificaciones:** Implementar un sistema (ej. por correo electrónico) que alerte a los administradores si el script de descarga de informes (`cron job`) falla.
+* **Paginación en Vistas de Administración:** Si el número de logs o usuarios crece mucho, será necesario implementar paginación para mejorar el rendimiento y la usabilidad.
+* **Exportación de Datos:** Añadir botones para exportar ciertas tablas (alertas, emergencias) a formatos como CSV o PDF para la generación de informes externos.
