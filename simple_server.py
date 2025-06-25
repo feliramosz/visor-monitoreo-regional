@@ -40,11 +40,21 @@ NTP_SERVER = 'ntp.shoa.cl'
 
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
     # --- Función para registrar logs ---
-    def _log_activity(self, username, action, ip_address=None, details=''):
+    def _get_real_ip(self):
+        """Obtiene la IP real del cliente, considerando el proxy inverso."""
+        # Nginx pasa la IP real en la cabecera X-Forwarded-For
+        if 'X-Forwarded-For' in self.headers:
+            # La cabecera puede tener una lista de IPs (cliente, proxy1, proxy2), la primera es la real.
+            return self.headers['X-Forwarded-For'].split(',')[0].strip()
+        else:
+            # Si no hay proxy, usamos la conexión directa
+            return self.client_address[0]
+    
+    def _log_activity(self, username, action, details=''):
         """Registra una acción en la base de datos."""
+        ip_address = self._get_real_ip() # Usamos la nueva función para obtener la IP
         conn = sqlite3.connect(DATABASE_FILE)
         cursor = conn.cursor()
-        # Usamos CURRENT_TIMESTAMP para que SQLite ponga la hora
         cursor.execute(
             "INSERT INTO activity_log (timestamp, username, ip_address, action, details) VALUES (CURRENT_TIMESTAMP, ?, ?, ?, ?)",
             (username, ip_address, action, details)
@@ -90,7 +100,16 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             parsed_path = urllib.parse.urlparse(self.path)
             requested_path = urllib.parse.unquote(parsed_path.path)
 
-            # --- NUEVOS ENDPOINTS DE API (GET) ---
+            # --- Protección de rutas y redirección inteligente ---
+            if requested_path in ['/', '/index.html', '/dashboard', '/dashboard.html', '/admin', '/admin.html']:
+                if not self._get_user_from_token():
+                    # Si no hay token, redirigir a login.html, pasando la página solicitada como parámetro
+                    self.send_response(302)
+                    self.send_header('Location', f'/login.html?redirect_to={urllib.parse.quote(requested_path)}')
+                    self.end_headers()
+                    return
+
+            # --- ENDPOINTS DE API (GET) ---
             if requested_path == '/api/users':
                 username = self._get_user_from_token()
                 if self._get_user_role(username) != 'administrador':
@@ -126,7 +145,20 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps(logs).encode('utf-8'))
                 return
-            
+
+            # --- ENDPOINT PARA DATOS DEL USUARIO ACTUAL ---
+            elif requested_path == '/api/me':
+                username = self._get_user_from_token()
+                if not username:
+                    self._set_headers(401, 'application/json')
+                    self.wfile.write(json.dumps({'error': 'No autorizado'}).encode('utf-8'))
+                    return
+                
+                role = self._get_user_role(username)
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps({'username': username, 'role': role}).encode('utf-8'))
+                return    
+
             if requested_path == '/api/data':
                 if os.path.exists(DATA_FILE):
                     with open(DATA_FILE, 'r', encoding='utf-8') as f:
@@ -656,13 +688,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             if result and check_password_hash(result[0], password):
                 token = str(uuid.uuid4())
                 SESSIONS[token] = username
-                ip_address = self.client_address[0]
-                self._log_activity(username, "Inicio de Sesión Exitoso", ip_address=ip_address)
+                self._log_activity(username, "Inicio de Sesión Exitoso")
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps({'message': 'Login exitoso', 'token': token}).encode('utf-8'))
             else:
                 ip_address = self.client_address[0]
-                self._log_activity(username, "Intento de Login Fallido", ip_address=ip_address)
+                self._log_activity(username, "Intento de Login Fallido")
                 self._set_headers(401, 'application/json')
                 self.wfile.write(json.dumps({'error': 'Usuario o contraseña inválidos'}).encode('utf-8'))
             return # Termina la función aquí

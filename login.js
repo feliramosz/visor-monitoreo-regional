@@ -24,11 +24,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (response.ok) {
-                // Login exitoso, guardar token y redirigir
                 localStorage.setItem('session_token', data.token);
-                window.location.href = '/admin.html';
+
+                // --- LÓGICA DE REDIRECCIÓN INTELIGENTE ---
+                const urlParams = new URLSearchParams(window.location.search);
+                const redirectTo = urlParams.get('redirect_to');
+                
+                // Si hay un parámetro de redirección, úsalo. Si no, ve al dashboard por defecto.
+                window.location.href = redirectTo || '/dashboard.html';
+                // --- FIN DE LA LÓGICA ---
+
             } else {
-                // Mostrar error
                 errorMessageDiv.textContent = data.error || 'Ocurrió un error.';
             }
         } catch (error) {

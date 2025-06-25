@@ -1,9 +1,37 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('session_token');
+    
+    // --- Función para gestionar la UI según el rol del usuario ---
+    async function setupUIForUserRole() {
+        if (!token) return; // Si no hay token, no hacer nada (ya será redirigido)
+        
+        try {
+            const response = await fetch('/api/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) return;
+
+            const user = await response.json();
+            
+            // Si el usuario no es administrador, oculta los menús sensibles
+            if (user.role !== 'administrador') {
+                document.querySelector('a[data-section="gestion-usuarios"]').parentElement.style.display = 'none';
+                document.querySelector('a[data-section="log-actividad"]').parentElement.style.display = 'none';
+                const separator = document.querySelector('.admin-sidebar nav li.separator');
+                if(separator) separator.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error al obtener el rol del usuario:', error);
+        }
+    }
+    
+    // Llamamos a la función para que se ejecute al cargar la página
+    setupUIForUserRole();
     if (!token) {
         window.location.href = '/login.html';
         return; 
     }
+
     const DATA_API_URL = '/api/data';
     const NOVEDADES_API_URL = '/api/novedades'; 
     const UPLOAD_IMAGE_API_URL = '/api/upload_image';
