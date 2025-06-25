@@ -1613,3 +1613,47 @@ header::before {
     }
 }
 
+/* Ajustes para pantallas menores a 900px */
+@media (max-width: 900px) {
+    header, main, footer {
+        flex-direction: column;
+        align-items: center;
+    }
+    .header-title-container h1 {
+        font-size: 1.2em;
+        text-align: center;
+    }
+    .header-clock {
+        margin: 10px 0;
+    }
+    .logo-left, .logo-right {
+        width: 80px;
+        margin: 0 auto;
+    }
+    table {
+        font-size: 0.9em;
+        width: 100%;
+        overflow-x: auto;
+        display: block;
+    }
+    .uv-info {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+/* Ajustes para celulares */
+@media (max-width: 600px) {
+    .header-title-container h1 {
+        font-size: 1em;
+    }
+    .led-clock {
+        font-size: 1.2em;
+    }
+    .uv-info {
+        font-size: 0.9em;
+    }
+    #air-quality-main-container {
+        flex-direction: column;
+    }
+}
