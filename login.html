@@ -13,6 +13,15 @@
         .login-container button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1.1em; }
         .login-container button:hover { background-color: #0056b3; }
         #error-message { color: red; margin-top: 15px; min-height: 20px; }
+        .registration-info {
+            margin-top: 25px;
+            font-size: 0.9em;
+            color: #6c757d;
+            line-height: 1.5;
+        }
+        .registration-info a {
+            color: #0056b3;
+        }
     </style>
 </head>
 <body>
@@ -24,6 +33,12 @@
             <input type="password" id="password" placeholder="Contraseña" required>
             <button type="submit">Ingresar</button>
         </form>
+
+        <p class="registration-info">
+            Si usted quiere ser registrado para visualizar el sitio, por favor escriba a la siguiente dirección de correo electrónico: <br>
+            <a href="mailto:framos@senapred.gob.cl">framos@senapred.gob.cl</a>
+        </p>
+
         <div id="error-message"></div>
     </div>
     <script src="login.js"></script>
