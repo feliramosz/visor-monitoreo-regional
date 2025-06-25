@@ -204,6 +204,19 @@
             font-size: 0.9em;
             margin-left: 5px;
         }
+        .admin-sidebar nav li.separator {
+        height: 1px;
+        background-color: #495057;
+        margin: 10px 20px;
+        padding: 0;
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        td .action-btn { font-size: 0.9em; padding: 4px 8px; margin-right: 5px; cursor: pointer; border-radius: 4px; border: 1px solid transparent; color: white; }
+        .edit-btn { background-color: #ffc107; border-color: #ffc107; color: #212529; }
+        .delete-btn { background-color: #dc3545; border-color: #dc3545; }
     </style>
 </head>
 <body>
@@ -233,6 +246,8 @@
                     <li><a href="#" data-section="puertos">Estado de Puertos</a></li>
                     <li><a href="#" data-section="dynamic-slides">Agregar imagenes</a></li>
                     <li><a href="#" data-section="accion-manual">Descargar Informe Manual</a></li>
+                    <li class="separator"></li> <li><a href="#" data-section="gestion-usuarios">Gestión de Usuarios</a></li>
+                    <li><a href="#" data-section="log-actividad">Log de Actividad</a></li>
                 </ul>
             </nav>
             <div style="padding: 0 20px; margin-top: 30px;">
@@ -377,6 +392,57 @@
                     <h4>Salida del Proceso:</h4>
                     <pre id="scriptOutput" style="background-color: #333; color: #fff; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">La salida del script aparecerá aquí...</pre>
                 </div>
+            </section>
+
+            <section id="gestion-usuarios" class="admin-section">
+                <h3>Gestión de Usuarios</h3>
+                <div class="form-group">
+                    <h4>Añadir Nuevo Usuario</h4>
+                    <input type="hidden" id="adminUserId">
+                    <label for="adminUsername">Nombre de Usuario:</label>
+                    <input type="text" id="adminUsername" placeholder="Nuevo nombre de usuario">
+                    <label for="adminPassword">Contraseña:</label>
+                    <input type="password" id="adminPassword" placeholder="Dejar en blanco para no cambiar">
+                    <label for="adminRole">Rol:</label>
+                    <select id="adminRole">
+                        <option value="operador">Operador</option>
+                        <option value="administrador">Administrador</option>
+                    </select>
+                    <button type="button" id="saveUserBtn">Guardar Usuario</button>
+                    <button type="button" id="cancelEditBtn" style="display:none; background-color: #6c757d;">Cancelar Edición</button>
+                </div>
+
+                <h4>Usuarios Existentes</h4>
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuario</th>
+                            <th>Rol</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </section>
+
+            <section id="log-actividad" class="admin-section">
+                <h3>Log de Actividad del Sistema</h3>
+                <p>Mostrando los últimos 100 eventos registrados.</p>
+                <table id="logTable">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Dirección IP</th>
+                            <th>Detalles</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
             </section>
 
             <div class="action-buttons">

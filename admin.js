@@ -456,6 +456,173 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // --- Lógica para Gestión de Usuarios y Logs ---
+    const usersTableBody = document.querySelector('#usersTable tbody');
+    const logTableBody = document.querySelector('#logTable tbody');
+
+    // Referencias al formulario de usuario
+    const saveUserBtn = document.getElementById('saveUserBtn');
+    const adminUserId = document.getElementById('adminUserId');
+    const adminUsername = document.getElementById('adminUsername');
+    const adminPassword = document.getElementById('adminPassword');
+    const adminRole = document.getElementById('adminRole');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+    // Función para limpiar el formulario de usuario
+    function resetUserForm() {
+        adminUserId.value = '';
+        adminUsername.value = '';
+        adminPassword.value = '';
+        adminRole.value = 'operador';
+        saveUserBtn.textContent = 'Añadir Nuevo Usuario';
+        cancelEditBtn.style.display = 'none';
+    }
+
+    // Función para cargar la lista de usuarios
+    async function loadUsers() {
+        try {
+            const response = await fetch('/api/users', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Error al cargar usuarios.');
+            }
+            const users = await response.json();
+            usersTableBody.innerHTML = ''; // Limpiar tabla
+            users.forEach(user => {
+                const row = usersTableBody.insertRow();
+                row.innerHTML = `
+                    <td>${user.id}</td>
+                    <td>${user.username}</td>
+                    <td>${user.role}</td>
+                    <td>
+                        <button class="action-btn edit-btn" data-id="${user.id}" data-username="${user.username}" data-role="${user.role}">Editar</button>
+                        <button class="action-btn delete-btn" data-id="${user.id}">Eliminar</button>
+                    </td>
+                `;
+            });
+        } catch (error) {
+            showMessage(error.message, 'error');
+            usersTableBody.innerHTML = `<tr><td colspan="4">${error.message}</td></tr>`;
+        }
+    }
+
+    // Función para cargar el log de actividad
+    async function loadActivityLog() {
+        try {
+            const response = await fetch('/api/activity_log', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Error al cargar el log.');
+            }
+            const logs = await response.json();
+            logTableBody.innerHTML = ''; // Limpiar tabla
+            logs.forEach(log => {
+                const row = logTableBody.insertRow();
+                row.innerHTML = `
+                    <td>${log.timestamp}</td>
+                    <td>${log.username}</td>
+                    <td>${log.action}</td>
+                    <td>${log.ip_address || 'N/A'}</td>
+                    <td>${log.details || ''}</td>
+                `;
+            });
+        } catch (error) {
+            showMessage(error.message, 'error');
+            logTableBody.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`;
+        }
+    }
+
+    // Cargar datos cuando se hace clic en las nuevas pestañas
+    document.querySelector('a[data-section="gestion-usuarios"]').addEventListener('click', loadUsers);
+    document.querySelector('a[data-section="log-actividad"]').addEventListener('click', loadActivityLog);
+
+    // Event listener para el botón de guardar/actualizar usuario
+    saveUserBtn.addEventListener('click', async () => {
+        const id = adminUserId.value;
+        const username = adminUsername.value.trim();
+        const password = adminPassword.value;
+        const role = adminRole.value;
+
+        if (!username) {
+            showMessage('El nombre de usuario no puede estar vacío.', 'error');
+            return;
+        }
+
+        const endpoint = id ? `/api/users/update` : `/api/users/add`;
+        const payload = { id, username, password, role };
+        
+        // No enviar el campo de contraseña si está vacío durante una actualización
+        if (id && !password) {
+            delete payload.password;
+        }
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || 'Ocurrió un error.');
+            }
+            showMessage(result.message, 'success');
+            resetUserForm();
+            loadUsers(); // Recargar la lista de usuarios
+        } catch (error) {
+            showMessage(error.message, 'error');
+        }
+    });
+
+    // Event listener para los botones de la tabla (editar y eliminar)
+    usersTableBody.addEventListener('click', async (e) => {
+        const target = e.target;
+        const id = target.dataset.id;
+
+        // Si se hace clic en Editar
+        if (target.classList.contains('edit-btn')) {
+            adminUserId.value = id;
+            adminUsername.value = target.dataset.username;
+            adminRole.value = target.dataset.role;
+            adminPassword.value = '';
+            saveUserBtn.textContent = 'Actualizar Usuario';
+            cancelEditBtn.style.display = 'inline-block';
+            document.getElementById('adminUsername').focus();
+        }
+
+        // Si se hace clic en Eliminar
+        if (target.classList.contains('delete-btn')) {
+            if (!confirm(`¿Estás seguro de que quieres eliminar al usuario con ID ${id}?`)) return;
+
+            try {
+                const response = await fetch('/api/users/delete', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify({ id: id })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error);
+                showMessage(result.message, 'success');
+                loadUsers(); // Recargar la lista
+            } catch (error) {
+                showMessage(error.message, 'error');
+            }
+        }
+    });
+
+    // Event listener para cancelar edición
+    cancelEditBtn.addEventListener('click', resetUserForm);
+
     // --- Inicio: Cargar todos los datos al iniciar la página ---
     loadDataForAdmin(); 
 
