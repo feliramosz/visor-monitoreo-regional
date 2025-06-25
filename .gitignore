@@ -12,3 +12,16 @@ database.db
 
 # Logs
 *.log
+
+# env
+.env
+
+# Backups de base de datos
+*.backup
+*.backup2
+
+# Contenido subido por el usuario
+assets/dynamic_slides/
+
+# Archivos temporales de SQLite
+*-journal
