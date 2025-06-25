@@ -972,7 +972,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             return    
 
     # --- NUEVOS ENDPOINTS PARA GESTIÓN DE USUARIOS (POST) ---
-        elif self.path == '/api/users/add':
+        if self.path == '/api/users/add':
             if self._get_user_role(username) != 'administrador':
                 self._set_headers(403, 'application/json')
                 self.wfile.write(json.dumps({'error': 'Acceso denegado'}).encode('utf-8'))
@@ -980,20 +980,122 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             
             content_length = int(self.headers['Content-Length'])
             data = json.loads(self.rfile.read(content_length))
-            
             new_user = data.get('username')
             new_pass = data.get('password')
             new_role = data.get('role', 'operador')
 
-            # Lógica para añadir el usuario a la DB...
-            # ... (usando generate_password_hash) ...
-            
-            self._log_activity(username, f"Creación de Usuario: {new_user}", details=f"Rol asignado: {new_role}")
-            self._set_headers(200, 'application/json')
-            self.wfile.write(json.dumps({'message': f"Usuario {new_user} creado."}).encode('utf-8'))
+            if not new_user or not new_pass:
+                self._set_headers(400, 'application/json')
+                self.wfile.write(json.dumps({'error': 'Nombre de usuario y contraseña son requeridos.'}).encode('utf-8'))
+                return
+
+            try:
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                password_hash = generate_password_hash(new_pass)
+                cursor.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)", (new_user, password_hash, new_role))
+                conn.commit()
+                conn.close()
+                
+                self._log_activity(username, f"Creación de Usuario: {new_user}", details=f"Rol asignado: {new_role}")
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps({'message': f"Usuario '{new_user}' creado exitosamente."}).encode('utf-8'))
+            except sqlite3.IntegrityError:
+                self._set_headers(409, 'application/json') # 409 Conflict
+                self.wfile.write(json.dumps({'error': f"El usuario '{new_user}' ya existe."}).encode('utf-8'))
+            except Exception as e:
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({'error': f"Error de servidor: {e}"}).encode('utf-8'))
             return
 
-        # (Aquí van a ir endpoints para actualizar y eliminar usuarios que podemos añadir después)
+        # Endpoint para ACTUALIZAR un usuario
+        elif self.path == '/api/users/update':
+            if self._get_user_role(username) != 'administrador':
+                self._set_headers(403, 'application/json')
+                self.wfile.write(json.dumps({'error': 'Acceso denegado'}).encode('utf-8'))
+                return
+
+            content_length = int(self.headers['Content-Length'])
+            data = json.loads(self.rfile.read(content_length))
+            user_id = data.get('id')
+            new_username = data.get('username')
+            new_role = data.get('role')
+            new_password = data.get('password')
+
+            if not all([user_id, new_username, new_role]):
+                self._set_headers(400, 'application/json')
+                self.wfile.write(json.dumps({'error': 'Faltan datos para la actualización.'}).encode('utf-8'))
+                return
+
+            try:
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                
+                # Construir la query dinámicamente
+                fields_to_update = ["username = ?", "role = ?"]
+                params = [new_username, new_role]
+                
+                log_details = f"Usuario ID {user_id} actualizado. Nuevo nombre: {new_username}, Nuevo rol: {new_role}."
+
+                if new_password:
+                    fields_to_update.append("password_hash = ?")
+                    params.append(generate_password_hash(new_password))
+                    log_details += " (Contraseña cambiada)"
+
+                params.append(user_id)
+                query = f"UPDATE users SET {', '.join(fields_to_update)} WHERE id = ?"
+
+                cursor.execute(query, tuple(params))
+                conn.commit()
+                conn.close()
+                
+                self._log_activity(username, f"Actualización de Usuario", details=log_details)
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps({'message': 'Usuario actualizado correctamente.'}).encode('utf-8'))
+
+            except Exception as e:
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({'error': f"Error de servidor: {e}"}).encode('utf-8'))
+            return
+
+        # Endpoint para ELIMINAR un usuario
+        elif self.path == '/api/users/delete':
+            if self._get_user_role(username) != 'administrador':
+                self._set_headers(403, 'application/json')
+                self.wfile.write(json.dumps({'error': 'Acceso denegado'}).encode('utf-8'))
+                return
+            
+            content_length = int(self.headers['Content-Length'])
+            data = json.loads(self.rfile.read(content_length))
+            user_id_to_delete = data.get('id')
+            
+            # Obtenemos el ID del usuario admin para evitar que se borre a sí mismo
+            conn_check = sqlite3.connect(DATABASE_FILE)
+            cursor_check = conn_check.cursor()
+            cursor_check.execute("SELECT id FROM users WHERE username = ?", (username,))
+            admin_user_id = cursor_check.fetchone()[0]
+            conn_check.close()
+            
+            if int(user_id_to_delete) == admin_user_id:
+                self._set_headers(400, 'application/json')
+                self.wfile.write(json.dumps({'error': 'No puedes eliminar a tu propio usuario.'}).encode('utf-8'))
+                return
+
+            try:
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM users WHERE id = ?", (user_id_to_delete,))
+                conn.commit()
+                conn.close()
+
+                self._log_activity(username, "Eliminación de Usuario", details=f"ID de usuario eliminado: {user_id_to_delete}")
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps({'message': 'Usuario eliminado correctamente.'}).encode('utf-8'))
+
+            except Exception as e:
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({'error': f"Error de servidor: {e}"}).encode('utf-8'))
+            return
         
         else:
             self._set_headers(404, 'text/plain')
