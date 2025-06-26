@@ -966,33 +966,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initializeApp() {
-        // Tareas iniciales que no dependen de otros datos
-        updateClocks();
-        
-        // Obtenemos los datos principales que otros componentes necesitan
+        updateClocks();        
         fetchAndRenderMainData();
-
-        // Ahora que los datos principales están en camino, inicializamos el resto
-        fetchAndRenderAirQuality();
-        fetchAndRenderPrecipitationData();
-        fetchAndRenderWazeData();
-        fetchAndRenderHydroSlide(); // No olvides añadir esta llamada si no lo has hecho
-
-        // Inicializar mapas y carrusel principal de mapas
-        initializeAirQualityMap();
-        initializePrecipitationMap();
-        showMapSlide(0);
+        initializeAirQualityMap(); fetchAndRenderAirQuality();
+        initializePrecipitationMap(); fetchAndRenderPrecipitationData();
+        showMapSlide(0); fetchAndRenderWazeData();
         mapCarouselInterval = setInterval(nextMapSlide, mapSlideDuration);
+        setInterval(checkForUpdates, 5000);
+        
+        // Listeners para carrusel de MAPAS
+        pausePlayBtn.addEventListener('click', toggleMapPausePlay);
+        nextBtn.addEventListener('click', nextMapSlide);
+        prevBtn.addEventListener('click', prevMapSlide);
+        
+        // Listeners para carrusel de AVISOS
+        avisoNextBtn.addEventListener('click', () => { nextAvisoPage(); resetAvisoInterval(); });
+        avisoPrevBtn.addEventListener('click', () => { prevAvisoPage(); resetAvisoInterval(); });
+        avisoPausePlayBtn.addEventListener('click', toggleAvisoPausePlay);
 
-        // Los listeners de los botones del mapa ya NO se ponen aquí
+        // Listeners para carrusel de WAZE (NUEVO)
+        document.getElementById('waze-next-btn').addEventListener('click', () => { nextWazeSlide(); resetWazeInterval(); });
+        document.getElementById('waze-prev-btn').addEventListener('click', () => { prevWazeSlide(); resetWazeInterval(); });
+        document.getElementById('waze-pause-play-btn').addEventListener('click', toggleWazePausePlay);
 
-        // Intervalos de actualización periódica
+        // Intervalos de actualización de datos
         setInterval(fetchAndRenderMainData, 60 * 1000);
-        setInterval(fetchAndRenderWeather, 10 * 60 * 1000); // Esta la podemos quitar si no la quieres
+        setInterval(fetchAndRenderWeather, 10 * 60 * 1000);
         setInterval(fetchAndRenderAirQuality, 5 * 60 * 1000);
         setInterval(fetchAndRenderPrecipitationData, 5 * 60 * 1000);
-        setInterval(fetchAndRenderWazeData, 2 * 60 * 1000);
-        setInterval(fetchAndRenderHydroSlide, 5 * 60 * 1000); // No olvides añadir esta si no lo has hecho
+        setInterval(fetchAndRenderWazeData, 2 * 60 * 1000); 
     }
 
     // --- Lógica para escuchar cambios desde otras pestañas ---
