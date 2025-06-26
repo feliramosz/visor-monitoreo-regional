@@ -1613,47 +1613,138 @@ header::before {
     }
 }
 
-/* Ajustes para pantallas menores a 900px */
+/* =============================
+   CAMBIOS RESPONSIVOS 2025-06-25
+   ============================= */
+
+/* Mejoras generales para imágenes y tablas fluidas */
+img, table {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Ajuste para tablas en pantallas pequeñas: scroll horizontal */
 @media (max-width: 900px) {
-    header, main, footer {
-        flex-direction: column;
-        align-items: center;
-    }
-    .header-title-container h1 {
-        font-size: 1.2em;
-        text-align: center;
-    }
-    .header-clock {
-        margin: 10px 0;
-    }
-    .logo-left, .logo-right {
-        width: 80px;
-        margin: 0 auto;
-    }
     table {
-        font-size: 0.9em;
-        width: 100%;
-        overflow-x: auto;
         display: block;
+        overflow-x: auto;
+        width: 100%;
+        font-size: 0.95em;
     }
-    .uv-info {
-        flex-direction: column;
-        align-items: center;
+    th, td {
+        min-width: 100px;
+        box-sizing: border-box;
     }
 }
 
-/* Ajustes para celulares */
-@media (max-width: 600px) {
+/* HEADER y LOGOS: apilar y centrar en móviles */
+@media (max-width: 768px) {
+    header {
+        flex-direction: column !important;
+        align-items: center !important;
+        padding: 10px 0 !important;
+    }
+    .logo-left, .logo-right {
+        width: 100px !important;
+        justify-content: center !important;
+        margin: 5px 0 !important;
+    }
+    .header-title-container {
+        margin: 10px 0 !important;
+    }
     .header-title-container h1 {
-        font-size: 1em;
+        font-size: 1.1em !important;
+        text-align: center !important;
     }
-    .led-clock {
-        font-size: 1.2em;
-    }
-    .uv-info {
-        font-size: 0.9em;
-    }
-    #air-quality-main-container {
-        flex-direction: column;
+    .header-clock {
+        min-width: unset !important;
+        margin: 5px 0 !important;
     }
 }
+
+/* MAIN y SECCIONES: padding reducido y apilado */
+@media (max-width: 768px) {
+    main {
+        padding: 8px !important;
+        max-width: 100vw !important;
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+    }
+    .informe-header-fijo {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        padding: 8px 5px !important;
+        font-size: 1em !important;
+    }
+    .slide > h2, .slide > table, .slide > .uv-info, .slide > .image-slide-content, .slide > p {
+        padding: 0 5px !important;
+    }
+}
+
+/* UV info y paneles: apilar verticalmente */
+@media (max-width: 600px) {
+    .uv-info {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 8px !important;
+        padding: 10px 5px !important;
+    }
+    .uv-info .uv-icon {
+        height: 80px !important;
+    }
+}
+
+/* Aire calidad: apilar mapa y panel */
+@media (max-width: 900px) {
+    #air-quality-main-container {
+        flex-direction: column !important;
+        height: auto !important;
+        gap: 10px !important;
+    }
+    #air-quality-map-container, #air-quality-alert-panel {
+        height: 250px !important;
+        min-height: 180px !important;
+    }
+}
+
+/* Footer: texto más pequeño y centrado */
+@media (max-width: 600px) {
+    footer {
+        font-size: 0.6em !important;
+        padding: 4px 0 !important;
+    }
+}
+
+/* Ocultar sidebars en móviles */
+@media (max-width: 1200px) {
+    .weather-sidebar {
+        display: none !important;
+    }
+}
+
+/* Ajuste para slides dinámicas y contenedores */
+@media (max-width: 600px) {
+    .dynamic-image-slide .responsive-image {
+        max-width: 98vw !important;
+        max-height: 40vh !important;
+    }
+    .dynamic-image-slide h2 {
+        font-size: 1.1em !important;
+    }
+    .dynamic-image-slide p {
+        font-size: 0.95em !important;
+    }
+}
+
+/* Ajuste para tablas con muchas columnas en móviles */
+@media (max-width: 600px) {
+    th, td {
+        font-size: 0.85em !important;
+        padding: 6px 2px !important;
+    }
+}
+
+/* =============================
+   FIN CAMBIOS RESPONSIVOS 2025-06-25
+   ============================= */
