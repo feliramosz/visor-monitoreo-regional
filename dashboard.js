@@ -330,7 +330,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function toggleAvisoPausePlay() {
-        isAvisoCarouselPaused = !isAvisoCarouselPaused;        
+        isAvisoCarouselPaused = !isAvisoCarouselPaused;
+        // Obtenemos la referencia al botón aquí, para asegurarnos de que existe
         const btn = document.getElementById('aviso-pause-play-btn');
         if (!btn) return;
 
@@ -640,20 +641,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function toggleWazePausePlay() {
-    isWazeCarouselPaused = !isWazeCarouselPaused;   
-    const btn = document.getElementById('waze-pause-play-btn');
-    if (!btn) return;
+        isWazeCarouselPaused = !isWazeCarouselPaused;
+        // Obtenemos la referencia al botón aquí también
+        const btn = document.getElementById('waze-pause-play-btn');
+        if (!btn) return;
 
-    if (isWazeCarouselPaused) {
-        clearInterval(wazeCarouselInterval);
-        btn.textContent = '▶';
-        btn.classList.add('paused');
-    } else {
-        wazeCarouselInterval = setInterval(nextWazeSlide, wazePageDuration);
-        btn.textContent = '||';
-        btn.classList.remove('paused');
+        if (isWazeCarouselPaused) {
+            clearInterval(wazeCarouselInterval);
+            btn.textContent = '▶';
+            btn.classList.add('paused');
+        } else {
+            wazeCarouselInterval = setInterval(nextWazeSlide, wazePageDuration);
+            btn.textContent = '||';
+            btn.classList.remove('paused');
+        }
     }
-}
 
     function resetWazeInterval() {
         if (!isWazeCarouselPaused) {
