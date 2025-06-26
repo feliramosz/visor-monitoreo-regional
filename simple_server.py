@@ -40,16 +40,17 @@ NTP_SERVER = 'ntp.shoa.cl'
 
 def get_hydrometry_data():
     """
-    Obtiene los datos hidrométricos y maneja posibles errores del servicio externo,
-    incluyendo el error 404 (Servicio no encontrado).
+    Obtiene los datos hidrométricos desde el NUEVO servidor de la DGA,
+    filtrando por los códigos de estación específicos.
     """
-    DGA_API_URL = "https://ide.mop.gob.cl/arcgis/rest/services/DGA/Visor_Hidrometrico/MapServer/0/query?where=CODIGO_ESTACION+IN+%28%2705410002-7%27%2C+%2705410024-8%27%2C+%2705414001-0%27%29&outFields=CODIGO_ESTACION,NOMBRE_ESTACION,NOMBRE_RIO,CAUDAL_M3S,NIVEL_M,FECHA_HORA_LECTURA_DATO&outSR=4326&f=json"
+    # URL del nuevo servicio, apuntando a la capa "Red Hidrometeorologica" (0)
+    # y usando los nombres de campo más probables (en mayúsculas)
+    DGA_API_URL = "https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/ALERTAS/MapServer/0/query?where=CODIGO_ESTACION+IN+%28%2705410002-7%27%2C+%2705410024-8%27%2C+%2705414001-0%27%29&outFields=CODIGO_ESTACION,NOMBRE_ESTACION,RIO,CAUDAL,NIVEL,FECHA&outSR=4326&f=json"
 
     headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0 (Python)'}
     try:
         response = requests.get(DGA_API_URL, headers=headers, timeout=30)
-        # Esta línea ahora verificará si la respuesta fue exitosa (código 200)
-        response.raise_for_status() 
+        response.raise_for_status()
         data = response.json()
 
         processed_stations = []
@@ -58,40 +59,37 @@ def get_hydrometry_data():
                 attributes = feature.get("attributes", {})
                 geometry = feature.get("geometry", {})
 
-                timestamp_ms = attributes.get("FECHA_HORA_LECTURA_DATO")
+                # El formato de fecha en este nuevo servicio es diferente
+                timestamp_ms = attributes.get("FECHA")
                 update_time_str = "No disponible"
                 if timestamp_ms:
+                    # El timestamp viene en milisegundos
                     update_time_dt = datetime.fromtimestamp(timestamp_ms / 1000)
                     update_time_str = update_time_dt.strftime('%d-%m-%Y %H:%M')
 
                 processed_stations.append({
                     "codigo_estacion": attributes.get("CODIGO_ESTACION"),
                     "nombre_estacion": attributes.get("NOMBRE_ESTACION"),
-                    "rio": attributes.get("NOMBRE_RIO"),
-                    "nivel_m": attributes.get("NIVEL_M"),
-                    "caudal_m3s": attributes.get("CAUDAL_M3S"),
+                    "rio": attributes.get("RIO"),
+                    "nivel_m": attributes.get("NIVEL"),         # Campo de Nivel
+                    "caudal_m3s": attributes.get("CAUDAL"),   # Campo de Caudal
                     "ultima_actualizacion": update_time_str,
                     "lat": geometry.get("y"),
                     "lon": geometry.get("x")
                 })
         
         return processed_stations
-        
-    except requests.exceptions.HTTPError as e:
-        # Si el error es específicamente un 404, lo manejamos de forma controlada
-        if e.response.status_code == 404:
-            print("ADVERTENCIA: El servicio de la DGA (MapServer) no fue encontrado (404). Puede que esté fuera de servicio o la URL haya cambiado.")
-            return [] # Devolvemos una lista vacía para que el frontend no se rompa.
-        else:
-            print(f"Error HTTP al contactar la API de la DGA: {e}")
-            return {"error": f"Error HTTP del servidor DGA: {e}"}
     
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            print("ADVERTENCIA: El nuevo servicio de la DGA no fue encontrado (404).")
+            return []
+        else:
+            print(f"Error HTTP al contactar la nueva API de la DGA: {e}")
+            return {"error": f"Error HTTP del servidor DGA: {e}"}
             
-    except requests.exceptions.RequestException as e:
-        print(f"Error de conexión al contactar la API de la DGA: {e}")
-        return {"error": str(e)}
     except Exception as e:
-        print(f"Error procesando datos de la DGA: {e}")
+        print(f"Error procesando datos de la nueva API de la DGA: {e}")
         return {"error": "Error interno al procesar datos hidrométricos"}
 
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
