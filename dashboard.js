@@ -288,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="weather-station-box">
                         <h4>${station.nombre}</h4>
                         <p><strong>Temp:</strong> ${station.temperatura}°C</p>
-                        <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
+                        <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p> <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
                         <div class="weather-box-footer">
                             <span class="pass-status">${passStatusText}<span class="${statusClass}">${passStatusWord}</span></span>
                             <span class="station-update-time">Act: ${station.hora_actualizacion}h</span>
