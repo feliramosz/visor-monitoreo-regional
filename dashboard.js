@@ -212,6 +212,147 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1000);
         } catch (error) { console.error("Error al sincronizar reloj:", error); }
     }
+
+    /**
+     * Orquesta el carrusel del banner superior, alternando entre slides.
+     * @param {object} data - El objeto de datos principal.
+     */
+    function setupTopBannerCarousel(data) {
+        const container = document.getElementById('weather-banner-container');
+        if (!container) return;
+
+        // Se detiene el intervalo anterior para evitar múltiples carruseles corriendo
+        if (window.topBannerInterval) {
+            clearInterval(window.topBannerInterval);
+        }
+        
+        // Creamos la estructura de las slides si no existen
+        if (!container.querySelector('#weather-slide')) {
+            container.innerHTML = `
+                <div id="weather-slide" class="top-banner-slide active-top-slide"></div>
+                <div id="status-slide" class="top-banner-slide"></div>
+                <div id="hydro-slide" class="top-banner-slide"></div>
+            `;
+        }
+
+        // Renderizamos el contenido de cada slide con los datos más recientes
+        renderWeatherSlide(data);
+        renderStatusSlide(data);
+        // La slide de hidrometría se renderiza por su propia función `fetchAndRenderHydroSlide`
+
+        // Iniciamos el intervalo para rotar las slides principales
+        window.topBannerInterval = setInterval(() => {
+            const slides = container.querySelectorAll('.top-banner-slide');
+            if (slides.length <= 1) return;
+
+            let currentTopBannerSlide = 0;
+            // Buscamos cuál es la slide activa para saber cuál es la siguiente
+            slides.forEach((slide, index) => {
+                if (slide.classList.contains('active-top-slide')) {
+                    currentTopBannerSlide = index;
+                }
+            });
+
+            slides[currentTopBannerSlide].classList.remove('active-top-slide');
+            const nextSlideIndex = (currentTopBannerSlide + 1) % slides.length;
+            slides[nextSlideIndex].classList.add('active-top-slide');
+        }, 25000); // Duración de 25 segundos por slide
+    }
+
+
+    /**
+     * Obtiene y renderiza los datos del clima dentro de la slide correspondiente.
+     * @param {object} data - El objeto de datos principal (para el estado de pasos).
+     */
+    async function renderWeatherSlide(data) {
+        const weatherContainer = document.getElementById('weather-slide');
+        if (!weatherContainer) return;
+
+        try {
+            const response = await fetch('/api/weather'); // Usamos la constante global
+            if (!response.ok) throw new Error('Error de red');
+            const weatherData = await response.json();
+
+            // Actualizamos el estado de los pasos fronterizos desde los datos principales
+            const borderPassStatus = {};
+            if (data.estado_pasos_fronterizos) {
+                data.estado_pasos_fronterizos.forEach(paso => {
+                    borderPassStatus[paso.nombre_paso] = paso.condicion;
+                });
+            }
+
+            weatherContainer.innerHTML = weatherData.map(station => {
+                let passStatusText = '';
+                let passStatusWord = '';
+                let statusClass = 'status-no-informado';
+
+                if (station.nombre === 'Los Libertadores, Los Andes') {
+                    const status = borderPassStatus['Los Libertadores'] || 'No informado';
+                    passStatusText = 'Paso: ';
+                    passStatusWord = status;
+                    if (status.toLowerCase().includes('habilitado')) statusClass = 'status-habilitado';
+                    else if (status.toLowerCase().includes('cerrado')) statusClass = 'status-cerrado';
+                }
+
+                return `
+                    <div class="weather-station-box">
+                        <h4>${station.nombre}</h4>
+                        <p><strong>Temp:</strong> ${station.temperatura}°C</p>
+                        <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
+                        <div class="weather-box-footer">
+                            <span class="pass-status">${passStatusText}<span class="${statusClass}">${passStatusWord}</span></span>
+                            <span class="station-update-time">Act: ${station.hora_actualizacion}h</span>
+                        </div>
+                    </div>`;
+            }).join('');
+        } catch (error) {
+            console.error("Error al cargar datos del clima para el banner:", error);
+            weatherContainer.innerHTML = '<p style="color:white;">No se pudieron cargar los datos del clima.</p>';
+        }
+    }
+
+
+    /**
+     * Renderiza la slide de Estado de Sistemas (Carreteras, Pasos, Puertos).
+     * @param {object} data - El objeto de datos principal.
+     */
+    function renderStatusSlide(data) {
+        const statusContainer = document.getElementById('status-slide');
+        if (!statusContainer) return;
+
+        const getStatusClass = (text = "") => {
+            const status = text.toLowerCase();
+            if (status.includes('habilitado') || status.includes('normal') || status.includes('abierto')) return 'status-habilitado';
+            if (status.includes('cerrado') || status.includes('suspendido')) return 'status-cerrado';
+            return 'status-no-informado';
+        };
+
+        const statusData = {
+            carreteras: data.estado_carreteras?.[0] || { carretera: "Carreteras", estado: "Sin información" },
+            pasos: data.estado_pasos_fronterizos?.[0] || { nombre_paso: "Paso Fronterizo", condicion: "Sin información" },
+            puertos: data.estado_puertos?.[0] || { puerto: "Puertos", estado_del_puerto: "Sin información" }
+        };
+
+        statusContainer.innerHTML = `
+            <div class="status-slide-content">
+                <div class="status-category">
+                    <h4>Estado de Carreteras</h4>
+                    <p>${statusData.carreteras.carretera}</p>
+                    <p class="${getStatusClass(statusData.carreteras.estado)}">${statusData.carreteras.estado}</p>
+                </div>
+                <div class="status-category">
+                    <h4>Pasos Fronterizos</h4>
+                    <p>${statusData.pasos.nombre_paso}</p>
+                    <p class="${getStatusClass(statusData.pasos.condicion)}">${statusData.pasos.condicion}</p>
+                </div>
+                <div class="status-category">
+                    <h4>Estado de Puertos</h4>
+                    <p>${statusData.puertos.puerto}</p>
+                    <p class="${getStatusClass(statusData.puertos.estado_del_puerto)}">${statusData.puertos.estado_del_puerto}</p>
+                </div>
+            </div>
+        `;
+    }
     
     function updateLedClock(clockId, timeString) {
         const clock = document.getElementById(clockId);
@@ -296,22 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 novedadesContent.textContent = 'No hay novedades para mostrar.';
             }
 
-            // --- LÓGICA: Guardar estado de pasos fronterizos ---
-            if (data.estado_pasos_fronterizos && data.estado_pasos_fronterizos.length > 0) {
-                data.estado_pasos_fronterizos.forEach(paso => {
-                    // Usamos el nombre del paso como clave para fácil acceso
-                    borderPassStatus[paso.nombre_paso] = paso.condicion;
-                });
-                // Volvemos a renderizar el clima por si los datos del paso llegaron después
-                fetchAndRenderWeather(); 
-            }
-            // --- FIN NUEVA LÓGICA ---
-
-            //Logica anterior
-            //renderAlertasList(alertasListContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
-            //setupAvisosCarousel(data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
-
-            //funcion para gestionar contenedor central
+            setupTopBannerCarousel(data);
             setupCentralContent(data);
             setupRightColumnCarousel(data);
 
@@ -838,8 +964,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initializeApp() {
-        updateClocks();
-        fetchAndRenderWeather();
+        updateClocks();        
         fetchAndRenderMainData();
         initializeAirQualityMap(); fetchAndRenderAirQuality();
         initializePrecipitationMap(); fetchAndRenderPrecipitationData();

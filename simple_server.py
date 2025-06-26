@@ -38,6 +38,55 @@ MAX_IMAGE_HEIGHT = 800
 # --- SERVIDOR NTP DEL SHOA ---
 NTP_SERVER = 'ntp.shoa.cl'
 
+def get_hydrometry_data():
+    """
+    Obtiene los datos hidrométricos filtrando por los códigos de estación específicos.
+    """
+    # URL que filtra por los 3 códigos de estación que nos diste.
+    # El campo en la base de datos de la DGA es "codigo_estacion".
+    DGA_FILTERED_API_URL = "https://ide.mop.gob.cl/arcgis/rest/services/DGA/Visor_Hidrometrico/MapServer/0/query?where=codigo_estacion+IN+%28%2705410002-7%27%2C+%2705410024-8%27%2C+%2705414001-0%27%29&outFields=nombre_estacion,nombre_rio,caudal_m3s,nivel_m,fecha_hora_lectura_dato&outSR=4326&f=json"
+
+    headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0 (Python)'}
+    try:
+        response = requests.get(DGA_FILTERED_API_URL, headers=headers, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+
+        processed_stations = []
+        if "features" in data and data["features"]:
+            for feature in data["features"]:
+                attributes = feature.get("attributes", {})
+                geometry = feature.get("geometry", {})
+
+                # Convertimos el timestamp a un formato de fecha y hora legible
+                timestamp_ms = attributes.get("fecha_hora_lectura_dato")
+                update_time_str = "No disponible"
+                if timestamp_ms:
+                    # El timestamp está en milisegundos, lo dividimos por 1000 para datetime
+                    update_time_dt = datetime.fromtimestamp(timestamp_ms / 1000)
+                    update_time_str = update_time_dt.strftime('%d-%m-%Y %H:%M')
+
+                processed_stations.append({
+                    "nombre_estacion": attributes.get("nombre_estacion"),
+                    "rio": attributes.get("nombre_rio"),
+                    # Parámetros clave para las alertas
+                    "nivel_m": attributes.get("nivel_m"),         # Altura del agua en metros
+                    "caudal_m3s": attributes.get("caudal_m3s"),   # Caudal en m³/s
+                    # Datos adicionales útiles
+                    "ultima_actualizacion": update_time_str,
+                    "lat": geometry.get("y"),
+                    "lon": geometry.get("x")
+                })
+        
+        return processed_stations
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error al contactar la API de la DGA (filtrada por código): {e}")
+        return {"error": str(e)}
+    except Exception as e:
+        print(f"Error procesando datos de la DGA (filtrada por código): {e}")
+        return {"error": "Error interno al procesar datos hidrométricos"}
+
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
     # --- Función para registrar logs ---
     def _get_real_ip(self):
@@ -173,7 +222,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self._set_headers(200, 'application/json')
                     self.wfile.write(json.dumps(initial_data, ensure_ascii=False, indent=4).encode('utf-8'))
                 return
-
+            
             # --- ENDPOINT PARA NOVEDADES ---
             elif requested_path == '/api/novedades':
                 if not os.path.exists(NOVEDADES_FILE):
