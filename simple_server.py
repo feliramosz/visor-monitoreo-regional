@@ -182,6 +182,13 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(logs).encode('utf-8'))
                 return
 
+            # --- ENDPOINT PARA DATOS HIDROMETRICOS ---
+            elif requested_path == '/api/hidrometria':
+                hydro_data = get_hydrometry_data()
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps(hydro_data, ensure_ascii=False).encode('utf-8'))
+                return
+
             # --- ENDPOINT PARA DATOS DEL USUARIO ACTUAL ---
             elif requested_path == '/api/me':
                 username = self._get_user_from_token()
