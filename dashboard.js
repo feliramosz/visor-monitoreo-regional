@@ -225,38 +225,36 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.topBannerInterval) {
             clearInterval(window.topBannerInterval);
         }
-        
+
         // Creamos la estructura de las slides si no existen
         if (!container.querySelector('#weather-slide')) {
             container.innerHTML = `
                 <div id="weather-slide" class="top-banner-slide active-top-slide"></div>
-                <div id="status-slide" class="top-banner-slide"></div>
                 <div id="hydro-slide" class="top-banner-slide"></div>
-            `;
+            `; // <-- DEJAMOS SOLO LAS 2 SLIDES QUE NECESITAMOS
         }
 
-        // Renderizamos el contenido de cada slide con los datos más recientes
+        // Renderizamos el contenido de la slide del clima
         renderWeatherSlide(data);
-        renderStatusSlide(data);
-        // La slide de hidrometría se renderiza por su propia función `fetchAndRenderHydroSlide`
+        // La slide de hidrometría se renderiza con su propia función
 
-        // Iniciamos el intervalo para rotar las slides principales
+        // Iniciamos el intervalo para rotar las 2 slides
         window.topBannerInterval = setInterval(() => {
             const slides = container.querySelectorAll('.top-banner-slide');
             if (slides.length <= 1) return;
 
             let currentTopBannerSlide = 0;
-            // Buscamos cuál es la slide activa para saber cuál es la siguiente
-            slides.forEach((slide, index) => {
+            slides.forEach((index, slide) => {
                 if (slide.classList.contains('active-top-slide')) {
                     currentTopBannerSlide = index;
                 }
             });
 
             slides[currentTopBannerSlide].classList.remove('active-top-slide');
-            const nextSlideIndex = (currentTopBannerSlide + 1) % slides.length;
+            // La lógica ahora solo alterna entre 0 y 1
+            const nextSlideIndex = (currentTopBannerSlide + 1) % 2; 
             slides[nextSlideIndex].classList.add('active-top-slide');
-        }, 25000); // Duración de 25 segundos por slide
+        }, 10000); // Mantenemos la duración de 10 segundos por slide
     }
 
 
