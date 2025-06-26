@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('session_token');
     if (!token) {
         window.location.href = `/login.html?redirect_to=${window.location.pathname}`;
-        return; // Detiene la ejecución del resto del script
+        return;
     }
     // URLs de las APIs
     const DATA_API_URL = '/api/data';
@@ -12,24 +12,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const AIR_QUALITY_API_URL = '/api/calidad_aire';
     const METEO_MAP_API_URL = '/api/estaciones_meteo_mapa';
 
-    // Referencias a elementos del DOM
+    // Referencias a elementos del DOM estáticos
     const weatherBannerContainer = document.getElementById('weather-banner-container');
     const headerAlertBanner = document.getElementById('header-alert-banner');
     const numeroInformeDisplay = document.getElementById('numero-informe-display');
     const novedadesContent = document.getElementById('novedades-content');
-  
-    // --- Controles del carrusel de MAPAS ---
     const mapPanelTitle = document.getElementById('map-panel-title');
-    const airQualityMapContainer = document.getElementById('air-quality-map-container-dashboard');
-    const precipitationMapContainer = document.getElementById('precipitation-map-container-dashboard');
-    const airQualityAlertPanel = document.getElementById('air-quality-alert-panel-dashboard');
-    const mapSlides = document.querySelectorAll('.map-slide');
     const pausePlayBtn = document.getElementById('map-pause-play-btn');
     const prevBtn = document.getElementById('map-prev-btn');
     const nextBtn = document.getElementById('map-next-btn');
     
-    // --- Controles del carrusel de AVISOS ---    
+    // Variables de estado y configuración
     let lastDataTimestamp = 0;
+    let borderPassStatus = {};
 
     // Estado del carrusel de mapas
     let mapCarouselInterval;
@@ -44,7 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let avisoPages = [];
     const avisoPageDuration = 10000;
     let isAvisoCarouselPaused = false;
-    let borderPassStatus = {};
 
     // Variables de los mapas y marcadores
     const stateToColor = {'bueno': '#4caf50', 'regular': '#ffeb3b', 'alerta': '#ff9800', 'preemergencia': '#f44336', 'emergencia': '#9c27b0', 'no_disponible': '#9e9e9e'};
@@ -57,16 +51,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let wazeCarouselInterval;
     let currentWazeSlide = 0;
     let wazePages = [];
-    const wazePageDuration = 15000; // 15 segundos por página
+    const wazePageDuration = 15000;
     let isWazeCarouselPaused = false;    
+    
+    // Estado del carrusel de la columna derecha
     let rightColumnCarouselInterval;
     let currentRightColumnSlide = 0;
-    const rightColumnSlideDuration = 10000;
+    const rightColumnSlideDuration = 20000;
 
     // Lógica carrusel central
-    let centralCarouselInterval;
     let currentCentralSlide = 0;
-    const centralSlideDuration = 15000; // 15 segundos por slide
+    const centralSlideDuration = 15000;
     let imageCarouselInterval;
     let infoPanelTimeout;
         
@@ -74,18 +69,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('central-carousel-container');
         if (!container) return;
         
-        // Limpiamos TODOS los intervalos y temporizadores relacionados para un reinicio limpio
         clearTimeout(infoPanelTimeout);
-        clearInterval(centralCarouselInterval);
         clearInterval(imageCarouselInterval);
-        // El intervalo de avisos se limpia dentro de su propia función de configuración       
 
         container.innerHTML = '';
 
         const useCarousel = data.dashboard_carousel_enabled && data.dynamic_slides && data.dynamic_slides.length > 0;
 
         if (useCarousel) {
-            // 1. Construir el HTML de las slides
             const slides = [];
             const infoPanelsSlide = `
                 <div class="central-slide active-central-slide">
@@ -114,10 +105,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>`;
                 slides.push(imageSlide);
             });
-
             container.innerHTML = slides.join('');
 
-            // 2. Renderizar contenido dentro de los paneles
             const alertasContainer = document.getElementById('alertas-list-container');
             const avisosContainer = document.getElementById('avisos-list-container');
             const avisosTitle = container.querySelector('#panel-avisos .dynamic-title');
@@ -129,10 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const allSlides = container.querySelectorAll('.central-slide');
             currentCentralSlide = 0;
 
-            // 3. Lógica del carrusel inteligente
             const startImageCarousel = () => {
                 clearInterval(avisosCarouselInterval);
-
                 allSlides[0].classList.remove('active-central-slide');
                 currentCentralSlide = 1;
                 if (currentCentralSlide >= allSlides.length) {
@@ -144,7 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 imageCarouselInterval = setInterval(() => {
                     allSlides[currentCentralSlide].classList.remove('active-central-slide');
                     currentCentralSlide++;
-
                     if (currentCentralSlide >= allSlides.length) {
                         clearInterval(imageCarouselInterval);
                         setupCentralContent(data);
@@ -154,16 +140,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, centralSlideDuration);
             };
 
-            // 4. Calcular la duración del panel de info
             const infoPanelDuration = (numAvisoPages > 1) 
                 ? (numAvisoPages * avisoPageDuration) + 500
                 : centralSlideDuration;
            
-            // 5. Programar la transición usando la variable global
             infoPanelTimeout = setTimeout(startImageCarousel, infoPanelDuration);           
 
         } else {
-            // Lógica para el modo estático
             container.className = 'static-mode';
             container.innerHTML = `
                 <div id="panel-alertas" class="dashboard-panel">
@@ -188,7 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
   
-    // Lógica de Relojes
     async function updateClocks() {
         try {
             const response = await fetch(SHOA_TIMES_API_URL);
@@ -217,24 +199,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeDigits = timeString.replace(/:/g, '');
         digits.forEach((digit, i) => { if(digit.textContent !== timeDigits[i]) digit.textContent = timeDigits[i]; });
     }
-
-    // Lógica de Renderizado de Paneles    
+    
     async function fetchAndRenderWeather() {
-        const weatherBannerContainer = document.getElementById('weather-banner-container');
+        if (!weatherBannerContainer) return;
         try {
-            // 1. Añadimos una clase para iniciar la animación de desaparición
             weatherBannerContainer.classList.add('fading-out');
-            
-            // 2. Esperamos a que la animación CSS termine
             await new Promise(resolve => setTimeout(resolve, 500));
 
             const response = await fetch(WEATHER_API_URL);
-            if (!response.ok) {
-                throw new Error(`Error de red: ${response.statusText}`);
-            }
+            if (!response.ok) throw new Error(`Error de red: ${response.statusText}`);
             const weatherData = await response.json();
             
-            // Se construye el HTML con los datos nuevos
             weatherBannerContainer.innerHTML = weatherData.map(station => {
                 let passStatusText = '';
                 let passStatusWord = '';
@@ -244,12 +219,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const status = borderPassStatus['Los Libertadores'] || 'No informado';
                     passStatusText = 'Paso: ';
                     passStatusWord = status;
-                    statusClass = 'status-no-informado';
-                    if (status.toLowerCase().includes('habilitado') || status.toLowerCase().includes('abierto')) {
-                        statusClass = 'status-habilitado';
-                    } else if (status.toLowerCase().includes('cerrado') || status.toLowerCase().includes('suspendido')) {
-                        statusClass = 'status-cerrado';
-                    }
+                    if (status.toLowerCase().includes('habilitado') || status.toLowerCase().includes('abierto')) statusClass = 'status-habilitado';
+                    else if (status.toLowerCase().includes('cerrado') || status.toLowerCase().includes('suspendido')) statusClass = 'status-cerrado';
+                    else statusClass = 'status-no-informado';
                 }
 
                 return `
@@ -258,15 +230,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p><strong>Temp:</strong> ${station.temperatura}°C</p>
                         <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
                         <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
-                        
                         <div class="weather-box-footer">
                             <span class="pass-status">${passStatusText}<span class="${statusClass}">${passStatusWord}</span></span>
                             <span class="station-update-time">Act: ${station.hora_actualizacion}h</span>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             }).join('');
-
         } catch (error) {
             console.error("Error al cargar datos del clima:", error);
             weatherBannerContainer.innerHTML = '<p>Error al cargar datos del clima.</p>';
@@ -284,39 +253,32 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await dataResponse.json();
             const novedades = await novedadesResponse.json();
 
-            numeroInformeDisplay.textContent = novedades.numero_informe_manual || 'N/A';
-            if (novedades.entradas && novedades.entradas.length > 0) {
-                novedadesContent.innerHTML = novedades.entradas.slice(-5).reverse().map(item => 
-                    `<p><strong>[${item.timestamp}]</strong>: ${item.texto}</p>`
-                ).join('');
-            } else {
-                novedadesContent.textContent = 'No hay novedades para mostrar.';
+            if (numeroInformeDisplay) numeroInformeDisplay.textContent = novedades.numero_informe_manual || 'N/A';
+            if (novedadesContent) {
+                if (novedades.entradas && novedades.entradas.length > 0) {
+                    novedadesContent.innerHTML = novedades.entradas.slice(-5).reverse().map(item => 
+                        `<p><strong>[${item.timestamp}]</strong>: ${item.texto}</p>`
+                    ).join('');
+                } else {
+                    novedadesContent.textContent = 'No hay novedades para mostrar.';
+                }
             }
 
-            // --- LÓGICA: Guardar estado de pasos fronterizos ---
             if (data.estado_pasos_fronterizos && data.estado_pasos_fronterizos.length > 0) {
                 data.estado_pasos_fronterizos.forEach(paso => {
-                    // Usamos el nombre del paso como clave para fácil acceso
                     borderPassStatus[paso.nombre_paso] = paso.condicion;
                 });
-                // Volvemos a renderizar el clima por si los datos del paso llegaron después
                 fetchAndRenderWeather(); 
             }
-            // --- FIN NUEVA LÓGICA ---
 
-            //Logica anterior
-            //renderAlertasList(alertasListContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
-            //setupAvisosCarousel(data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
-
-            //funcion para gestionar contenedor central
             setupCentralContent(data);
             setupRightColumnCarousel(data);
-
 
         } catch (error) { console.error("Error al cargar datos principales:", error); }
     }
 
-    //Funcion para botones de panel avisos/alertas/alarmas
+    // --- FUNCIONES DE CONTROL PARA CARRUSELES ---
+
     function prevAvisoPage() {
         if (avisoPages.length <= 1) return;
         currentAvisoPage = (currentAvisoPage - 1 + avisoPages.length) % avisoPages.length;
@@ -331,7 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function toggleAvisoPausePlay() {
         isAvisoCarouselPaused = !isAvisoCarouselPaused;
-        // Obtenemos la referencia al botón aquí, para asegurarnos de que existe
         const btn = document.getElementById('aviso-pause-play-btn');
         if (!btn) return;
 
@@ -347,21 +308,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function resetAvisoInterval() {
-        // Si el carrusel no está pausado, lo reiniciamos para que el tiempo empiece de cero
         if (!isAvisoCarouselPaused) {
             clearInterval(avisosCarouselInterval);
             avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
         }
     }
-
-    //Funcion de carrusel columna derecha (novedades y waze)
+    
     function setupRightColumnCarousel(data) {
         const container = document.getElementById('right-column-carousel-container');
         if (!container) return;
 
         clearInterval(rightColumnCarouselInterval);
         
-        // Limpiamos slides de emergencias de ejecuciones anteriores para evitar duplicados
         const existingEmergenciasSlide = container.querySelector('#panel-emergencias-dashboard');
         if (existingEmergenciasSlide) {
             existingEmergenciasSlide.parentElement.remove();
@@ -370,7 +328,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const useCarousel = data.novedades_carousel_enabled && data.emergencias_ultimas_24_horas && data.emergencias_ultimas_24_horas.length > 0;
 
         if (useCarousel) {
-            // Construimos la nueva slide con la tabla de emergencias
             const emergenciasItemsHtml = data.emergencias_ultimas_24_horas.map(item => `
                 <tr>
                     <td>${item.n_informe || 'N/A'}</td>
@@ -392,18 +349,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                         <th>Evento / Lugar</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    ${emergenciasItemsHtml}
-                                </tbody>
+                                <tbody>${emergenciasItemsHtml}</tbody>
                             </table>
                         </div>
                     </div>
-                </div>
-            `;
-            // Insertamos la nueva slide en el contenedor
+                </div>`;
             container.insertAdjacentHTML('beforeend', emergenciasSlideHtml);
             
-            // Iniciamos la lógica del carrusel
             currentRightColumnSlide = 0;
             const slides = container.querySelectorAll('.right-column-slide');
             slides.forEach((slide, index) => {
@@ -413,15 +365,12 @@ document.addEventListener('DOMContentLoaded', () => {
             rightColumnCarouselInterval = setInterval(() => {
                 const slides = container.querySelectorAll('.right-column-slide');
                 if (slides.length <= 1) return;
-
                 slides[currentRightColumnSlide].classList.remove('active-right-slide');
                 currentRightColumnSlide = (currentRightColumnSlide + 1) % slides.length;
                 slides[currentRightColumnSlide].classList.add('active-right-slide');
-
             }, rightColumnSlideDuration);
 
         } else {
-            // Si el carrusel no está habilitado, nos aseguramos de que solo la primera slide sea visible
             const slides = container.querySelectorAll('.right-column-slide');
             slides.forEach((slide, index) => {
                 slide.classList.toggle('active-right-slide', index === 0);
@@ -431,31 +380,17 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function renderAlertasList(container, items, noItemsText) {
         if (items && items.length > 0) {         
-
-            // 1. Definimos el orden de prioridad. Menor número = mayor prioridad.
-            const priorityOrder = {
-                'roja': 1,
-                'amarilla': 2,
-                'temprana preventiva': 3
-            };
-
-            // 2. Ordenamos la lista 'items'
+            const priorityOrder = {'roja': 1, 'amarilla': 2, 'temprana preventiva': 3};
             items.sort((a, b) => {
                 const nivelA = a.nivel_alerta.toLowerCase();
                 const nivelB = b.nivel_alerta.toLowerCase();
-
-                // Encontramos la prioridad de cada alerta basándonos en las palabras clave
                 const priorityA = Object.keys(priorityOrder).find(key => nivelA.includes(key));
                 const priorityB = Object.keys(priorityOrder).find(key => nivelB.includes(key));
-
-                // Obtenemos el valor numérico (1, 2, 3) o un valor alto (99) si no se encuentra
                 const scoreA = priorityA ? priorityOrder[priorityA] : 99;
                 const scoreB = priorityB ? priorityOrder[priorityB] : 99;
-                
                 return scoreA - scoreB;
             });
   
-
             const listHtml = items.map(item => {
                 let itemClass = '';
                 const nivel = item.nivel_alerta.toLowerCase();
@@ -470,7 +405,6 @@ document.addEventListener('DOMContentLoaded', () => {
         checkAndApplyVerticalScroll(container);
     }
 
-    // --- Sistema de Carrusel de Avisos ---
     function setupAvisosCarousel(container, titleContainer, controlsContainer, items, noItemsText) {
         if (!container || !titleContainer || !controlsContainer) return 0;
 
@@ -506,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentAvisoPage = 0;
             showAvisoPage(currentAvisoPage);
             avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-
+            
             controlsContainer.style.display = 'flex';
             controlsContainer.innerHTML = `
                 <button id="aviso-prev-btn" title="Anterior"><</button>
@@ -514,7 +448,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button id="aviso-next-btn" title="Siguiente">></button>
             `;
             
-            // Asignamos los listeners justo después de crear los botones
             document.getElementById('aviso-prev-btn').addEventListener('click', () => {
                 prevAvisoPage();
                 resetAvisoInterval();
@@ -530,7 +463,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
             container.innerHTML = `<ul class="dashboard-list">${listItemsHtml}</ul>`;
             checkAndApplyVerticalScroll(container);
-            titleContainer.querySelector(`span[data-title-key="${page.key}"]`).classList.add('active-title');
+            if(titleContainer.querySelector(`span[data-title-key="${page.key}"]`)) {
+                titleContainer.querySelector(`span[data-title-key="${page.key}"]`).classList.add('active-title');
+            }
             controlsContainer.innerHTML = '';
             controlsContainer.style.display = 'none';
         } else {
@@ -545,8 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showAvisoPage(index) {        
         const titleContainer = document.querySelector('#panel-avisos .dynamic-title');
         const slides = document.querySelectorAll('.aviso-slide');
-
-        if (!titleContainer || slides.length === 0) return; 
+        if (!titleContainer || slides.length === 0 || !avisoPages[index]) return; 
 
         slides.forEach((slide, i) => {
             slide.style.transform = `translateX(${(i - index) * 100}%)`;
@@ -561,38 +495,6 @@ document.addEventListener('DOMContentLoaded', () => {
         checkAndApplyVerticalScroll(activeSlideContent);
     }
     
-    function nextAvisoPage() {
-        if (avisoPages.length <= 1) return;
-        currentAvisoPage = (currentAvisoPage + 1) % avisoPages.length;
-        showAvisoPage(currentAvisoPage);
-    }
-
-    function prevAvisoPage() {
-        if (avisoPages.length <= 1) return;
-        currentAvisoPage = (currentAvisoPage - 1 + avisoPages.length) % avisoPages.length;
-        showAvisoPage(currentAvisoPage);
-    }
-    
-    function toggleAvisoPausePlay() {
-        isAvisoCarouselPaused = !isAvisoCarouselPaused;
-        if (isAvisoCarouselPaused) {
-            clearInterval(avisosCarouselInterval);
-            avisoPausePlayBtn.textContent = '▶';
-            avisoPausePlayBtn.classList.add('paused');
-        } else {
-            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-            avisoPausePlayBtn.textContent = '||';
-            avisoPausePlayBtn.classList.remove('paused');
-        }
-    }
-
-    function resetAvisoInterval() {
-        if (!isAvisoCarouselPaused) {
-            clearInterval(avisosCarouselInterval);
-            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-        }
-    }
-
     function checkAndApplyVerticalScroll(container) {
         if (!container) return;
         const list = container.querySelector('ul');
@@ -603,17 +505,12 @@ document.addEventListener('DOMContentLoaded', () => {
         clones.forEach(clone => clone.remove());
         
         setTimeout(() => {
+            if (!container.clientHeight) return;
             const containerHeight = container.clientHeight;
             const listHeight = list.scrollHeight;
-
             if (listHeight > containerHeight) {
-                const originalItems = list.innerHTML;
-                const clone = list.cloneNode(true);
-                clone.classList.add('clone');
-                list.parentNode.appendChild(clone);
-                
+                list.cloneNode(true);
                 container.classList.add('is-scrolling');
-
                 const duration = (listHeight / 40) * 2;
                 container.querySelectorAll('.dashboard-list').forEach(l => {
                     l.style.animationDuration = `${Math.max(duration, 15)}s`;
@@ -641,8 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function toggleWazePausePlay() {
-        isWazeCarouselPaused = !isWazeCarouselPaused;
-        // Obtenemos la referencia al botón aquí también
+        isWazeCarouselPaused = !isWazeCarouselPaused;   
         const btn = document.getElementById('waze-pause-play-btn');
         if (!btn) return;
 
@@ -664,15 +560,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // LÓGICA DE MAPAS
     function initializeAirQualityMap() {
-        if (airQualityMap) return;
+        const container = document.getElementById('air-quality-map-container-dashboard');
+        if (airQualityMap || !container) return;
         const mapCenter = [-32.93, -71.46];
-        airQualityMap = L.map(airQualityMapContainer).setView(mapCenter, 10);
+        airQualityMap = L.map(container).setView(mapCenter, 10);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(airQualityMap);
     }
     
     async function fetchAndRenderAirQuality() {
+        if (!airQualityMap) return;
         try {
             const response = await fetch(AIR_QUALITY_API_URL);
             const stations = await response.json();
@@ -690,19 +587,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     airQualityMarkers.push(marker);
                 }
             });
-
+            const alertPanel = document.getElementById('air-quality-alert-panel-dashboard');
             const stationsWithNews = stations.filter(s => s.estado !== 'bueno' && s.estado !== 'no_disponible');
             if (stationsWithNews.length > 0) {
                 stationsWithNews.sort((a, b) => Object.keys(stateToColor).indexOf(a.estado) - Object.keys(stateToColor).indexOf(b.estado));
-                const alertText = stationsWithNews.map(s => `<strong>${s.nombre_estacion}:</strong> ${s.estado.replace('_', ' ')}`).join(' &nbsp; | &nbsp; ');
-                airQualityAlertPanel.innerHTML = `<div class="marquee-container"><p class="marquee-text">${alertText}</p></div>`;
+                const alertText = stationsWithNews.map(s => `<strong>${s.nombre_estacion}:</strong> ${s.estado.replace('_', ' ')}`).join('   |   ');
+                if(alertPanel) alertPanel.innerHTML = `<div class="marquee-container"><p class="marquee-text">${alertText}</p></div>`;
             } else {
-                airQualityAlertPanel.innerHTML = '<div class="marquee-container"><p style="text-align:center; width:100%;">Reporte de estado: Bueno.</p></div>';
+                if(alertPanel) alertPanel.innerHTML = '<div class="marquee-container"><p style="text-align:center; width:100%;">Reporte de estado: Bueno.</p></div>';
             }
             updateHeaderAlert(stations);
         } catch (error) {
             console.error("Error en Calidad del Aire:", error);
-            airQualityAlertPanel.innerHTML = '<p style="color:red;">Error al cargar datos de calidad del aire.</p>';
+            const alertPanel = document.getElementById('air-quality-alert-panel-dashboard');
+            if(alertPanel) alertPanel.innerHTML = '<p style="color:red;">Error al cargar datos de calidad del aire.</p>';
         }
     }
 
@@ -718,13 +616,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initializePrecipitationMap() {
-        if (precipitationMap) return;
+        const container = document.getElementById('precipitation-map-container-dashboard');
+        if (precipitationMap || !container) return;
         const mapCenter = [-32.95, -70.91];
-        precipitationMap = L.map(precipitationMapContainer).setView(mapCenter, 8);
+        precipitationMap = L.map(container).setView(mapCenter, 8);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(precipitationMap);
     }
 
     async function fetchAndRenderPrecipitationData() {
+        if(!precipitationMap) return;
         try {
             const response = await fetch(METEO_MAP_API_URL);
             const stations = await response.json();
@@ -740,15 +640,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     let color = '#a1d99b';
                     if (precipActual > 20) color = '#08306b'; else if (precipActual > 10) color = '#08519c';
                     else if (precipActual > 5) color = '#3182bd'; else if (precipActual > 1) color = '#6baed6';
-
-                    // Formato para el tooltip con el dato de ayer (ambos valores con un decimal)
+                    
                     const tooltipContent = `${precipActual.toFixed(1)}<br><span class="precip-anterior">(${precipAnterior.toFixed(1)})</span>`;
 
                     const marker = L.circleMarker([station.lat, station.lon], {
                         radius: 8, fillColor: color, color: "#000",
                         weight: 1, opacity: 1, fillOpacity: 0.8
                     }).addTo(precipitationMap)
-                      // Formato para el popup (ambos valores con un decimal)
                       .bindPopup(`<b>${station.nombre}</b><br>Precipitación 24h: ${precipActual.toFixed(1)} mm<br>Precipitación día anterior: ${precipAnterior.toFixed(1)} mm`)                     
                       .bindTooltip(tooltipContent, { permanent: true, direction: 'bottom', className: 'precipitation-label', offsetY: 10 });
                       
@@ -826,7 +724,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 wazeCarouselInterval = setInterval(nextWazeSlide, wazePageDuration);
                 
-                // Asignamos los listeners justo después de crear los botones
                 document.getElementById('waze-prev-btn').addEventListener('click', () => {
                     prevWazeSlide();
                     resetWazeInterval();
@@ -852,50 +749,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatTimeAgo(millis) {
         const seconds = Math.floor((Date.now() - millis) / 1000);
-        let interval = seconds / 31536000;
-        if (interval > 1) return `hace ${Math.floor(interval)} años`;
-        interval = seconds / 2592000;
-        if (interval > 1) return `hace ${Math.floor(interval)} meses`;
-        interval = seconds / 86400;
-        if (interval > 1) return `hace ${Math.floor(interval)} días`;
-        interval = seconds / 3600;
-        if (interval > 1) return `hace ${Math.floor(interval)} horas`;
-        interval = seconds / 60;
-        if (interval > 1) return `hace ${Math.floor(interval)} minutos`;
-        return `hace ${Math.floor(seconds)} segundos`;
-    }
-
-    async function checkForUpdates() {
-        try {
-            const response = await fetch('/api/last_update_timestamp');
-            const data = await response.json();            
-            if (data.last_update > lastDataTimestamp) {
-                console.log('Nuevos datos disponibles en el servidor. Actualizando dashboard...');                
-                lastDataTimestamp = data.last_update;                
-                fetchAndRenderMainData();
-            }
-        } catch (error) {
-            console.error("Error al verificar actualizaciones:", error);
-        }
+        if (seconds < 60) return `hace segundos`;
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `hace ${minutes} min`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `hace ${hours} hr`;
+        const days = Math.floor(hours / 24);
+        return `hace ${days} día(s)`;
     }
 
     function openMapWindow(lat, lon) {        
-        const mapUrl = `https://maps.google.com/?q=${lat},${lon}`;
-        const windowFeatures = 'width=1280,height=1024,resizable=yes,scrollbars=yes';
+        const mapUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+        const windowFeatures = 'width=800,height=600,resizable=yes,scrollbars=yes';
         window.open(mapUrl, 'wazeMapWindow', windowFeatures);
     }
 
     function showMapSlide(index) {
+        const mapSlides = document.querySelectorAll('.map-slide');
         mapSlides.forEach((slide, i) => { slide.classList.toggle('active-map-slide', i === index); });
-        mapPanelTitle.textContent = mapTitles[index];
-        airQualityAlertPanel.style.display = (index === 0) ? 'flex' : 'none';
+        if(mapPanelTitle) mapPanelTitle.textContent = mapTitles[index];
+        const alertPanel = document.getElementById('air-quality-alert-panel-dashboard');
+        if(alertPanel) alertPanel.style.display = (index === 0) ? 'flex' : 'none';
         if (index === 0 && airQualityMap) airQualityMap.invalidateSize();
         if (index === 1 && precipitationMap) precipitationMap.invalidateSize();
         currentMapSlide = index;
     }
 
-    function nextMapSlide() { showMapSlide((currentMapSlide + 1) % mapSlides.length); }
-    function prevMapSlide() { showMapSlide((currentMapSlide - 1 + mapSlides.length) % mapSlides.length); }
+    function nextMapSlide() { showMapSlide((currentMapSlide + 1) % 2); }
+    function prevMapSlide() { showMapSlide((currentMapSlide - 1 + 2) % 2); }
 
     function toggleMapPausePlay() {
         isMapCarouselPaused = !isMapCarouselPaused;        
@@ -916,26 +797,26 @@ document.addEventListener('DOMContentLoaded', () => {
         updateClocks();
         fetchAndRenderWeather();
         fetchAndRenderMainData();
-        initializeAirQualityMap(); fetchAndRenderAirQuality();
-        initializePrecipitationMap(); fetchAndRenderPrecipitationData();
-        showMapSlide(0); fetchAndRenderWazeData();
+        initializeAirQualityMap(); 
+        fetchAndRenderAirQuality();
+        initializePrecipitationMap(); 
+        fetchAndRenderPrecipitationData();
+        showMapSlide(0); 
+        fetchAndRenderWazeData();
         mapCarouselInterval = setInterval(nextMapSlide, mapSlideDuration);
         setInterval(checkForUpdates, 5000);
         
-        // Listeners para carrusel de MAPAS
-        pausePlayBtn.addEventListener('click', toggleMapPausePlay);
-        nextBtn.addEventListener('click', nextMapSlide);
-        prevBtn.addEventListener('click', prevMapSlide);  
+        if(pausePlayBtn) pausePlayBtn.addEventListener('click', toggleMapPausePlay);
+        if(nextBtn) nextBtn.addEventListener('click', nextMapSlide);
+        if(prevBtn) prevBtn.addEventListener('click', prevMapSlide);  
 
-        // Intervalos de actualización de datos
         setInterval(fetchAndRenderMainData, 60 * 1000);
         setInterval(fetchAndRenderWeather, 10 * 60 * 1000);
         setInterval(fetchAndRenderAirQuality, 5 * 60 * 1000);
         setInterval(fetchAndRenderPrecipitationData, 5 * 60 * 1000);
         setInterval(fetchAndRenderWazeData, 2 * 60 * 1000); 
     }
-
-    // --- Lógica para escuchar cambios desde otras pestañas ---
+    
     window.addEventListener('storage', (event) => {        
         if (event.key === 'data_updated') {
             console.log('Se detectó un cambio de datos desde el panel de administración. Actualizando dashboard...');            
