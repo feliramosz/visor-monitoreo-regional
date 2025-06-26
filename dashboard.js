@@ -71,20 +71,24 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentCentralSlide = 0;
     const centralSlideDuration = 15000; // 15 segundos por slide
     let imageCarouselInterval;
+    let infoPanelTimeout;
         
     function setupCentralContent(data) {
         const container = document.getElementById('central-carousel-container');
         if (!container) return;
-
-        // Limpiamos intervalos anteriores para evitar fugas de memoria
+        
+        // Limpiamos TODOS los intervalos y temporizadores relacionados para un reinicio limpio
+        clearTimeout(infoPanelTimeout);
         clearInterval(centralCarouselInterval);
         clearInterval(imageCarouselInterval);
+        // El intervalo de avisos se limpia dentro de su propia función de configuración       
+
         container.innerHTML = '';
 
         const useCarousel = data.dashboard_carousel_enabled && data.dynamic_slides && data.dynamic_slides.length > 0;
 
         if (useCarousel) {
-            // 1. Construir el HTML de las slides (esto no cambia)
+            // 1. Construir el HTML de las slides
             const slides = [];
             const infoPanelsSlide = `
                 <div class="central-slide active-central-slide">
@@ -126,47 +130,43 @@ document.addEventListener('DOMContentLoaded', () => {
             const numAvisoPages = setupAvisosCarousel(avisosContainer, avisosTitle, avisosControls, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
 
             const allSlides = container.querySelectorAll('.central-slide');
-            currentCentralSlide = 0; // Asegurarse de empezar en la slide de info
+            currentCentralSlide = 0;
 
             // 3. Lógica del carrusel inteligente
             const startImageCarousel = () => {
-                clearInterval(avisosCarouselInterval); // Detener carrusel de avisos
+                clearInterval(avisosCarouselInterval);
 
-                allSlides[0].classList.remove('active-central-slide'); // Ocultar panel de info
-                currentCentralSlide = 1; // Apuntar a la primera imagen
-                if (currentCentralSlide >= allSlides.length) { // Si no hay imágenes, reiniciar
+                allSlides[0].classList.remove('active-central-slide');
+                currentCentralSlide = 1;
+                if (currentCentralSlide >= allSlides.length) {
                     setupCentralContent(data); 
                     return;
                 }
                 allSlides[currentCentralSlide].classList.add('active-central-slide');
 
-                // Iniciar un nuevo carrusel solo para las imágenes
                 imageCarouselInterval = setInterval(() => {
                     allSlides[currentCentralSlide].classList.remove('active-central-slide');
                     currentCentralSlide++;
 
                     if (currentCentralSlide >= allSlides.length) {
-                        // Si se mostraron todas las imágenes, se reinicia todo el ciclo
                         clearInterval(imageCarouselInterval);
-                        setupCentralContent(data); // Llamada recursiva para reiniciar
+                        setupCentralContent(data);
                         return;
                     }
                     allSlides[currentCentralSlide].classList.add('active-central-slide');
                 }, centralSlideDuration);
             };
 
-            // 4. Calcular cuánto tiempo debe mostrarse el panel de información
-            // Si hay varias páginas de avisos, esperamos a que terminen su ciclo.
-            // Si no, usamos la duración estándar.
+            // 4. Calcular la duración del panel de info
             const infoPanelDuration = (numAvisoPages > 1) 
-                ? (numAvisoPages * avisoPageDuration) + 500 // Tiempo total del ciclo de avisos + 0.5s de margen
+                ? (numAvisoPages * avisoPageDuration) + 500
                 : centralSlideDuration;
-
-            // 5. Programar la transición a las imágenes después de ese tiempo
-            setTimeout(startImageCarousel, infoPanelDuration);
+           
+            // 5. Programar la transición usando la variable global
+            infoPanelTimeout = setTimeout(startImageCarousel, infoPanelDuration);           
 
         } else {
-            // Lógica para el modo estático (sin carrusel)
+            // Lógica para el modo estático
             container.className = 'static-mode';
             container.innerHTML = `
                 <div id="panel-alertas" class="dashboard-panel">
