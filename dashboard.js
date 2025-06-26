@@ -1044,38 +1044,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function initializeApp() {
-        updateClocks();        
-        fetchAndRenderMainData();
-        initializeAirQualityMap(); fetchAndRenderAirQuality();
-        initializePrecipitationMap(); fetchAndRenderPrecipitationData();
-        showMapSlide(0); fetchAndRenderWazeData();
-        fetchAndRenderHydroSlide();
+    async function initializeApp() {
+        // 1. Tareas iniciales que no dependen de nada
+        updateClocks();
+        initializeAirQualityMap();
+        initializePrecipitationMap();
+
+        // 2. OBTENEMOS LOS DATOS PRINCIPALES Y ESPERAMOS A QUE TERMINEN.
+        // Esta función ahora creará todos los contenedores necesarios.
+        await fetchAndRenderMainData();
+
+        // 3. AHORA que los contenedores ya existen, podemos llamar al resto de las funciones
+        //    que renderizan contenido de forma segura.
+        fetchAndRenderAirQuality();
+        fetchAndRenderPrecipitationData();
+        fetchAndRenderWazeData();
+        fetchAndRenderHydroSlide(); // <-- Ahora esta función encontrará el div #hydro-slide sin problemas.
+
+        // 4. Activamos los carruseles y listeners de botones estáticos
+        showMapSlide(0);
         mapCarouselInterval = setInterval(nextMapSlide, mapSlideDuration);
-        setInterval(checkForUpdates, 5000);
         
-        // Listeners para carrusel de MAPAS
-        pausePlayBtn.addEventListener('click', toggleMapPausePlay);
-        nextBtn.addEventListener('click', nextMapSlide);
-        prevBtn.addEventListener('click', prevMapSlide);
+        if (mapPausePlayBtn) mapPausePlayBtn.addEventListener('click', toggleMapPausePlay);
+        if (mapNextBtn) mapNextBtn.addEventListener('click', nextMapSlide);
+        if (mapPrevBtn) mapPrevBtn.addEventListener('click', prevMapSlide);
         
-        // Listeners para carrusel de AVISOS
-        avisoNextBtn.addEventListener('click', () => { nextAvisoPage(); resetAvisoInterval(); });
-        avisoPrevBtn.addEventListener('click', () => { prevAvisoPage(); resetAvisoInterval(); });
-        avisoPausePlayBtn.addEventListener('click', toggleAvisoPausePlay);
-
-        // Listeners para carrusel de WAZE (NUEVO)
-        document.getElementById('waze-next-btn').addEventListener('click', () => { nextWazeSlide(); resetWazeInterval(); });
-        document.getElementById('waze-prev-btn').addEventListener('click', () => { prevWazeSlide(); resetWazeInterval(); });
-        document.getElementById('waze-pause-play-btn').addEventListener('click', toggleWazePausePlay);
-
-        // Intervalos de actualización de datos
+        // 5. Configuramos las actualizaciones periódicas
         setInterval(fetchAndRenderMainData, 60 * 1000);
-        setInterval(fetchAndRenderWeather, 10 * 60 * 1000);
-        setInterval(fetchAndRenderAirQuality, 5 * 60 * 1000);
-        setInterval(fetchAndRenderPrecipitationData, 5 * 60 * 1000);
-        setInterval(fetchAndRenderWazeData, 2 * 60 * 1000); 
+        setInterval(fetchAndRenderWazeData, 2 * 60 * 1000);
         setInterval(fetchAndRenderHydroSlide, 5 * 60 * 1000);
+        // Ya no es necesario llamar a fetchAndRenderAirQuality y fetchAndRenderPrecipitationData aquí,
+        // porque ya se actualizan con fetchAndRenderMainData.
     }
 
     // --- Lógica para escuchar cambios desde otras pestañas ---
