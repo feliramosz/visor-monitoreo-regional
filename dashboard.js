@@ -221,40 +221,44 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('weather-banner-container');
         if (!container) return;
 
-        // Se detiene el intervalo anterior para evitar múltiples carruseles corriendo
         if (window.topBannerInterval) {
             clearInterval(window.topBannerInterval);
         }
-
-        // Creamos la estructura de las slides si no existen
+        
         if (!container.querySelector('#weather-slide')) {
             container.innerHTML = `
                 <div id="weather-slide" class="top-banner-slide active-top-slide"></div>
                 <div id="hydro-slide" class="top-banner-slide"></div>
-            `; // <-- DEJAMOS SOLO LAS 2 SLIDES QUE NECESITAMOS
+            `;
         }
 
-        // Renderizamos el contenido de la slide del clima
         renderWeatherSlide(data);
         // La slide de hidrometría se renderiza con su propia función
 
-        // Iniciamos el intervalo para rotar las 2 slides
+        // Activamos los botones del carrusel del mapa aquí para asegurar que todo esté cargado
+        if (mapPausePlayBtn) mapPausePlayBtn.addEventListener('click', toggleMapPausePlay);
+        if (mapNextBtn) mapNextBtn.addEventListener('click', nextMapSlide);
+        if (mapPrevBtn) mapPrevBtn.addEventListener('click', prevMapSlide);
+
         window.topBannerInterval = setInterval(() => {
             const slides = container.querySelectorAll('.top-banner-slide');
             if (slides.length <= 1) return;
 
             let currentTopBannerSlide = 0;
-            slides.forEach((index, slide) => {
+            
+            // --- INICIO DE LA CORRECCIÓN CLAVE ---
+            // El orden correcto es (slide, index)
+            slides.forEach((slide, index) => {
                 if (slide.classList.contains('active-top-slide')) {
                     currentTopBannerSlide = index;
                 }
             });
+            // --- FIN DE LA CORRECCIÓN CLAVE ---
 
             slides[currentTopBannerSlide].classList.remove('active-top-slide');
-            // La lógica ahora solo alterna entre 0 y 1
-            const nextSlideIndex = (currentTopBannerSlide + 1) % 2; 
+            const nextSlideIndex = (currentTopBannerSlide + 1) % slides.length;
             slides[nextSlideIndex].classList.add('active-top-slide');
-        }, 10000); // Mantenemos la duración de 10 segundos por slide
+        }, 10000);
     }
 
 
@@ -962,35 +966,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initializeApp() {
-        updateClocks();        
+        // Tareas iniciales que no dependen de otros datos
+        updateClocks();
+        
+        // Obtenemos los datos principales que otros componentes necesitan
         fetchAndRenderMainData();
-        initializeAirQualityMap(); fetchAndRenderAirQuality();
-        initializePrecipitationMap(); fetchAndRenderPrecipitationData();
-        showMapSlide(0); fetchAndRenderWazeData();
+
+        // Ahora que los datos principales están en camino, inicializamos el resto
+        fetchAndRenderAirQuality();
+        fetchAndRenderPrecipitationData();
+        fetchAndRenderWazeData();
+        fetchAndRenderHydroSlide(); // No olvides añadir esta llamada si no lo has hecho
+
+        // Inicializar mapas y carrusel principal de mapas
+        initializeAirQualityMap();
+        initializePrecipitationMap();
+        showMapSlide(0);
         mapCarouselInterval = setInterval(nextMapSlide, mapSlideDuration);
-        setInterval(checkForUpdates, 5000);
-        
-        // Listeners para carrusel de MAPAS
-        pausePlayBtn.addEventListener('click', toggleMapPausePlay);
-        nextBtn.addEventListener('click', nextMapSlide);
-        prevBtn.addEventListener('click', prevMapSlide);
-        
-        // Listeners para carrusel de AVISOS
-        avisoNextBtn.addEventListener('click', () => { nextAvisoPage(); resetAvisoInterval(); });
-        avisoPrevBtn.addEventListener('click', () => { prevAvisoPage(); resetAvisoInterval(); });
-        avisoPausePlayBtn.addEventListener('click', toggleAvisoPausePlay);
 
-        // Listeners para carrusel de WAZE (NUEVO)
-        document.getElementById('waze-next-btn').addEventListener('click', () => { nextWazeSlide(); resetWazeInterval(); });
-        document.getElementById('waze-prev-btn').addEventListener('click', () => { prevWazeSlide(); resetWazeInterval(); });
-        document.getElementById('waze-pause-play-btn').addEventListener('click', toggleWazePausePlay);
+        // Los listeners de los botones del mapa ya NO se ponen aquí
 
-        // Intervalos de actualización de datos
+        // Intervalos de actualización periódica
         setInterval(fetchAndRenderMainData, 60 * 1000);
-        setInterval(fetchAndRenderWeather, 10 * 60 * 1000);
+        setInterval(fetchAndRenderWeather, 10 * 60 * 1000); // Esta la podemos quitar si no la quieres
         setInterval(fetchAndRenderAirQuality, 5 * 60 * 1000);
         setInterval(fetchAndRenderPrecipitationData, 5 * 60 * 1000);
-        setInterval(fetchAndRenderWazeData, 2 * 60 * 1000); 
+        setInterval(fetchAndRenderWazeData, 2 * 60 * 1000);
+        setInterval(fetchAndRenderHydroSlide, 5 * 60 * 1000); // No olvides añadir esta si no lo has hecho
     }
 
     // --- Lógica para escuchar cambios desde otras pestañas ---
