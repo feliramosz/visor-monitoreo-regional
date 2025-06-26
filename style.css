@@ -1748,3 +1748,59 @@ img, table {
 /* =============================
    FIN CAMBIOS RESPONSIVOS 2025-06-25
    ============================= */
+
+   /* --- Estilos para el carrusel de la columna derecha --- */
+.dashboard-panel-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.right-column-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Mantiene el espacio entre paneles dentro del slide */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(100%);
+    transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
+    background-color: #e9ecef; /* Color de fondo del body del dashboard */
+}
+
+.right-column-slide.active-right-slide {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+    z-index: 1;
+}
+
+#panel-emergencias-dashboard .table-container {
+    max-height: 90%; /* Ajusta la altura máxima de la tabla */
+    overflow-y: auto;
+}
+
+#panel-emergencias-dashboard table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#panel-emergencias-dashboard th, #panel-emergencias-dashboard td {
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+    font-size: 0.9em;
+}
+
+#panel-emergencias-dashboard th {
+    background-color: #f2f2f2;
+    position: sticky;
+    top: 0;
+}

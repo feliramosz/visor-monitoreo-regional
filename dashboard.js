@@ -62,6 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let wazePages = [];
     const wazePageDuration = 15000; // 15 segundos por página
     let isWazeCarouselPaused = false;    
+    let rightColumnCarouselInterval;
+    let currentRightColumnSlide = 0;
+    const rightColumnSlideDuration = 10000;
 
     // Lógica carrusel central
     let centralCarouselInterval;
@@ -278,8 +281,85 @@ document.addEventListener('DOMContentLoaded', () => {
 
             //funcion para gestionar contenedor central
             setupCentralContent(data);
+            setupRightColumnCarousel(data);
+
 
         } catch (error) { console.error("Error al cargar datos principales:", error); }
+    }
+
+    //Funcion de carrusel columna derecha (novedades y waze)
+    function setupRightColumnCarousel(data) {
+        const container = document.getElementById('right-column-carousel-container');
+        if (!container) return;
+
+        clearInterval(rightColumnCarouselInterval);
+        
+        // Limpiamos slides de emergencias de ejecuciones anteriores para evitar duplicados
+        const existingEmergenciasSlide = container.querySelector('#panel-emergencias-dashboard');
+        if (existingEmergenciasSlide) {
+            existingEmergenciasSlide.parentElement.remove();
+        }
+
+        const useCarousel = data.novedades_carousel_enabled && data.emergencias_ultimas_24_horas && data.emergencias_ultimas_24_horas.length > 0;
+
+        if (useCarousel) {
+            // Construimos la nueva slide con la tabla de emergencias
+            const emergenciasItemsHtml = data.emergencias_ultimas_24_horas.map(item => `
+                <tr>
+                    <td>${item.n_informe || 'N/A'}</td>
+                    <td>${item.fecha_hora || 'N/A'}</td>
+                    <td>${item.evento_lugar || 'N/A'}</td>
+                </tr>
+            `).join('');
+
+            const emergenciasSlideHtml = `
+                <div class="right-column-slide">
+                    <div id="panel-emergencias-dashboard" class="dashboard-panel">
+                        <h3>Informes Emitidos (Últimas 24h)</h3>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>N° Informe</th>
+                                        <th>Fecha y Hora</th>
+                                        <th>Evento / Lugar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${emergenciasItemsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            // Insertamos la nueva slide en el contenedor
+            container.insertAdjacentHTML('beforeend', emergenciasSlideHtml);
+            
+            // Iniciamos la lógica del carrusel
+            currentRightColumnSlide = 0;
+            const slides = container.querySelectorAll('.right-column-slide');
+            slides.forEach((slide, index) => {
+                slide.classList.toggle('active-right-slide', index === 0);
+            });
+
+            rightColumnCarouselInterval = setInterval(() => {
+                const slides = container.querySelectorAll('.right-column-slide');
+                if (slides.length <= 1) return;
+
+                slides[currentRightColumnSlide].classList.remove('active-right-slide');
+                currentRightColumnSlide = (currentRightColumnSlide + 1) % slides.length;
+                slides[currentRightColumnSlide].classList.add('active-right-slide');
+
+            }, rightColumnSlideDuration);
+
+        } else {
+            // Si el carrusel no está habilitado, nos aseguramos de que solo la primera slide sea visible
+            const slides = container.querySelectorAll('.right-column-slide');
+            slides.forEach((slide, index) => {
+                slide.classList.toggle('active-right-slide', index === 0);
+            });
+        }
     }
     
     function renderAlertasList(container, items, noItemsText) {

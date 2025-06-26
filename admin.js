@@ -159,7 +159,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             adminUVPronosticadoLabel.value = data.radiacion_uv.pronosticado_hoy_label || 'Pronosticado para hoy:';
             adminUVPronosticadoValue.value = data.radiacion_uv.pronosticado_hoy_value || 'N/A';
         }
-        
+                
+        document.getElementById('adminEnableDashboardCarousel').checked = data.dashboard_carousel_enabled || false;
+        document.getElementById('adminEnableNovedadesCarousel').checked = data.novedades_carousel_enabled || false;
         document.getElementById('adminIntervaloSlide').value = data.slide_interval || '10000';
     }
 
@@ -455,6 +457,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updatedInformeData.estado_puertos = Array.from(puertosContainer.querySelectorAll('.puerto-item')).map(item => ({ puerto: item.querySelector('.puerto-nombre').value, estado_del_puerto: item.querySelector('.puerto-estado').value, condicion: item.querySelector('.puerto-condicion').value }));
         updatedInformeData.dynamic_slides = Array.from(dynamicSlidesContainer.querySelectorAll('.dynamic-slide-item')).map(item => ({ id: item.dataset.id, image_url: item.querySelector('.slide-image-url').value, title: item.querySelector('.slide-title').value, description: item.querySelector('.slide-description').value }));
         updatedInformeData.dashboard_carousel_enabled = document.getElementById('adminEnableDashboardCarousel').checked;
+        updatedInformeData.novedades_carousel_enabled = document.getElementById('adminEnableNovedadesCarousel').checked;
         updatedInformeData.slide_interval = parseInt(document.getElementById('adminIntervaloSlide').value, 10);
         
         // --- 2. Guardar datos de novedades ---

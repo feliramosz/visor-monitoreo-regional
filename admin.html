@@ -272,6 +272,11 @@
                         <input type="checkbox" id="adminEnableDashboardCarousel" style="width: auto; height: 18px; flex-shrink:0;">
                         Habilitar carrusel central en Dashboard (reemplaza Alertas y Avisos por slides si hay imágenes).
                     </label>
+                    
+                    <label for="adminEnableNovedadesCarousel" style="display:flex; align-items:center; gap:10px; margin-top: 10px;">
+                        <input type="checkbox" id="adminEnableNovedadesCarousel" style="width: auto; height: 18px; flex-shrink:0;">
+                        Habilitar carrusel en panel derecho (alterna Novedades/Waze con Emergencias 24h).
+                    </label>
                     <br>
                     <label for="adminIntervaloSlide" style="font-weight: bold; color: #555;">Velocidad del Carrusel Principal:</label>
                     <select id="adminIntervaloSlide" style="width: 100%; max-width:250px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
@@ -283,7 +288,7 @@
                         <option value="30000">30 segundos</option>
                     </select>
                 </div>
-                </section>
+            </section>
 
             <section id="contenido-dashboard" class="admin-section">
                 <h3>Panel de Novedades del Dashboard</h3>
