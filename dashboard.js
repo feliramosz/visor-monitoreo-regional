@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function toggleAvisoPausePlay() {
-        isAvisoCarouselPaused = !isAvisoCarouselPaused;
+        isAvisoCarouselPaused = !isAvisoCarouselPaused;        
         const btn = document.getElementById('aviso-pause-play-btn');
         if (!btn) return;
 
@@ -640,18 +640,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function toggleWazePausePlay() {
-        isWazeCarouselPaused = !isWazeCarouselPaused;
-        const btn = document.getElementById('waze-pause-play-btn');
-        if (isWazeCarouselPaused) {
-            clearInterval(wazeCarouselInterval);
-            btn.textContent = '▶';
-            btn.classList.add('paused');
-        } else {
-            wazeCarouselInterval = setInterval(nextWazeSlide, wazePageDuration);
-            btn.textContent = '||';
-            btn.classList.remove('paused');
-        }
+    isWazeCarouselPaused = !isWazeCarouselPaused;   
+    const btn = document.getElementById('waze-pause-play-btn');
+    if (!btn) return;
+
+    if (isWazeCarouselPaused) {
+        clearInterval(wazeCarouselInterval);
+        btn.textContent = '▶';
+        btn.classList.add('paused');
+    } else {
+        wazeCarouselInterval = setInterval(nextWazeSlide, wazePageDuration);
+        btn.textContent = '||';
+        btn.classList.remove('paused');
     }
+}
 
     function resetWazeInterval() {
         if (!isWazeCarouselPaused) {
@@ -894,14 +896,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function prevMapSlide() { showMapSlide((currentMapSlide - 1 + mapSlides.length) % mapSlides.length); }
 
     function toggleMapPausePlay() {
-        isMapCarouselPaused = !isMapCarouselPaused;
+        isMapCarouselPaused = !isMapCarouselPaused;        
+        if (!pausePlayBtn) return;
+
         if (isMapCarouselPaused) {
             clearInterval(mapCarouselInterval);
-            pausePlayBtn.textContent = 'Reanudar';
+            pausePlayBtn.textContent = '▶';
             pausePlayBtn.classList.add('paused');
         } else {
             mapCarouselInterval = setInterval(nextMapSlide, mapSlideDuration);
-            pausePlayBtn.textContent = 'Pausar';
+            pausePlayBtn.textContent = '||';
             pausePlayBtn.classList.remove('paused');
         }
     }
