@@ -800,9 +800,10 @@ body.dashboard-body footer {
 
 /* 3. Banner del clima */
 .weather-banner {
-    display: flex;
-    justify-content: space-around;
-    flex-wrap: wrap;
+    display: flex; /* Activa el layout flexible */
+    justify-content: space-around; /* Distribuye las estaciones horizontalmente */
+    align-items: stretch; /* Asegura que todas tengan la misma altura */
+    flex-wrap: wrap; /* Permite que se ajusten si no hay espacio */
     gap: 10px;
     padding: 10px;
     background-color: #ffffff;
@@ -811,6 +812,8 @@ body.dashboard-body footer {
     margin: 8px 5px;
     box-sizing: border-box;
     flex-shrink: 0;
+    transition: opacity 0.5s ease-in-out;
+    opacity: 1;
 }
 
 .weather-banner .weather-station-box {
@@ -1893,17 +1896,34 @@ img, table {
     100% { transform: scale(1); }
 }
 
+#weather-banner-container {
+    position: relative; /* Necesario para que las slides se posicionen dentro */
+    overflow: hidden;   /* Oculta las slides que no están activas */    
+}
+
+/* Estilo para CADA slide (clima, hidrometría, etc.) */
 .top-banner-slide {
     position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: space-around;
     gap: 10px;
-    padding: 5px 20px;
-    background-color: #003366;
-    transition: opacity 0.7s ease-in-out, transform 0.7s ease-in-out;
+    padding: 10px;
+    box-sizing: border-box;
+    
+    /* Animación de transición */
     opacity: 0;
-    transform: translateY(-100%);
+    visibility: hidden;
+    transition: opacity 0.7s ease-in-out;
+}
+
+/* Estilo para la slide que está visible */
+.top-banner-slide.active-top-slide {
+    opacity: 1;
+    visibility: visible;
+    position: relative; /* Ocupa espacio cuando está activa */
 }

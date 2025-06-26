@@ -61,10 +61,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentWazeSlide = 0;
     let wazePages = [];
     const wazePageDuration = 15000; // 15 segundos por página
-    let isWazeCarouselPaused = false;    
+    let isWazeCarouselPaused = false;
+    let topBannerInterval;
+    let currentTopBannerSlide = 0;
+    const topBannerSlideDuration = 10000;    
     let rightColumnCarouselInterval;
     let currentRightColumnSlide = 0;
     const rightColumnSlideDuration = 10000;
+    
 
     // Lógica carrusel central
     let centralCarouselInterval;
@@ -221,10 +225,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('weather-banner-container');
         if (!container) return;
 
+        // Limpiamos cualquier intervalo anterior para evitar duplicados
         if (window.topBannerInterval) {
             clearInterval(window.topBannerInterval);
         }
-        
+
+        // Creamos la estructura HTML de las dos slides si no existen
         if (!container.querySelector('#weather-slide')) {
             container.innerHTML = `
                 <div id="weather-slide" class="top-banner-slide active-top-slide"></div>
@@ -232,33 +238,67 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
 
+        // Poblamos la slide del clima con los datos
         renderWeatherSlide(data);
-        // La slide de hidrometría se renderiza con su propia función
 
-        // Activamos los botones del carrusel del mapa aquí para asegurar que todo esté cargado
-        if (mapPausePlayBtn) mapPausePlayBtn.addEventListener('click', toggleMapPausePlay);
-        if (mapNextBtn) mapNextBtn.addEventListener('click', nextMapSlide);
-        if (mapPrevBtn) mapPrevBtn.addEventListener('click', prevMapSlide);
-
+        // Iniciamos el intervalo para rotar las slides
         window.topBannerInterval = setInterval(() => {
             const slides = container.querySelectorAll('.top-banner-slide');
             if (slides.length <= 1) return;
 
-            let currentTopBannerSlide = 0;
-            
-            // --- INICIO DE LA CORRECCIÓN CLAVE ---
-            // El orden correcto es (slide, index)
+            let currentActiveIndex = 0;
             slides.forEach((slide, index) => {
                 if (slide.classList.contains('active-top-slide')) {
-                    currentTopBannerSlide = index;
+                    currentActiveIndex = index;
                 }
             });
-            // --- FIN DE LA CORRECCIÓN CLAVE ---
 
-            slides[currentTopBannerSlide].classList.remove('active-top-slide');
-            const nextSlideIndex = (currentTopBannerSlide + 1) % slides.length;
+            slides[currentActiveIndex].classList.remove('active-top-slide');
+            const nextSlideIndex = (currentActiveIndex + 1) % slides.length;
             slides[nextSlideIndex].classList.add('active-top-slide');
-        }, 10000);
+        }, topBannerSlideDuration);
+    }
+
+    /**
+     * Obtiene los datos del clima y los renderiza en la slide de clima.
+     */
+    async function renderWeatherSlide(data) {
+        const weatherContainer = document.getElementById('weather-slide');
+        if (!weatherContainer) return;
+
+        try {
+            const response = await fetch(WEATHER_API_URL);
+            if (!response.ok) throw new Error('Error de red al obtener clima');
+            const weatherData = await response.json();
+
+            weatherContainer.innerHTML = weatherData.map(station => {
+                // ... (el código interno de esta función para crear las tarjetas del clima no cambia)
+                let passStatusText = '';
+                let passStatusWord = '';
+                let statusClass = 'status-no-informado';
+                if (station.nombre === 'Los Libertadores, Los Andes') {
+                    const status = (data.estado_pasos_fronterizos.find(p => p.nombre_paso === 'Los Libertadores') || {}).condicion || 'No informado';
+                    passStatusText = 'Paso: ';
+                    passStatusWord = status;
+                    if (status.toLowerCase().includes('habilitado')) statusClass = 'status-habilitado';
+                    else if (status.toLowerCase().includes('cerrado')) statusClass = 'status-cerrado';
+                }
+
+                return `
+                    <div class="weather-station-box">
+                        <h4>${station.nombre}</h4>
+                        <p><strong>Temp:</strong> ${station.temperatura}°C</p>
+                        <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
+                        <div class="weather-box-footer">
+                            <span class="pass-status">${passStatusText}<span class="${statusClass}">${passStatusWord}</span></span>
+                            <span class="station-update-time">Act: ${station.hora_actualizacion}h</span>
+                        </div>
+                    </div>`;
+            }).join('');
+        } catch (error) {
+            console.error("Error al renderizar slide de clima:", error);
+            weatherContainer.innerHTML = '<p style="color:white;">Error al cargar datos del clima.</p>';
+        }
     }
 
 
@@ -439,13 +479,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 novedadesContent.textContent = 'No hay novedades para mostrar.';
             }
 
+            // --- Llamamos a nuestra nueva función orquestadora ---
             setupTopBannerCarousel(data);
+
             setupCentralContent(data);
             setupRightColumnCarousel(data);
 
-
         } catch (error) { console.error("Error al cargar datos principales:", error); }
     }
+
 
     //Funcion de carrusel columna derecha (novedades y waze)
     function setupRightColumnCarousel(data) {
