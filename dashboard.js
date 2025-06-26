@@ -353,6 +353,95 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function fetchAndRenderHydroSlide() {
+        const hydroContainer = document.getElementById('hydro-slide');
+        if (!hydroContainer) return;
+
+        // Definimos los umbrales de alerta para cada estación por su código
+        const hydroThresholds = {
+            '05410002-7': { // Rio Aconcagua en Chacabuquito
+                nivel: { amarilla: 2.28, roja: 2.53 },
+                caudal: { amarilla: 155.13, roja: 193.6 }
+            },
+            '05410024-8': { // Rio Aconcagua en San Felipe 2
+                nivel: { amarilla: 2.8, roja: 3.15 },
+                caudal: { amarilla: 174.37, roja: 217.63 }
+            },
+            '05414001-0': { // Rio Putaendo en Resguardo los Patos
+                nivel: { amarilla: 1.16, roja: 1.25 },
+                caudal: { amarilla: 66.79, roja: 80.16 }
+            }
+        };
+
+        try {
+            const response = await fetch('/api/hidrometria');
+            if (!response.ok) throw new Error("Error al obtener datos hidrométricos");
+            const stationsData = await response.json();
+
+            if (stationsData.error || stationsData.length === 0) {
+                hydroContainer.innerHTML = '<p style="color:white;">Datos hidrométricos no disponibles en este momento.</p>';
+                return;
+            }
+
+            let cardsHtml = '';
+            const stationOrder = ['05410002-7', '05410024-8', '05414001-0'];
+
+            for (const stationCode of stationOrder) {
+                // Buscamos la estación por su código para asegurar el orden
+                const station = stationsData.find(s => s.codigo_estacion === stationCode);
+                if (!station) continue;
+
+                const thresholds = hydroThresholds[stationCode];
+                
+                // --- Lógica para Nivel (altura) ---
+                const nivelActual = station.nivel_m || 0;
+                let nivelStatus = 'status-normal';
+                if (nivelActual >= thresholds.nivel.roja) nivelStatus = 'status-roja';
+                else if (nivelActual >= thresholds.nivel.amarilla) nivelStatus = 'status-amarilla';
+                const nivelAgujaPos = Math.min((nivelActual / thresholds.nivel.roja) * 100, 100);
+
+                // --- Lógica para Caudal ---
+                const caudalActual = station.caudal_m3s || 0;
+                let caudalStatus = 'status-normal';
+                if (caudalActual >= thresholds.caudal.roja) caudalStatus = 'status-roja';
+                else if (caudalActual >= thresholds.caudal.amarilla) caudalStatus = 'status-amarilla';
+                const caudalAgujaPos = Math.min((caudalActual / thresholds.caudal.roja) * 100, 100);
+
+                cardsHtml += `
+                    <div class="hydro-station-card">
+                        <h4>${station.nombre_estacion}</h4>
+                        <p class="rio-name">${station.rio}</p>
+                        
+                        <div class="gauge-container">
+                            <div class="gauge-label">
+                                <span>Nivel (m)</span>
+                                <span class="gauge-value ${nivelStatus}">${nivelActual.toFixed(2)} / ${thresholds.nivel.roja}</span>
+                            </div>
+                            <div class="gauge-bar">
+                                <div class="gauge-needle" style="left: ${nivelAgujaPos}%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="gauge-container">
+                            <div class="gauge-label">
+                                <span>Caudal (m³/s)</span>
+                                <span class="gauge-value ${caudalStatus}">${caudalActual.toFixed(2)} / ${thresholds.caudal.roja}</span>
+                            </div>
+                            <div class="gauge-bar">
+                                <div class="gauge-needle" style="left: ${caudalAgujaPos}%;"></div>
+                            </div>
+                        </div>
+                        <p class="update-time">Últ. act: ${station.ultima_actualizacion}</p>
+                    </div>
+                `;
+            }
+            hydroContainer.innerHTML = cardsHtml;
+
+        } catch (error) {
+            console.error("Error al renderizar slide de hidrometría:", error);
+            hydroContainer.innerHTML = '<p style="color:white;">Error al cargar datos de hidrometría.</p>';
+        }
+    }
 
     /**
      * Renderiza la slide de Estado de Sistemas (Carreteras, Pasos, Puertos).
@@ -1013,6 +1102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initializeAirQualityMap(); fetchAndRenderAirQuality();
         initializePrecipitationMap(); fetchAndRenderPrecipitationData();
         showMapSlide(0); fetchAndRenderWazeData();
+        fetchAndRenderHydroSlide();
         mapCarouselInterval = setInterval(nextMapSlide, mapSlideDuration);
         setInterval(checkForUpdates, 5000);
         
@@ -1037,6 +1127,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setInterval(fetchAndRenderAirQuality, 5 * 60 * 1000);
         setInterval(fetchAndRenderPrecipitationData, 5 * 60 * 1000);
         setInterval(fetchAndRenderWazeData, 2 * 60 * 1000); 
+        setInterval(fetchAndRenderHydroSlide, 5 * 60 * 1000);
     }
 
     // --- Lógica para escuchar cambios desde otras pestañas ---
