@@ -397,7 +397,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const response = await fetch(UPLOAD_IMAGE_API_URL, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${token}` // <-- AÑADIDO
+                'Authorization': `Bearer ${token}` 
             },
             body: formData
             })
@@ -637,7 +637,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!confirm(`¿Estás seguro de que quieres eliminar al usuario con ID ${id}?`)) return;
 
         try {
-            const response = await fetch('/api/users/delete', { // Endpoint que debemos crear en el servidor
+            const response = await fetch('/api/users/delete', { 
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',

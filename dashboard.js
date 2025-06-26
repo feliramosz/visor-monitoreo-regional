@@ -67,8 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let centralCarouselInterval;
     let currentCentralSlide = 0;
     const centralSlideDuration = 15000; // 15 segundos por slide
-    
-    // REEMPLAZA LA FUNCIÓN ANTIGUA POR ESTA VERSIÓN
+        
     function setupCentralContent(data) {
         const container = document.getElementById('central-carousel-container');
         if (!container) return;
@@ -110,8 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             container.innerHTML = slides.join('');
-            
-            // Buscamos los elementos DESPUÉS de crearlos
+                        
             const alertasContainer = document.getElementById('alertas-list-container');
             const avisosContainer = document.getElementById('avisos-list-container');
             const avisosTitle = container.querySelector('#panel-avisos .dynamic-title');
@@ -138,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div id="avisos-carousel-controls" style="display: none;"></div>
                 </div>`;
             
-            // Buscamos los elementos DESPUÉS de crearlos
+            
             const alertasContainer = document.getElementById('alertas-list-container');
             const avisosContainer = document.getElementById('avisos-list-container');
             const avisosTitle = container.querySelector('#panel-avisos .dynamic-title');
@@ -188,8 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
         digits.forEach((digit, i) => { if(digit.textContent !== timeDigits[i]) digit.textContent = timeDigits[i]; });
     }
 
-    // Lógica de Renderizado de Paneles
-    // En dashboard.js, reemplaza la función fetchAndRenderWeather entera por esta:
+    // Lógica de Renderizado de Paneles    
     async function fetchAndRenderWeather() {
         const weatherBannerContainer = document.getElementById('weather-banner-container');
         try {
@@ -264,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 novedadesContent.textContent = 'No hay novedades para mostrar.';
             }
 
-            // --- NUEVA LÓGICA: Guardar estado de pasos fronterizos ---
+            // --- LÓGICA: Guardar estado de pasos fronterizos ---
             if (data.estado_pasos_fronterizos && data.estado_pasos_fronterizos.length > 0) {
                 data.estado_pasos_fronterizos.forEach(paso => {
                     // Usamos el nombre del paso como clave para fácil acceso
@@ -279,15 +276,14 @@ document.addEventListener('DOMContentLoaded', () => {
             //renderAlertasList(alertasListContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
             //setupAvisosCarousel(data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
 
-            //Nueva funcion para gestionar contenedor central
+            //funcion para gestionar contenedor central
             setupCentralContent(data);
 
         } catch (error) { console.error("Error al cargar datos principales:", error); }
     }
     
     function renderAlertasList(container, items, noItemsText) {
-        if (items && items.length > 0) {
-            // --- INICIO DE CÓDIGO AÑADIDO ---
+        if (items && items.length > 0) {         
 
             // 1. Definimos el orden de prioridad. Menor número = mayor prioridad.
             const priorityOrder = {
@@ -311,8 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 return scoreA - scoreB;
             });
-
-            // --- FIN DE CÓDIGO AÑADIDO ---
+  
 
             const listHtml = items.map(item => {
                 let itemClass = '';
