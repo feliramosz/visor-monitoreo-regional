@@ -319,6 +319,43 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Error al cargar datos principales:", error); }
     }
 
+    //Funcion para botones de panel avisos/alertas/alarmas
+    function prevAvisoPage() {
+        if (avisoPages.length <= 1) return;
+        currentAvisoPage = (currentAvisoPage - 1 + avisoPages.length) % avisoPages.length;
+        showAvisoPage(currentAvisoPage);
+    }
+
+    function nextAvisoPage() {
+        if (avisoPages.length <= 1) return;
+        currentAvisoPage = (currentAvisoPage + 1) % avisoPages.length;
+        showAvisoPage(currentAvisoPage);
+    }
+
+    function toggleAvisoPausePlay() {
+        isAvisoCarouselPaused = !isAvisoCarouselPaused;
+        const btn = document.getElementById('aviso-pause-play-btn');
+        if (!btn) return;
+
+        if (isAvisoCarouselPaused) {
+            clearInterval(avisosCarouselInterval);
+            btn.textContent = '▶';
+            btn.classList.add('paused');
+        } else {
+            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
+            btn.textContent = '||';
+            btn.classList.remove('paused');
+        }
+    }
+
+    function resetAvisoInterval() {
+        // Si el carrusel no está pausado, lo reiniciamos para que el tiempo empiece de cero
+        if (!isAvisoCarouselPaused) {
+            clearInterval(avisosCarouselInterval);
+            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
+        }
+    }
+
     //Funcion de carrusel columna derecha (novedades y waze)
     function setupRightColumnCarousel(data) {
         const container = document.getElementById('right-column-carousel-container');
@@ -437,10 +474,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Sistema de Carrusel de Avisos ---
     function setupAvisosCarousel(container, titleContainer, controlsContainer, items, noItemsText) {
-        if (!container || !titleContainer || !controlsContainer) return; // Verificación de seguridad
-        
+        if (!container || !titleContainer || !controlsContainer) return 0;
+
         clearInterval(avisosCarouselInterval);
+        isAvisoCarouselPaused = false;
         const groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
+
         if (items && items.length > 0) {
             items.forEach(item => {
                 const titleText = item.aviso_alerta_alarma.toLowerCase();
@@ -468,18 +507,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             currentAvisoPage = 0;
             showAvisoPage(currentAvisoPage);
-            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
+            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);            
+            
             controlsContainer.style.display = 'flex';
+            // Creamos los botones que faltaban
+            controlsContainer.innerHTML = `
+                <button id="aviso-prev-btn" title="Anterior">&lt;</button>
+                <button id="aviso-pause-play-btn" title="Pausar/Reanudar">||</button>
+                <button id="aviso-next-btn" title="Siguiente">&gt;</button>
+            `;
+            
         } else if (avisoPages.length === 1) {
             const page = avisoPages[0];
             const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
             container.innerHTML = `<ul class="dashboard-list">${listItemsHtml}</ul>`;
             checkAndApplyVerticalScroll(container);
             titleContainer.querySelector(`span[data-title-key="${page.key}"]`).classList.add('active-title');
+            controlsContainer.innerHTML = ''; // Limpiamos por si había botones
             controlsContainer.style.display = 'none';
         } else {
             container.innerHTML = noItemsText;
             titleContainer.querySelectorAll('span').forEach(span => span.classList.remove('active-title'));
+            controlsContainer.innerHTML = ''; // Limpiamos por si había botones
             controlsContainer.style.display = 'none';
         }
         return avisoPages.length;
@@ -704,6 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container || !controls) return;
 
         clearInterval(wazeCarouselInterval);
+        isWazeCarouselPaused = false; // Reiniciar estado de pausa
 
         try {
             const response = await fetch('/api/waze');
@@ -712,10 +762,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (accidents.error) throw new Error(accidents.error);
             
             if (accidents.length === 0) {
-                // Añadimos la clase 'checkmark-icon' al span
                 container.innerHTML = '<p class="no-waze-incidents"><span class="checkmark-icon">✅</span> No hay accidentes reportados en este momento.</p>';
+                controls.innerHTML = ''; // Limpiar controles
                 controls.style.display = 'none';
-            return;
+                return;
             }
 
             accidents.sort((a, b) => b.pubMillis - a.pubMillis);
@@ -731,21 +781,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 let listItemsHtml = page.map(accident => {
                     const street = accident.street || 'Ubicación no especificada';
                     const city = accident.city || 'Comuna no especificada';
-                    
                     const mapLink = (accident.lat && accident.lon)
                         ? `<a href="#" class="waze-map-link" data-lat="${accident.lat}" data-lon="${accident.lon}" title="Ver en Google Maps">📍</a>`
                         : '';
-
                     return `
                         <li class="waze-incident-item">
-                            <div class="waze-incident-header">
-                                ${mapLink}
-                                <span class="waze-street">${street}</span>
-                                <span class="waze-city">Comuna o sector: ${city}</span>
-                            </div>
+                            <div class="waze-incident-header">${mapLink}<span class="waze-street">${street}</span><span class="waze-city">Comuna o sector: ${city}</span></div>
                             <span class="waze-time">Reportado ${formatTimeAgo(accident.pubMillis)}</span>
-                        </li>
-                    `;
+                        </li>`;
                 }).join('');
                 carouselHtml += `<div class="waze-slide" data-page-index="${pageIndex}"><ul class="dashboard-list waze-list">${listItemsHtml}</ul></div>`;
             });
@@ -763,16 +806,24 @@ document.addEventListener('DOMContentLoaded', () => {
             currentWazeSlide = 0;
             showWazeSlide(currentWazeSlide);
 
-            if (wazePages.length > 1) {
+            if (wazePages.length > 1) {                
                 controls.style.display = 'flex';
+                // Creamos los botones de Waze que faltaban
+                controls.innerHTML = `
+                    <button id="waze-prev-btn">&lt;</button>
+                    <button id="waze-pause-play-btn">||</button>
+                    <button id="waze-next-btn">&gt;</button>
+                `;                
                 wazeCarouselInterval = setInterval(nextWazeSlide, wazePageDuration);
             } else {
+                controls.innerHTML = ''; // Limpiar controles
                 controls.style.display = 'none';
             }
 
         } catch (error) {
             console.error("Error al cargar datos de Waze:", error);
             container.innerHTML = '<p style="color:red;">No se pudieron cargar los datos de Waze.</p>';
+            controls.innerHTML = ''; // Limpiar controles
             controls.style.display = 'none';
         }
     }
