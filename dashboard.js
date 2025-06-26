@@ -70,18 +70,21 @@ document.addEventListener('DOMContentLoaded', () => {
     let centralCarouselInterval;
     let currentCentralSlide = 0;
     const centralSlideDuration = 15000; // 15 segundos por slide
+    let imageCarouselInterval;
         
     function setupCentralContent(data) {
         const container = document.getElementById('central-carousel-container');
         if (!container) return;
 
+        // Limpiamos intervalos anteriores para evitar fugas de memoria
         clearInterval(centralCarouselInterval);
-        container.innerHTML = ''; 
+        clearInterval(imageCarouselInterval);
+        container.innerHTML = '';
 
         const useCarousel = data.dashboard_carousel_enabled && data.dynamic_slides && data.dynamic_slides.length > 0;
 
         if (useCarousel) {
-            container.className = ''; 
+            // 1. Construir el HTML de las slides (esto no cambia)
             const slides = [];
             const infoPanelsSlide = `
                 <div class="central-slide active-central-slide">
@@ -112,20 +115,59 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             container.innerHTML = slides.join('');
-                        
+
+            // 2. Renderizar contenido dentro de los paneles
             const alertasContainer = document.getElementById('alertas-list-container');
             const avisosContainer = document.getElementById('avisos-list-container');
             const avisosTitle = container.querySelector('#panel-avisos .dynamic-title');
             const avisosControls = document.getElementById('avisos-carousel-controls');
 
             renderAlertasList(alertasContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
-            setupAvisosCarousel(avisosContainer, avisosTitle, avisosControls, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
+            const numAvisoPages = setupAvisosCarousel(avisosContainer, avisosTitle, avisosControls, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
 
-            currentCentralSlide = 0;
-            centralCarouselInterval = setInterval(nextCentralSlide, centralSlideDuration);
+            const allSlides = container.querySelectorAll('.central-slide');
+            currentCentralSlide = 0; // Asegurarse de empezar en la slide de info
+
+            // 3. Lógica del carrusel inteligente
+            const startImageCarousel = () => {
+                clearInterval(avisosCarouselInterval); // Detener carrusel de avisos
+
+                allSlides[0].classList.remove('active-central-slide'); // Ocultar panel de info
+                currentCentralSlide = 1; // Apuntar a la primera imagen
+                if (currentCentralSlide >= allSlides.length) { // Si no hay imágenes, reiniciar
+                    setupCentralContent(data); 
+                    return;
+                }
+                allSlides[currentCentralSlide].classList.add('active-central-slide');
+
+                // Iniciar un nuevo carrusel solo para las imágenes
+                imageCarouselInterval = setInterval(() => {
+                    allSlides[currentCentralSlide].classList.remove('active-central-slide');
+                    currentCentralSlide++;
+
+                    if (currentCentralSlide >= allSlides.length) {
+                        // Si se mostraron todas las imágenes, se reinicia todo el ciclo
+                        clearInterval(imageCarouselInterval);
+                        setupCentralContent(data); // Llamada recursiva para reiniciar
+                        return;
+                    }
+                    allSlides[currentCentralSlide].classList.add('active-central-slide');
+                }, centralSlideDuration);
+            };
+
+            // 4. Calcular cuánto tiempo debe mostrarse el panel de información
+            // Si hay varias páginas de avisos, esperamos a que terminen su ciclo.
+            // Si no, usamos la duración estándar.
+            const infoPanelDuration = (numAvisoPages > 1) 
+                ? (numAvisoPages * avisoPageDuration) + 500 // Tiempo total del ciclo de avisos + 0.5s de margen
+                : centralSlideDuration;
+
+            // 5. Programar la transición a las imágenes después de ese tiempo
+            setTimeout(startImageCarousel, infoPanelDuration);
 
         } else {
-            container.className = 'static-mode'; 
+            // Lógica para el modo estático (sin carrusel)
+            container.className = 'static-mode';
             container.innerHTML = `
                 <div id="panel-alertas" class="dashboard-panel">
                     <h3>Alertas Vigentes</h3>
@@ -138,27 +180,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div id="avisos-list-container"></div>
                     <div id="avisos-carousel-controls" style="display: none;"></div>
                 </div>`;
-            
-            
+
             const alertasContainer = document.getElementById('alertas-list-container');
             const avisosContainer = document.getElementById('avisos-list-container');
             const avisosTitle = container.querySelector('#panel-avisos .dynamic-title');
             const avisosControls = document.getElementById('avisos-carousel-controls');
-            
+
             renderAlertasList(alertasContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
             setupAvisosCarousel(avisosContainer, avisosTitle, avisosControls, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
         }
     }
-
-    function nextCentralSlide() {
-        const slides = document.querySelectorAll('.central-slide');
-        if (slides.length <= 1) return;
-        
-        slides[currentCentralSlide].classList.remove('active-central-slide');
-        currentCentralSlide = (currentCentralSlide + 1) % slides.length;
-        slides[currentCentralSlide].classList.add('active-central-slide');
-    }    
-    
+  
     // Lógica de Relojes
     async function updateClocks() {
         try {
@@ -450,6 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
             titleContainer.querySelectorAll('span').forEach(span => span.classList.remove('active-title'));
             controlsContainer.style.display = 'none';
         }
+        return avisoPages.length;
     }
 
     function showAvisoPage(index) {        
