@@ -42,9 +42,8 @@ def get_hydrometry_data():
     """
     Obtiene los datos hidrométricos filtrando por los códigos de estación específicos.
     """
-    # URL que filtra por los 3 códigos de estación que nos diste.
-    # El campo en la base de datos de la DGA es "codigo_estacion".
-    DGA_FILTERED_API_URL = "https://ide.mop.gob.cl/arcgis/rest/services/DGA/Visor_Hidrometrico/MapServer/0/query?where=codigo_estacion+IN+%28%2705410002-7%27%2C+%2705410024-8%27%2C+%2705414001-0%27%29&outFields=nombre_estacion,nombre_rio,caudal_m3s,nivel_m,fecha_hora_lectura_dato&outSR=4326&f=json"
+    # URL que filtra por los 3 códigos y ahora pide explícitamente el 'codigo_estacion'
+    DGA_FILTERED_API_URL = "https://ide.mop.gob.cl/arcgis/rest/services/DGA/Visor_Hidrometrico/MapServer/0/query?where=codigo_estacion+IN+%28%2705410002-7%27%2C+%2705410024-8%27%2C+%2705414001-0%27%29&outFields=codigo_estacion,nombre_estacion,nombre_rio,caudal_m3s,nivel_m,fecha_hora_lectura_dato&outSR=4326&f=json"
 
     headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0 (Python)'}
     try:
@@ -58,21 +57,18 @@ def get_hydrometry_data():
                 attributes = feature.get("attributes", {})
                 geometry = feature.get("geometry", {})
 
-                # Convertimos el timestamp a un formato de fecha y hora legible
                 timestamp_ms = attributes.get("fecha_hora_lectura_dato")
                 update_time_str = "No disponible"
                 if timestamp_ms:
-                    # El timestamp está en milisegundos, lo dividimos por 1000 para datetime
                     update_time_dt = datetime.fromtimestamp(timestamp_ms / 1000)
                     update_time_str = update_time_dt.strftime('%d-%m-%Y %H:%M')
 
                 processed_stations.append({
+                    "codigo_estacion": attributes.get("codigo_estacion"), # <-- ESTA ES LA LÍNEA CLAVE AÑADIDA
                     "nombre_estacion": attributes.get("nombre_estacion"),
                     "rio": attributes.get("nombre_rio"),
-                    # Parámetros clave para las alertas
-                    "nivel_m": attributes.get("nivel_m"),         # Altura del agua en metros
-                    "caudal_m3s": attributes.get("caudal_m3s"),   # Caudal en m³/s
-                    # Datos adicionales útiles
+                    "nivel_m": attributes.get("nivel_m"),
+                    "caudal_m3s": attributes.get("caudal_m3s"),
                     "ultima_actualizacion": update_time_str,
                     "lat": geometry.get("y"),
                     "lon": geometry.get("x")

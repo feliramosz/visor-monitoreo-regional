@@ -299,59 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Error al renderizar slide de clima:", error);
             weatherContainer.innerHTML = '<p style="color:white;">Error al cargar datos del clima.</p>';
         }
-    }
-
-
-    /**
-     * Obtiene y renderiza los datos del clima dentro de la slide correspondiente.
-     * @param {object} data - El objeto de datos principal (para el estado de pasos).
-     */
-    async function renderWeatherSlide(data) {
-        const weatherContainer = document.getElementById('weather-slide');
-        if (!weatherContainer) return;
-
-        try {
-            const response = await fetch('/api/weather'); // Usamos la constante global
-            if (!response.ok) throw new Error('Error de red');
-            const weatherData = await response.json();
-
-            // Actualizamos el estado de los pasos fronterizos desde los datos principales
-            const borderPassStatus = {};
-            if (data.estado_pasos_fronterizos) {
-                data.estado_pasos_fronterizos.forEach(paso => {
-                    borderPassStatus[paso.nombre_paso] = paso.condicion;
-                });
-            }
-
-            weatherContainer.innerHTML = weatherData.map(station => {
-                let passStatusText = '';
-                let passStatusWord = '';
-                let statusClass = 'status-no-informado';
-
-                if (station.nombre === 'Los Libertadores, Los Andes') {
-                    const status = borderPassStatus['Los Libertadores'] || 'No informado';
-                    passStatusText = 'Paso: ';
-                    passStatusWord = status;
-                    if (status.toLowerCase().includes('habilitado')) statusClass = 'status-habilitado';
-                    else if (status.toLowerCase().includes('cerrado')) statusClass = 'status-cerrado';
-                }
-
-                return `
-                    <div class="weather-station-box">
-                        <h4>${station.nombre}</h4>
-                        <p><strong>Temp:</strong> ${station.temperatura}°C</p>
-                        <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
-                        <div class="weather-box-footer">
-                            <span class="pass-status">${passStatusText}<span class="${statusClass}">${passStatusWord}</span></span>
-                            <span class="station-update-time">Act: ${station.hora_actualizacion}h</span>
-                        </div>
-                    </div>`;
-            }).join('');
-        } catch (error) {
-            console.error("Error al cargar datos del clima para el banner:", error);
-            weatherContainer.innerHTML = '<p style="color:white;">No se pudieron cargar los datos del clima.</p>';
-        }
-    }
+    }  
 
     async function fetchAndRenderHydroSlide() {
         const hydroContainer = document.getElementById('hydro-slide');
