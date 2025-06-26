@@ -28,7 +28,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevBtn = document.getElementById('map-prev-btn');
     const nextBtn = document.getElementById('map-next-btn');
     
-    // --- Controles del carrusel de AVISOS ---    
+    // --- Controles del carrusel de AVISOS ---
+    const avisoPrevBtn = document.getElementById('aviso-prev-btn');
+    const avisoPausePlayBtn = document.getElementById('aviso-pause-play-btn');
+    const avisoNextBtn = document.getElementById('aviso-next-btn');
     let lastDataTimestamp = 0;
 
     // Estado del carrusel de mapas
@@ -316,43 +319,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Error al cargar datos principales:", error); }
     }
 
-    //Funcion para botones de panel avisos/alertas/alarmas
-    function prevAvisoPage() {
-        if (avisoPages.length <= 1) return;
-        currentAvisoPage = (currentAvisoPage - 1 + avisoPages.length) % avisoPages.length;
-        showAvisoPage(currentAvisoPage);
-    }
-
-    function nextAvisoPage() {
-        if (avisoPages.length <= 1) return;
-        currentAvisoPage = (currentAvisoPage + 1) % avisoPages.length;
-        showAvisoPage(currentAvisoPage);
-    }
-
-    function toggleAvisoPausePlay() {
-        isAvisoCarouselPaused = !isAvisoCarouselPaused;        
-        const btn = document.getElementById('aviso-pause-play-btn');
-        if (!btn) return;
-
-        if (isAvisoCarouselPaused) {
-            clearInterval(avisosCarouselInterval);
-            btn.textContent = '▶';
-            btn.classList.add('paused');
-        } else {
-            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-            btn.textContent = '||';
-            btn.classList.remove('paused');
-        }
-    }
-
-    function resetAvisoInterval() {
-        // Si el carrusel no está pausado, lo reiniciamos para que el tiempo empiece de cero
-        if (!isAvisoCarouselPaused) {
-            clearInterval(avisosCarouselInterval);
-            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-        }
-    }
-
     //Funcion de carrusel columna derecha (novedades y waze)
     function setupRightColumnCarousel(data) {
         const container = document.getElementById('right-column-carousel-container');
@@ -471,12 +437,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Sistema de Carrusel de Avisos ---
     function setupAvisosCarousel(container, titleContainer, controlsContainer, items, noItemsText) {
-        if (!container || !titleContainer || !controlsContainer) return 0;
-
+        if (!container || !titleContainer || !controlsContainer) return; // Verificación de seguridad
+        
         clearInterval(avisosCarouselInterval);
-        isAvisoCarouselPaused = false;
         const groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
-
         if (items && items.length > 0) {
             items.forEach(item => {
                 const titleText = item.aviso_alerta_alarma.toLowerCase();
@@ -505,37 +469,17 @@ document.addEventListener('DOMContentLoaded', () => {
             currentAvisoPage = 0;
             showAvisoPage(currentAvisoPage);
             avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-
             controlsContainer.style.display = 'flex';
-            controlsContainer.innerHTML = `
-                <button id="aviso-prev-btn" title="Anterior"><</button>
-                <button id="aviso-pause-play-btn" title="Pausar/Reanudar">||</button>
-                <button id="aviso-next-btn" title="Siguiente">></button>
-            `;
-            
-            // Asignamos los listeners justo después de crear los botones
-            document.getElementById('aviso-prev-btn').addEventListener('click', () => {
-                prevAvisoPage();
-                resetAvisoInterval();
-            });
-            document.getElementById('aviso-pause-play-btn').addEventListener('click', toggleAvisoPausePlay);
-            document.getElementById('aviso-next-btn').addEventListener('click', () => {
-                nextAvisoPage();
-                resetAvisoInterval();
-            });            
-
         } else if (avisoPages.length === 1) {
             const page = avisoPages[0];
             const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
             container.innerHTML = `<ul class="dashboard-list">${listItemsHtml}</ul>`;
             checkAndApplyVerticalScroll(container);
             titleContainer.querySelector(`span[data-title-key="${page.key}"]`).classList.add('active-title');
-            controlsContainer.innerHTML = '';
             controlsContainer.style.display = 'none';
         } else {
             container.innerHTML = noItemsText;
             titleContainer.querySelectorAll('span').forEach(span => span.classList.remove('active-title'));
-            controlsContainer.innerHTML = '';
             controlsContainer.style.display = 'none';
         }
         return avisoPages.length;
@@ -640,20 +584,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function toggleWazePausePlay() {
-    isWazeCarouselPaused = !isWazeCarouselPaused;   
-    const btn = document.getElementById('waze-pause-play-btn');
-    if (!btn) return;
-
-    if (isWazeCarouselPaused) {
-        clearInterval(wazeCarouselInterval);
-        btn.textContent = '▶';
-        btn.classList.add('paused');
-    } else {
-        wazeCarouselInterval = setInterval(nextWazeSlide, wazePageDuration);
-        btn.textContent = '||';
-        btn.classList.remove('paused');
+        isWazeCarouselPaused = !isWazeCarouselPaused;
+        const btn = document.getElementById('waze-pause-play-btn');
+        if (isWazeCarouselPaused) {
+            clearInterval(wazeCarouselInterval);
+            btn.textContent = '▶';
+            btn.classList.add('paused');
+        } else {
+            wazeCarouselInterval = setInterval(nextWazeSlide, wazePageDuration);
+            btn.textContent = '||';
+            btn.classList.remove('paused');
+        }
     }
-}
 
     function resetWazeInterval() {
         if (!isWazeCarouselPaused) {
@@ -762,19 +704,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container || !controls) return;
 
         clearInterval(wazeCarouselInterval);
-        isWazeCarouselPaused = false;
 
         try {
             const response = await fetch('/api/waze');
             const accidents = await response.json();
 
             if (accidents.error) throw new Error(accidents.error);
-
+            
             if (accidents.length === 0) {
+                // Añadimos la clase 'checkmark-icon' al span
                 container.innerHTML = '<p class="no-waze-incidents"><span class="checkmark-icon">✅</span> No hay accidentes reportados en este momento.</p>';
-                controls.innerHTML = '';
                 controls.style.display = 'none';
-                return;
+            return;
             }
 
             accidents.sort((a, b) => b.pubMillis - a.pubMillis);
@@ -790,19 +731,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 let listItemsHtml = page.map(accident => {
                     const street = accident.street || 'Ubicación no especificada';
                     const city = accident.city || 'Comuna no especificada';
+                    
                     const mapLink = (accident.lat && accident.lon)
                         ? `<a href="#" class="waze-map-link" data-lat="${accident.lat}" data-lon="${accident.lon}" title="Ver en Google Maps">📍</a>`
                         : '';
+
                     return `
                         <li class="waze-incident-item">
-                            <div class="waze-incident-header">${mapLink}<span class="waze-street">${street}</span><span class="waze-city">Comuna o sector: ${city}</span></div>
+                            <div class="waze-incident-header">
+                                ${mapLink}
+                                <span class="waze-street">${street}</span>
+                                <span class="waze-city">Comuna o sector: ${city}</span>
+                            </div>
                             <span class="waze-time">Reportado ${formatTimeAgo(accident.pubMillis)}</span>
-                        </li>`;
+                        </li>
+                    `;
                 }).join('');
                 carouselHtml += `<div class="waze-slide" data-page-index="${pageIndex}"><ul class="dashboard-list waze-list">${listItemsHtml}</ul></div>`;
             });
             container.innerHTML = carouselHtml;
-
+            
             document.querySelectorAll('.waze-map-link').forEach(link => {
                 link.addEventListener('click', (event) => {
                     event.preventDefault(); 
@@ -817,33 +765,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (wazePages.length > 1) {
                 controls.style.display = 'flex';
-                controls.innerHTML = `
-                    <button id="waze-prev-btn" title="Anterior"><</button>
-                    <button id="waze-pause-play-btn" title="Pausar/Reanudar">||</button>
-                    <button id="waze-next-btn" title="Siguiente">></button>
-                `;
                 wazeCarouselInterval = setInterval(nextWazeSlide, wazePageDuration);
-                
-                // Asignamos los listeners justo después de crear los botones
-                document.getElementById('waze-prev-btn').addEventListener('click', () => {
-                    prevWazeSlide();
-                    resetWazeInterval();
-                });
-                document.getElementById('waze-pause-play-btn').addEventListener('click', toggleWazePausePlay);
-                document.getElementById('waze-next-btn').addEventListener('click', () => {
-                    nextWazeSlide();
-                    resetWazeInterval();
-                });                
-
             } else {
-                controls.innerHTML = '';
                 controls.style.display = 'none';
             }
 
         } catch (error) {
             console.error("Error al cargar datos de Waze:", error);
             container.innerHTML = '<p style="color:red;">No se pudieron cargar los datos de Waze.</p>';
-            controls.innerHTML = '';
             controls.style.display = 'none';
         }
     }
@@ -896,16 +825,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function prevMapSlide() { showMapSlide((currentMapSlide - 1 + mapSlides.length) % mapSlides.length); }
 
     function toggleMapPausePlay() {
-        isMapCarouselPaused = !isMapCarouselPaused;        
-        if (!pausePlayBtn) return;
-
+        isMapCarouselPaused = !isMapCarouselPaused;
         if (isMapCarouselPaused) {
             clearInterval(mapCarouselInterval);
-            pausePlayBtn.textContent = '▶';
+            pausePlayBtn.textContent = 'Reanudar';
             pausePlayBtn.classList.add('paused');
         } else {
             mapCarouselInterval = setInterval(nextMapSlide, mapSlideDuration);
-            pausePlayBtn.textContent = '||';
+            pausePlayBtn.textContent = 'Pausar';
             pausePlayBtn.classList.remove('paused');
         }
     }
@@ -923,7 +850,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Listeners para carrusel de MAPAS
         pausePlayBtn.addEventListener('click', toggleMapPausePlay);
         nextBtn.addEventListener('click', nextMapSlide);
-        prevBtn.addEventListener('click', prevMapSlide);  
+        prevBtn.addEventListener('click', prevMapSlide);
+        
+        // Listeners para carrusel de AVISOS
+        avisoNextBtn.addEventListener('click', () => { nextAvisoPage(); resetAvisoInterval(); });
+        avisoPrevBtn.addEventListener('click', () => { prevAvisoPage(); resetAvisoInterval(); });
+        avisoPausePlayBtn.addEventListener('click', toggleAvisoPausePlay);
+
+        // Listeners para carrusel de WAZE (NUEVO)
+        document.getElementById('waze-next-btn').addEventListener('click', () => { nextWazeSlide(); resetWazeInterval(); });
+        document.getElementById('waze-prev-btn').addEventListener('click', () => { prevWazeSlide(); resetWazeInterval(); });
+        document.getElementById('waze-pause-play-btn').addEventListener('click', toggleWazePausePlay);
 
         // Intervalos de actualización de datos
         setInterval(fetchAndRenderMainData, 60 * 1000);
