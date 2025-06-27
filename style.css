@@ -1816,9 +1816,9 @@ img, table {
     align-items: stretch;
     gap: 15px;
     width: 100%;
-    min-height: 200px;
-    max-height: 200px; /* Ajusta según tu preferencia */
-    height: 200px;     /* Fija la altura para evitar saltos */
+    min-height: 180px;
+    max-height: 180px; /* Ajusta según tu preferencia */
+    height: 180px;     /* Fija la altura para evitar saltos */
     box-sizing: border-box;
     padding: 10px;
     overflow: hidden;
@@ -1828,7 +1828,7 @@ img, table {
     flex: 1 1 0;
     min-width: 220px;
     max-width: 2200px;
-    max-height: 2000px; /* Limita la altura de la tarjeta */
+    max-height: 1800px; /* Limita la altura de la tarjeta */
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
