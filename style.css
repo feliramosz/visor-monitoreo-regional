@@ -1811,43 +1811,43 @@ img, table {
 /* --- Estilos para la Slide de Hidrometría --- */
 #hydro-slide {
     display: flex;
-    flex-direction: row;
     justify-content: space-around;
-    align-items: stretch; /* Clave para igualar alturas */
+    align-items: stretch; /* Clave para que todas las tarjetas tengan la misma altura */
     gap: 15px;
-    width: 100%;
-    min-height: 160px; /* Altura que definiste */
-    height: 160px;     /* Altura que definiste */
-    box-sizing: border-box;
     padding: 10px;
-    overflow: hidden;
+    box-sizing: border-box;
+    /* Usamos la altura que definiste para que sea consistente */
+    min-height: 160px;
+    height: 160px;
 }
 
 .hydro-station-card {
     background-color: #f9f9f9;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 8px;
+    padding: 10px;
     color: #333;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     display: flex;
     flex-direction: column;
-    flex: 1; /* Permite que las tarjetas crezcan para ocupar el espacio */
+    flex: 1;
+    min-width: 250px; /* Ancho mínimo */
 }
 
 .hydro-station-card h4 {
     margin: 0 0 5px 0;
-    font-size: 1em;
+    font-size: 1.05em;
     color: #004d99;
     font-weight: bold;
     text-align: center;
-    height: 40px; /* Altura fija para el título */
+    /* Forzamos la altura del título para que sea igual en todas las tarjetas */
+    height: 40px;
+    line-height: 20px; /* Permite hasta 2 líneas de texto */
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-/* Contenedor para los dos velocímetros */
 .gauges-container {
     display: flex;
     flex-grow: 1;
@@ -1856,88 +1856,89 @@ img, table {
     gap: 10px;
 }
 
-/* Contenedor para un velocímetro y sus etiquetas */
 .gauge-unit {
-    display: flex;
-    flex-direction: column;
+    display: grid; /* Usamos grid para un control preciso de la posición */
+    grid-template-areas:
+        "label-l title label-r"
+        "gauge gauge gauge"
+        "value value value";
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
+    justify-items: center;
     width: 50%;
 }
 
 .gauge-label {
+    grid-area: title;
     font-size: 0.8em;
     font-weight: bold;
-    margin-bottom: -5px; /* Acerca el título al velocímetro */
-    z-index: 5;
+    margin-bottom: 2px;
 }
 
-/* El velocímetro en sí */
+/* Contenedor del velocímetro */
 .gauge-wrapper {
-    width: 120px;
-    height: 60px; /* Mitad del ancho para un semicírculo perfecto */
+    grid-area: gauge;
+    width: 100px;
+    height: 50px;
     position: relative;
-    overflow: hidden; /* Corta el círculo para hacerlo un semicírculo */
+    overflow: hidden;
 }
 
-/* Los arcos de color del fondo */
 .gauge-arc {
-    width: 120px;
-    height: 120px;
+    width: 100px;
+    height: 100px;
     border-radius: 50%;
     box-sizing: border-box;
-    border: 15px solid #ddd; /* Grosor del arco */
+    border: 12px solid #ddd;
     position: absolute;
-    border-bottom-color: transparent; /* Hace el semicírculo */
+    border-bottom-color: transparent;
     border-right-color: transparent;
-    transform: rotate(135deg); /* Posición inicial */
+    transform: rotate(135deg);
 }
-
 .gauge-arc.yellow-arc {
     border-color: #ffeb3b;
-    transform: rotate(135deg);
-    /* El clip-path crea las zonas. Este es para la zona amarilla */
     clip-path: polygon(50% 50%, 0% 0%, 50% 0%);
 }
-
 .gauge-arc.red-arc {
     border-color: #f44336;
-    transform: rotate(225deg); /* Rota para la zona roja */
-    /* Este clip-path crea la zona roja */
+    transform: rotate(225deg);
     clip-path: polygon(50% 50%, 0% 0%, 50% 0%);
 }
 
-/* La aguja del velocímetro */
 .gauge-needle {
     width: 2px;
-    height: 45px;
+    height: 38px;
     background-color: #333;
     position: absolute;
     bottom: 0;
-    left: 59px; /* Justo en el centro del wrapper */
+    left: 49px;
     transform-origin: bottom center;
     transition: transform 0.5s ease-out;
     border-radius: 2px 2px 0 0;
     z-index: 10;
 }
 
-/* El valor medido, debajo de la aguja */
 .gauge-current-value {
-    font-size: 1.2em;
+    grid-area: value;
+    font-size: 1.1em;
     font-weight: bold;
     color: #004d99;
-    margin-top: -15px; /* Sube el valor para que quede justo en el centro */
+    margin-top: -12px;
 }
 
-/* Contenedor para las etiquetas de umbral */
-.gauge-threshold-labels {
-    display: flex;
-    justify-content: space-between;
-    width: 130px; /* Un poco más ancho que el velocímetro */
-    font-size: 0.7em;
+/* NUEVOS ESTILOS PARA UMBRALES A LOS LADOS */
+.threshold-label-left {
+    grid-area: label-l;
+    justify-self: start;
+    font-size: 0.75em;
     font-weight: bold;
-    margin-top: 2px;
 }
-
+.threshold-label-right {
+    grid-area: label-r;
+    justify-self: end;
+    font-size: 0.75em;
+    font-weight: bold;
+}
 .threshold-amarillo { color: #b48b00; }
 .threshold-rojo { color: #a42319; }
 

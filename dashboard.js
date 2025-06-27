@@ -306,9 +306,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!hydroContainer) return;
 
         const hydroThresholds = {
-            '05410002-7': { nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.6 } },
-            '05410024-8': { nivel: { amarilla: 2.8, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
-            '05414001-0': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
+            '05410002-7': { nombre: "Rio Aconcagua en Chacabuquito", nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.6 } },
+            '05410024-8': { nombre: "Rio Aconcagua en San Felipe 2", nivel: { amarilla: 2.8, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
+            '05414001-0': { nombre: "Rio Putaendo en Resguardo los Patos", nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
         };
 
         try {
@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (stationsData.error) throw new Error(stationsData.error);
 
             hydroContainer.innerHTML = Object.keys(hydroThresholds).map(stationCode => {
-                const station = stationsData.find(s => s.codigo_estacion === stationCode) || { ultima_actualizacion: 'no reportado' };
+                const station = stationsData.find(s => s.codigo_estacion === stationCode) || { ultima_actualizacion: 'no reportado', nombre_estacion: hydroThresholds[stationCode].nombre };
                 const thresholds = hydroThresholds[stationCode];
 
                 const hasData = station.ultima_actualizacion !== "no reportado";
@@ -326,11 +326,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const getGaugeData = (value, threshold) => {
                     const currentValue = (value !== null) ? parseFloat(value) : 0;
-                    // La aguja rota de -90deg (izquierda) a +90deg (derecha), un arco de 180 grados
-                    const percentage = Math.min((currentValue / threshold.roja) * 100, 100);
-                    const rotation = -90 + (percentage * 1.8);
+                    const rotation = -90 + (Math.min((currentValue / threshold.roja), 1) * 180);
                     return {
-                        value: currentValue.toFixed(2),
+                        value: currentValue.toFixed(2), // Siempre mostramos un valor, "0.00" si no hay dato
                         rotation: rotation,
                         amarilla: threshold.amarilla.toFixed(2),
                         roja: threshold.roja.toFixed(2)
@@ -342,36 +340,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 return `
                     <div class="hydro-station-card">
-                        <h4>${station.nombre_estacion || hydroThresholds[stationCode].nombre_estacion}</h4>
+                        <h4>${station.nombre_estacion}</h4>
                         <div class="gauges-container">
                             <div class="gauge-unit">
                                 <p class="gauge-label">Altura (m)</p>
+                                <div class="threshold-label-left">
+                                    <span class="threshold-amarillo">A: ${nivelGauge.amarilla}</span>
+                                </div>
                                 <div class="gauge-wrapper">
                                     <div class="gauge-arc" style="border-color: #4caf50;"></div>
                                     <div class="gauge-arc yellow-arc"></div>
                                     <div class="gauge-arc red-arc"></div>
                                     <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"></div>
                                 </div>
-                                <p class="gauge-current-value">${nivelGauge.value}</p>
-                                <div class="gauge-threshold-labels">
-                                    <span class="threshold-amarillo">A: ${nivelGauge.amarilla}</span>
+                                <div class="threshold-label-right">
                                     <span class="threshold-rojo">R: ${nivelGauge.roja}</span>
                                 </div>
+                                <p class="gauge-current-value">${nivelGauge.value}</p>
                             </div>
 
                             <div class="gauge-unit">
                                 <p class="gauge-label">Caudal (m³/s)</p>
+                                <div class="threshold-label-left">
+                                    <span class="threshold-amarillo">A: ${caudalGauge.amarilla}</span>
+                                </div>
                                 <div class="gauge-wrapper">
                                     <div class="gauge-arc" style="border-color: #4caf50;"></div>
                                     <div class="gauge-arc yellow-arc"></div>
                                     <div class="gauge-arc red-arc"></div>
                                     <div class="gauge-needle" style="transform: rotate(${caudalGauge.rotation}deg);"></div>
                                 </div>
-                                <p class="gauge-current-value">${caudalGauge.value}</p>
-                                <div class="gauge-threshold-labels">
-                                    <span class="threshold-amarillo">A: ${caudalGauge.amarilla}</span>
+                                <div class="threshold-label-right">
                                     <span class="threshold-rojo">R: ${caudalGauge.roja}</span>
                                 </div>
+                                <p class="gauge-current-value">${caudalGauge.value}</p>
                             </div>
                         </div>
                         <div class="card-footer">
