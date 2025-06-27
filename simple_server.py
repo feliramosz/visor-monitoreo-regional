@@ -41,72 +41,69 @@ NTP_SERVER = 'ntp.shoa.cl'
 def get_hydrometry_data():
     """
     Obtiene los datos hidrométricos desde la API del SNIA.
+    Esta versión SIEMPRE devuelve un registro por cada estación solicitada,
+    incluso si la API no retorna datos para ella.
     """
-    STATION_CODES = ['05410002-7', '05410024-8', '05414001-0']
+    STATION_CODES = {
+        '05410002-7': 'Rio Aconcagua en Chacabuquito',
+        '05410024-8': 'Rio Aconcagua en San Felipe 2',
+        '05414001-0': 'Rio Putaendo en Resguardo los Patos'
+    }
     API_BASE_URL = "https://datos.snia.mop.gob.cl/dga/rest/datos/"
     
     headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0 (Python)'}
     processed_stations = []
 
-    for code in STATION_CODES:
+    for code, default_name in STATION_CODES.items():
         try:
             response = requests.get(f"{API_BASE_URL}{code}", headers=headers, timeout=15)
-            # Incluso si la respuesta es un array vacío, no es un error de servidor, así que no usamos raise_for_status
-            if response.status_code != 200:
-                print(f"Advertencia: La API de SNIA devolvió un estado {response.status_code} para la estación {code}")
-                continue
+            
+            # Si la estación no existe en la API o no hay datos, la respuesta estará vacía
+            station_data_list = response.json() if response.status_code == 200 and response.content else []
 
-            station_data_list = response.json()
+            if station_data_list:
+                latest_data = station_data_list[0]
+                nivel_m = None
+                caudal_m3s = None
 
-            # Aunque la llamada sea exitosa, la lista de datos puede estar vacía
-            if not station_data_list:
-                print(f"Advertencia: No se recibieron datos en la respuesta para la estación {code}")
-                # Agregamos la estación con datos por defecto para que no quede en blanco
+                for parametro in latest_data.get("parametros", []):
+                    if parametro.get("nombre") == "Caudal":
+                        caudal_m3s = parametro.get("valor")
+                    elif parametro.get("nombre") == "Nivel del agua":
+                        nivel_m = parametro.get("valor")
+
+                timestamp_ms = latest_data.get("fecha")
+                update_time_str = "Sin Fecha"
+                if timestamp_ms:
+                    update_time_dt = datetime.fromtimestamp(timestamp_ms / 1000)
+                    update_time_str = update_time_dt.strftime('%d-%m-%Y %H:%M')
+
                 processed_stations.append({
-                    "codigo_estacion": code, "nombre_estacion": f"Estación {code}", "rio": "N/A",
-                    "nivel_m": 0, "caudal_m3s": 0, "ultima_actualizacion": "Sin datos recientes",
-                    "lat": None, "lon": None
+                    "codigo_estacion": code,
+                    "nombre_estacion": latest_data.get("nombre_estacion", default_name),
+                    "rio": latest_data.get("fuente", "Río no disponible"),
+                    "nivel_m": nivel_m,
+                    "caudal_m3s": caudal_m3s,
+                    "ultima_actualizacion": update_time_str,
                 })
-                continue
-
-            latest_data = station_data_list[0]
-            
-            # Inicializamos los valores en None o 0
-            nivel_m = 0.0
-            caudal_m3s = 0.0
-
-            # Buscamos los parámetros de forma segura
-            for parametro in latest_data.get("parametros", []):
-                param_nombre = parametro.get("nombre")
-                param_valor = parametro.get("valor")
-                if param_nombre == "Caudal" and param_valor is not None:
-                    caudal_m3s = float(param_valor)
-                elif param_nombre == "Nivel del agua" and param_valor is not None:
-                    nivel_m = float(param_valor)
-            
-
-            timestamp_ms = latest_data.get("fecha")
-            update_time_str = "No disponible"
-            if timestamp_ms:
-                update_time_dt = datetime.fromtimestamp(timestamp_ms / 1000)
-                update_time_str = update_time_dt.strftime('%d-%m-%Y %H:%M')
-
-            processed_stations.append({
-                "codigo_estacion": code,
-                "nombre_estacion": latest_data.get("nombre_estacion", f"Estación {code}"),
-                "rio": latest_data.get("fuente", "Río no disponible"),
-                "nivel_m": nivel_m,
-                "caudal_m3s": caudal_m3s,
-                "ultima_actualizacion": update_time_str,
-                "lat": latest_data.get("latitud"),
-                "lon": latest_data.get("longitud")
-            })
+            else:
+                # Si la API no devolvió datos, creamos un registro "placeholder"
+                print(f"INFO: No se encontraron datos para la estación {code}. Se usará un marcador de posición.")
+                processed_stations.append({
+                    "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A",
+                    "nivel_m": None, "caudal_m3s": None, 
+                    "ultima_actualizacion": "Sin datos"
+                })
 
         except requests.exceptions.RequestException as e:
-            print(f"Error de conexión al contactar la API de SNIA para la estación {code}: {e}")
-            continue
+            print(f"Error de conexión para la estación {code}: {e}")
+            processed_stations.append({
+                "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A",
+                "nivel_m": None, "caudal_m3s": None,
+                "ultima_actualizacion": "Error de conexión"
+            })
         except Exception as e:
-            print(f"Error procesando datos de SNIA para la estación {code}: {e}")
+            print(f"Error procesando la estación {code}: {e}")
             continue
 
     return processed_stations

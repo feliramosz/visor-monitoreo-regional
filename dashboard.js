@@ -305,57 +305,53 @@ document.addEventListener('DOMContentLoaded', () => {
         const hydroContainer = document.getElementById('hydro-slide');
         if (!hydroContainer) return;
 
-        // Definimos los umbrales de alerta para cada estación por su código
         const hydroThresholds = {
-            '05410002-7': { // Rio Aconcagua en Chacabuquito
-                nivel: { amarilla: 2.28, roja: 2.53 },
-                caudal: { amarilla: 155.13, roja: 193.6 }
-            },
-            '05410024-8': { // Rio Aconcagua en San Felipe 2
-                nivel: { amarilla: 2.8, roja: 3.15 },
-                caudal: { amarilla: 174.37, roja: 217.63 }
-            },
-            '05414001-0': { // Rio Putaendo en Resguardo los Patos
-                nivel: { amarilla: 1.16, roja: 1.25 },
-                caudal: { amarilla: 66.79, roja: 80.16 }
-            }
+            '05410002-7': { nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.6 } },
+            '05410024-8': { nivel: { amarilla: 2.8, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
+            '05414001-0': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
         };
 
         try {
             const response = await fetch('/api/hidrometria');
-            if (!response.ok) throw new Error("Error al obtener datos hidrométricos");
             const stationsData = await response.json();
 
             if (stationsData.error || stationsData.length === 0) {
-                hydroContainer.innerHTML = '<p style="color:white;">Datos hidrométricos no disponibles en este momento.</p>';
+                hydroContainer.innerHTML = '<p style="color:white;">No hay datos hidrométricos disponibles para mostrar.</p>';
                 return;
             }
 
-            let cardsHtml = '';
-            const stationOrder = ['05410002-7', '05410024-8', '05414001-0'];
-
-            for (const stationCode of stationOrder) {
-                // Buscamos la estación por su código para asegurar el orden
-                const station = stationsData.find(s => s.codigo_estacion === stationCode);
-                if (!station) continue;
-
+            hydroContainer.innerHTML = stationsData.map(station => {
+                const stationCode = station.codigo_estacion;
                 const thresholds = hydroThresholds[stationCode];
-                
+                if (!thresholds) return ''; // Si no hay umbrales para esta estación, no la dibujamos
+
                 // --- Lógica para Nivel (altura) ---
-                const nivelActual = station.nivel_m || 0;
+                const nivelActual = (station.nivel_m !== null) ? parseFloat(station.nivel_m) : null;
                 let nivelStatus = 'status-normal';
-                if (nivelActual >= thresholds.nivel.roja) nivelStatus = 'status-roja';
-                else if (nivelActual >= thresholds.nivel.amarilla) nivelStatus = 'status-amarilla';
-                const nivelAgujaPos = Math.min((nivelActual / thresholds.nivel.roja) * 100, 100);
+                let nivelAgujaPos = 0;
+                let nivelDisplay = 'N/A';
 
+                if (nivelActual !== null) {
+                    if (nivelActual >= thresholds.nivel.roja) nivelStatus = 'status-roja';
+                    else if (nivelActual >= thresholds.nivel.amarilla) nivelStatus = 'status-amarilla';
+                    nivelAgujaPos = Math.min((nivelActual / thresholds.nivel.roja) * 100, 100);
+                    nivelDisplay = nivelActual.toFixed(2);
+                }
+                
                 // --- Lógica para Caudal ---
-                const caudalActual = station.caudal_m3s || 0;
+                const caudalActual = (station.caudal_m3s !== null) ? parseFloat(station.caudal_m3s) : null;
                 let caudalStatus = 'status-normal';
-                if (caudalActual >= thresholds.caudal.roja) caudalStatus = 'status-roja';
-                else if (caudalActual >= thresholds.caudal.amarilla) caudalStatus = 'status-amarilla';
-                const caudalAgujaPos = Math.min((caudalActual / thresholds.caudal.roja) * 100, 100);
+                let caudalAgujaPos = 0;
+                let caudalDisplay = 'N/A';
 
-                cardsHtml += `
+                if (caudalActual !== null) {
+                    if (caudalActual >= thresholds.caudal.roja) caudalStatus = 'status-roja';
+                    else if (caudalActual >= thresholds.caudal.amarilla) caudalStatus = 'status-amarilla';
+                    caudalAgujaPos = Math.min((caudalActual / thresholds.caudal.roja) * 100, 100);
+                    caudalDisplay = caudalActual.toFixed(2);
+                }
+
+                return `
                     <div class="hydro-station-card">
                         <h4>${station.nombre_estacion}</h4>
                         <p class="rio-name">${station.rio}</p>
@@ -363,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="gauge-container">
                             <div class="gauge-label">
                                 <span>Nivel (m)</span>
-                                <span class="gauge-value ${nivelStatus}">${nivelActual.toFixed(2)} / ${thresholds.nivel.roja}</span>
+                                <span class="gauge-value ${nivelStatus}">${nivelDisplay} / ${thresholds.nivel.roja}</span>
                             </div>
                             <div class="gauge-bar">
                                 <div class="gauge-needle" style="left: ${nivelAgujaPos}%;"></div>
@@ -373,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="gauge-container">
                             <div class="gauge-label">
                                 <span>Caudal (m³/s)</span>
-                                <span class="gauge-value ${caudalStatus}">${caudalActual.toFixed(2)} / ${thresholds.caudal.roja}</span>
+                                <span class="gauge-value ${caudalStatus}">${caudalDisplay} / ${thresholds.caudal.roja}</span>
                             </div>
                             <div class="gauge-bar">
                                 <div class="gauge-needle" style="left: ${caudalAgujaPos}%;"></div>
@@ -382,8 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p class="update-time">Últ. act: ${station.ultima_actualizacion}</p>
                     </div>
                 `;
-            }
-            hydroContainer.innerHTML = cardsHtml;
+            }).join('');
 
         } catch (error) {
             console.error("Error al renderizar slide de hidrometría:", error);
@@ -391,48 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /**
-     * Renderiza la slide de Estado de Sistemas (Carreteras, Pasos, Puertos).
-     * @param {object} data - El objeto de datos principal.
-     */
-    function renderStatusSlide(data) {
-        const statusContainer = document.getElementById('status-slide');
-        if (!statusContainer) return;
-
-        const getStatusClass = (text = "") => {
-            const status = text.toLowerCase();
-            if (status.includes('habilitado') || status.includes('normal') || status.includes('abierto')) return 'status-habilitado';
-            if (status.includes('cerrado') || status.includes('suspendido')) return 'status-cerrado';
-            return 'status-no-informado';
-        };
-
-        const statusData = {
-            carreteras: data.estado_carreteras?.[0] || { carretera: "Carreteras", estado: "Sin información" },
-            pasos: data.estado_pasos_fronterizos?.[0] || { nombre_paso: "Paso Fronterizo", condicion: "Sin información" },
-            puertos: data.estado_puertos?.[0] || { puerto: "Puertos", estado_del_puerto: "Sin información" }
-        };
-
-        statusContainer.innerHTML = `
-            <div class="status-slide-content">
-                <div class="status-category">
-                    <h4>Estado de Carreteras</h4>
-                    <p>${statusData.carreteras.carretera}</p>
-                    <p class="${getStatusClass(statusData.carreteras.estado)}">${statusData.carreteras.estado}</p>
-                </div>
-                <div class="status-category">
-                    <h4>Pasos Fronterizos</h4>
-                    <p>${statusData.pasos.nombre_paso}</p>
-                    <p class="${getStatusClass(statusData.pasos.condicion)}">${statusData.pasos.condicion}</p>
-                </div>
-                <div class="status-category">
-                    <h4>Estado de Puertos</h4>
-                    <p>${statusData.puertos.puerto}</p>
-                    <p class="${getStatusClass(statusData.puertos.estado_del_puerto)}">${statusData.puertos.estado_del_puerto}</p>
-                </div>
-            </div>
-        `;
-    }
-    
+    // Lógica de Reloj LED   
     function updateLedClock(clockId, timeString) {
         const clock = document.getElementById(clockId);
         if (!clock) return;
