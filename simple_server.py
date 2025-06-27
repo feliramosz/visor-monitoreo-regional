@@ -40,42 +40,45 @@ NTP_SERVER = 'ntp.shoa.cl'
 
 def get_hydrometry_data():
     """
-    Obtiene los datos hidrométricos desde la nueva API del SNIA.    
-    """    
+    Obtiene los datos hidrométricos desde la nueva API del SNIA.
+    """
     STATION_CODES = {
         '05410002-7': 'Rio Aconcagua en Chacabuquito',
         '05410024-8': 'Rio Aconcagua en San Felipe 2',
         '05414001-0': 'Rio Putaendo en Resguardo los Patos'
     }
     
-    # URL de la nueva API funcional
     API_URL = "https://snia.mop.gob.cl/dga/REH/Ajustes/get_valores_parametros"
     
     headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0 (Python)'}
     processed_stations = []
 
     for code, default_name in STATION_CODES.items():
-        try:            
+        try:
             params = {'cod_estacion': code}
             response = requests.get(API_URL, headers=headers, params=params, timeout=15)
             response.raise_for_status()
             
             station_data_list = response.json()
 
-            if station_data_list:            
-                latest_data = station_data_list[0] 
+            if station_data_list:
+                latest_data = station_data_list[0]
                 
                 nivel_m = None
                 caudal_m3s = None
-                
-                nivel_info = next((p for p in station_data_list if p.get("nombre_param") == "Nivel"), None)
+
+                # **INICIO DE LA CORRECCIÓN**
+                # Buscamos el valor del Nivel usando el nombre correcto "Nivel del agua"
+                nivel_info = next((p for p in station_data_list if p.get("nombre_param") == "Nivel del agua"), None)
+                # **FIN DE LA CORRECCIÓN**
+
                 if nivel_info:
                     nivel_m = nivel_info.get("valor")
-                
+
                 caudal_info = next((p for p in station_data_list if p.get("nombre_param") == "Caudal"), None)
                 if caudal_info:
                     caudal_m3s = caudal_info.get("valor")
-                
+
                 update_time_str = datetime.strptime(latest_data.get("fecha_hora_lectura"), '%Y-%m-%d %H:%M:%S').strftime('%d-%m-%Y %H:%M')
 
                 processed_stations.append({
@@ -86,7 +89,7 @@ def get_hydrometry_data():
                     "caudal_m3s": caudal_m3s,
                     "ultima_actualizacion": update_time_str,
                 })
-            else:                
+            else:
                 print(f"INFO: No se encontraron datos para la estación {code}. Se usará un marcador de posición.")
                 processed_stations.append({
                     "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A",
