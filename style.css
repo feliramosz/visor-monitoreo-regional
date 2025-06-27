@@ -1810,28 +1810,34 @@ img, table {
 
 /* --- Estilos para la Slide de Hidrometría --- */
 #hydro-slide {
-    justify-content: space-around; /* Distribuye las tarjetas de estación */
-    gap: 20px;
-    align-items: center;
+    justify-content: space-around;
+    gap: 10px; /* Reducimos el espacio para que quepan mejor */
+    align-items: stretch; /* Hacemos que todas las tarjetas tengan la misma altura */
     display: flex;
+    padding: 10px; /* Añadimos un padding consistente */
+    box-sizing: border-box;
 }
 
 .hydro-station-card {
-    background-color: rgba(0, 42, 85, 0.7);
-    border: 1px solid #5d9dff;
-    border-radius: 8px;
+    /* Colores y tamaño consistentes con las tarjetas del clima */
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-top: 3px solid #0051ff;
+    border-bottom: 3px solid #0051ff;
+    border-radius: 5px;
     padding: 10px 15px;
-    width: 30%;
-    min-width: 350px;
+    width: 32%; /* Ajustamos el ancho */
     text-align: center;
-    color: white;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    color: #333; /* Color de texto principal oscuro */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column; /* Organiza el contenido internamente */
 }
 
 .hydro-station-card h4 {
     margin: 0 0 5px 0;
     font-size: 1.1em;
-    color: #aaeaff;
+    color: #004d99; /* Título en azul oscuro */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1839,7 +1845,7 @@ img, table {
 
 .hydro-station-card .rio-name {
     font-style: italic;
-    color: #ccc;
+    color: #666; /* Color de texto secundario más oscuro */
     margin-bottom: 15px;
     font-size: 0.9em;
 }
@@ -1854,20 +1860,32 @@ img, table {
     font-size: 0.9em;
     margin-bottom: 5px;
     font-weight: bold;
+    color: #333;
 }
 
-.gauge-value.status-normal { color: #fff; }
-.gauge-value.status-amarilla { color: #ffeb3b; font-weight: bold; animation: pulse-yellow 2s infinite; }
-.gauge-value.status-roja { color: #ff8c8c; font-weight: bold; animation: pulse-red 1.5s infinite; }
+/* Los colores de alerta se mantienen para los valores numéricos */
+.gauge-value.status-normal { color: #333; }
+.gauge-value.status-amarilla { color: #c88c00; font-weight: bold; animation: pulse-yellow 2s infinite; }
+.gauge-value.status-roja { color: #dc3545; font-weight: bold; animation: pulse-red 1.5s infinite; }
 
 .gauge-bar {
     width: 100%;
     height: 20px;
-    background: linear-gradient(to right, #2e7d32 70%, #ffc107 90%, #d32f2f 100%);
     border-radius: 5px;
-    border: 1px solid #fff;
+    border: 1px solid #ccc;
     position: relative;
     overflow: hidden;
+    /* --- INICIO DE LA CORRECCIÓN CLAVE --- */
+    /* Usamos un degradado con colores sólidos y porcentajes definidos */
+    background: linear-gradient(to right, 
+        #4caf50 0%,   /* Verde (Normal) hasta el 70% */
+        #4caf50 70%, 
+        #ffeb3b 70%,  /* Amarillo (Alerta Amarilla) del 70% al 90% */
+        #ffeb3b 90%, 
+        #f44336 90%,  /* Rojo (Alerta Roja) del 90% al 100% */
+        #f44336 100%
+    );
+    /* --- FIN DE LA CORRECCIÓN CLAVE --- */
 }
 
 .gauge-needle {
@@ -1875,29 +1893,32 @@ img, table {
     top: -5px;
     bottom: -5px;
     width: 4px;
-    background-color: white;
-    border-right: 2px solid black;
+    background-color: #333; /* Aguja más oscura para mejor contraste */
+    border-right: 2px solid white;
     transform-origin: center;
-    transition: left 0.5s ease-out; /* Animación suave para la aguja */
+    transition: left 0.5s ease-out;
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
 }
 
 .update-time {
-    margin-top: 10px;
+    margin-top: auto; /* Empuja este elemento al final de la tarjeta */
+    padding-top: 10px;
+    border-top: 1px solid #eee;
     font-size: 0.8em;
-    color: #ccc;
+    color: #6c757d;
     font-style: italic;
 }
 
-/* Animaciones para alertas */
+/* Las animaciones de pulso para el texto de alerta se mantienen */
 @keyframes pulse-yellow {
-    0% { text-shadow: 0 0 5px rgba(255, 235, 59, 0.5); }
-    50% { text-shadow: 0 0 15px rgba(255, 235, 59, 1); }
-    100% { text-shadow: 0 0 5px rgba(255, 235, 59, 0.5); }
+    0% { text-shadow: 0 0 4px rgba(255, 235, 59, 0.5); }
+    50% { text-shadow: 0 0 10px rgba(255, 235, 59, 1); }
+    100% { text-shadow: 0 0 4px rgba(255, 235, 59, 0.5); }
 }
 @keyframes pulse-red {
-    0% { text-shadow: 0 0 8px rgba(244, 67, 54, 0.7); }
-    50% { text-shadow: 0 0 20px rgba(244, 67, 54, 1); }
-    100% { text-shadow: 0 0 8px rgba(244, 67, 54, 0.7); }
+    0% { text-shadow: 0 0 5px rgba(244, 67, 54, 0.7); }
+    50% { text-shadow: 0 0 15px rgba(244, 67, 54, 1); }
+    100% { text-shadow: 0 0 5px rgba(244, 67, 54, 0.7); }
 }
 
 #weather-banner-container {
