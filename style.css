@@ -1812,7 +1812,7 @@ img, table {
 #hydro-slide {
     justify-content: space-around;
     gap: 15px;
-    align-items: stretch; /* Asegura que todas las tarjetas tengan la misma altura */
+    align-items: stretch; /* Clave para que todas las tarjetas tengan la misma altura */
     display: flex;
     padding: 10px;
     box-sizing: border-box;
@@ -1821,76 +1821,81 @@ img, table {
 .hydro-station-card {
     background-color: #f9f9f9;
     border: 1px solid #e0e0e0;
-    border-top: 3px solid #0051ff;
-    border-bottom: 3px solid #0051ff;
-    border-radius: 5px;
+    border-top: 2px solid #007bff;
+    border-bottom: 2px solid #007bff;
+    border-radius: 8px;
     padding: 10px 15px;
-    width: 32%; /* Más anchas para que quepan los nombres */
     color: #333;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     display: flex;
     flex-direction: column;
-    /* Altura consistente con las tarjetas del clima */
-    min-height: 150px; 
+    /* Hacemos que el ancho sea flexible como las tarjetas del clima */
+    flex: 1;
+    min-width: 250px;
+    max-width: 380px;
 }
 
 .hydro-station-card h4 {
-    margin: 0 0 5px 0;
-    font-size: 1em; /* Un poco más pequeño para nombres largos */
+    margin: 0 0 10px 0;
+    font-size: 1.05em;
     color: #004d99;
-    white-space: normal; /* Permite que el texto se divida en dos líneas si es necesario */
+    font-weight: bold;
     line-height: 1.2;
-    min-height: 2.4em; /* Espacio para dos líneas de texto */
+    min-height: 2.5em; /* Espacio reservado para el título */
     display: flex;
     align-items: center;
     justify-content: center;
+    text-align: center;
 }
 
 .hydro-station-card .rio-name {
-    display: none; /* Ocultamos el nombre del río como solicitaste */
+    display: none; /* Oculto por defecto, se muestra con JS si hay dato */
+    font-style: italic;
+    color: #666;
+    margin-top: -10px;
+    margin-bottom: 10px;
+    font-size: 0.9em;
 }
 
 .gauge-container {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
 .gauge-label {
     display: flex;
     justify-content: space-between;
-    font-size: 0.85em;
+    font-size: 0.9em;
     margin-bottom: 4px;
     font-weight: bold;
 }
 
 .gauge-bar {
     width: 100%;
-    height: 22px; /* Un poco más alta para que quepa el texto */
+    height: 24px;
     border-radius: 5px;
-    border: 1px solid #ccc;
+    border: 1px solid #b0b0b0;
     position: relative;
     overflow: hidden;
-    /* Distribución de colores 25% verde, 50% amarillo, 25% rojo */
     background: linear-gradient(to right, 
         #4caf50 0%, #4caf50 25%, 
-        #ffeb3b 25%, #ffeb3b 75%, 
+        #ffc107 25%, #ffc107 75%, 
         #f44336 75%, #f44336 100%
     );
 }
 
-/* El texto que va DENTRO de la barra */
 .gauge-value-inside {
     position: absolute;
     top: 0;
-    left: 2%; /* Posición inicial */
+    left: 2%;
     height: 100%;
     display: flex;
     align-items: center;
-    font-size: 0.9em;
+    font-size: 0.85em;
     font-weight: bold;
     color: black;
-    text-shadow: 0 0 3px white;
+    text-shadow: 0px 0px 2px white, 0px 0px 4px white;
     white-space: nowrap;
-    transition: left 0.5s ease-out; /* Animación suave */
+    transition: left 0.5s ease-out;
 }
 
 .card-footer {
@@ -1898,8 +1903,9 @@ img, table {
     padding-top: 8px;
     border-top: 1px solid #eee;
     display: flex;
-    justify-content: flex-end; /* Alinea el LED a la derecha */
+    justify-content: flex-end;
     align-items: center;
+    height: 15px; /* Altura fija para el pie de la tarjeta */
 }
 
 /* Nuevo estilo para el LED de estado */

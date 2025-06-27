@@ -325,64 +325,72 @@ document.addEventListener('DOMContentLoaded', () => {
                 const thresholds = hydroThresholds[stationCode];
                 if (!thresholds) return '';
 
-                // --- Lógica para el LED de estado ---
                 const hasData = station.ultima_actualizacion !== "no reportado" && station.ultima_actualizacion !== "Sin datos";
                 const ledClass = hasData ? 'led-green' : 'led-red';
                 
-                // --- Función para crear el texto con guiones ---
                 const createAdvancingText = (value, percentage) => {
-                    if (value === null) return 'N/A';
-                    const numHyphens = Math.floor(percentage / 7); // Ajusta el divisor para más/menos guiones
+                    // Si el valor es nulo o cero, no mostramos nada dentro de la barra
+                    if (value === null || value === 0) return '';
+                    const numHyphens = Math.floor(percentage / 7);
                     const hyphens = '-'.repeat(numHyphens);
                     return `${hyphens} ${value.toFixed(2)}`;
                 };
 
                 // --- Lógica para Nivel (altura) ---
                 const nivelActual = (station.nivel_m !== null) ? parseFloat(station.nivel_m) : null;
-                let nivelStatus = 'status-normal', nivelAgujaPos = 0, nivelDisplayText = 'N/A';
+                let nivelStatus = 'status-normal', nivelAgujaPos = 0, nivelLabelText = 'N/A';
                 if (nivelActual !== null) {
                     if (nivelActual >= thresholds.nivel.roja) nivelStatus = 'status-roja';
                     else if (nivelActual >= thresholds.nivel.amarilla) nivelStatus = 'status-amarilla';
                     nivelAgujaPos = Math.min((nivelActual / thresholds.nivel.roja) * 100, 100);
-                    nivelDisplayText = createAdvancingText(nivelActual, nivelAgujaPos);
+                    // Corregimos la etiqueta para que muestre el valor y el umbral solo si hay dato
+                    nivelLabelText = `${nivelActual.toFixed(2)} / ${thresholds.nivel.roja}`;
                 }
+                const nivelInnerText = createAdvancingText(nivelActual, nivelAgujaPos);
                 
                 // --- Lógica para Caudal ---
                 const caudalActual = (station.caudal_m3s !== null) ? parseFloat(station.caudal_m3s) : null;
-                let caudalStatus = 'status-normal', caudalAgujaPos = 0, caudalDisplayText = 'N/A';
+                let caudalStatus = 'status-normal', caudalAgujaPos = 0, caudalLabelText = 'N/A';
                 if (caudalActual !== null) {
                     if (caudalActual >= thresholds.caudal.roja) caudalStatus = 'status-roja';
                     else if (caudalActual >= thresholds.caudal.amarilla) caudalStatus = 'status-amarilla';
                     caudalAgujaPos = Math.min((caudalActual / thresholds.caudal.roja) * 100, 100);
-                    caudalDisplayText = createAdvancingText(caudalActual, caudalAgujaPos);
+                    caudalLabelText = `${caudalActual.toFixed(2)} / ${thresholds.caudal.roja}`;
                 }
+                const caudalInnerText = createAdvancingText(caudalActual, caudalAgujaPos);
+                
+                // Eliminamos el nombre del río si es N/A
+                const rioNameHtml = (station.rio && station.rio.toLowerCase() !== 'n/a' && station.rio.toLowerCase() !== 'río no disponible') 
+                    ? `<p class="rio-name">${station.rio}</p>` 
+                    : '';
 
                 return `
                     <div class="hydro-station-card">
                         <h4>${station.nombre_estacion}</h4>
+                        ${rioNameHtml}
                         
                         <div class="gauge-container">
                             <div class="gauge-label">
                                 <span>Altura (m)</span>
-                                <span class="gauge-value ${nivelStatus}">${(nivelActual !== null) ? nivelActual.toFixed(2) : 'N/A'} / ${thresholds.nivel.roja}</span>
+                                <span class="gauge-value ${nivelStatus}">${nivelLabelText}</span>
                             </div>
                             <div class="gauge-bar">
-                                <div class="gauge-value-inside" style="left: ${nivelAgujaPos}%;">${nivelDisplayText}</div>
+                                <div class="gauge-value-inside" style="left: ${nivelAgujaPos}%;">${nivelInnerText}</div>
                             </div>
                         </div>
 
                         <div class="gauge-container">
                             <div class="gauge-label">
                                 <span>Caudal (m³/s)</span>
-                                <span class="gauge-value ${caudalStatus}">${(caudalActual !== null) ? caudalActual.toFixed(2) : 'N/A'} / ${thresholds.caudal.roja}</span>
+                                <span class="gauge-value ${caudalStatus}">${caudalLabelText}</span>
                             </div>
                             <div class="gauge-bar">
-                                <div class="gauge-value-inside" style="left: ${caudalAgujaPos}%;">${caudalDisplayText}</div>
+                                <div class="gauge-value-inside" style="left: ${caudalAgujaPos}%;">${caudalInnerText}</div>
                             </div>
                         </div>
 
                         <div class="card-footer">
-                            <div class="status-led ${ledClass}" title="Estado de la conexión: ${station.ultima_actualizacion}"></div>
+                            <div class="status-led ${ledClass}" title="Estado: ${hasData ? 'Reportando' : 'No Reportado'}"></div>
                         </div>
                     </div>
                 `;
