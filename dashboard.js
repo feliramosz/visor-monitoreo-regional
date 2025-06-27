@@ -304,10 +304,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const hydroContainer = document.getElementById('hydro-slide');
         if (!hydroContainer) return;
 
-        const hydroThresholds = {
-            'Rio Aconcagua en Chacabuquito': { nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.6 } },
-            'Rio Aconcagua en San Felipe 2': { nivel: { amarilla: 2.8, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
-            'Rio Putaendo en Resguardo los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
+        const hydroThresholds = {            
+            'Aconcagua en Chacabuquito': { nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.60 } },
+            'Aconcagua San Felipe 2': { nivel: { amarilla: 2.80, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
+            'Putaendo Resguardo Los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
         };
 
         // La clave: leemos los datos del objeto 'data' que ya tenemos, no de una API.
