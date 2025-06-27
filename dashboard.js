@@ -315,58 +315,50 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/hidrometria');
             const stationsData = await response.json();
 
-            if (stationsData.error || stationsData.length === 0) {
-                hydroContainer.innerHTML = '<p style="color:white;">Datos hidrométricos no disponibles.</p>';
-                return;
-            }
+            if (stationsData.error) throw new Error(stationsData.error);
 
-            hydroContainer.innerHTML = stationsData.map(station => {
-                const stationCode = station.codigo_estacion;
+            hydroContainer.innerHTML = Object.keys(hydroThresholds).map(stationCode => {
+                const station = stationsData.find(s => s.codigo_estacion === stationCode) || { ultima_actualizacion: 'no reportado' };
                 const thresholds = hydroThresholds[stationCode];
-                if (!thresholds) return '';
 
                 const hasData = station.ultima_actualizacion !== "no reportado";
                 const ledClass = hasData ? 'led-green' : 'led-red';
                 
                 const createAdvancingText = (value, percentage) => {
-                    if (value === null) return ''; // No mostrar texto si no hay dato
-                    const numHyphens = Math.floor(percentage / 6); // Ajusta para más/menos guiones
+                    const displayValue = (value !== null ? value : 0).toFixed(2);
+                    if (value === null || value === 0) return displayValue; // Muestra "0.00" si no hay dato o es cero
+                    
+                    const numHyphens = Math.floor(percentage / 6);
                     const hyphens = '-'.repeat(numHyphens);
-                    return `${hyphens} ${value.toFixed(2)}`;
+                    return `${hyphens} ${displayValue}`;
                 };
 
                 // --- Lógica para Nivel (altura) ---
                 const nivelActual = (station.nivel_m !== null) ? parseFloat(station.nivel_m) : null;
-                let nivelAgujaPos = 0, nivelInnerText = '';
-                let amarillaNivelPos = 0, rojaNivelPos = 0;
+                let nivelAgujaPos = 0, nivelInnerText = createAdvancingText(nivelActual, 0);
                 if (nivelActual !== null) {
                     nivelAgujaPos = Math.min((nivelActual / thresholds.nivel.roja) * 100, 100);
                     nivelInnerText = createAdvancingText(nivelActual, nivelAgujaPos);
                 }
-                amarillaNivelPos = (thresholds.nivel.amarilla / thresholds.nivel.roja) * 100;
-                rojaNivelPos = 100; // La alerta roja siempre es el 100% de la barra
-
+                
                 // --- Lógica para Caudal ---
                 const caudalActual = (station.caudal_m3s !== null) ? parseFloat(station.caudal_m3s) : null;
-                let caudalAgujaPos = 0, caudalInnerText = '';
-                let amarillaCaudalPos = 0, rojaCaudalPos = 0;
+                let caudalAgujaPos = 0, caudalInnerText = createAdvancingText(caudalActual, 0);
                 if (caudalActual !== null) {
                     caudalAgujaPos = Math.min((caudalActual / thresholds.caudal.roja) * 100, 100);
                     caudalInnerText = createAdvancingText(caudalActual, caudalAgujaPos);
                 }
-                amarillaCaudalPos = (thresholds.caudal.amarilla / thresholds.caudal.roja) * 100;
-                rojaCaudalPos = 100;
-
+                
                 return `
                     <div class="hydro-station-card">
-                        <h4>${station.nombre_estacion}</h4>
+                        <h4>${station.nombre_estacion || hydroThresholds[stationCode].nombre_estacion}</h4>
                         
                         <div class="gauge-container">
                             <div class="gauge-label"><span>Altura (m)</span></div>
                             <div class="gauge-bar">
                                 <div class="gauge-value-inside" style="left: ${nivelAgujaPos}%;">${nivelInnerText}</div>
-                                <div class="gauge-threshold threshold-amarillo" style="left: ${amarillaNivelPos}%;" title="Alerta Amarilla en ${thresholds.nivel.amarilla}m">${thresholds.nivel.amarilla}</div>
-                                <div class="gauge-threshold threshold-rojo" style="left: ${rojaNivelPos}%;" title="Alerta Roja en ${thresholds.nivel.roja}m">${thresholds.nivel.roja}</div>
+                                <div class="gauge-threshold threshold-amarillo" style="left: 62.5%;" title="Umbral Amarillo">${thresholds.nivel.amarilla}</div>
+                                <div class="gauge-threshold threshold-rojo" style="left: 87.5%;" title="Umbral Rojo">${thresholds.nivel.roja}</div>
                             </div>
                         </div>
 
@@ -374,8 +366,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="gauge-label"><span>Caudal (m³/s)</span></div>
                             <div class="gauge-bar">
                                 <div class="gauge-value-inside" style="left: ${caudalAgujaPos}%;">${caudalInnerText}</div>
-                                <div class="gauge-threshold threshold-amarillo" style="left: ${amarillaCaudalPos}%;" title="Alerta Amarilla en ${thresholds.caudal.amarilla}m³/s">${thresholds.caudal.amarilla}</div>
-                                <div class="gauge-threshold threshold-rojo" style="left: ${rojaCaudalPos}%;" title="Alerta Roja en ${thresholds.caudal.roja}m³/s">${thresholds.caudal.roja}</div>
+                                <div class="gauge-threshold threshold-amarillo" style="left: 62.5%;" title="Umbral Amarillo">${thresholds.caudal.amarilla}</div>
+                                <div class="gauge-threshold threshold-rojo" style="left: 87.5%;" title="Umbral Rojo">${thresholds.caudal.roja}</div>
                             </div>
                         </div>
 
@@ -388,6 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Error al renderizar slide de hidrometría:", error);
+            hydroContainer.innerHTML = '<p style="color:white;">Error al cargar datos de hidrometría.</p>';
         }
     }
 

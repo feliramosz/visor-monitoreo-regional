@@ -1822,7 +1822,7 @@ img, table {
     background-color: #f9f9f9;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 10px 15px 12px 15px; 
+    padding: 8px 15px 10px 15px; /* Reducimos padding vertical para bajar la altura */
     color: #333;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     display: flex;
@@ -1833,8 +1833,8 @@ img, table {
 }
 
 .hydro-station-card h4 {
-    margin: 0 0 10px 0;
-    font-size: 1.1em;
+    margin: 0 0 5px 0; /* Reducimos margen inferior */
+    font-size: 1.05em;
     color: #004d99;
     font-weight: bold;
     min-height: 2.5em;
@@ -1845,12 +1845,12 @@ img, table {
 }
 
 .gauge-container {
-    margin-bottom: 15px;
+    margin-bottom: 12px; /* Reducimos margen inferior */
 }
 
 .gauge-label {
     font-size: 0.9em;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
     font-weight: bold;
     color: #333;
     text-align: left;
@@ -1861,11 +1861,11 @@ img, table {
     height: 25px;
     border-radius: 5px;
     border: 1px solid #b0b0b0;
-    position: relative; 
-    overflow: visible; 
+    position: relative;
+    /* --- Nueva distribución de colores: 50% verde, 25% amarillo, 25% rojo --- */
     background: linear-gradient(to right, 
-        #4caf50 0%, #4caf50 25%, 
-        #ffeb3b 25%, #ffeb3b 75%, 
+        #4caf50 0%, #4caf50 50%, 
+        #ffeb3b 50%, #ffeb3b 75%, 
         #f44336 75%, #f44336 100%
     );
 }
@@ -1883,27 +1883,26 @@ img, table {
     text-shadow: 0 0 3px white, 0 0 5px white;
     white-space: nowrap;
     transition: left 0.5s ease-out;
-    pointer-events: none; 
+    pointer-events: none;
 }
 
-/* --- ESTILOS PARA MARCADORES DE UMBRAL --- */
+/* --- Estilo mejorado para los marcadores de umbral --- */
 .gauge-threshold {
     position: absolute;
-    bottom: -10px; 
+    bottom: -15px; /* Lo bajamos un poco */
     transform: translateX(-50%);
-    font-size: 0.7em;
+    font-size: 0.8em; /* Texto del umbral un poco más grande */
     font-weight: bold;
-    color: #333;
 }
 
 .gauge-threshold::before {
     content: '';
     position: absolute;
-    top: -15px;
+    top: -10px; /* La línea empieza justo debajo de la barra */
     left: 50%;
     width: 2px;
-    height: 10px;
-    background-color: #333;
+    height: 5px; /* Línea más corta, como un "tick" */
+    background-color: #555; /* Color más sutil */
 }
 
 .threshold-amarillo { color: #b48b00; }
@@ -1911,7 +1910,7 @@ img, table {
 
 .card-footer {
     margin-top: auto;
-    padding-top: 8px;
+    padding-top: 5px; /* Reducimos espacio */
     border-top: 1px solid #eee;
     display: flex;
     justify-content: flex-end;
