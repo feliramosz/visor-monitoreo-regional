@@ -11,6 +11,7 @@ import io
 from PIL import Image
 import uuid
 import requests
+from bs4 import BeautifulSoup
 import ntplib
 import subprocess
 import sys
@@ -38,30 +39,10 @@ MAX_IMAGE_HEIGHT = 800
 # --- SERVIDOR NTP DEL SHOA ---
 NTP_SERVER = 'ntp.shoa.cl'
 
-def get_hidrometry_data_for_debug():
-    API_URL = "https://snia.mop.gob.cl/dga/REH/Ajustes/get_valores_parametros"
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Referer': 'https://snia.mop.gob.cl/dga/REH/Ajustes/tramos_cuenca',
-    }
-    test_code = '05410002-7'
-    try:
-        params = {'cod_estacion': test_code}
-        response = requests.get(API_URL, headers=headers, params=params, timeout=20)
-        response.raise_for_status()
-        try:
-            return response.json()
-        except json.JSONDecodeError:
-            return {"error": "La API no devolvió un JSON válido.", "respuesta_recibida": response.text}
-    except Exception as e:
-        return {"error": f"No se pudo contactar o procesar la API. Causa: {str(e)}"}
-
-# --- Función de Producción (temporalmente desactivada) ---
 def get_hydrometry_data():
     """
-    [VERSIÓN DEFINITIVA] Obtiene los datos hidrométricos imitando la solicitud
-    exacta que realiza la página oficial dgasat.mop.gob.cl.
+    [VERSIÓN FINAL DEFINITIVA] Obtiene los datos haciendo web scraping
+    directamente de la página de la tabla de resultados de dgasat.
     """
     STATION_CODES = {
         '05410002-7': 'Rio Aconcagua en Chacabuquito',
@@ -69,54 +50,66 @@ def get_hydrometry_data():
         '05414001-0': 'Rio Putaendo en Resguardo los Patos'
     }
     
-    # Esta es la URL real que la página web consulta internamente
-    API_URL = "https://snia.mop.gob.cl/dgasat/pages/dgasat_response/dgasat_response.php"
+    # URL de la página que genera la tabla HTML
+    API_URL = "https://snia.mop.gob.cl/dgasat/pages/dgasat_response/dgasat_tabla_export.php"
     
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        'Referer': 'https://snia.mop.gob.cl/dgasat/pages/dgasat_main/dgasat_main.htm'
+        'Referer': 'https://snia.mop.gob.cl/dgasat/pages/dgasat_param/dgasat_param_T.jsp'
     }
     
     processed_stations = []
 
     for code, default_name in STATION_CODES.items():
         try:
-            # La página envía los datos en un formato específico (form data)
-            payload = {
-                'estaciones': f'[{{"id":"{code}"}}]', # El código de estación debe ir en formato JSON dentro de un string
-                'accion': 'get_datos_rt_grafico'
+            # Construimos los parámetros para solicitar la tabla de "1 día" de "Valores Instantáneos"
+            params = {
+                'estacion1': code,
+                'tipo_consulta': '1', # 1 = Valores Instantáneos
+                'periodo': '1'        # 1 = 1 día
             }
             
-            response = requests.post(API_URL, headers=headers, data=payload, timeout=20)
+            response = requests.get(API_URL, headers=headers, params=params, timeout=20)
             response.raise_for_status()
             
-            api_response = response.json()
+            # Usamos BeautifulSoup para procesar el HTML de la respuesta
+            soup = BeautifulSoup(response.content, 'lxml')
             
-            # La respuesta tiene una estructura anidada y específica
-            if api_response.get("success") and api_response["datos"]:
-                station_data = api_response["datos"][0]
-                
-                # Buscamos los parámetros de Caudal y Nivel por su ID
-                caudal_info = next((p for p in station_data.get("parametros", []) if p["tipo_parametro_id"] == "2"), None)
-                nivel_info = next((p for p in station_data.get("parametros", []) if p["tipo_parametro_id"] == "1"), None)
+            # Buscamos la tabla por su ID y luego todas las filas del cuerpo de la tabla
+            data_table = soup.find('table', id='tabla_datos')
+            rows = data_table.find('tbody').find_all('tr')
+            
+            nivel_m = None
+            caudal_m3s = None
+            update_time_str = "Sin datos"
 
-                caudal_m3s = caudal_info["valor"] if caudal_info and caudal_info.get("valor") is not None else None
-                nivel_m = nivel_info["valor"] if nivel_info and nivel_info.get("valor") is not None else None
+            if rows:
+                # Obtenemos la última fila, que es el dato más reciente
+                latest_row = rows[-1]
+                cols = latest_row.find_all('td')
                 
-                # Usamos la fecha del primer parámetro disponible como referencia
-                update_time_str = station_data["parametros"][0]["fecha"] if station_data["parametros"] else "Sin fecha"
+                # Extraemos el texto de las columnas correctas
+                # Columna 1: Fecha-Hora, Columna 2: Nivel, Columna 3: Caudal
+                update_time_str = cols[1].get_text(strip=True) if len(cols) > 1 else "Sin fecha"
                 
-                processed_stations.append({
-                    "codigo_estacion": code, "nombre_estacion": station_data.get("estacion_nombre", default_name),
-                    "rio": station_data.get("rio_nombre", "N/A"),
-                    "nivel_m": nivel_m, "caudal_m3s": caudal_m3s, "ultima_actualizacion": update_time_str,
-                })
-            else:
-                processed_stations.append({ "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A", "nivel_m": None, "caudal_m3s": None, "ultima_actualizacion": "Sin datos" })
+                # Nivel (columna 2)
+                if len(cols) > 2:
+                    nivel_str = cols[2].get_text(strip=True).replace(',', '.')
+                    if nivel_str: nivel_m = float(nivel_str)
+
+                # Caudal (columna 3)
+                if len(cols) > 3:
+                    caudal_str = cols[3].get_text(strip=True).replace(',', '.')
+                    if caudal_str: caudal_m3s = float(caudal_str)
+
+            processed_stations.append({
+                "codigo_estacion": code, "nombre_estacion": default_name,
+                "rio": "N/A",
+                "nivel_m": nivel_m, "caudal_m3s": caudal_m3s, "ultima_actualizacion": update_time_str,
+            })
 
         except Exception as e:
-            print(f"Error final y definitivo procesando la estación {code}: {e}")
+            print(f"Error definitivo en web scraping para la estación {code}: {e}")
             processed_stations.append({ "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A", "nivel_m": None, "caudal_m3s": None, "ultima_actualizacion": "No reportado" })
             continue
 
