@@ -225,12 +225,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('weather-banner-container');
         if (!container) return;
 
-        // Limpiamos cualquier intervalo anterior para evitar duplicados
         if (window.topBannerInterval) {
             clearInterval(window.topBannerInterval);
         }
 
-        // Creamos la estructura HTML de las dos slides si no existen
+        // Aseguramos que los contenedores de los slides existan
         if (!container.querySelector('#weather-slide')) {
             container.innerHTML = `
                 <div id="weather-slide" class="top-banner-slide active-top-slide"></div>
@@ -238,10 +237,10 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
 
-        // Poblamos la slide del clima con los datos
         renderWeatherSlide(data);
+        renderStaticHydroSlide(data);
 
-        // Iniciamos el intervalo para rotar las slides
+        // Reinicia el intervalo del carrusel
         window.topBannerInterval = setInterval(() => {
             const slides = container.querySelectorAll('.top-banner-slide');
             if (slides.length <= 1) return;
@@ -256,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
             slides[currentActiveIndex].classList.remove('active-top-slide');
             const nextSlideIndex = (currentActiveIndex + 1) % slides.length;
             slides[nextSlideIndex].classList.add('active-top-slide');
-        }, topBannerSlideDuration);
+        }, topBannerSlideDuration); 
     }
 
     /**
@@ -301,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }  
 
-    async function fetchAndRenderHydroSlide() {
+    function renderStaticHydroSlide(data) {
         const hydroContainer = document.getElementById('hydro-slide');
         if (!hydroContainer) return;
 
@@ -488,10 +487,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 novedadesContent.textContent = 'No hay novedades para mostrar.';
             }
-
-            fetchAndRenderHydroSlide(data); 
+            
             setupTopBannerCarousel(data);
-
             setupCentralContent(data);
             setupRightColumnCarousel(data);
 
