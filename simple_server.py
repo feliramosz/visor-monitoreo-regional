@@ -41,79 +41,44 @@ NTP_SERVER = 'ntp.shoa.cl'
 
 def get_hydrometry_data():
     """
-    [VERSIÓN FINAL DEFINITIVA] Obtiene los datos haciendo web scraping
-    directamente de la página de la tabla de resultados de dgasat.
+    [DIAGNÓSTICO FINAL] Guarda la respuesta HTML cruda de la página de la tabla
+    en un archivo para poder analizarla.
     """
-    STATION_CODES = {
-        '05410002-7': 'Rio Aconcagua en Chacabuquito',
-        '05410024-8': 'Rio Aconcagua en San Felipe 2',
-        '05414001-0': 'Rio Putaendo en Resguardo los Patos'
-    }
+    # La ruta /tmp/ es universal y casi siempre tiene permisos de escritura
+    DEBUG_FILE_PATH = '/tmp/dga_response.html'
     
-    # URL de la página que genera la tabla HTML
     API_URL = "https://snia.mop.gob.cl/dgasat/pages/dgasat_response/dgasat_tabla_export.php"
-    
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
         'Referer': 'https://snia.mop.gob.cl/dgasat/pages/dgasat_param/dgasat_param_T.jsp'
     }
     
-    processed_stations = []
+    # Usaremos solo una estación para la prueba
+    test_code = '05410002-7'
+    try:
+        params = {
+            'estacion1': test_code,
+            'tipo_consulta': '1', # Valores Instantáneos
+            'periodo': '1'        # 1 día
+        }
+        
+        response = requests.get(API_URL, headers=headers, params=params, timeout=20)
+        
+        # Guardamos el contenido de la respuesta, sea lo que sea, en el archivo.
+        with open(DEBUG_FILE_PATH, 'w', encoding='utf-8') as f:
+            f.write(f"\n")
+            f.write(response.text)
+        
+        print(f"DIAGNÓSTICO: Respuesta guardada en {DEBUG_FILE_PATH}")
 
-    for code, default_name in STATION_CODES.items():
-        try:
-            # Construimos los parámetros para solicitar la tabla de "1 día" de "Valores Instantáneos"
-            params = {
-                'estacion1': code,
-                'tipo_consulta': '1', # 1 = Valores Instantáneos
-                'periodo': '1'        # 1 = 1 día
-            }
-            
-            response = requests.get(API_URL, headers=headers, params=params, timeout=20)
-            response.raise_for_status()
-            
-            # Usamos BeautifulSoup para procesar el HTML de la respuesta
-            soup = BeautifulSoup(response.content, 'lxml')
-            
-            # Buscamos la tabla por su ID y luego todas las filas del cuerpo de la tabla
-            data_table = soup.find('table', id='tabla_datos')
-            rows = data_table.find('tbody').find_all('tr')
-            
-            nivel_m = None
-            caudal_m3s = None
-            update_time_str = "Sin datos"
+    except Exception as e:
+        # Si hay un error, también lo guardamos en el archivo.
+        with open(DEBUG_FILE_PATH, 'w', encoding='utf-8') as f:
+            f.write(f"Error durante el diagnóstico: {str(e)}")
+        print(f"DIAGNÓSTICO: Error guardado en {DEBUG_FILE_PATH}")
 
-            if rows:
-                # Obtenemos la última fila, que es el dato más reciente
-                latest_row = rows[-1]
-                cols = latest_row.find_all('td')
-                
-                # Extraemos el texto de las columnas correctas
-                # Columna 1: Fecha-Hora, Columna 2: Nivel, Columna 3: Caudal
-                update_time_str = cols[1].get_text(strip=True) if len(cols) > 1 else "Sin fecha"
-                
-                # Nivel (columna 2)
-                if len(cols) > 2:
-                    nivel_str = cols[2].get_text(strip=True).replace(',', '.')
-                    if nivel_str: nivel_m = float(nivel_str)
-
-                # Caudal (columna 3)
-                if len(cols) > 3:
-                    caudal_str = cols[3].get_text(strip=True).replace(',', '.')
-                    if caudal_str: caudal_m3s = float(caudal_str)
-
-            processed_stations.append({
-                "codigo_estacion": code, "nombre_estacion": default_name,
-                "rio": "N/A",
-                "nivel_m": nivel_m, "caudal_m3s": caudal_m3s, "ultima_actualizacion": update_time_str,
-            })
-
-        except Exception as e:
-            print(f"Error definitivo en web scraping para la estación {code}: {e}")
-            processed_stations.append({ "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A", "nivel_m": None, "caudal_m3s": None, "ultima_actualizacion": "No reportado" })
-            continue
-
-    return processed_stations
+    # La función siempre devuelve una lista vacía para que el dashboard siga en 0.00
+    return []
     
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
     # --- Función para registrar logs ---
