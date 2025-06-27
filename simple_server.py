@@ -40,19 +40,17 @@ NTP_SERVER = 'ntp.shoa.cl'
 
 def get_hydrometry_data():
     """
-    Obtiene los datos hidrométricos desde la API del SNIA, usando cabeceras
-    que simulan un navegador real para evitar el bloqueo por WAF/anti-bots.
+    Función de DIAGNÓSTICO FINAL V3. Usa las cabeceras correctas e imprime
+    la respuesta JSON exitosa en la consola para análisis.
     """
+    import json # Necesario para el diagnóstico
+
     STATION_CODES = {
         '05410002-7': 'Rio Aconcagua en Chacabuquito',
         '05410024-8': 'Rio Aconcagua en San Felipe 2',
         '05414001-0': 'Rio Putaendo en Resguardo los Patos'
     }
-    
     API_URL = "https://snia.mop.gob.cl/dga/REH/Ajustes/get_valores_parametros"
-    
-    # Cabeceras que simulan ser un navegador Chrome en Windows.
-    # Esto es clave para evitar la página de bloqueo de bots.
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/plain, */*',
@@ -60,46 +58,28 @@ def get_hydrometry_data():
         'Referer': 'https://snia.mop.gob.cl/dga/REH/Ajustes/tramos_cuenca',
         'Connection': 'keep-alive',
     }
-    
-    processed_stations = []
 
-    for code, default_name in STATION_CODES.items():
-        try:
-            params = {'cod_estacion': code}
-            response = requests.get(API_URL, headers=headers, params=params, timeout=15)
-            response.raise_for_status()
-            
-            # Ahora que la conexión es exitosa, procesamos el JSON como lo teníamos planeado
-            station_data_list = response.json()
+    # Para el diagnóstico, solo necesitamos una estación
+    test_code = '05410002-7' 
+    try:
+        params = {'cod_estacion': test_code}
+        response = requests.get(API_URL, headers=headers, params=params, timeout=15)
+        response.raise_for_status()
+        station_data_list = response.json()
 
-            if station_data_list:
-                latest_data = station_data_list[0]
-                nivel_m = None
-                caudal_m3s = None
+        # --- LÍNEA DE DIAGNÓSTICO ---
+        # Imprimimos la respuesta que SÍ estamos recibiendo para ver su estructura.
+        print("--- RESPUESTA JSON REAL RECIBIDA DE LA DGA ---")
+        print(json.dumps(station_data_list, indent=2, ensure_ascii=False))
+        print("--- FIN DE LA RESPUESTA ---")
+        # -----------------------------
 
-                nivel_info = next((p for p in station_data_list if p.get("nombre_param") == "Nivel del agua"), None)
-                if nivel_info:
-                    nivel_m = nivel_info.get("valor")
+        # Devolvemos una lista vacía para que el dashboard siga mostrando 0.00 temporalmente
+        return []
 
-                caudal_info = next((p for p in station_data_list if p.get("nombre_param") == "Caudal"), None)
-                if caudal_info:
-                    caudal_m3s = caudal_info.get("valor")
-
-                update_time_str = datetime.strptime(latest_data.get("fecha_hora_lectura"), '%Y-%m-%d %H:%M:%S').strftime('%d-%m-%Y %H:%M')
-
-                processed_stations.append({
-                    "codigo_estacion": code, "nombre_estacion": latest_data.get("nombre_estacion", default_name),
-                    "rio": latest_data.get("nombre_rio", "Río no disponible"),
-                    "nivel_m": nivel_m, "caudal_m3s": caudal_m3s, "ultima_actualizacion": update_time_str,
-                })
-            else:
-                # Si por alguna razón la API devuelve una lista vacía
-                processed_stations.append({ "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A", "nivel_m": None, "caudal_m3s": None, "ultima_actualizacion": "Sin datos" })
-
-        except Exception as e:
-            print(f"Error final procesando la estación {code}: {e}")
-            processed_stations.append({ "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A", "nivel_m": None, "caudal_m3s": None, "ultima_actualizacion": "No reportado" })
-            continue
+    except Exception as e:
+        print(f"Error durante el diagnóstico final: {e}")
+        return []
 
     return processed_stations
     
