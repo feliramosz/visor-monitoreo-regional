@@ -1939,7 +1939,8 @@ img, table {
     grid-area: value;
     font-size: 1.2em;
     font-weight: bold;
-    color: #004d99;    
+    color: #004d99;
+    margin-top: 1px;
 }
 
 .threshold-label-left, .threshold-label-right {
