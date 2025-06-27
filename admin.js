@@ -83,6 +83,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentData = {}; // Para ultimo_informe.json
     let novedadesData = {}; // Para novedades.json
 
+    function formatLogTimestamp(dateString) {
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+
+        let hours = date.getHours();
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'p. m.' : 'a. m.';
+
+        hours = hours % 12;
+        hours = hours ? hours : 12; // La hora 0 debe ser 12
+
+        return `${day}/${month} ${hours}:${minutes} ${ampm}`;
+    }
+
     // --- Lógica de Navegación del Sidebar ---
     const sidebarLinks = document.querySelectorAll('.admin-sidebar nav ul li a');
     const adminSections = document.querySelectorAll('.admin-section');
@@ -566,7 +581,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             logs.forEach(log => {
                 const row = logTableBody.insertRow();
                 row.innerHTML = `
-                    <td>${new Date(log.timestamp).toLocaleString('es-CL')}</td>
+                    <td>${formatLogTimestamp(log.timestamp)}</td>
                     <td>${log.username}</td>
                     <td>${log.action}</td>
                     <td>${log.ip_address || 'N/A'}</td>

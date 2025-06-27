@@ -40,54 +40,53 @@ NTP_SERVER = 'ntp.shoa.cl'
 
 def get_hydrometry_data():
     """
-    Obtiene los datos hidrométricos desde la API del SNIA.
-    Esta versión SIEMPRE devuelve un registro por cada estación solicitada,
-    incluso si la API no retorna datos para ella.
-    """
+    Obtiene los datos hidrométricos desde la nueva API del SNIA.    
+    """    
     STATION_CODES = {
         '05410002-7': 'Rio Aconcagua en Chacabuquito',
         '05410024-8': 'Rio Aconcagua en San Felipe 2',
         '05414001-0': 'Rio Putaendo en Resguardo los Patos'
     }
-    API_BASE_URL = "https://datos.snia.mop.gob.cl/dga/rest/datos/"
+    
+    # URL de la nueva API funcional
+    API_URL = "https://snia.mop.gob.cl/dga/REH/Ajustes/get_valores_parametros"
     
     headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0 (Python)'}
     processed_stations = []
 
     for code, default_name in STATION_CODES.items():
-        try:
-            response = requests.get(f"{API_BASE_URL}{code}", headers=headers, timeout=15)
+        try:            
+            params = {'cod_estacion': code}
+            response = requests.get(API_URL, headers=headers, params=params, timeout=15)
+            response.raise_for_status()
             
-            # Si la estación no existe en la API o no hay datos, la respuesta estará vacía
-            station_data_list = response.json() if response.status_code == 200 and response.content else []
+            station_data_list = response.json()
 
-            if station_data_list:
-                latest_data = station_data_list[0]
+            if station_data_list:            
+                latest_data = station_data_list[0] 
+                
                 nivel_m = None
                 caudal_m3s = None
-
-                for parametro in latest_data.get("parametros", []):
-                    if parametro.get("nombre") == "Caudal":
-                        caudal_m3s = parametro.get("valor")
-                    elif parametro.get("nombre") == "Nivel del agua":
-                        nivel_m = parametro.get("valor")
-
-                timestamp_ms = latest_data.get("fecha")
-                update_time_str = "Sin Fecha"
-                if timestamp_ms:
-                    update_time_dt = datetime.fromtimestamp(timestamp_ms / 1000)
-                    update_time_str = update_time_dt.strftime('%d-%m-%Y %H:%M')
+                
+                nivel_info = next((p for p in station_data_list if p.get("nombre_param") == "Nivel"), None)
+                if nivel_info:
+                    nivel_m = nivel_info.get("valor")
+                
+                caudal_info = next((p for p in station_data_list if p.get("nombre_param") == "Caudal"), None)
+                if caudal_info:
+                    caudal_m3s = caudal_info.get("valor")
+                
+                update_time_str = datetime.strptime(latest_data.get("fecha_hora_lectura"), '%Y-%m-%d %H:%M:%S').strftime('%d-%m-%Y %H:%M')
 
                 processed_stations.append({
                     "codigo_estacion": code,
                     "nombre_estacion": latest_data.get("nombre_estacion", default_name),
-                    "rio": latest_data.get("fuente", "Río no disponible"),
+                    "rio": latest_data.get("nombre_rio", "Río no disponible"),
                     "nivel_m": nivel_m,
                     "caudal_m3s": caudal_m3s,
                     "ultima_actualizacion": update_time_str,
                 })
-            else:
-                # Si la API no devolvió datos, creamos un registro "placeholder"
+            else:                
                 print(f"INFO: No se encontraron datos para la estación {code}. Se usará un marcador de posición.")
                 processed_stations.append({
                     "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A",
@@ -97,11 +96,7 @@ def get_hydrometry_data():
 
         except requests.exceptions.RequestException as e:
             print(f"Error de conexión para la estación {code}: {e}")
-            processed_stations.append({
-                "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A",
-                "nivel_m": None, "caudal_m3s": None,
-                "ultima_actualizacion": "No reportado"
-            })
+            processed_stations.append({ "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A", "nivel_m": None, "caudal_m3s": None, "ultima_actualizacion": "No reportado" })
         except Exception as e:
             print(f"Error procesando la estación {code}: {e}")
             continue
@@ -122,12 +117,15 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
     
     def _log_activity(self, username, action, details=''):
         """Registra una acción en la base de datos."""
-        ip_address = self._get_real_ip() # Usamos la nueva función para obtener la IP
+        import pytz
+        ip_address = self._get_real_ip()
+        chile_tz = pytz.timezone('America/Santiago')
+        chile_time = datetime.now(chile_tz)
         conn = sqlite3.connect(DATABASE_FILE)
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO activity_log (timestamp, username, ip_address, action, details) VALUES (CURRENT_TIMESTAMP, ?, ?, ?, ?)",
-            (username, ip_address, action, details)
+            "INSERT INTO activity_log (timestamp, username, ip_address, action, details) VALUES (?, ?, ?, ?, ?)",
+            (chile_time, username, ip_address, action, details)
         )
         conn.commit()
         conn.close()
