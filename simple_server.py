@@ -60,8 +60,8 @@ def get_hidrometry_data_for_debug():
 # --- Función de Producción (temporalmente desactivada) ---
 def get_hydrometry_data():
     """
-    Obtiene los datos hidrométricos desde la nueva API funcional de la DGA,
-    usando las cabeceras de navegador para asegurar la conexión.
+    [VERSIÓN FINAL] Obtiene los datos hidrométricos desde la API oficial y funcional de la DGA,
+    solicitando explícitamente los parámetros de Nivel y Caudal.
     """
     STATION_CODES = {
         '05410002-7': 'Rio Aconcagua en Chacabuquito',
@@ -69,7 +69,6 @@ def get_hydrometry_data():
         '05414001-0': 'Rio Putaendo en Resguardo los Patos'
     }
     
-    # --- URL DE LA API CORRECTA Y FUNCIONAL ---
     API_URL = "https://dgaonline.mop.gob.cl/servicios/datoshistoricos"
     
     headers = {
@@ -80,9 +79,10 @@ def get_hydrometry_data():
 
     for code, default_name in STATION_CODES.items():
         try:
-            # La nueva API requiere los parámetros en un formato específico
+            # --- CORRECCIÓN CLAVE: Solicitamos explícitamente los parámetros que necesitamos ---
             params = {
-                'estacion': code,
+                'estaciones': code,
+                'parametros': 'Nivel,Caudal', # Solicitamos Nivel y Caudal
                 'fecha_inicio': (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d'),
                 'fecha_termino': datetime.now().strftime('%Y-%m-%d')
             }
@@ -91,21 +91,27 @@ def get_hydrometry_data():
             
             station_data_list = response.json()
 
+            # --- CORRECCIÓN CLAVE: Procesamos la nueva estructura de la respuesta ---
             if station_data_list and isinstance(station_data_list, list) and station_data_list[0].get('datos'):
-                # Los datos vienen anidados. Nos interesa el último registro.
-                latest_data = station_data_list[0]['datos'][-1]
+                latest_data = station_data_list[0]['datos'][-1] if station_data_list[0]['datos'] else None
                 
-                nivel_m = latest_data.get("valor_Nivel")
-                caudal_m3s = latest_data.get("valor_Caudal")
-                update_time_str = datetime.strptime(latest_data.get("fecha"), '%Y-%m-%d %H:%M:%S').strftime('%d-%m-%Y %H:%M')
+                if latest_data:
+                    # Los nombres de los campos son sensibles a mayúsculas: "valor_Nivel" y "valor_Caudal"
+                    nivel_m = latest_data.get("valor_Nivel")
+                    caudal_m3s = latest_data.get("valor_Caudal")
+                    update_time_str = datetime.strptime(latest_data.get("fecha"), '%Y-%m-%d %H:%M:%S').strftime('%d-%m-%Y %H:%M')
 
-                processed_stations.append({
-                    "codigo_estacion": code, "nombre_estacion": default_name,
-                    "rio": "N/A", # Esta API no provee el nombre del río
-                    "nivel_m": nivel_m, "caudal_m3s": caudal_m3s, "ultima_actualizacion": update_time_str,
-                })
+                    processed_stations.append({
+                        "codigo_estacion": code, "nombre_estacion": default_name,
+                        "rio": station_data_list[0].get("rio", "N/A"),
+                        "nivel_m": nivel_m, "caudal_m3s": caudal_m3s, "ultima_actualizacion": update_time_str,
+                    })
+                else:
+                    # La estación respondió, pero no trajo datos recientes
+                    processed_stations.append({ "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A", "nivel_m": None, "caudal_m3s": None, "ultima_actualizacion": "Sin datos" })
             else:
-                processed_stations.append({ "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A", "nivel_m": None, "caudal_m3s": None, "ultima_actualizacion": "Sin datos" })
+                # La API no encontró la estación o devolvió una respuesta inesperada
+                processed_stations.append({ "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A", "nivel_m": None, "caudal_m3s": None, "ultima_actualizacion": "No encontrado" })
 
         except Exception as e:
             print(f"Error final procesando la estación {code}: {e}")
