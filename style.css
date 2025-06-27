@@ -1817,8 +1817,8 @@ img, table {
     gap: 15px;
     width: 100%;
     min-height: 220px;
-    max-height: 320px; /* Ajusta según tu preferencia */
-    height: 320px;     /* Fija la altura para evitar saltos */
+    max-height: 220px; /* Ajusta según tu preferencia */
+    height: 220px;     /* Fija la altura para evitar saltos */
     box-sizing: border-box;
     padding: 10px;
     overflow: hidden;
@@ -1827,8 +1827,8 @@ img, table {
 .hydro-station-card {
     flex: 1 1 0;
     min-width: 220px;
-    max-width: 380px;
-    max-height: 300px; /* Limita la altura de la tarjeta */
+    max-width: 2200px;
+    max-height: 2200px; /* Limita la altura de la tarjeta */
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
