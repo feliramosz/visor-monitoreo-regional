@@ -2032,3 +2032,38 @@ img, table {
     visibility: visible;
     position: relative; /* Ocupa espacio cuando está activa */
 }
+
+/* --- NUEVOS ESTILOS PARA LA TARJETA HIDROMÉTRICA --- */
+
+/* Contenedor para alinear el LED y el título */
+.hydro-card-header {
+    display: flex;
+    align-items: center; /* Alinea verticalmente los items */
+    gap: 10px; /* Espacio entre el LED y el título */
+    margin-bottom: 5px; /* Espacio antes de los medidores */
+}
+
+/* Ajustes al título para que funcione con Flexbox */
+.hydro-station-card h4 {
+    flex-grow: 1; /* Hace que el título ocupe el espacio restante */
+    text-align: left; /* Alineamos el texto a la izquierda */
+    margin: 0; /* Quitamos márgenes extra */
+    height: auto; /* Dejamos que la altura sea natural */
+    line-height: 1.2;
+    display: block; /* Aseguramos que se comporte como bloque dentro de flex */
+}
+
+/* El footer ahora es más simple, solo una línea delgada */
+.hydro-station-card .card-footer {
+    height: 1px;
+    padding-top: 0;
+    margin-top: 5px;
+    border-top: 1px solid #eee;
+}
+
+/* Ajuste al tamaño del LED para que no sea tan grande */
+.status-led {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0; /* Evita que el LED se encoja */
+}

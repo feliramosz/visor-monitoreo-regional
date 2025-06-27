@@ -321,14 +321,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const station = stationsData.find(s => s.codigo_estacion === stationCode) || { ultima_actualizacion: 'no reportado', nombre_estacion: hydroThresholds[stationCode].nombre };
                 const thresholds = hydroThresholds[stationCode];
 
-                const hasData = station.ultima_actualizacion !== "no reportado";
+                const hasData = station.ultima_actualizacion !== "no reportado" && station.ultima_actualizacion !== "Sin datos";
                 const ledClass = hasData ? 'led-green' : 'led-red';
                 
                 const getGaugeData = (value, threshold) => {
-                    const currentValue = (value !== null) ? parseFloat(value) : 0;
+                    // **AJUSTE 1: Hacemos el parseo más robusto reemplazando comas por puntos**
+                    const safeValue = (typeof value === 'string') ? value.replace(',', '.') : value;
+                    const currentValue = (safeValue !== null && !isNaN(parseFloat(safeValue))) ? parseFloat(safeValue) : 0;
+                    
                     const rotation = -90 + (Math.min((currentValue / threshold.roja), 1) * 180);
                     return {
-                        // CORRECCIÓN: Ahora siempre devuelve un número con dos decimales
                         value: currentValue.toFixed(2),
                         rotation: rotation,
                         amarilla: threshold.amarilla.toFixed(2),
@@ -341,7 +343,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 return `
                     <div class="hydro-station-card">
-                        <h4>${station.nombre_estacion}</h4>
+                        <div class="hydro-card-header">
+                            <div class="status-led ${ledClass}" title="Estado: ${hasData ? station.ultima_actualizacion : 'No Reportado'}"></div>
+                            <h4>${station.nombre_estacion}</h4>
+                        </div>
+
                         <div class="gauges-container">
                             <div class="gauge-unit">
                                 <p class="gauge-label">Altura (m)</p>
@@ -365,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                                 <div class="gauge-wrapper">
                                     <div class="gauge-arc-background"></div>
-                                    <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
+                                    <div class="gauge-needle" style="transform: rotate(${caudalGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
                                 </div>
                                 <div class="threshold-label-right">
                                     <span class="threshold-rojo">R: ${caudalGauge.roja}</span>
@@ -373,8 +379,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <p class="gauge-current-value">${caudalGauge.value}</p>
                             </div>
                         </div>
+
                         <div class="card-footer">
-                            <div class="status-led ${ledClass}" title="Estado: ${hasData ? station.ultima_actualizacion : 'No Reportado'}"></div>
                         </div>
                     </div>
                 `;
