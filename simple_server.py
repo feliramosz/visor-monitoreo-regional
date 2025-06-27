@@ -40,48 +40,35 @@ NTP_SERVER = 'ntp.shoa.cl'
 
 def get_hydrometry_data():
     """
-    Función de DIAGNÓSTICO FINAL V3. Usa las cabeceras correctas e imprime
-    la respuesta JSON exitosa en la consola para análisis.
+    Función de DIAGNÓSTICO FINAL V4. Escribe la respuesta de la API
+    en un archivo de texto para una depuración infalible.
     """
-    import json # Necesario para el diagnóstico
+    SERVER_ROOT = os.path.dirname(os.path.abspath(__file__))
+    DEBUG_FILE_PATH = os.path.join(SERVER_ROOT, 'debug', 'api_response.txt')
 
-    STATION_CODES = {
-        '05410002-7': 'Rio Aconcagua en Chacabuquito',
-        '05410024-8': 'Rio Aconcagua en San Felipe 2',
-        '05414001-0': 'Rio Putaendo en Resguardo los Patos'
-    }
     API_URL = "https://snia.mop.gob.cl/dga/REH/Ajustes/get_valores_parametros"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
         'Referer': 'https://snia.mop.gob.cl/dga/REH/Ajustes/tramos_cuenca',
-        'Connection': 'keep-alive',
     }
-
-    # Para el diagnóstico, solo necesitamos una estación
+    
     test_code = '05410002-7' 
     try:
         params = {'cod_estacion': test_code}
         response = requests.get(API_URL, headers=headers, params=params, timeout=15)
-        response.raise_for_status()
-        station_data_list = response.json()
-
-        # --- LÍNEA DE DIAGNÓSTICO ---
-        # Imprimimos la respuesta que SÍ estamos recibiendo para ver su estructura.
-        print("--- RESPUESTA JSON REAL RECIBIDA DE LA DGA ---")
-        print(json.dumps(station_data_list, indent=2, ensure_ascii=False))
-        print("--- FIN DE LA RESPUESTA ---")
-        # -----------------------------
-
-        # Devolvemos una lista vacía para que el dashboard siga mostrando 0.00 temporalmente
-        return []
+        
+        # Escribimos el contenido crudo de la respuesta en el archivo
+        with open(DEBUG_FILE_PATH, 'w', encoding='utf-8') as f:
+            f.write(response.text)
 
     except Exception as e:
-        print(f"Error durante el diagnóstico final: {e}")
-        return []
+        # Si hay un error, también lo escribimos en el archivo
+        with open(DEBUG_FILE_PATH, 'w', encoding='utf-8') as f:
+            f.write(f"Error al intentar contactar la API: {str(e)}")
 
-    return processed_stations
+    # Devolvemos una lista vacía para que el dashboard no se rompa
+    return []
     
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
     # --- Función para registrar logs ---
