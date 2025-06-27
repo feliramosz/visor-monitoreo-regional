@@ -40,40 +40,68 @@ NTP_SERVER = 'ntp.shoa.cl'
 
 def get_hydrometry_data():
     """
-    Función de DIAGNÓSTICO FINAL V2. Intenta leer el JSON y si falla, 
-    devuelve el TEXTO CRUDO de la respuesta para análisis.
+    Obtiene los datos hidrométricos desde la API del SNIA, usando cabeceras
+    que simulan un navegador real para evitar el bloqueo por WAF/anti-bots.
     """
-    import json # Importante para manejar el error de JSON
-
+    STATION_CODES = {
+        '05410002-7': 'Rio Aconcagua en Chacabuquito',
+        '05410024-8': 'Rio Aconcagua en San Felipe 2',
+        '05414001-0': 'Rio Putaendo en Resguardo los Patos'
+    }
+    
     API_URL = "https://snia.mop.gob.cl/dga/REH/Ajustes/get_valores_parametros"
-    headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0 (Python)'}
-    test_code = '05410002-7' 
+    
+    # Cabeceras que simulan ser un navegador Chrome en Windows.
+    # Esto es clave para evitar la página de bloqueo de bots.
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
+        'Referer': 'https://snia.mop.gob.cl/dga/REH/Ajustes/tramos_cuenca',
+        'Connection': 'keep-alive',
+    }
+    
+    processed_stations = []
 
-    try:
-        params = {'cod_estacion': test_code}
-        response = requests.get(API_URL, headers=headers, params=params, timeout=15)
-
-        # Verificamos si la solicitud fue exitosa (código 200)
-        response.raise_for_status()
-
-        # Intentamos decodificar la respuesta como JSON
+    for code, default_name in STATION_CODES.items():
         try:
-            api_response_data = response.json()
-            # Si funciona, lo devolvemos (aunque no debería llegar aquí según el error)
-            return api_response_data
-        except json.JSONDecodeError:
-            # ¡AQUÍ ESTÁ LA CLAVE! Si falla la decodificación de JSON,
-            # capturamos el texto plano de la respuesta.
-            raw_text_response = response.text
-            print("DIAGNÓSTICO: Falló la decodificación de JSON. Devolviendo el texto crudo de la respuesta.")
-            return [{"error": "La API no devolvió un JSON válido.", "respuesta_recibida": raw_text_response}]
+            params = {'cod_estacion': code}
+            response = requests.get(API_URL, headers=headers, params=params, timeout=15)
+            response.raise_for_status()
+            
+            # Ahora que la conexión es exitosa, procesamos el JSON como lo teníamos planeado
+            station_data_list = response.json()
 
-    except Exception as e:
-        # Si hay un error de conexión, también lo mostramos.
-        return [{"error": f"No se pudo contactar o procesar la API. Causa: {str(e)}"}]
+            if station_data_list:
+                latest_data = station_data_list[0]
+                nivel_m = None
+                caudal_m3s = None
 
-    # Durante el diagnóstico, siempre devolveremos una lista vacía para que los medidores no muestren nada.
-    return []
+                nivel_info = next((p for p in station_data_list if p.get("nombre_param") == "Nivel del agua"), None)
+                if nivel_info:
+                    nivel_m = nivel_info.get("valor")
+
+                caudal_info = next((p for p in station_data_list if p.get("nombre_param") == "Caudal"), None)
+                if caudal_info:
+                    caudal_m3s = caudal_info.get("valor")
+
+                update_time_str = datetime.strptime(latest_data.get("fecha_hora_lectura"), '%Y-%m-%d %H:%M:%S').strftime('%d-%m-%Y %H:%M')
+
+                processed_stations.append({
+                    "codigo_estacion": code, "nombre_estacion": latest_data.get("nombre_estacion", default_name),
+                    "rio": latest_data.get("nombre_rio", "Río no disponible"),
+                    "nivel_m": nivel_m, "caudal_m3s": caudal_m3s, "ultima_actualizacion": update_time_str,
+                })
+            else:
+                # Si por alguna razón la API devuelve una lista vacía
+                processed_stations.append({ "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A", "nivel_m": None, "caudal_m3s": None, "ultima_actualizacion": "Sin datos" })
+
+        except Exception as e:
+            print(f"Error final procesando la estación {code}: {e}")
+            processed_stations.append({ "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A", "nivel_m": None, "caudal_m3s": None, "ultima_actualizacion": "No reportado" })
+            continue
+
+    return processed_stations
     
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
     # --- Función para registrar logs ---
