@@ -328,7 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const currentValue = (value !== null) ? parseFloat(value) : 0;
                     const rotation = -90 + (Math.min((currentValue / threshold.roja), 1) * 180);
                     return {
-                        value: currentValue.toFixed(2), // Siempre mostramos un valor, "0.00" si no hay dato
+                        // CORRECCIÓN: Ahora siempre devuelve un número con dos decimales
+                        value: currentValue.toFixed(2),
                         rotation: rotation,
                         amarilla: threshold.amarilla.toFixed(2),
                         roja: threshold.roja.toFixed(2)
@@ -348,9 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <span class="threshold-amarillo">A: ${nivelGauge.amarilla}</span>
                                 </div>
                                 <div class="gauge-wrapper">
-                                    <div class="gauge-arc" style="border-color: #4caf50;"></div>
-                                    <div class="gauge-arc yellow-arc"></div>
-                                    <div class="gauge-arc red-arc"></div>
+                                    <div class="gauge-arc-background"></div>
                                     <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"></div>
                                 </div>
                                 <div class="threshold-label-right">
@@ -365,9 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <span class="threshold-amarillo">A: ${caudalGauge.amarilla}</span>
                                 </div>
                                 <div class="gauge-wrapper">
-                                    <div class="gauge-arc" style="border-color: #4caf50;"></div>
-                                    <div class="gauge-arc yellow-arc"></div>
-                                    <div class="gauge-arc red-arc"></div>
+                                    <div class="gauge-arc-background"></div>
                                     <div class="gauge-needle" style="transform: rotate(${caudalGauge.rotation}deg);"></div>
                                 </div>
                                 <div class="threshold-label-right">
@@ -379,7 +376,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="card-footer">
                             <div class="status-led ${ledClass}" title="Estado: ${hasData ? station.ultima_actualizacion : 'No Reportado'}"></div>
                         </div>
-                    </div>`;
+                    </div>
+                `;
             }).join('');
 
         } catch (error) {
