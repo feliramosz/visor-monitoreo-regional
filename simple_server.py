@@ -40,58 +40,66 @@ NTP_SERVER = 'ntp.shoa.cl'
 
 def get_hydrometry_data():
     """
-    Obtiene los datos hidrométricos desde el NUEVO servidor de la DGA,
-    filtrando por los códigos de estación específicos.
+    Obtiene los datos hidrométricos desde la API oficial del SNIA (Sistema Nacional de Información del Agua),
+    haciendo una petición por cada estación de interés.
     """
-    # URL del nuevo servicio, apuntando a la capa "Red Hidrometeorologica" (0)
-    # y usando los nombres de campo más probables (en mayúsculas)
-    DGA_API_URL = "https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/ALERTAS/MapServer/0/query?where=CODIGO_ESTACION+IN+%28%2705410002-7%27%2C+%2705410024-8%27%2C+%2705414001-0%27%29&outFields=CODIGO_ESTACION,NOMBRE_ESTACION,RIO,CAUDAL,NIVEL,FECHA&outSR=4326&f=json"
-
-    headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0 (Python)'}
-    try:
-        response = requests.get(DGA_API_URL, headers=headers, timeout=30)
-        response.raise_for_status()
-        data = response.json()
-
-        processed_stations = []
-        if "features" in data and data["features"]:
-            for feature in data["features"]:
-                attributes = feature.get("attributes", {})
-                geometry = feature.get("geometry", {})
-
-                # El formato de fecha en este nuevo servicio es diferente
-                timestamp_ms = attributes.get("FECHA")
-                update_time_str = "No disponible"
-                if timestamp_ms:
-                    # El timestamp viene en milisegundos
-                    update_time_dt = datetime.fromtimestamp(timestamp_ms / 1000)
-                    update_time_str = update_time_dt.strftime('%d-%m-%Y %H:%M')
-
-                processed_stations.append({
-                    "codigo_estacion": attributes.get("CODIGO_ESTACION"),
-                    "nombre_estacion": attributes.get("NOMBRE_ESTACION"),
-                    "rio": attributes.get("RIO"),
-                    "nivel_m": attributes.get("NIVEL"),         # Campo de Nivel
-                    "caudal_m3s": attributes.get("CAUDAL"),   # Campo de Caudal
-                    "ultima_actualizacion": update_time_str,
-                    "lat": geometry.get("y"),
-                    "lon": geometry.get("x")
-                })
-        
-        return processed_stations
+    STATION_CODES = ['05410002-7', '05410024-8', '05414001-0']
+    API_BASE_URL = "https://datos.snia.mop.gob.cl/dga/rest/datos/"
     
-    except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 404:
-            print("ADVERTENCIA: El nuevo servicio de la DGA no fue encontrado (404).")
-            return []
-        else:
-            print(f"Error HTTP al contactar la nueva API de la DGA: {e}")
-            return {"error": f"Error HTTP del servidor DGA: {e}"}
-            
-    except Exception as e:
-        print(f"Error procesando datos de la nueva API de la DGA: {e}")
-        return {"error": "Error interno al procesar datos hidrométricos"}
+    headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0 (Python)'}
+    processed_stations = []
 
+    for code in STATION_CODES:
+        try:
+            # Hacemos una llamada a la API por cada código de estación
+            response = requests.get(f"{API_BASE_URL}{code}", headers=headers, timeout=15)
+            response.raise_for_status()
+            station_data_list = response.json()
+
+            if not station_data_list:
+                print(f"Advertencia: No se recibieron datos para la estación {code}")
+                continue
+
+            # La API devuelve una lista de mediciones, nos quedamos con la más reciente (la primera)
+            latest_data = station_data_list[0]
+
+            # Extraemos los datos de nivel y caudal. Buscamos en la lista de parámetros.
+            nivel_m = None
+            caudal_m3s = None
+
+            for parametro in latest_data.get("parametros", []):
+                if parametro.get("nombre") == "Caudal":
+                    caudal_m3s = parametro.get("valor")
+                elif parametro.get("nombre") == "Nivel del agua":
+                    nivel_m = parametro.get("valor")
+
+            # Convertimos el timestamp a un formato legible
+            timestamp_ms = latest_data.get("fecha")
+            update_time_str = "No disponible"
+            if timestamp_ms:
+                update_time_dt = datetime.fromtimestamp(timestamp_ms / 1000)
+                update_time_str = update_time_dt.strftime('%d-%m-%Y %H:%M')
+
+            processed_stations.append({
+                "codigo_estacion": code,
+                "nombre_estacion": latest_data.get("nombre_estacion", "Nombre no disponible"),
+                "rio": latest_data.get("fuente", "Río no disponible"), # Usamos 'fuente' como nombre del río
+                "nivel_m": nivel_m,
+                "caudal_m3s": caudal_m3s,
+                "ultima_actualizacion": update_time_str,
+                "lat": latest_data.get("latitud"),
+                "lon": latest_data.get("longitud")
+            })
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error al contactar la API de SNIA para la estación {code}: {e}")
+            continue # Si una estación falla, continuamos con la siguiente
+        except Exception as e:
+            print(f"Error procesando datos de SNIA para la estación {code}: {e}")
+            continue
+
+    return processed_stations
+    
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
     # --- Función para registrar logs ---
     def _get_real_ip(self):
