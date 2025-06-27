@@ -1816,7 +1816,7 @@ img, table {
     gap: 30px;
     padding: 10px;
     box-sizing: border-box;
-    height: 160px; 
+    height: 150px; 
 }
 
 .hydro-station-card {
@@ -1939,8 +1939,7 @@ img, table {
     grid-area: value;
     font-size: 1.2em;
     font-weight: bold;
-    color: #004d99;
-    margin-top: -15px;
+    color: #004d99;    
 }
 
 .threshold-label-left, .threshold-label-right {
