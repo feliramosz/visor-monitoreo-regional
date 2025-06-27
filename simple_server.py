@@ -38,36 +38,35 @@ MAX_IMAGE_HEIGHT = 800
 # --- SERVIDOR NTP DEL SHOA ---
 NTP_SERVER = 'ntp.shoa.cl'
 
-def get_hydrometry_data():
+def get_hidrometry_data_for_debug():
     """
-    Función de DIAGNÓSTICO FINAL V4. Escribe la respuesta de la API
-    en un archivo de texto para una depuración infalible.
+    Función de DIAGNÓSTICO AISLADA. Se llama solo desde /api/debug_hidro.
+    Devuelve la respuesta cruda de la API o el error detallado.
     """
-    SERVER_ROOT = os.path.dirname(os.path.abspath(__file__))
-    DEBUG_FILE_PATH = os.path.join(SERVER_ROOT, 'debug', 'api_response.txt')
-
     API_URL = "https://snia.mop.gob.cl/dga/REH/Ajustes/get_valores_parametros"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/plain, */*',
         'Referer': 'https://snia.mop.gob.cl/dga/REH/Ajustes/tramos_cuenca',
     }
-    
-    test_code = '05410002-7' 
+    test_code = '05410002-7'
     try:
         params = {'cod_estacion': test_code}
-        response = requests.get(API_URL, headers=headers, params=params, timeout=15)
-        
-        # Escribimos el contenido crudo de la respuesta en el archivo
-        with open(DEBUG_FILE_PATH, 'w', encoding='utf-8') as f:
-            f.write(response.text)
-
+        response = requests.get(API_URL, headers=headers, params=params, timeout=20)
+        response.raise_for_status()
+        try:
+            return response.json()
+        except json.JSONDecodeError:
+            return {"error": "La API no devolvió un JSON válido.", "respuesta_recibida": response.text}
     except Exception as e:
-        # Si hay un error, también lo escribimos en el archivo
-        with open(DEBUG_FILE_PATH, 'w', encoding='utf-8') as f:
-            f.write(f"Error al intentar contactar la API: {str(e)}")
+        return {"error": f"No se pudo contactar o procesar la API. Causa: {str(e)}"}
 
-    # Devolvemos una lista vacía para que el dashboard no se rompa
+# --- Función de Producción (temporalmente desactivada) ---
+def get_hydrometry_data():
+    """
+    Función de producción. Temporalmente devuelve una lista vacía
+    mientras depuramos.
+    """
     return []
     
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
