@@ -1811,102 +1811,121 @@ img, table {
 /* --- Estilos para la Slide de Hidrometría --- */
 #hydro-slide {
     justify-content: space-around;
-    gap: 10px; /* Reducimos el espacio para que quepan mejor */
-    align-items: stretch; /* Hacemos que todas las tarjetas tengan la misma altura */
+    gap: 15px;
+    align-items: stretch; /* Asegura que todas las tarjetas tengan la misma altura */
     display: flex;
-    padding: 10px; /* Añadimos un padding consistente */
+    padding: 10px;
     box-sizing: border-box;
 }
 
 .hydro-station-card {
-    /* Colores y tamaño consistentes con las tarjetas del clima */
     background-color: #f9f9f9;
     border: 1px solid #e0e0e0;
     border-top: 3px solid #0051ff;
     border-bottom: 3px solid #0051ff;
     border-radius: 5px;
     padding: 10px 15px;
-    width: 32%; /* Ajustamos el ancho */
-    text-align: center;
-    color: #333; /* Color de texto principal oscuro */
+    width: 32%; /* Más anchas para que quepan los nombres */
+    color: #333;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     display: flex;
-    flex-direction: column; /* Organiza el contenido internamente */
+    flex-direction: column;
+    /* Altura consistente con las tarjetas del clima */
+    min-height: 150px; 
 }
 
 .hydro-station-card h4 {
     margin: 0 0 5px 0;
-    font-size: 1.1em;
-    color: #004d99; /* Título en azul oscuro */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 1em; /* Un poco más pequeño para nombres largos */
+    color: #004d99;
+    white-space: normal; /* Permite que el texto se divida en dos líneas si es necesario */
+    line-height: 1.2;
+    min-height: 2.4em; /* Espacio para dos líneas de texto */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .hydro-station-card .rio-name {
-    font-style: italic;
-    color: #666; /* Color de texto secundario más oscuro */
-    margin-bottom: 15px;
-    font-size: 0.9em;
+    display: none; /* Ocultamos el nombre del río como solicitaste */
 }
 
 .gauge-container {
-    margin-bottom: 15px;
+    margin-bottom: 12px;
 }
 
 .gauge-label {
     display: flex;
     justify-content: space-between;
-    font-size: 0.9em;
-    margin-bottom: 5px;
+    font-size: 0.85em;
+    margin-bottom: 4px;
     font-weight: bold;
-    color: #333;
 }
-
-/* Los colores de alerta se mantienen para los valores numéricos */
-.gauge-value.status-normal { color: #333; }
-.gauge-value.status-amarilla { color: #c88c00; font-weight: bold; animation: pulse-yellow 2s infinite; }
-.gauge-value.status-roja { color: #dc3545; font-weight: bold; animation: pulse-red 1.5s infinite; }
 
 .gauge-bar {
     width: 100%;
-    height: 20px;
+    height: 22px; /* Un poco más alta para que quepa el texto */
     border-radius: 5px;
     border: 1px solid #ccc;
     position: relative;
     overflow: hidden;
-    /* --- INICIO DE LA CORRECCIÓN CLAVE --- */
-    /* Usamos un degradado con colores sólidos y porcentajes definidos */
+    /* Distribución de colores 25% verde, 50% amarillo, 25% rojo */
     background: linear-gradient(to right, 
-        #4caf50 0%,   /* Verde (Normal) hasta el 70% */
-        #4caf50 70%, 
-        #ffeb3b 70%,  /* Amarillo (Alerta Amarilla) del 70% al 90% */
-        #ffeb3b 90%, 
-        #f44336 90%,  /* Rojo (Alerta Roja) del 90% al 100% */
-        #f44336 100%
+        #4caf50 0%, #4caf50 25%, 
+        #ffeb3b 25%, #ffeb3b 75%, 
+        #f44336 75%, #f44336 100%
     );
-    /* --- FIN DE LA CORRECCIÓN CLAVE --- */
 }
 
-.gauge-needle {
+/* El texto que va DENTRO de la barra */
+.gauge-value-inside {
     position: absolute;
-    top: -5px;
-    bottom: -5px;
-    width: 4px;
-    background-color: #333; /* Aguja más oscura para mejor contraste */
-    border-right: 2px solid white;
-    transform-origin: center;
-    transition: left 0.5s ease-out;
-    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    top: 0;
+    left: 2%; /* Posición inicial */
+    height: 100%;
+    display: flex;
+    align-items: center;
+    font-size: 0.9em;
+    font-weight: bold;
+    color: black;
+    text-shadow: 0 0 3px white;
+    white-space: nowrap;
+    transition: left 0.5s ease-out; /* Animación suave */
 }
 
-.update-time {
-    margin-top: auto; /* Empuja este elemento al final de la tarjeta */
-    padding-top: 10px;
+.card-footer {
+    margin-top: auto;
+    padding-top: 8px;
     border-top: 1px solid #eee;
-    font-size: 0.8em;
-    color: #6c757d;
-    font-style: italic;
+    display: flex;
+    justify-content: flex-end; /* Alinea el LED a la derecha */
+    align-items: center;
+}
+
+/* Nuevo estilo para el LED de estado */
+.status-led {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.2);
+    box-shadow: 0 0 5px;
+}
+
+.led-green {
+    background-color: #4caf50;
+    box-shadow: 0 0 8px #4caf50;
+}
+
+.led-red {
+    background-color: #f44336;
+    box-shadow: 0 0 8px #f44336;
+    animation: pulse-red-led 2s infinite;
+}
+
+@keyframes pulse-red-led {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
 }
 
 /* Las animaciones de pulso para el texto de alerta se mantienen */

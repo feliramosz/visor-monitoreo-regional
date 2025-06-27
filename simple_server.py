@@ -100,7 +100,7 @@ def get_hydrometry_data():
             processed_stations.append({
                 "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A",
                 "nivel_m": None, "caudal_m3s": None,
-                "ultima_actualizacion": "Error de conexión"
+                "ultima_actualizacion": "No reportado"
             })
         except Exception as e:
             print(f"Error procesando la estación {code}: {e}")
