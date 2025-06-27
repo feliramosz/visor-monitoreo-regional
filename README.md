@@ -1,6 +1,6 @@
 # Sistema de Monitoreo Regional - SENAPRED Valparaíso
 
-_Última actualización: 25 de junio de 2025_
+_Última actualización: 27 de junio de 2025_
 
 ![Estado](https://img.shields.io/badge/estado-en_producción-green)
 ![Python](https://img.shields.io/badge/python-3.x-blue.svg)
@@ -10,7 +10,7 @@ _Última actualización: 25 de junio de 2025_
 
 ## Descripción
 
-Este proyecto es una aplicación web en producción diseñada para la visualización y gestión de información de monitoreo para la Dirección Regional de SENAPRED Valparaíso. El sistema automatiza la extracción de datos desde informes `.docx`, los presenta en diferentes formatos visuales, integra datos en tiempo real de fuentes externas y cuenta con capacidades de **sincronización en tiempo real para múltiples operadores**.
+Este proyecto es una aplicación web en producción diseñada para la visualización y gestión de información de monitoreo para la Dirección Regional de SENAPRED Valparaíso. El sistema automatiza la extracción de datos desde informes `.docx`, los presenta en diferentes formatos visuales, integra datos en tiempo real de fuentes externas, **incluyendo un nuevo módulo de monitoreo hidrométrico para cuencas clave**, y cuenta con capacidades de **sincronización en tiempo real para múltiples operadores**.
 
 Cuenta con un panel de administración protegido por un sistema de login y roles, un completo **registro de auditoría de actividad** y un flujo de despliegue continuo (CI/CD) completamente automatizado.
 
@@ -53,18 +53,22 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
     -   Editar manualmente toda la información extraída del informe.
     -   Gestionar el panel de "Novedades" del dashboard.
     -   Subir imágenes para crear slides dinámicas en los carruseles.
-    -   Controlar la configuración de visualización del dashboard (ej. activar el carrusel central).
+    -   Controlar la configuración de visualización del dashboard.
+-   **Visualización Avanzada de Datos con Umbrales de Alerta**:
+    -   **Medidores tipo 'velocímetro'**: Se desarrollaron componentes visuales personalizados para mostrar datos hidrométricos (nivel y caudal), representando gráficamente la proximidad a los umbrales de alerta.
+    -   **Alertas Configurables**: Los umbrales para Alerta Amarilla y Roja son fácilmente configurables directamente en el código, permitiendo una adaptación rápida a los procedimientos operativos.
+    -   **Carruseles de Información Dinámica**: El banner superior del dashboard ahora es un carrusel que rota automáticamente entre información meteorológica en tiempo real y los nuevos medidores hidrométricos, maximizando el uso del espacio.
 -   **Gestión de Usuarios y Auditoría (Solo Administradores)**:
     -   **Gestión de Usuarios desde la Interfaz**: Los administradores pueden crear, editar y eliminar cuentas de usuario directamente desde el panel de administración.
     -   **Log de Actividad del Sistema**: El sistema registra todas las acciones importantes (inicios de sesión, intentos fallidos, cambios de datos, creación de usuarios) con **usuario, fecha, hora y dirección IP**, visible solo para administradores.
--   **Integración de APIs Externas**: Consume y muestra datos en tiempo real de la DMC, SINCA, CSN, SHOA y Waze for Cities.
+-   **Integración de APIs Externas**: Consume y muestra datos en tiempo real de la DMC, SINCA, CSN, SHOA, Waze for Cities y la DGA (SNIA).
 -   **Múltiples Vistas de Despliegue**:
     -   `index.html`: **Carrusel público** para pantallas de visualización general, con paginación inteligente de tablas largas.
     -   `dashboard.html`: **Panel de operaciones avanzado** para operadores, con una disposición de múltiples columnas, mapas interactivos y carruseles internos.
     -   `admin.html` y `login.html`: Interfaz de gestión de contenidos y portal de acceso.
 -   **Mejoras de Experiencia de Usuario (UX)**:
     -   Priorización automática de alertas por nivel de criticidad (Roja, Amarilla, etc.).
-    * Auto-scroll vertical en paneles con contenido extenso para asegurar la visibilidad sin desbordes.
+    -   Auto-scroll vertical en paneles con contenido extenso para asegurar la visibilidad sin desbordes.
 
 ---
 
@@ -72,11 +76,12 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 
 -   **Desplegado en Entorno de Producción:** La aplicación está funcionando en un servidor en la nube con Nginx y SSL.
 -   **Implementado Flujo de CI/CD:** El despliegue de actualizaciones ahora es 100% automático a través de GitHub Actions.
--   **Implementado un Sistema de Autenticación y Control de Acceso por Roles:** Todas las vistas (`index`, `dashboard`, `admin`) ahora requieren inicio de sesión. Se han definido roles de 'administrador' y 'operador' para restringir el acceso a funciones sensibles.
--   **Añadida Gestión de Usuarios desde la Interfaz:** Los administradores ahora pueden crear, editar y eliminar cuentas de usuario directamente desde el panel de administración.
--   **Creado un Log de Auditoría de Actividad:** El sistema ahora registra todas las acciones importantes en un log de actividad visible para los administradores.
--   **Desarrollado un Dashboard de Operaciones Avanzado:** Se creó una nueva vista (`dashboard.html`) optimizada para el monitoreo activo por parte de los operadores.
--   **Desarrollado un Sistema de Sincronización en Tiempo Real:** Todos los usuarios que ven el dashboard reciben actualizaciones automáticas.
+-   **Implementado un Sistema de Autenticación y Control de Acceso por Roles:** Todas las vistas requieren inicio de sesión. Se han definido roles de 'administrador' y 'operador'.
+-   **Añadida Gestión de Usuarios desde la Interfaz:** Los administradores ahora pueden crear, editar y eliminar cuentas de usuario.
+-   **Creado un Log de Auditoría de Actividad:** El sistema registra todas las acciones importantes.
+-   **Desarrollado un Dashboard de Operaciones Avanzado:** Se creó la vista `dashboard.html` optimizada para el monitoreo activo.
+-   **Desarrollado un Sistema de Sincronización en Tiempo Real:** Los dashboards se actualizan automáticamente.
+-   **Añadido Módulo de Monitoreo Hidrométrico Avanzado:** Se integró la API de la DGA (SNIA) y se desarrollaron visualizaciones personalizadas tipo 'velocímetro' con umbrales de alerta predefinidos para cuencas críticas.
 
 ## 📝 Próximos Pasos y Tareas Pendientes
 
