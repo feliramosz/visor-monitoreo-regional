@@ -350,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                                 <div class="gauge-wrapper">
                                     <div class="gauge-arc-background"></div>
-                                    <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"></div>
+                                    <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
                                 </div>
                                 <div class="threshold-label-right">
                                     <span class="threshold-rojo">R: ${nivelGauge.roja}</span>
@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                                 <div class="gauge-wrapper">
                                     <div class="gauge-arc-background"></div>
-                                    <div class="gauge-needle" style="transform: rotate(${caudalGauge.rotation}deg);"></div>
+                                    <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
                                 </div>
                                 <div class="threshold-label-right">
                                     <span class="threshold-rojo">R: ${caudalGauge.roja}</span>
