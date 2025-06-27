@@ -1812,7 +1812,7 @@ img, table {
 #hydro-slide {
     justify-content: space-around;
     gap: 15px;
-    align-items: stretch; /* Clave para que todas las tarjetas tengan la misma altura */
+    align-items: stretch;
     display: flex;
     padding: 10px;
     box-sizing: border-box;
@@ -1821,64 +1821,51 @@ img, table {
 .hydro-station-card {
     background-color: #f9f9f9;
     border: 1px solid #e0e0e0;
-    border-top: 2px solid #007bff;
-    border-bottom: 2px solid #007bff;
     border-radius: 8px;
-    padding: 10px 15px;
+    padding: 10px 15px 12px 15px; 
     color: #333;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     display: flex;
     flex-direction: column;
-    /* Hacemos que el ancho sea flexible como las tarjetas del clima */
     flex: 1;
-    min-width: 250px;
-    max-width: 380px;
+    min-width: 280px;
+    max-width: 380px; 
 }
 
 .hydro-station-card h4 {
     margin: 0 0 10px 0;
-    font-size: 1.05em;
+    font-size: 1.1em;
     color: #004d99;
     font-weight: bold;
-    line-height: 1.2;
-    min-height: 2.5em; /* Espacio reservado para el título */
+    min-height: 2.5em;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
 }
 
-.hydro-station-card .rio-name {
-    display: none; /* Oculto por defecto, se muestra con JS si hay dato */
-    font-style: italic;
-    color: #666;
-    margin-top: -10px;
-    margin-bottom: 10px;
-    font-size: 0.9em;
-}
-
 .gauge-container {
-    margin-bottom: 10px;
+    margin-bottom: 15px;
 }
 
 .gauge-label {
-    display: flex;
-    justify-content: space-between;
     font-size: 0.9em;
-    margin-bottom: 4px;
+    margin-bottom: 5px;
     font-weight: bold;
+    color: #333;
+    text-align: left;
 }
 
 .gauge-bar {
     width: 100%;
-    height: 24px;
+    height: 25px;
     border-radius: 5px;
     border: 1px solid #b0b0b0;
-    position: relative;
-    overflow: hidden;
+    position: relative; 
+    overflow: visible; 
     background: linear-gradient(to right, 
         #4caf50 0%, #4caf50 25%, 
-        #ffc107 25%, #ffc107 75%, 
+        #ffeb3b 25%, #ffeb3b 75%, 
         #f44336 75%, #f44336 100%
     );
 }
@@ -1886,17 +1873,41 @@ img, table {
 .gauge-value-inside {
     position: absolute;
     top: 0;
-    left: 2%;
+    left: 1%;
     height: 100%;
     display: flex;
     align-items: center;
-    font-size: 0.85em;
+    font-size: 0.9em;
     font-weight: bold;
     color: black;
-    text-shadow: 0px 0px 2px white, 0px 0px 4px white;
+    text-shadow: 0 0 3px white, 0 0 5px white;
     white-space: nowrap;
     transition: left 0.5s ease-out;
+    pointer-events: none; 
 }
+
+/* --- ESTILOS PARA MARCADORES DE UMBRAL --- */
+.gauge-threshold {
+    position: absolute;
+    bottom: -10px; 
+    transform: translateX(-50%);
+    font-size: 0.7em;
+    font-weight: bold;
+    color: #333;
+}
+
+.gauge-threshold::before {
+    content: '';
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    width: 2px;
+    height: 10px;
+    background-color: #333;
+}
+
+.threshold-amarillo { color: #b48b00; }
+.threshold-rojo { color: #a42319; }
 
 .card-footer {
     margin-top: auto;
@@ -1905,7 +1916,7 @@ img, table {
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    height: 15px; /* Altura fija para el pie de la tarjeta */
+    height: 15px;
 }
 
 /* Nuevo estilo para el LED de estado */
@@ -1934,7 +1945,6 @@ img, table {
     100% { opacity: 1; }
 }
 
-/* Las animaciones de pulso para el texto de alerta se mantienen */
 @keyframes pulse-yellow {
     0% { text-shadow: 0 0 4px rgba(255, 235, 59, 0.5); }
     50% { text-shadow: 0 0 10px rgba(255, 235, 59, 1); }
@@ -1947,8 +1957,8 @@ img, table {
 }
 
 #weather-banner-container {
-    position: relative; /* Necesario para que las slides se posicionen dentro */
-    overflow: hidden;   /* Oculta las slides que no están activas */    
+    position: relative;
+    overflow: hidden;   
 }
 
 /* Estilo para CADA slide (clima, hidrometría, etc.) */
