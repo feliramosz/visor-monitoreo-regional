@@ -40,29 +40,37 @@ NTP_SERVER = 'ntp.shoa.cl'
 
 def get_hydrometry_data():
     """
-    Función de DIAGNÓSTICO FINAL. Devuelve la respuesta CRUDA de la API al navegador.
+    Función de DIAGNÓSTICO FINAL V2. Intenta leer el JSON y si falla, 
+    devuelve el TEXTO CRUDO de la respuesta para análisis.
     """
+    import json # Importante para manejar el error de JSON
+
     API_URL = "https://snia.mop.gob.cl/dga/REH/Ajustes/get_valores_parametros"
     headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0 (Python)'}
-
-    # Probaremos con una estación para obtener la respuesta
     test_code = '05410002-7' 
+
     try:
         params = {'cod_estacion': test_code}
         response = requests.get(API_URL, headers=headers, params=params, timeout=15)
+
+        # Verificamos si la solicitud fue exitosa (código 200)
         response.raise_for_status()
 
-        # Obtenemos el JSON de la respuesta
-        api_response_data = response.json()
-
-        # En lugar de procesarlo, lo devolvemos directamente
-        print("DIAGNÓSTICO: Devolviendo respuesta cruda de la API al navegador.")
-        return api_response_data
+        # Intentamos decodificar la respuesta como JSON
+        try:
+            api_response_data = response.json()
+            # Si funciona, lo devolvemos (aunque no debería llegar aquí según el error)
+            return api_response_data
+        except json.JSONDecodeError:
+            # ¡AQUÍ ESTÁ LA CLAVE! Si falla la decodificación de JSON,
+            # capturamos el texto plano de la respuesta.
+            raw_text_response = response.text
+            print("DIAGNÓSTICO: Falló la decodificación de JSON. Devolviendo el texto crudo de la respuesta.")
+            return [{"error": "La API no devolvió un JSON válido.", "respuesta_recibida": raw_text_response}]
 
     except Exception as e:
-        # Si hay un error, también lo devolvemos para poder verlo
-        print(f"ERROR DURANTE EL DIAGNÓSTICO: {e}")
-        return [{"error": f"No se pudo contactar o procesar la API de la DGA. Causa: {str(e)}"}]
+        # Si hay un error de conexión, también lo mostramos.
+        return [{"error": f"No se pudo contactar o procesar la API. Causa: {str(e)}"}]
 
     # Durante el diagnóstico, siempre devolveremos una lista vacía para que los medidores no muestren nada.
     return []
