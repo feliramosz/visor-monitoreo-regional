@@ -1752,7 +1752,7 @@ img, table {
    FIN CAMBIOS RESPONSIVOS 2025-06-25
    ============================= */
 
-   /* --- Estilos para el carrusel de la columna derecha --- */
+/* --- Estilos para el carrusel de la columna derecha --- */
 .dashboard-panel-container {
     display: flex;
     flex-direction: column;
@@ -1810,26 +1810,29 @@ img, table {
 
 /* --- Estilos para la Slide de Hidrometría --- */
 #hydro-slide {
-    justify-content: space-around;
-    gap: 15px;
-    align-items: stretch;
     display: flex;
-    padding: 10px;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: stretch;
+    gap: 15px;
+    width: 100%;
+    min-height: 220px;
+    max-height: 320px; /* Ajusta según tu preferencia */
+    height: 320px;     /* Fija la altura para evitar saltos */
     box-sizing: border-box;
+    padding: 10px;
+    overflow: hidden;
 }
 
 .hydro-station-card {
-    background-color: #f9f9f9;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 8px 15px 10px 15px; /* Reducimos padding vertical para bajar la altura */
-    color: #333;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    flex: 1 1 0;
+    min-width: 220px;
+    max-width: 380px;
+    max-height: 300px; /* Limita la altura de la tarjeta */
     display: flex;
     flex-direction: column;
-    flex: 1;
-    min-width: 280px;
-    max-width: 380px; 
+    justify-content: flex-start;
+    overflow: hidden;
 }
 
 .hydro-station-card h4 {
