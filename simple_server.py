@@ -40,8 +40,7 @@ NTP_SERVER = 'ntp.shoa.cl'
 
 def get_hydrometry_data():
     """
-    Obtiene los datos hidrométricos desde la API oficial del SNIA (Sistema Nacional de Información del Agua),
-    haciendo una petición por cada estación de interés.
+    Obtiene los datos hidrométricos desde la API del SNIA.
     """
     STATION_CODES = ['05410002-7', '05410024-8', '05414001-0']
     API_BASE_URL = "https://datos.snia.mop.gob.cl/dga/rest/datos/"
@@ -51,29 +50,41 @@ def get_hydrometry_data():
 
     for code in STATION_CODES:
         try:
-            # Hacemos una llamada a la API por cada código de estación
             response = requests.get(f"{API_BASE_URL}{code}", headers=headers, timeout=15)
-            response.raise_for_status()
-            station_data_list = response.json()
-
-            if not station_data_list:
-                print(f"Advertencia: No se recibieron datos para la estación {code}")
+            # Incluso si la respuesta es un array vacío, no es un error de servidor, así que no usamos raise_for_status
+            if response.status_code != 200:
+                print(f"Advertencia: La API de SNIA devolvió un estado {response.status_code} para la estación {code}")
                 continue
 
-            # La API devuelve una lista de mediciones, nos quedamos con la más reciente (la primera)
+            station_data_list = response.json()
+
+            # Aunque la llamada sea exitosa, la lista de datos puede estar vacía
+            if not station_data_list:
+                print(f"Advertencia: No se recibieron datos en la respuesta para la estación {code}")
+                # Agregamos la estación con datos por defecto para que no quede en blanco
+                processed_stations.append({
+                    "codigo_estacion": code, "nombre_estacion": f"Estación {code}", "rio": "N/A",
+                    "nivel_m": 0, "caudal_m3s": 0, "ultima_actualizacion": "Sin datos recientes",
+                    "lat": None, "lon": None
+                })
+                continue
+
             latest_data = station_data_list[0]
+            
+            # Inicializamos los valores en None o 0
+            nivel_m = 0.0
+            caudal_m3s = 0.0
 
-            # Extraemos los datos de nivel y caudal. Buscamos en la lista de parámetros.
-            nivel_m = None
-            caudal_m3s = None
-
+            # Buscamos los parámetros de forma segura
             for parametro in latest_data.get("parametros", []):
-                if parametro.get("nombre") == "Caudal":
-                    caudal_m3s = parametro.get("valor")
-                elif parametro.get("nombre") == "Nivel del agua":
-                    nivel_m = parametro.get("valor")
+                param_nombre = parametro.get("nombre")
+                param_valor = parametro.get("valor")
+                if param_nombre == "Caudal" and param_valor is not None:
+                    caudal_m3s = float(param_valor)
+                elif param_nombre == "Nivel del agua" and param_valor is not None:
+                    nivel_m = float(param_valor)
+            
 
-            # Convertimos el timestamp a un formato legible
             timestamp_ms = latest_data.get("fecha")
             update_time_str = "No disponible"
             if timestamp_ms:
@@ -82,8 +93,8 @@ def get_hydrometry_data():
 
             processed_stations.append({
                 "codigo_estacion": code,
-                "nombre_estacion": latest_data.get("nombre_estacion", "Nombre no disponible"),
-                "rio": latest_data.get("fuente", "Río no disponible"), # Usamos 'fuente' como nombre del río
+                "nombre_estacion": latest_data.get("nombre_estacion", f"Estación {code}"),
+                "rio": latest_data.get("fuente", "Río no disponible"),
                 "nivel_m": nivel_m,
                 "caudal_m3s": caudal_m3s,
                 "ultima_actualizacion": update_time_str,
@@ -92,8 +103,8 @@ def get_hydrometry_data():
             })
 
         except requests.exceptions.RequestException as e:
-            print(f"Error al contactar la API de SNIA para la estación {code}: {e}")
-            continue # Si una estación falla, continuamos con la siguiente
+            print(f"Error de conexión al contactar la API de SNIA para la estación {code}: {e}")
+            continue
         except Exception as e:
             print(f"Error procesando datos de SNIA para la estación {code}: {e}")
             continue
