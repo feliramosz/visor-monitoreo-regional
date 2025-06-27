@@ -305,103 +305,85 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!hydroContainer) return;
 
         const hydroThresholds = {
-            '05410002-7': { nombre: "Rio Aconcagua en Chacabuquito", nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.6 } },
-            '05410024-8': { nombre: "Rio Aconcagua en San Felipe 2", nivel: { amarilla: 2.8, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
-            '05414001-0': { nombre: "Rio Putaendo en Resguardo los Patos", nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
+            'Rio Aconcagua en Chacabuquito': { nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.6 } },
+            'Rio Aconcagua en San Felipe 2': { nivel: { amarilla: 2.8, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
+            'Rio Putaendo en Resguardo los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
         };
 
-        try {
-            const response = await fetch('/api/hidrometria');
-            const stationsData = await response.json();
+        // La clave: leemos los datos del objeto 'data' que ya tenemos, no de una API.
+        const stationsData = data.datos_hidrometricos || [];
 
-            if (stationsData.error) throw new Error(stationsData.error);
+        hydroContainer.innerHTML = Object.keys(hydroThresholds).map(stationName => {
+            // Buscamos la estación por su nombre en los datos extraídos del informe
+            const station = stationsData.find(s => s.nombre_estacion === stationName) || { nivel_m: null, caudal_m3s: null };
+            const thresholds = hydroThresholds[stationName];
 
-            hydroContainer.innerHTML = Object.keys(hydroThresholds).map(stationCode => {
-                const station = stationsData.find(s => s.codigo_estacion === stationCode) || { ultima_actualizacion: 'no reportado', nombre_estacion: hydroThresholds[stationCode].nombre };
-                const thresholds = hydroThresholds[stationCode];
+            const hasData = station.nivel_m !== null || station.caudal_m3s !== null;
+            const ledClass = hasData ? 'led-green' : 'led-red';
 
-                const hasData = station.ultima_actualizacion !== "no reportado" && station.ultima_actualizacion !== "Sin datos";
-                const ledClass = hasData ? 'led-green' : 'led-red';
-                
-                const getGaugeData = (value, threshold) => {
-                    const safeValue = (typeof value === 'string') ? value.replace(',', '.') : value;
-                    const currentValue = (safeValue !== null && !isNaN(parseFloat(safeValue))) ? parseFloat(safeValue) : 0;
-                    
-                    // --- LÓGICA LOGARÍTMICA ---
-                    let rotation;
-                    if (currentValue <= 0) {
-                        rotation = -90; // El valor es 0, la aguja se queda al inicio.
-                    } else {
-                        // Usamos logaritmos para calcular la posición.
-                        // Se suma 1 para evitar log(1) = 0, asegurando que cualquier valor > 0 mueva la aguja.
-                        const logValue = Math.log(currentValue + 1);
-                        const logMax = Math.log(threshold.roja + 1);
-                        const percentage = logValue / logMax;
-                        
-                        // Calculamos la rotación en base a este nuevo porcentaje logarítmico.
-                        rotation = -90 + (percentage * 180);
-                    }                    
-
-                    return {
-                        value: currentValue.toFixed(2),
-                        // Aseguramos que la rotación no exceda los límites por si acaso
-                        rotation: Math.max(-90, Math.min(90, rotation)), 
-                        amarilla: threshold.amarilla.toFixed(2),
-                        roja: threshold.roja.toFixed(2)
-                    };
+            const getGaugeData = (value, threshold) => {
+                const currentValue = (value !== null && !isNaN(value)) ? value : 0;
+                let rotation;
+                if (currentValue <= 0) {
+                    rotation = -90;
+                } else {
+                    const logValue = Math.log(currentValue + 1);
+                    const logMax = Math.log(threshold.roja + 1);
+                    const percentage = logValue / logMax;
+                    rotation = -90 + (percentage * 180);
+                }
+                return {
+                    value: currentValue.toFixed(2),
+                    rotation: Math.max(-90, Math.min(90, rotation)),
+                    amarilla: threshold.amarilla.toFixed(2),
+                    roja: threshold.roja.toFixed(2)
                 };
-                
-                const nivelGauge = getGaugeData(station.nivel_m, thresholds.nivel);
-                const caudalGauge = getGaugeData(station.caudal_m3s, thresholds.caudal);
+            };
+            
+            const nivelGauge = getGaugeData(station.nivel_m, thresholds.nivel);
+            const caudalGauge = getGaugeData(station.caudal_m3s, thresholds.caudal);
 
-                return `
-                    <div class="hydro-station-card">
-                        <div class="hydro-card-header">
-                            <div class="status-led ${ledClass}" title="Estado: ${hasData ? station.ultima_actualizacion : 'No Reportado'}"></div>
-                            <h4>${station.nombre_estacion}</h4>
-                        </div>
-
-                        <div class="gauges-container">
-                            <div class="gauge-unit">
-                                <p class="gauge-label">Altura (m)</p>
-                                <div class="threshold-label-left">
-                                    <span class="threshold-amarillo">A: ${nivelGauge.amarilla}</span>
-                                </div>
-                                <div class="gauge-wrapper">
-                                    <div class="gauge-arc-background"></div>
-                                    <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
-                                </div>
-                                <div class="threshold-label-right">
-                                    <span class="threshold-rojo">R: ${nivelGauge.roja}</span>
-                                </div>
-                                <p class="gauge-current-value">${nivelGauge.value}</p>
+            // El HTML que genera la tarjeta
+            return `
+                <div class="hydro-station-card">
+                    <div class="hydro-card-header">
+                        <div class="status-led ${ledClass}"></div>
+                        <h4>${stationName}</h4>
+                    </div>
+                    <div class="gauges-container">
+                        <div class="gauge-unit">
+                            <p class="gauge-label">Altura (m)</p>
+                            <div class="threshold-label-left">
+                                <span class="threshold-amarillo">A: ${nivelGauge.amarilla}</span>
                             </div>
-
-                            <div class="gauge-unit">
-                                <p class="gauge-label">Caudal (m³/s)</p>
-                                <div class="threshold-label-left">
-                                    <span class="threshold-amarillo">A: ${caudalGauge.amarilla}</span>
-                                </div>
-                                <div class="gauge-wrapper">
-                                    <div class="gauge-arc-background"></div>
-                                    <div class="gauge-needle" style="transform: rotate(${caudalGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
-                                </div>
-                                <div class="threshold-label-right">
-                                    <span class="threshold-rojo">R: ${caudalGauge.roja}</span>
-                                </div>
-                                <p class="gauge-current-value">${caudalGauge.value}</p>
+                            <div class="gauge-wrapper">
+                                <div class="gauge-arc-background"></div>
+                                <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
                             </div>
+                            <div class="threshold-label-right">
+                                <span class="threshold-rojo">R: ${nivelGauge.roja}</span>
+                            </div>
+                            <p class="gauge-current-value">${nivelGauge.value}</p>
                         </div>
-
-                        <div class="card-footer">
+                        <div class="gauge-unit">
+                            <p class="gauge-label">Caudal (m³/s)</p>
+                            <div class="threshold-label-left">
+                                <span class="threshold-amarillo">A: ${caudalGauge.amarilla}</span>
+                            </div>
+                            <div class="gauge-wrapper">
+                                <div class="gauge-arc-background"></div>
+                                <div class="gauge-needle" style="transform: rotate(${caudalGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
+                            </div>
+                            <div class="threshold-label-right">
+                                <span class="threshold-rojo">R: ${caudalGauge.roja}</span>
+                            </div>
+                            <p class="gauge-current-value">${caudalGauge.value}</p>
                         </div>
                     </div>
-                `;
-            }).join('');
-
-        } catch (error) {
-            console.error("Error al renderizar slide de hidrometría:", error);
-        }
+                    <div class="card-footer"></div>
+                </div>
+            `;
+        }).join('');
     }
 
     // Lógica de Reloj LED   
