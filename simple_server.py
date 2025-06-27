@@ -59,8 +59,60 @@ def get_hidrometry_data_for_debug():
 
 # --- Función de Producción (temporalmente desactivada) ---
 def get_hydrometry_data():
-    return []
+    """
+    Obtiene los datos hidrométricos desde la nueva API funcional de la DGA,
+    usando las cabeceras de navegador para asegurar la conexión.
+    """
+    STATION_CODES = {
+        '05410002-7': 'Rio Aconcagua en Chacabuquito',
+        '05410024-8': 'Rio Aconcagua en San Felipe 2',
+        '05414001-0': 'Rio Putaendo en Resguardo los Patos'
+    }
+    
+    # --- URL DE LA API CORRECTA Y FUNCIONAL ---
+    API_URL = "https://dgaonline.mop.gob.cl/servicios/datoshistoricos"
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
+    }
+    
+    processed_stations = []
 
+    for code, default_name in STATION_CODES.items():
+        try:
+            # La nueva API requiere los parámetros en un formato específico
+            params = {
+                'estacion': code,
+                'fecha_inicio': (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d'),
+                'fecha_termino': datetime.now().strftime('%Y-%m-%d')
+            }
+            response = requests.get(API_URL, headers=headers, params=params, timeout=20)
+            response.raise_for_status()
+            
+            station_data_list = response.json()
+
+            if station_data_list and isinstance(station_data_list, list) and station_data_list[0].get('datos'):
+                # Los datos vienen anidados. Nos interesa el último registro.
+                latest_data = station_data_list[0]['datos'][-1]
+                
+                nivel_m = latest_data.get("valor_Nivel")
+                caudal_m3s = latest_data.get("valor_Caudal")
+                update_time_str = datetime.strptime(latest_data.get("fecha"), '%Y-%m-%d %H:%M:%S').strftime('%d-%m-%Y %H:%M')
+
+                processed_stations.append({
+                    "codigo_estacion": code, "nombre_estacion": default_name,
+                    "rio": "N/A", # Esta API no provee el nombre del río
+                    "nivel_m": nivel_m, "caudal_m3s": caudal_m3s, "ultima_actualizacion": update_time_str,
+                })
+            else:
+                processed_stations.append({ "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A", "nivel_m": None, "caudal_m3s": None, "ultima_actualizacion": "Sin datos" })
+
+        except Exception as e:
+            print(f"Error final procesando la estación {code}: {e}")
+            processed_stations.append({ "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A", "nivel_m": None, "caudal_m3s": None, "ultima_actualizacion": "No reportado" })
+            continue
+
+    return processed_stations
     
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
     # --- Función para registrar logs ---
