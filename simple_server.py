@@ -39,10 +39,6 @@ MAX_IMAGE_HEIGHT = 800
 NTP_SERVER = 'ntp.shoa.cl'
 
 def get_hidrometry_data_for_debug():
-    """
-    Función de DIAGNÓSTICO AISLADA. Se llama solo desde /api/debug_hidro.
-    Devuelve la respuesta cruda de la API o el error detallado.
-    """
     API_URL = "https://snia.mop.gob.cl/dga/REH/Ajustes/get_valores_parametros"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
@@ -63,11 +59,8 @@ def get_hidrometry_data_for_debug():
 
 # --- Función de Producción (temporalmente desactivada) ---
 def get_hydrometry_data():
-    """
-    Función de producción. Temporalmente devuelve una lista vacía
-    mientras depuramos.
-    """
     return []
+
     
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
     # --- Función para registrar logs ---
@@ -133,6 +126,17 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         try:
             parsed_path = urllib.parse.urlparse(self.path)
             requested_path = urllib.parse.unquote(parsed_path.path)
+
+            if requested_path == '/api/debug_hidro':
+                debug_data = get_hidrometry_data_for_debug()
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps(debug_data, indent=2, ensure_ascii=False).encode('utf-8'))
+                return
+            
+            if requested_path == '/api/hidrometria':
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps(get_hydrometry_data(), ensure_ascii=False).encode('utf-8'))
+                return
 
             # --- ENDPOINTS DE API (GET) ---
             if requested_path == '/api/users':
