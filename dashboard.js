@@ -489,7 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 novedadesContent.textContent = 'No hay novedades para mostrar.';
             }
 
-            // --- Llamamos a nuestra nueva función orquestadora ---
+            fetchAndRenderHydroSlide(data); 
             setupTopBannerCarousel(data);
 
             setupCentralContent(data);
@@ -1032,7 +1032,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchAndRenderAirQuality();
         fetchAndRenderPrecipitationData();
         fetchAndRenderWazeData();
-        fetchAndRenderHydroSlide(); // <-- Ahora esta función encontrará el div #hydro-slide sin problemas.
+        
 
         // 4. Activamos los carruseles y listeners de botones estáticos
         showMapSlide(0);
@@ -1045,7 +1045,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 5. Configuramos las actualizaciones periódicas
         setInterval(fetchAndRenderMainData, 60 * 1000);
         setInterval(fetchAndRenderWazeData, 2 * 60 * 1000);
-        setInterval(fetchAndRenderHydroSlide, 5 * 60 * 1000);
+        //setInterval(fetchAndRenderHydroSlide, 5 * 60 * 1000);
         // Ya no es necesario llamar a fetchAndRenderAirQuality y fetchAndRenderPrecipitationData aquí,
         // porque ya se actualizan con fetchAndRenderMainData.
     }

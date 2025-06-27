@@ -39,47 +39,7 @@ MAX_IMAGE_HEIGHT = 800
 # --- SERVIDOR NTP DEL SHOA ---
 NTP_SERVER = 'ntp.shoa.cl'
 
-def get_hydrometry_data():
-    """
-    [DIAGNÓSTICO FINAL] Guarda la respuesta HTML cruda de la página de la tabla
-    en un archivo para poder analizarla.
-    """
-    # La ruta /tmp/ es universal y casi siempre tiene permisos de escritura
-    DEBUG_FILE_PATH = '/tmp/dga_response.html'
-    
-    API_URL = "https://snia.mop.gob.cl/dgasat/pages/dgasat_response/dgasat_tabla_export.php"
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
-        'Referer': 'https://snia.mop.gob.cl/dgasat/pages/dgasat_param/dgasat_param_T.jsp'
-    }
-    
-    # Usaremos solo una estación para la prueba
-    test_code = '05410002-7'
-    try:
-        params = {
-            'estacion1': test_code,
-            'tipo_consulta': '1', # Valores Instantáneos
-            'periodo': '1'        # 1 día
-        }
-        
-        response = requests.get(API_URL, headers=headers, params=params, timeout=20)
-        
-        # Guardamos el contenido de la respuesta, sea lo que sea, en el archivo.
-        with open(DEBUG_FILE_PATH, 'w', encoding='utf-8') as f:
-            f.write(f"\n")
-            f.write(response.text)
-        
-        print(f"DIAGNÓSTICO: Respuesta guardada en {DEBUG_FILE_PATH}")
-
-    except Exception as e:
-        # Si hay un error, también lo guardamos en el archivo.
-        with open(DEBUG_FILE_PATH, 'w', encoding='utf-8') as f:
-            f.write(f"Error durante el diagnóstico: {str(e)}")
-        print(f"DIAGNÓSTICO: Error guardado en {DEBUG_FILE_PATH}")
-
-    # La función siempre devuelve una lista vacía para que el dashboard siga en 0.00
-    return []
-    
+  
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
     # --- Función para registrar logs ---
     def _get_real_ip(self):
@@ -151,11 +111,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(debug_data, indent=2, ensure_ascii=False).encode('utf-8'))
                 return
             
-            if requested_path == '/api/hidrometria':
-                self._set_headers(200, 'application/json')
-                self.wfile.write(json.dumps(get_hydrometry_data(), ensure_ascii=False).encode('utf-8'))
-                return
-
             # --- ENDPOINTS DE API (GET) ---
             if requested_path == '/api/users':
                 username = self._get_user_from_token()
@@ -192,14 +147,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps(logs).encode('utf-8'))
                 return
-
-            # --- ENDPOINT PARA DATOS HIDROMETRICOS ---
-            elif requested_path == '/api/hidrometria':
-                hydro_data = get_hydrometry_data()
-                self._set_headers(200, 'application/json')
-                self.wfile.write(json.dumps(hydro_data, ensure_ascii=False).encode('utf-8'))
-                return
-
+            
             # --- ENDPOINT PARA DATOS DEL USUARIO ACTUAL ---
             elif requested_path == '/api/me':
                 username = self._get_user_from_token()

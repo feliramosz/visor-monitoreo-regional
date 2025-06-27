@@ -278,6 +278,41 @@ def extraer_datos_docx(docx_filepath, subject_email, report_id):
         else:
             print("No se encontró la tabla de Estado de Puertos.")
 
+        # --- EXTRAER 10. DATOS HIDROMÉTRICOS ESTÁTICOS ---
+        datos_extraidos['datos_hidrometricos'] = []        
+        if len(document.tables) > 13:
+            table_hidro = document.tables[13]
+            for i, row in enumerate(table_hidro.rows):
+                if i == 0:
+                    continue
+                cells = [cell.text.strip() for cell in row.cells]
+                                
+                if len(cells) >= 4:
+                    nombre_estacion = cells[0]                    
+                    nivel_caudal_str = cells[2]
+                    
+                    nivel_m = None
+                    caudal_m3s = None
+
+                    try:                        
+                        parts = nivel_caudal_str.split('/')
+                        if len(parts) == 2:                           
+                            nivel_str = re.findall(r"[\d\.]+", parts[0])[0]
+                            caudal_str = re.findall(r"[\d\.]+", parts[1])[0]
+                            nivel_m = float(nivel_str)
+                            caudal_m3s = float(caudal_str)
+                    except (IndexError, ValueError) as e:
+                        print(f"Advertencia: No se pudo procesar el valor de Nivel/Caudal '{nivel_caudal_str}'. Error: {e}")
+
+                    datos_extraidos['datos_hidrometricos'].append({
+                        'nombre_estacion': nombre_estacion,
+                        'nivel_m': nivel_m,
+                        'caudal_m3s': caudal_m3s
+                    })
+            print(f"Datos Hidrométricos estáticos extraídos: {len(datos_extraidos['datos_hidrometricos'])} registros.")
+        else:
+            print("No se encontró la tabla de Datos Hidrométricos (se esperaba en el índice 13).")
+
         # --- EXTRAER 11. ESTADO DE PASOS FRONTERIZOS ---
         datos_extraidos['estado_pasos_fronterizos'] = []
         if len(document.tables) > 17:
