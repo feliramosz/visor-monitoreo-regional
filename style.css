@@ -1813,112 +1813,142 @@ img, table {
     display: flex;
     flex-direction: row;
     justify-content: space-around;
-    align-items: stretch;
+    align-items: stretch; /* Clave para igualar alturas */
     gap: 15px;
     width: 100%;
-    min-height: 160px;
-    max-height: 160px; /* Ajusta según tu preferencia */
-    height: 160px;     /* Fija la altura para evitar saltos */
+    min-height: 160px; /* Altura que definiste */
+    height: 160px;     /* Altura que definiste */
     box-sizing: border-box;
     padding: 10px;
     overflow: hidden;
 }
 
 .hydro-station-card {
-    flex: 1 1 0;
-    min-width: 220px;
-    max-width: 2200px;
-    max-height: 1600px; /* Limita la altura de la tarjeta */
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 8px;
+    color: #333;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    overflow: hidden;
+    flex: 1; /* Permite que las tarjetas crezcan para ocupar el espacio */
 }
 
 .hydro-station-card h4 {
-    margin: 0 0 5px 0; /* Reducimos margen inferior */
-    font-size: 0.95em;
+    margin: 0 0 5px 0;
+    font-size: 1em;
     color: #004d99;
     font-weight: bold;
-    min-height: 2.0em;
+    text-align: center;
+    height: 40px; /* Altura fija para el título */
     display: flex;
     align-items: center;
     justify-content: center;
-    text-align: center;
 }
 
-.gauge-container {
-    margin-bottom: 12px; /* Reducimos margen inferior */
+/* Contenedor para los dos velocímetros */
+.gauges-container {
+    display: flex;
+    flex-grow: 1;
+    justify-content: space-around;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Contenedor para un velocímetro y sus etiquetas */
+.gauge-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 50%;
 }
 
 .gauge-label {
-    font-size: 0.5em;
-    margin-bottom: 2px;
+    font-size: 0.8em;
     font-weight: bold;
-    color: #333;
-    text-align: left;
+    margin-bottom: -5px; /* Acerca el título al velocímetro */
+    z-index: 5;
 }
 
-.gauge-bar {
-    width: 100%;
-    height: 20px;
-    border-radius: 5px;
-    border: 1px solid #b0b0b0;
+/* El velocímetro en sí */
+.gauge-wrapper {
+    width: 120px;
+    height: 60px; /* Mitad del ancho para un semicírculo perfecto */
     position: relative;
-    /* --- Nueva distribución de colores: 50% verde, 25% amarillo, 25% rojo --- */
-    background: linear-gradient(to right, 
-        #4caf50 0%, #4caf50 50%, 
-        #ffeb3b 50%, #ffeb3b 75%, 
-        #f44336 75%, #f44336 100%
-    );
+    overflow: hidden; /* Corta el círculo para hacerlo un semicírculo */
 }
 
-.gauge-value-inside {
+/* Los arcos de color del fondo */
+.gauge-arc {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    box-sizing: border-box;
+    border: 15px solid #ddd; /* Grosor del arco */
     position: absolute;
-    top: 0;
-    left: 1%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    font-size: 0.5em;
-    font-weight: bold;
-    color: black;
-    text-shadow: 0 0 3px white, 0 0 5px white;
-    white-space: nowrap;
-    transition: left 0.5s ease-out;
-    pointer-events: none;
+    border-bottom-color: transparent; /* Hace el semicírculo */
+    border-right-color: transparent;
+    transform: rotate(135deg); /* Posición inicial */
 }
 
-/* --- Estilo mejorado para los marcadores de umbral --- */
-.gauge-threshold {
-    position: absolute;
-    bottom: -15px; /* Lo bajamos un poco */
-    transform: translateX(-50%);
-    font-size: 0.5em; /* Texto del umbral un poco más grande */
-    font-weight: bold;
+.gauge-arc.yellow-arc {
+    border-color: #ffeb3b;
+    transform: rotate(135deg);
+    /* El clip-path crea las zonas. Este es para la zona amarilla */
+    clip-path: polygon(50% 50%, 0% 0%, 50% 0%);
 }
 
-.gauge-threshold::before {
-    content: '';
-    position: absolute;
-    top: -8px; /* La línea empieza justo debajo de la barra */
-    left: 50%;
+.gauge-arc.red-arc {
+    border-color: #f44336;
+    transform: rotate(225deg); /* Rota para la zona roja */
+    /* Este clip-path crea la zona roja */
+    clip-path: polygon(50% 50%, 0% 0%, 50% 0%);
+}
+
+/* La aguja del velocímetro */
+.gauge-needle {
     width: 2px;
-    height: 5px; /* Línea más corta, como un "tick" */
-    background-color: #555; /* Color más sutil */
+    height: 45px;
+    background-color: #333;
+    position: absolute;
+    bottom: 0;
+    left: 59px; /* Justo en el centro del wrapper */
+    transform-origin: bottom center;
+    transition: transform 0.5s ease-out;
+    border-radius: 2px 2px 0 0;
+    z-index: 10;
+}
+
+/* El valor medido, debajo de la aguja */
+.gauge-current-value {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #004d99;
+    margin-top: -15px; /* Sube el valor para que quede justo en el centro */
+}
+
+/* Contenedor para las etiquetas de umbral */
+.gauge-threshold-labels {
+    display: flex;
+    justify-content: space-between;
+    width: 130px; /* Un poco más ancho que el velocímetro */
+    font-size: 0.7em;
+    font-weight: bold;
+    margin-top: 2px;
 }
 
 .threshold-amarillo { color: #b48b00; }
 .threshold-rojo { color: #a42319; }
 
 .card-footer {
+    height: 15px;
     margin-top: auto;
-    padding-top: 5px; /* Reducimos espacio */
+    padding-top: 5px;
     border-top: 1px solid #eee;
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    height: 15px;
 }
 
 /* Nuevo estilo para el LED de estado */
