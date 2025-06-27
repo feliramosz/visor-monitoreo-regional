@@ -40,7 +40,7 @@ NTP_SERVER = 'ntp.shoa.cl'
 
 def get_hydrometry_data():
     """
-    Obtiene los datos hidrométricos desde la nueva API del SNIA.
+    Función de DIAGNÓSTICO para obtener y MOSTRAR los datos de la API del SNIA.
     """
     STATION_CODES = {
         '05410002-7': 'Rio Aconcagua en Chacabuquito',
@@ -51,60 +51,36 @@ def get_hydrometry_data():
     API_URL = "https://snia.mop.gob.cl/dga/REH/Ajustes/get_valores_parametros"
     
     headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0 (Python)'}
-    processed_stations = []
+    
+    # --- INICIO DEL CÓDIGO DE DIAGNÓSTICO ---
+    print("\n" + "="*80)
+    print("INICIANDO DIAGNÓSTICO DE LA API DE HIDROMETRÍA (DGA)")
+    print("="*80)
+    # --- FIN DEL CÓDIGO DE DIAGNÓSTICO ---
 
-    for code, default_name in STATION_CODES.items():
-        try:
-            params = {'cod_estacion': code}
-            response = requests.get(API_URL, headers=headers, params=params, timeout=15)
-            response.raise_for_status()
-            
-            station_data_list = response.json()
+    # Para este diagnóstico, solo necesitamos probar con una estación.
+    test_code = '05410002-7' 
+    try:
+        params = {'cod_estacion': test_code}
+        response = requests.get(API_URL, headers=headers, params=params, timeout=15)
+        response.raise_for_status()
+        
+        station_data_list = response.json()
 
-            if station_data_list:
-                latest_data = station_data_list[0]
-                
-                nivel_m = None
-                caudal_m3s = None
+        # --- CÓDIGO DE DIAGNÓSTICO: Imprimimos la respuesta completa ---
+        import json
+        print(f"\n--- RESPUESTA JSON RECIBIDA DE LA API PARA LA ESTACIÓN {test_code} ---\n")
+        print(json.dumps(station_data_list, indent=2, ensure_ascii=False))
+        print("\n" + "-"*80)
+        print("DIAGNÓSTICO FINALIZADO. Por favor, copia toda la salida de la consola y envíamela.")
+        print("-" * 80 + "\n")
+        # --- FIN DEL CÓDIGO DE DIAGNÓSTICO ---
 
-                # **INICIO DE LA CORRECCIÓN**
-                # Buscamos el valor del Nivel usando el nombre correcto "Nivel del agua"
-                nivel_info = next((p for p in station_data_list if p.get("nombre_param") == "Nivel del agua"), None)
-                # **FIN DE LA CORRECCIÓN**
+    except Exception as e:
+        print(f"ERROR DURANTE EL DIAGNÓSTICO: {e}")
 
-                if nivel_info:
-                    nivel_m = nivel_info.get("valor")
-
-                caudal_info = next((p for p in station_data_list if p.get("nombre_param") == "Caudal"), None)
-                if caudal_info:
-                    caudal_m3s = caudal_info.get("valor")
-
-                update_time_str = datetime.strptime(latest_data.get("fecha_hora_lectura"), '%Y-%m-%d %H:%M:%S').strftime('%d-%m-%Y %H:%M')
-
-                processed_stations.append({
-                    "codigo_estacion": code,
-                    "nombre_estacion": latest_data.get("nombre_estacion", default_name),
-                    "rio": latest_data.get("nombre_rio", "Río no disponible"),
-                    "nivel_m": nivel_m,
-                    "caudal_m3s": caudal_m3s,
-                    "ultima_actualizacion": update_time_str,
-                })
-            else:
-                print(f"INFO: No se encontraron datos para la estación {code}. Se usará un marcador de posición.")
-                processed_stations.append({
-                    "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A",
-                    "nivel_m": None, "caudal_m3s": None, 
-                    "ultima_actualizacion": "Sin datos"
-                })
-
-        except requests.exceptions.RequestException as e:
-            print(f"Error de conexión para la estación {code}: {e}")
-            processed_stations.append({ "codigo_estacion": code, "nombre_estacion": default_name, "rio": "N/A", "nivel_m": None, "caudal_m3s": None, "ultima_actualizacion": "No reportado" })
-        except Exception as e:
-            print(f"Error procesando la estación {code}: {e}")
-            continue
-
-    return processed_stations
+    # Durante el diagnóstico, siempre devolveremos una lista vacía para que los medidores no muestren nada.
+    return []
     
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
     # --- Función para registrar logs ---
