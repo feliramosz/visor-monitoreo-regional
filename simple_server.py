@@ -40,44 +40,29 @@ NTP_SERVER = 'ntp.shoa.cl'
 
 def get_hydrometry_data():
     """
-    Función de DIAGNÓSTICO para obtener y MOSTRAR los datos de la API del SNIA.
+    Función de DIAGNÓSTICO FINAL. Devuelve la respuesta CRUDA de la API al navegador.
     """
-    STATION_CODES = {
-        '05410002-7': 'Rio Aconcagua en Chacabuquito',
-        '05410024-8': 'Rio Aconcagua en San Felipe 2',
-        '05414001-0': 'Rio Putaendo en Resguardo los Patos'
-    }
-    
     API_URL = "https://snia.mop.gob.cl/dga/REH/Ajustes/get_valores_parametros"
-    
     headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0 (Python)'}
-    
-    # --- INICIO DEL CÓDIGO DE DIAGNÓSTICO ---
-    print("\n" + "="*80)
-    print("INICIANDO DIAGNÓSTICO DE LA API DE HIDROMETRÍA (DGA)")
-    print("="*80)
-    # --- FIN DEL CÓDIGO DE DIAGNÓSTICO ---
 
-    # Para este diagnóstico, solo necesitamos probar con una estación.
+    # Probaremos con una estación para obtener la respuesta
     test_code = '05410002-7' 
     try:
         params = {'cod_estacion': test_code}
         response = requests.get(API_URL, headers=headers, params=params, timeout=15)
         response.raise_for_status()
-        
-        station_data_list = response.json()
 
-        # --- CÓDIGO DE DIAGNÓSTICO: Imprimimos la respuesta completa ---
-        import json
-        print(f"\n--- RESPUESTA JSON RECIBIDA DE LA API PARA LA ESTACIÓN {test_code} ---\n")
-        print(json.dumps(station_data_list, indent=2, ensure_ascii=False))
-        print("\n" + "-"*80)
-        print("DIAGNÓSTICO FINALIZADO. Por favor, copia toda la salida de la consola y envíamela.")
-        print("-" * 80 + "\n")
-        # --- FIN DEL CÓDIGO DE DIAGNÓSTICO ---
+        # Obtenemos el JSON de la respuesta
+        api_response_data = response.json()
+
+        # En lugar de procesarlo, lo devolvemos directamente
+        print("DIAGNÓSTICO: Devolviendo respuesta cruda de la API al navegador.")
+        return api_response_data
 
     except Exception as e:
+        # Si hay un error, también lo devolvemos para poder verlo
         print(f"ERROR DURANTE EL DIAGNÓSTICO: {e}")
+        return [{"error": f"No se pudo contactar o procesar la API de la DGA. Causa: {str(e)}"}]
 
     # Durante el diagnóstico, siempre devolveremos una lista vacía para que los medidores no muestren nada.
     return []
