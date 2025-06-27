@@ -325,14 +325,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 const ledClass = hasData ? 'led-green' : 'led-red';
                 
                 const getGaugeData = (value, threshold) => {
-                    // **AJUSTE 1: Hacemos el parseo más robusto reemplazando comas por puntos**
                     const safeValue = (typeof value === 'string') ? value.replace(',', '.') : value;
                     const currentValue = (safeValue !== null && !isNaN(parseFloat(safeValue))) ? parseFloat(safeValue) : 0;
                     
-                    const rotation = -90 + (Math.min((currentValue / threshold.roja), 1) * 180);
+                    // --- LÓGICA LOGARÍTMICA ---
+                    let rotation;
+                    if (currentValue <= 0) {
+                        rotation = -90; // El valor es 0, la aguja se queda al inicio.
+                    } else {
+                        // Usamos logaritmos para calcular la posición.
+                        // Se suma 1 para evitar log(1) = 0, asegurando que cualquier valor > 0 mueva la aguja.
+                        const logValue = Math.log(currentValue + 1);
+                        const logMax = Math.log(threshold.roja + 1);
+                        const percentage = logValue / logMax;
+                        
+                        // Calculamos la rotación en base a este nuevo porcentaje logarítmico.
+                        rotation = -90 + (percentage * 180);
+                    }                    
+
                     return {
                         value: currentValue.toFixed(2),
-                        rotation: rotation,
+                        // Aseguramos que la rotación no exceda los límites por si acaso
+                        rotation: Math.max(-90, Math.min(90, rotation)), 
                         amarilla: threshold.amarilla.toFixed(2),
                         roja: threshold.roja.toFixed(2)
                     };
