@@ -1817,6 +1817,19 @@ img, table {
     padding: 10px;
     box-sizing: border-box;
     height: 154px; 
+    border-top: 2px solid #007bff;
+    border-bottom: 2px solid #007bff;
+    box-shadow:
+    /*superior*/
+    0px -1px 1px rgba(0,0,0,0.2),
+    /*inferior*/
+    0px 1px 3px rgba(0,0,0,0.4),
+    /*izquierda*/
+    -1px 0px 3px rgba(0,0,0,0.4),
+    /*derecha*/
+    1px 0px 3px rgba(0,0,0,0.4),
+    /*interior*/
+    inset 1px 1px 3px rgba(0,0,0,0.4); 
 }
 
 .hydro-station-card {
@@ -1831,6 +1844,17 @@ img, table {
     flex: 1;
     max-width: 400px;
     height: 100%;
+    box-shadow:
+    /*superior*/
+    0px -1px 1px rgba(0,0,0,0.2),
+    /*inferior*/
+    0px 1px 3px rgba(0,0,0,0.4),
+    /*izquierda*/
+    -1px 0px 3px rgba(0,0,0,0.4),
+    /*derecha*/
+    1px 0px 3px rgba(0,0,0,0.4),
+    /*interior*/
+    inset 1px 1px 3px rgba(0,0,0,0.4); 
 }
 
 .hydro-station-card h4 {
