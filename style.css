@@ -2179,13 +2179,12 @@ footer {
 
 /* --- ESTILO PARA EL INDICADOR DE PÁGINA DE NOVEDADES --- */
 #novedades-page-indicator {
-    text-align: center;
-    font-size: 0.85em;
+    font-size: 0.9em;
+    font-weight: normal;
     color: #999;
-    font-weight: bold;
-    padding-top: 10px;
-    margin-top: auto; /* Empuja el indicador al fondo del panel */
-    flex-shrink: 0;   /* Evita que el contenedor se encoja */
-    border-top: 1px solid #f0f0f0;
-    height: 15px; /* Altura fija para mantener consistencia */
+    /* Estas propiedades ya no son necesarias por estar en el header */
+    text-align: right;
+    padding: 0;
+    margin: 0 20px;
+    border: none;
 }
