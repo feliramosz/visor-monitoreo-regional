@@ -476,14 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
             lastData = data;
 
             numeroInformeDisplay.textContent = novedades.numero_informe_manual || 'N/A';
-            if (novedades.entradas && novedades.entradas.length > 0) {
-                novedadesContent.innerHTML = novedades.entradas.slice(-5).reverse().map(item => 
-                    `<p><strong>[${item.timestamp}]</strong>: ${item.texto}</p>`
-                ).join('');
-            } else {
-                novedadesContent.textContent = 'No hay novedades para mostrar.';
-            }
-            
+            setupNovedadesCarousel(novedades);            
             setupTopBannerCarousel(data);
             setupCentralContent(data);
             setupRightColumnCarousel(data);
@@ -580,6 +573,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // --- FUNCIÓN PARA EL CARRUSEL DE NOVEDADES ---
+    function setupNovedadesCarousel(novedadesData) {
+        const container = document.getElementById('novedades-content');
+        if (!container) return;
+
+        // Limpiar el carrusel anterior si existiera
+        if (window.novedadesCarouselInterval) {
+            clearInterval(window.novedadesCarouselInterval);
+        }
+
+        const entradas = novedadesData.entradas || [];
+        if (entradas.length === 0) {
+            container.innerHTML = '<p>No hay novedades para mostrar.</p>';
+            return;
+        }
+
+        const ITEMS_PER_PAGE = 5; // Mostraremos 5 novedades por página
+
+        // Si no se necesita paginación, solo muestra las entradas y termina
+        if (entradas.length <= ITEMS_PER_PAGE) {
+            container.innerHTML = entradas.slice().reverse().map(item =>
+                `<p><strong>[${item.timestamp}]</strong>: ${item.texto}</p>`
+            ).join('');
+            return;
+        }
+
+        // Crear las páginas
+        const pages = [];
+        const reversedEntradas = entradas.slice().reverse(); // Invertimos para mostrar las más nuevas primero
+        for (let i = 0; i < reversedEntradas.length; i += ITEMS_PER_PAGE) {
+            pages.push(reversedEntradas.slice(i, i + ITEMS_PER_PAGE));
+        }
+
+        // Generar el HTML para cada página
+        container.innerHTML = pages.map((page, index) => `
+            <div class="novedad-page ${index === 0 ? 'active' : ''}">
+                ${page.map(item => `<p><strong>[${item.timestamp}]</strong>: ${item.texto}</p>`).join('')}
+            </div>
+        `).join('');
+
+        // Iniciar el carrusel
+        let currentPage = 0;
+        const totalPages = pages.length;
+        const pageElements = container.querySelectorAll('.novedad-page');
+
+        window.novedadesCarouselInterval = setInterval(() => {
+            pageElements[currentPage].classList.remove('active');
+            currentPage = (currentPage + 1) % totalPages;
+            pageElements[currentPage].classList.add('active');
+        }, 15000); // Cambia de página cada 15 segundos
+    }
+
     function renderAlertasList(container, items, noItemsText) {
         if (items && items.length > 0) {         
 

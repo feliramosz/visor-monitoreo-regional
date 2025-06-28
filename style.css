@@ -785,7 +785,7 @@ footer {
     flex-shrink: 0;
 }
 .dynamic-image-slide h2 {
-  color: #004d99;
+ color: #004d99;
  margin-bottom: 15px;
 }
 
@@ -2147,4 +2147,29 @@ footer {
     width: 18px;
     height: 18px;
     cursor: pointer;
+}
+
+/* --- ESTILOS PARA CARRUSEL/PAGINACIÓN DE NOVEDADES --- */
+
+#novedades-content {
+    position: relative; /* Necesario para posicionar las páginas */
+    overflow: hidden;   /* Oculta las páginas que no están activas */
+}
+
+.novedad-page {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    /* Efecto de transición suave (fundido) */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.8s ease-in-out;
+}
+
+.novedad-page.active {
+    opacity: 1;
+    visibility: visible;
 }
