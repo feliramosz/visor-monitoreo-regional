@@ -325,11 +325,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentValue <= 0) {
                     rotation = -90;
                 } else {
-                    const logValue = Math.log(currentValue + 1);
-                    const logMax = Math.log(threshold.roja + 1);
-                    const percentage = logValue / logMax;
-                    rotation = -90 + (percentage * 180);
+                    //const logValue = Math.log(currentValue + 1);
+                    //const logMax = Math.log(threshold.roja + 1);
+                    //const percentage = logValue / logMax;
+                    //rotation = -90 + (percentage * 180);
+                    const maxThreshold = threshold.roja;
+                    let percentage = 0;
+
+                    // Evitamos una posible división por cero si el umbral rojo no estuviera definido.
+                    if (maxThreshold > 0) {
+                        percentage = currentValue / maxThreshold;
                 }
+                rotation = -90 + (percentage * 180);
+                
                 return {
                     value: currentValue.toFixed(2),
                     rotation: Math.max(-90, Math.min(90, rotation)),
