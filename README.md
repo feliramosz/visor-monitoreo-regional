@@ -1,6 +1,6 @@
 # Sistema de Monitoreo Regional - SENAPRED Valparaíso
 
-_Última actualización: 27 de junio de 2025_
+_Última actualización: 28 de junio de 2025_
 
 ![Estado](https://img.shields.io/badge/estado-en_producción-green)
 ![Python](https://img.shields.io/badge/python-3.x-blue.svg)
@@ -10,9 +10,9 @@ _Última actualización: 27 de junio de 2025_
 
 ## Descripción
 
-Este proyecto es una aplicación web en producción diseñada para la visualización y gestión de información de monitoreo para la Dirección Regional de SENAPRED Valparaíso. El sistema automatiza la extracción de datos desde informes `.docx`, los presenta en diferentes formatos visuales, integra datos en tiempo real de fuentes externas, **incluyendo un nuevo módulo de monitoreo hidrométrico para cuencas clave**, y cuenta con capacidades de **sincronización en tiempo real para múltiples operadores**.
+Este proyecto es una aplicación web en producción diseñada para la visualización y gestión de información de monitoreo para la Dirección Regional de SENAPRED Valparaíso. El sistema automatiza la extracción de datos desde informes `.docx`, los presenta en diferentes formatos visuales, integra datos en tiempo real de fuentes externas, e incluye módulos avanzados para el monitoreo hidrométrico y la **visualización de personal de turno en tiempo real**.
 
-Cuenta con un panel de administración protegido por un sistema de login y roles, un completo **registro de auditoría de actividad** y un flujo de despliegue continuo (CI/CD) completamente automatizado.
+Cuenta con un panel de administración protegido por un sistema de login y roles, un completo registro de auditoría, sincronización en tiempo real para múltiples operadores y un flujo de despliegue continuo (CI/CD) completamente automatizado.
 
 ---
 
@@ -43,49 +43,49 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 ## Características Principales
 
 -   **Extracción Automática Programada**: Un script en Python (`descargar_informe.py`) se conecta a Gmail en horarios fijos para descargar y procesar los informes `.docx`.
--   **Sincronización Multi-Usuario en Tiempo Real**: Mediante un eficiente sistema de *timestamp polling*, todos los dashboards conectados se actualizan automáticamente segundos después de que un operador guarda cambios, sin necesidad de recargar la página.
+-   **Sincronización Multi-Usuario en Tiempo Real**: Mediante un eficiente sistema de `localStorage` y sondeo de timestamps, todos los dashboards conectados se actualizan automáticamente segundos después de que un operador guarda cambios.
 -   **Autenticación Segura y Control de Acceso por Roles**:
     -   Todas las vistas de la aplicación (`index`, `dashboard`, `admin`) están protegidas por un sistema de **usuario y contraseña**.
     -   Se han definido roles de **administrador** y **operador**, donde solo los administradores pueden acceder a las secciones de gestión de usuarios y logs.
     -   Las contraseñas se almacenan de forma segura (hasheadas) en una base de datos SQLite.
-    -   Todos los endpoints de la API están protegidos y requieren un token de sesión válido.
--   **Panel de Administración Centralizado**: Una interfaz (`admin.html`) que permite a los operadores autorizados:
-    -   Editar manualmente toda la información extraída del informe.
-    -   Gestionar el panel de "Novedades" del dashboard.
-    -   Subir imágenes para crear slides dinámicas en los carruseles.
-    -   Controlar la configuración de visualización del dashboard.
--   **Visualización Avanzada de Datos con Umbrales de Alerta**:
-    -   **Medidores tipo 'velocímetro'**: Se desarrollaron componentes visuales personalizados para mostrar datos hidrométricos (nivel y caudal), representando gráficamente la proximidad a los umbrales de alerta.
-    -   **Alertas Configurables**: Los umbrales para Alerta Amarilla y Roja son fácilmente configurables directamente en el código, permitiendo una adaptación rápida a los procedimientos operativos.
-    -   **Carruseles de Información Dinámica**: El banner superior del dashboard ahora es un carrusel que rota automáticamente entre información meteorológica en tiempo real y los nuevos medidores hidrométricos, maximizando el uso del espacio.
+-   **Panel de Administración Centralizado**: Una interfaz (`admin.html`) que permite a los operadores autorizados editar datos, gestionar el panel de "Novedades", subir imágenes para slides dinámicas y controlar la configuración global de visualización del dashboard.
+-   **[NUEVO] Visualización de Turnos en Tiempo Real**:
+    -   El dashboard muestra automáticamente al **Profesional a llamado** y a los **Operadores de Turno** según la hora y fecha actual.
+    -   La lógica es capaz de gestionar los turnos de noche que cruzan la medianoche y los cambios de mes.
+    -   La programación de turnos se gestiona a través de un archivo `turnos.json` centralizado, fácil de actualizar mensualmente.
+-   **Visualización Avanzada de Datos**:
+    -   **Medidores tipo 'velocímetro'**: Componentes visuales personalizados para mostrar datos hidrométricos (nivel y caudal), representando gráficamente la proximidad a los umbrales de alerta Amarilla y Roja.
+    -   **Carruseles de Información Dinámica**: El banner superior del dashboard es un carrusel que rota automáticamente entre información meteorológica y la vista de hidrología con los paneles de turno.
 -   **Gestión de Usuarios y Auditoría (Solo Administradores)**:
-    -   **Gestión de Usuarios desde la Interfaz**: Los administradores pueden crear, editar y eliminar cuentas de usuario directamente desde el panel de administración.
-    -   **Log de Actividad del Sistema**: El sistema registra todas las acciones importantes (inicios de sesión, intentos fallidos, cambios de datos, creación de usuarios) con **usuario, fecha, hora y dirección IP**, visible solo para administradores.
--   **Integración de APIs Externas**: Consume y muestra datos en tiempo real de la DMC, SINCA, CSN, SHOA, Waze for Cities y la DGA (SNIA).
--   **Múltiples Vistas de Despliegue**:
+    -   **Gestión de Usuarios desde la Interfaz**: Los administradores pueden crear, editar y eliminar cuentas de usuario.
+    -   **Log de Actividad del Sistema**: El sistema registra todas las acciones importantes (inicios de sesión, cambios de datos, etc.) con **usuario, fecha, hora y dirección IP**.
+-   **Integración de APIs Externas**: Consume y muestra datos en tiempo real de la DMC, SINCA, CSN, SHOA y Waze for Cities.
+-   **[ACTUALIZADO] Múltiples Vistas de Despliegue**:
     -   `index.html`: **Carrusel público** para pantallas de visualización general, con paginación inteligente de tablas largas.
-    -   `dashboard.html`: **Panel de operaciones avanzado** para operadores, con una disposición de múltiples columnas, mapas interactivos y carruseles internos.
+    -   `dashboard.html`: **Panel de operaciones avanzado** para operadores, con una disposición de múltiples columnas, mapas interactivos y carruseles internos y personalizables.
     -   `admin.html` y `login.html`: Interfaz de gestión de contenidos y portal de acceso.
--   **Mejoras de Experiencia de Usuario (UX)**:
-    -   Priorización automática de alertas por nivel de criticidad (Roja, Amarilla, etc.).
-    -   Auto-scroll vertical en paneles con contenido extenso para asegurar la visibilidad sin desbordes.
+-   **[ACTUALIZADO] Mejoras de Experiencia de Usuario (UX)**:
+    -   **[NUEVO] Controles de Visualización Locales**: El pie de página del dashboard ahora incluye controles que permiten a cada operador activar o desactivar la rotación de los carruseles de forma individual. Las preferencias se guardan en el navegador del usuario (`localStorage`).
+    -   **[NUEVO] Paginación Automática de Novedades**: El panel de novedades ahora pagina su contenido automáticamente cuando la lista es extensa, mostrando un indicador de página y asegurando que toda la información sea visible antes de rotar el panel.
+    -   Priorización automática de alertas por nivel de criticidad y auto-scroll vertical en paneles con contenido extenso.
 
 ---
 
 ## ✅ Tareas Clave Implementadas
 
 -   **Desplegado en Entorno de Producción:** La aplicación está funcionando en un servidor en la nube con Nginx y SSL.
--   **Implementado Flujo de CI/CD:** El despliegue de actualizaciones ahora es 100% automático a través de GitHub Actions.
--   **Implementado un Sistema de Autenticación y Control de Acceso por Roles:** Todas las vistas requieren inicio de sesión. Se han definido roles de 'administrador' y 'operador'.
--   **Añadida Gestión de Usuarios desde la Interfaz:** Los administradores ahora pueden crear, editar y eliminar cuentas de usuario.
--   **Creado un Log de Auditoría de Actividad:** El sistema registra todas las acciones importantes.
--   **Desarrollado un Dashboard de Operaciones Avanzado:** Se creó la vista `dashboard.html` optimizada para el monitoreo activo.
--   **Desarrollado un Sistema de Sincronización en Tiempo Real:** Los dashboards se actualizan automáticamente.
--   **Añadido Módulo de Monitoreo Hidrométrico Avanzado:** Se integró la API de la DGA (SNIA) y se desarrollaron visualizaciones personalizadas tipo 'velocímetro' con umbrales de alerta predefinidos para cuencas críticas.
+-   **Implementado Flujo de CI/CD:** El despliegue de actualizaciones ahora es 100% automático.
+-   **Implementado un Sistema de Autenticación y Control de Acceso por Roles.**
+-   **Añadida Gestión de Usuarios y Log de Auditoría desde la Interfaz.**
+-   **Desarrollado un Dashboard de Operaciones Avanzado y Sincronización en Tiempo Real.**
+-   **Añadido Módulo de Monitoreo Hidrométrico Avanzado con medidores personalizados.**
+-   **[NUEVO] Añadida Visualización de Personal de Turno en Tiempo Real**, basado en un calendario configurable.
+-   **[NUEVO] Implementados Controles de Visualización Locales para Operadores**, permitiendo personalizar los carruseles del dashboard.
+-   **[NUEVO] Mejorada la Interfaz de Novedades** con paginación automática y dinámica de carruseles.
 
 ## 📝 Próximos Pasos y Tareas Pendientes
 
-* **Función 'Cambiar Mi Contraseña' para Usuarios:** Permitir que los usuarios cambien su propia contraseña desde el panel, en lugar de tener que solicitarlo a un administrador.
-* **Sistema de Notificaciones:** Implementar un sistema (ej. por correo electrónico) que alerte a los administradores si el script de descarga de informes (`cron job`) falla.
-* **Paginación en Vistas de Administración:** Si el número de logs o usuarios crece mucho, será necesario implementar paginación para mejorar el rendimiento y la usabilidad.
-* **Exportación de Datos:** Añadir botones para exportar ciertas tablas (alertas, emergencias) a formatos como CSV o PDF para la generación de informes externos.
+-   **Función 'Cambiar Mi Contraseña' para Usuarios:** Permitir que los usuarios cambien su propia contraseña.
+-   **Sistema de Notificaciones:** Implementar alertas si el `cron job` de descarga de informes falla.
+-   **Paginación en Vistas de Administración:** Añadir paginación para el log de actividad y la lista de usuarios.
+-   **Exportación de Datos:** Añadir botones para exportar ciertas tablas a formatos como CSV o PDF.
