@@ -587,7 +587,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return 1; // Considera "1 página" de contenido
         }
 
-        const ITEMS_PER_PAGE = 5;
+        const ITEMS_PER_PAGE = 4;
         const reversedEntradas = entradas.slice().reverse();
         const totalPages = Math.ceil(reversedEntradas.length / ITEMS_PER_PAGE);
 
