@@ -408,68 +408,87 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
     }
 
-    // --- FUNCIÓN PARA MOSTRAR TURNOS ---
+    // --- FUNCIÓN PARA MOSTRAR TURNOS ---    
     async function fetchAndDisplayTurnos() {
         try {
             const response = await fetch('/api/turnos');
-            if (!response.ok) return;
+            if (!response.ok) {
+                console.error("Error al obtener /api/turnos:", response.statusText);
+                return;
+            }
 
             const turnosData = await response.json();
-            const { personal, dias } = turnosData;
 
-            // Obtener la fecha y hora actual en Chile
+            // Lógica MEJORADA que entiende la estructura por meses
             const ahora = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Santiago"}));
+
+            const nombreMesActual = ahora.toLocaleString('es-CL', { month: 'long' });
+            const mesActualCapitalizado = nombreMesActual.charAt(0).toUpperCase() + nombreMesActual.slice(1);
+
             const diaActual = ahora.getDate();
             const horaActual = ahora.getHours();
+
             const diaAyer = new Date(ahora);
             diaAyer.setDate(ahora.getDate() - 1);
             const diaDeAyer = diaAyer.getDate();
 
+            const nombreMesAyer = diaAyer.toLocaleString('es-CL', { month: 'long' });
+            const mesAyerCapitalizado = nombreMesAyer.charAt(0).toUpperCase() + nombreMesAyer.slice(1);
+
+            // Seleccionamos los datos del mes correcto del JSON
+            const datosMesActual = turnosData[mesActualCapitalizado];
+            const datosMesAyer = turnosData[mesAyerCapitalizado];
+
             let turnoActivo = null;
             let tipoTurno = '';
+            let personal = {};
 
-            // Lógica para determinar el turno
+            // Verificamos que existan datos para el mes actual antes de usarlos
+            if (datosMesActual) {
+                personal = datosMesActual.personal || {};
+            }
+
             if (horaActual >= 9 && horaActual < 21) {
-                // Turno de día: 09:00 a 20:59 del día actual
-                const infoHoy = dias.find(d => d.dia === diaActual);
-                if (infoHoy) {
-                    turnoActivo = infoHoy.turno_dia;
-                    tipoTurno = 'Día';
+                tipoTurno = 'Día';
+                if (datosMesActual) {
+                    const infoHoy = datosMesActual.dias.find(d => d.dia === diaActual);
+                    if (infoHoy) turnoActivo = infoHoy.turno_dia;
                 }
             } else {
-                // Turno de noche
                 tipoTurno = 'Noche';
                 if (horaActual >= 21) {
-                    // El turno de noche que comenzó hoy
-                    const infoHoy = dias.find(d => d.dia === diaActual);
-                    if (infoHoy) turnoActivo = infoHoy.turno_noche;
+                    if (datosMesActual) {
+                        const infoHoy = datosMesActual.dias.find(d => d.dia === diaActual);
+                        if (infoHoy) turnoActivo = infoHoy.turno_noche;
+                    }
                 } else {
-                    // El turno de noche que comenzó ayer
-                    const infoAyer = dias.find(d => d.dia === diaDeAyer);
-                    if (infoAyer) turnoActivo = infoAyer.turno_noche;
+                    if (datosMesAyer) {
+                        const infoAyer = datosMesAyer.dias.find(d => d.dia === diaDeAyer);
+                        if (infoAyer) {
+                            turnoActivo = infoAyer.turno_noche;
+                            personal = datosMesAyer.personal || {}; // Usar el personal del mes de ayer
+                        }
+                    }
                 }
             }
 
-            // Seleccionar los contenedores
             const llamadoContainer = document.getElementById('turno-llamado-container');
             const operadoresContainer = document.getElementById('turno-operadores-container');
 
-            if (turnoActivo) {
-                // Mostrar Profesional de Llamada
+            if (turnoActivo && llamadoContainer && operadoresContainer) {
                 const nombreLlamado = personal[turnoActivo.llamado] || turnoActivo.llamado;
-                llamadoContainer.innerHTML = `<h4>Profesional a llamado (negro)</h4><p>${nombreLlamado}</p>`;
+                llamadoContainer.innerHTML = `<h4>Profesional a llamado (Negro)</h4><p>${nombreLlamado}</p>`;
 
-                // Mostrar Operadores de Turno
                 const nombreOp1 = personal[turnoActivo.op1] || turnoActivo.op1;
                 const nombreOp2 = personal[turnoActivo.op2] || turnoActivo.op2;
                 operadoresContainer.innerHTML = `<h4>Operadores de Turno (${tipoTurno})</h4><div><p class="turno-op">${nombreOp1}</p><p class="turno-op">${nombreOp2}</p></div>`;
-            } else {
+            } else if (llamadoContainer && operadoresContainer) {
                 llamadoContainer.innerHTML = '<h4>Profesional de Llamada</h4><p>No definido</p>';
                 operadoresContainer.innerHTML = '<h4>Operadores de Turno</h4><p>No definido</p>';
             }
 
         } catch (error) {
-            console.error("Error al cargar datos de turnos:", error);
+            console.error("Error al procesar datos de turnos:", error);
         }
     }
 
