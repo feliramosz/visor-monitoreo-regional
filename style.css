@@ -727,10 +727,9 @@ footer {
 #central-carousel-container {
     position: relative;
     overflow: hidden;
-    height: 100%; /* Asegura que ocupe toda la altura de la celda del grid */
+    height: 100%;
 }
 
-/* NUEVA REGLA: Solo cuando estemos en MODO ESTÁTICO, usamos flexbox para los dos paneles */
 #central-carousel-container.static-mode {
     display: flex;
     gap: 15px;
@@ -761,25 +760,46 @@ footer {
     border-radius: 8px;
     padding: 20px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    /* Se mantiene como flex para centrar su contenido */
     align-items: center;
     justify-content: center;
     flex-direction: column;
 }
 
+/* --- AJUSTE CLAVE 1 --- */
+/* Hacemos que el contenedor del contenido ocupe todo el alto
+   y sea un flex-container para organizar el título, la imagen y la descripción. */
 .dynamic-image-slide .image-slide-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%; /* Ocupa el 100% de su padre (.central-slide) */
+    width: 100%;
     text-align: center;
 }
 
-.dynamic-image-slide .responsive-image {
-    max-width: 100%;
-    max-height: 70vh;
-    border-radius: 5px;
-    object-fit: contain;
+/* --- AJUSTE CLAVE 2 --- */
+/* El título y la descripción no deben crecer ni encogerse, ocupan su espacio natural. */
+.dynamic-image-slide h2,
+.dynamic-image-slide p { /* Asumimos que la descripción está en un <p> */
+    flex-shrink: 0;
+}
+.dynamic-image-slide h2 {
+  color: #004d99;
+ margin-bottom: 15px;
 }
 
-.dynamic-image-slide h2 {
-    color: #004d99;
-    margin-bottom: 15px;
+
+/* --- AJUSTE CLAVE 3 --- */
+/* La imagen es ahora la que se adapta al espacio sobrante. */
+.dynamic-image-slide .responsive-image {
+    max-width: 100%;
+    /* Se elimina 'max-height: 70vh' y se reemplaza con esto: */
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 5px;
+    /* Un truco de flexbox para que las imágenes grandes se encojan correctamente */
+    min-height: 0;
 }
 
 /* 1. Body como contenedor flex de pantalla completa */
