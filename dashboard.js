@@ -263,9 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderWeatherSlide(data);
         renderStaticHydroSlide(data);
-
-        // --- LÍNEA AÑADIDA ---
-        // Después de crear los contenedores, llamamos a la función para llenarlos.
+       
         fetchAndDisplayTurnos();
 
         container.querySelector('#weather-slide').classList.add('active-top-slide');
@@ -394,8 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="threshold-label-right"><span class="threshold-rojo">R: ${caudalGauge.roja}</span></div>
                             <p class="gauge-current-value blinking-value">${caudalGauge.value}</p>
                         </div>
-                    </div>
-                    <div class="card-footer"></div>
+                    </div>                    
                 </div>
             `;
         }).join('');
