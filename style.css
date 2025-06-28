@@ -2213,6 +2213,7 @@ footer {
     justify-content: center; /* Centra el contenido verticalmente */
     text-align: center;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    align-self: center;
 }
 
 .turno-container h4 {
