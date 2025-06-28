@@ -994,36 +994,32 @@ document.addEventListener('DOMContentLoaded', () => {
         initializePrecipitationMap();
 
         // 2. OBTENEMOS LOS DATOS PRINCIPALES Y ESPERAMOS A QUE TERMINEN.
-        // Esta función ahora creará todos los contenedores necesarios.
         await fetchAndRenderMainData();
 
-        // 3. AHORA que los contenedores ya existen, podemos llamar al resto de las funciones
-        //    que renderizan contenido de forma segura.
+        // 3. AHORA que los contenedores ya existen, podemos llamar al resto de las funciones.
         fetchAndRenderAirQuality();
         fetchAndRenderPrecipitationData();
         fetchAndRenderWazeData();
-        
 
         // 4. Activamos los carruseles y listeners de botones estáticos
         showMapSlide(0);
         mapCarouselInterval = setInterval(nextMapSlide, mapSlideDuration);
-        
-        if (mapPausePlayBtn) mapPausePlayBtn.addEventListener('click', toggleMapPausePlay);
-        if (mapNextBtn) mapNextBtn.addEventListener('click', nextMapSlide);
-        if (mapPrevBtn) mapPrevBtn.addEventListener('click', prevMapSlide);
-        
+
+        if(pausePlayBtn) pausePlayBtn.addEventListener('click', toggleMapPausePlay);
+        if(nextBtn) nextBtn.addEventListener('click', nextMapSlide);
+        if(prevBtn) prevBtn.addEventListener('click', prevMapSlide);
+
         // 5. Configuramos las actualizaciones periódicas
-        setInterval(fetchAndRenderMainData, 60 * 1000);
-        setInterval(fetchAndRenderWazeData, 2 * 60 * 1000);
-        //setInterval(fetchAndRenderHydroSlide, 5 * 60 * 1000);
-        // Ya no es necesario llamar a fetchAndRenderAirQuality y fetchAndRenderPrecipitationData aquí,
-        // porque ya se actualizan con fetchAndRenderMainData.
+        setInterval(fetchAndRenderMainData, 60 * 1000); // Actualiza datos principales cada 1 min
+        setInterval(fetchAndRenderWazeData, 2 * 60 * 1000); // Actualiza Waze cada 2 min
     }
 
     // --- Lógica para escuchar cambios desde otras pestañas ---
-    window.addEventListener('storage', (event) => {        
+    window.addEventListener('storage', (event) => {
+        // Se activa cuando un cambio en localStorage ocurre en otra pestaña
         if (event.key === 'data_updated') {
-            console.log('Se detectó un cambio de datos desde el panel de administración. Actualizando dashboard...');            
+            console.log('Dashboard: Se detectó un cambio de datos. Actualizando...');
+            // Llama a la función principal para recargar y renderizar todos los datos
             fetchAndRenderMainData();
         }
     });

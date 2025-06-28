@@ -537,23 +537,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- INICIO DE LA APLICACIÓN ---
     async function initializeApp() {
-        await fetchDataAndRender();
-        fetchShoaTimes();
-        fetchAndRenderWeather();
-        fetchAndRenderSismos();
-        initializeAirQualityMap();
-        await fetchAndRenderAirQuality();
-        setInterval(updateClockDisplays, 1000);
-        setInterval(fetchShoaTimes, 30 * 1000);
-        setInterval(fetchAndRenderWeather, 10 * 60 * 1000);
-        setInterval(fetchAndRenderSismos, 5 * 60 * 1000);
-        setInterval(fetchAndRenderAirQuality, 5 * 60 * 1000);
+    await fetchDataAndRender();
+    fetchShoaTimes();
+    fetchAndRenderWeather();
+    fetchAndRenderSismos();
+    initializeAirQualityMap();
+    await fetchAndRenderAirQuality();
+    setInterval(updateClockDisplays, 1000);
+    setInterval(fetchShoaTimes, 30 * 1000);
+    setInterval(fetchAndRenderWeather, 10 * 60 * 1000);
+    setInterval(fetchAndRenderSismos, 5 * 60 * 1000);
+    setInterval(fetchAndRenderAirQuality, 5 * 60 * 1000);
     }
-    
-     window.addEventListener('storage', (event) => {        
+
+    window.addEventListener('storage', (event) => {
+        // Se activa cuando un cambio en localStorage ocurre en otra pestaña
         if (event.key === 'data_updated') {
-            console.log('Se detectó un cambio de datos desde otra pestaña. Actualizando visor...');            
-            fetchDataAndRender(); // Llama a la función principal para recargar y renderizar todo.
+            console.log('Visor (index.html): Se detectó un cambio de datos. Actualizando...');
+            // Llama a la función principal para recargar y renderizar todos los datos
+            fetchDataAndRender();
         }
     });
 
