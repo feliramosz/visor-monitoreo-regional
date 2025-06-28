@@ -479,42 +479,35 @@ document.addEventListener('DOMContentLoaded', () => {
             setupNovedadesCarousel(novedades);            
             setupTopBannerCarousel(data);
             setupCentralContent(data);
-            setupRightColumnCarousel(data);
+            setupRightColumnCarousel(data, novedades);
 
         } catch (error) { console.error("Error al cargar datos principales:", error); }
     }
 
 
     //Funcion de carrusel columna derecha (novedades y waze)
-    function setupRightColumnCarousel(data) {
+    function setupRightColumnCarousel(data, novedades) {
         const container = document.getElementById('right-column-carousel-container');
         if (!container) return;
 
-        clearInterval(rightColumnCarouselInterval);
-        
-        // Limpiamos slides de emergencias de ejecuciones anteriores para evitar duplicados
+        // Limpiar el intervalo anterior
+        if (window.rightColumnCarouselTimeout) {
+            clearTimeout(window.rightColumnCarouselTimeout);
+        }
+
+        // Primero, configuramos el panel de novedades y obtenemos cuántas páginas tiene.
+        const numNovedadesPages = setupNovedadesCarousel(novedades);
+
+        // Limpiamos slides de emergencias de ejecuciones anteriores
         const existingEmergenciasSlide = container.querySelector('#panel-emergencias-dashboard');
         if (existingEmergenciasSlide) {
             existingEmergenciasSlide.parentElement.remove();
         }
 
-        const localPref = localStorage.getItem('rightColumnCarouselEnabled');
-        let useCarousel;
-        if (localPref === 'true') {
-            useCarousel = true;
-        } else if (localPref === 'false') {
-            useCarousel = false;
-        } else {
-            useCarousel = data.novedades_carousel_enabled; // Usar el default del admin
-        }
-
-        // Actualizar el estado del checkbox
-        toggleRightColumnCheck.checked = useCarousel;
-
-        const finalUseCarousel = useCarousel && data.emergencias_ultimas_24_horas && data.emergencias_ultimas_24_horas.length > 0;
+        const useCarousel = data.novedades_carousel_enabled && data.emergencias_ultimas_24_horas && data.emergencias_ultimas_24_horas.length > 0;
 
         if (useCarousel) {
-            // Construimos la nueva slide con la tabla de emergencias
+            // Construimos la slide de emergencias
             const emergenciasItemsHtml = data.emergencias_ultimas_24_horas.map(item => `
                 <tr>
                     <td>${item.n_informe || 'N/A'}</td>
@@ -529,43 +522,46 @@ document.addEventListener('DOMContentLoaded', () => {
                         <h3>Informes Emitidos (Últimas 24h)</h3>
                         <div class="table-container">
                             <table>
-                                <thead>
-                                    <tr>
-                                        <th>N° Informe</th>
-                                        <th>Fecha y Hora</th>
-                                        <th>Evento / Lugar</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${emergenciasItemsHtml}
-                                </tbody>
+                                <thead><tr><th>N° Informe</th><th>Fecha y Hora</th><th>Evento / Lugar</th></tr></thead>
+                                <tbody>${emergenciasItemsHtml}</tbody>
                             </table>
                         </div>
                     </div>
-                </div>
-            `;
-            // Insertamos la nueva slide en el contenedor
+                </div>`;
             container.insertAdjacentHTML('beforeend', emergenciasSlideHtml);
-            
-            // Iniciamos la lógica del carrusel
-            currentRightColumnSlide = 0;
+
+            // --- NUEVA LÓGICA DE CARRUSEL CON TIMEOUT ---
+            let currentSlideIndex = 0;
             const slides = container.querySelectorAll('.right-column-slide');
-            slides.forEach((slide, index) => {
-                slide.classList.toggle('active-right-slide', index === 0);
-            });
 
-            rightColumnCarouselInterval = setInterval(() => {
-                const slides = container.querySelectorAll('.right-column-slide');
-                if (slides.length <= 1) return;
+            const switchSlide = () => {
+                slides.forEach((slide, index) => {
+                    slide.classList.toggle('active-right-slide', index === currentSlideIndex);
+                });
 
-                slides[currentRightColumnSlide].classList.remove('active-right-slide');
-                currentRightColumnSlide = (currentRightColumnSlide + 1) % slides.length;
-                slides[currentRightColumnSlide].classList.add('active-right-slide');
+                let duration;
+                // Si la diapositiva activa es la de Novedades (índice 0)
+                if (currentSlideIndex === 0) {
+                    // La duración es el número de páginas de novedades por 15 segundos cada una.
+                    const DURATION_PER_NOVEDAD_PAGE = 15000;
+                    duration = numNovedadesPages * DURATION_PER_NOVEDAD_PAGE;
+                } else {
+                    // Para la diapositiva de Emergencias, usamos la duración fija.
+                    duration = rightColumnSlideDuration; // 10000 ms
+                }
 
-            }, rightColumnSlideDuration);
+                // Avanzamos al siguiente slide
+                currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+
+                // Programamos el próximo cambio
+                window.rightColumnCarouselTimeout = setTimeout(switchSlide, duration);
+            };
+
+            // Iniciar el ciclo del carrusel por primera vez
+            switchSlide();
 
         } else {
-            // Si el carrusel no está habilitado, nos aseguramos de que solo la primera slide sea visible
+            // Si el carrusel no está habilitado, solo la primera slide (Novedades) es visible
             const slides = container.querySelectorAll('.right-column-slide');
             slides.forEach((slide, index) => {
                 slide.classList.toggle('active-right-slide', index === 0);
@@ -576,19 +572,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FUNCIÓN PARA EL CARRUSEL DE NOVEDADES ---
     function setupNovedadesCarousel(novedadesData) {
         const container = document.getElementById('novedades-content');
-        const indicator = document.getElementById('novedades-page-indicator'); // <-- Nueva referencia
-        if (!container || !indicator) return;
+        const indicator = document.getElementById('novedades-page-indicator');
+        if (!container || !indicator) return 1; // Devuelve 1 si los elementos no existen
 
         if (window.novedadesCarouselInterval) {
             clearInterval(window.novedadesCarouselInterval);
         }
 
         const entradas = novedadesData.entradas || [];
-        indicator.textContent = ''; // Limpiar indicador por defecto
+        indicator.textContent = '';
 
         if (entradas.length === 0) {
             container.innerHTML = '<p>No hay novedades para mostrar.</p>';
-            return;
+            return 1; // Considera "1 página" de contenido
         }
 
         const ITEMS_PER_PAGE = 5;
@@ -599,7 +595,7 @@ document.addEventListener('DOMContentLoaded', () => {
             container.innerHTML = reversedEntradas.map(item =>
                 `<p><strong>[${item.timestamp}]</strong>: ${item.texto}</p>`
             ).join('');
-            return;
+            return 1; // Solo hay una página
         }
 
         const pages = [];
@@ -616,19 +612,20 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentPage = 0;
         const pageElements = container.querySelectorAll('.novedad-page');
 
-        // Función para actualizar el indicador
         const updateIndicator = () => {
             indicator.textContent = `Página ${currentPage + 1} de ${totalPages}`;
         };
 
-        updateIndicator(); // Mostrar el indicador inicial
+        updateIndicator();
 
         window.novedadesCarouselInterval = setInterval(() => {
             pageElements[currentPage].classList.remove('active');
             currentPage = (currentPage + 1) % totalPages;
             pageElements[currentPage].classList.add('active');
-            updateIndicator(); // Actualizar el indicador en cada cambio
-        }, 15000);
+            updateIndicator();
+        }, 15000); // 15 segundos por página
+
+        return totalPages; // <-- ¡LA LÍNEA MÁS IMPORTANTE!
     }
 
     function renderAlertasList(container, items, noItemsText) {
