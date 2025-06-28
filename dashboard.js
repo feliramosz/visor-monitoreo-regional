@@ -243,16 +243,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('weather-banner-container');
         if (!container) return;
 
-        // Decidir si el carrusel debe estar activo
         const localPref = localStorage.getItem('topBannerCarouselEnabled');
-        let isCarouselActive;
-        if (localPref === 'false') {
-            isCarouselActive = false;
-        } else {
-            isCarouselActive = true; // Por defecto o si es 'true'
-        }
-
-        // Actualizar el estado del checkbox
+        let isCarouselActive = (localPref === 'false') ? false : true;
         toggleTopBannerCheck.checked = isCarouselActive;
 
         if (window.topBannerInterval) {
@@ -260,27 +252,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const weatherSlideHTML = '<div id="weather-slide" class="top-banner-slide"></div>';
-        
         const hydroAndTurnosSlideHTML = `
             <div id="hydro-slide" class="top-banner-slide">
                 <div id="turno-llamado-container" class="turno-container"></div>
                 <div id="hydro-stations-wrapper"></div>
                 <div id="turno-operadores-container" class="turno-container"></div>
             </div>`;
-        
+
         container.innerHTML = weatherSlideHTML + hydroAndTurnosSlideHTML;
-        
-        renderWeatherSlide(data);       // Llena la diapositiva del clima
-        renderStaticHydroSlide(data);   // Llena la diapositiva de hidrología (ahora solo el wrapper central)
-        
+
+        renderWeatherSlide(data);
+        renderStaticHydroSlide(data);
+
+        // --- LÍNEA AÑADIDA ---
+        // Después de crear los contenedores, llamamos a la función para llenarlos.
+        fetchAndDisplayTurnos();
+
         container.querySelector('#weather-slide').classList.add('active-top-slide');
 
-        // Solo iniciar el carrusel si está activo
         if (isCarouselActive) {
             window.topBannerInterval = setInterval(() => {
                 const slides = container.querySelectorAll('.top-banner-slide');
                 if (slides.length <= 1) return;
-
                 let currentActiveIndex = Array.from(slides).findIndex(s => s.classList.contains('active-top-slide'));
                 slides[currentActiveIndex].classList.remove('active-top-slide');
                 const nextSlideIndex = (currentActiveIndex + 1) % slides.length;
@@ -1188,7 +1181,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(prevBtn) prevBtn.addEventListener('click', prevMapSlide);
 
         // 5. Configuramos las actualizaciones periódicas
-        fetchAndDisplayTurnos(); // 
         setInterval(fetchAndDisplayTurnos, 5 * 60 * 1000);
         setInterval(fetchAndRenderMainData, 60 * 1000); // Actualiza datos principales cada 1 min
         setInterval(fetchAndRenderWazeData, 2 * 60 * 1000); // Actualiza Waze cada 2 min
