@@ -5,6 +5,7 @@
         "FSP": "Francisco Salas P.", "FRZ": "Felipe Ramos Z.", "PAM": "Paulina Aceituno M.", "LCC": "Lorena Cifuentes C.", "MZH": "Manina Zamora H.", "SMM": "Sebastián Miranda M.", "EPA": "Eric Pino A.", "AAG": "Alonso Altamirano G.", "BRL": "Brian Rahmer L.", "PAR": "Patricio Araneda R.", "FSA": "Fernando Soto A.", "FED": "Felipe Estay D.", "GMH": "Gianni Muzio H.", "VMV": "Vladimir Maturana V."
     },
     "dias": [
+      { "dia": 27, "turno_dia": {"op1": "AAG", "op2": "SMM", "llamado": "GMH"}, "turno_noche": {"op1": "LCC", "op2": "FRZ", "llamado": "GMH"} },
       { "dia": 28, "turno_dia": {"op1": "SMM", "op2": "EPA", "llamado": "GMH"}, "turno_noche": {"op1": "MZH", "op2": "AAG", "llamado": "GMH"} },
       { "dia": 29, "turno_dia": {"op1": "EPA", "op2": "PAM", "llamado": "GMH"}, "turno_noche": {"op1": "AAG", "op2": "SMM", "llamado": "GMH"} },
       { "dia": 30, "turno_dia": {"op1": "PAM", "op2": "FRZ", "llamado": "FSP"}, "turno_noche": {"op1": "SMM", "op2": "EPA", "llamado": "FSP"} }
