@@ -259,18 +259,28 @@ document.addEventListener('DOMContentLoaded', () => {
             clearInterval(window.topBannerInterval);
         }
 
-        if (!container.querySelector('#weather-slide')) {
-            container.innerHTML = `<div id="weather-slide" class="top-banner-slide active-top-slide"></div><div id="hydro-slide" class="top-banner-slide"></div>`;
-        }
-
-        renderWeatherSlide(data);
-        renderStaticHydroSlide(data);
+        const weatherSlideHTML = '<div id="weather-slide" class="top-banner-slide"></div>';
+        
+        const hydroAndTurnosSlideHTML = `
+            <div id="hydro-slide" class="top-banner-slide">
+                <div id="turno-llamado-container" class="turno-container"></div>
+                <div id="hydro-stations-wrapper"></div>
+                <div id="turno-operadores-container" class="turno-container"></div>
+            </div>`;
+        
+        container.innerHTML = weatherSlideHTML + hydroAndTurnosSlideHTML;
+        
+        renderWeatherSlide(data);       // Llena la diapositiva del clima
+        renderStaticHydroSlide(data);   // Llena la diapositiva de hidrología (ahora solo el wrapper central)
+        
+        container.querySelector('#weather-slide').classList.add('active-top-slide');
 
         // Solo iniciar el carrusel si está activo
         if (isCarouselActive) {
             window.topBannerInterval = setInterval(() => {
                 const slides = container.querySelectorAll('.top-banner-slide');
                 if (slides.length <= 1) return;
+
                 let currentActiveIndex = Array.from(slides).findIndex(s => s.classList.contains('active-top-slide'));
                 slides[currentActiveIndex].classList.remove('active-top-slide');
                 const nextSlideIndex = (currentActiveIndex + 1) % slides.length;
@@ -322,7 +332,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }  
 
     function renderStaticHydroSlide(data) {
-        const hydroContainer = document.getElementById('hydro-slide');
+        // El contenedor ahora es el "wrapper" central que creamos dinámicamente
+        const hydroContainer = document.getElementById('hydro-stations-wrapper');
         if (!hydroContainer) return;
 
         const hydroThresholds = {            
@@ -336,7 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
         hydroContainer.innerHTML = Object.keys(hydroThresholds).map(stationName => {
             const station = stationsData.find(s => s.nombre_estacion === stationName) || { nivel_m: null, caudal_m3s: null };
             const thresholds = hydroThresholds[stationName];
-
             const hasData = station.nivel_m !== null || station.caudal_m3s !== null;
             const ledClass = hasData ? 'led-green' : 'led-red';
 
@@ -364,7 +374,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const nivelGauge = getGaugeData(station.nivel_m, thresholds.nivel);
             const caudalGauge = getGaugeData(station.caudal_m3s, thresholds.caudal);
 
-            // El HTML que genera la tarjeta
             return `
                 <div class="hydro-station-card">
                     <div class="hydro-card-header">
@@ -398,6 +407,72 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }).join('');
     }
+
+    // --- FUNCIÓN PARA MOSTRAR TURNOS ---
+    async function fetchAndDisplayTurnos() {
+        try {
+            const response = await fetch('/api/turnos');
+            if (!response.ok) return;
+
+            const turnosData = await response.json();
+            const { personal, dias } = turnosData;
+
+            // Obtener la fecha y hora actual en Chile
+            const ahora = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Santiago"}));
+            const diaActual = ahora.getDate();
+            const horaActual = ahora.getHours();
+            const diaAyer = new Date(ahora);
+            diaAyer.setDate(ahora.getDate() - 1);
+            const diaDeAyer = diaAyer.getDate();
+
+            let turnoActivo = null;
+            let tipoTurno = '';
+
+            // Lógica para determinar el turno
+            if (horaActual >= 9 && horaActual < 21) {
+                // Turno de día: 09:00 a 20:59 del día actual
+                const infoHoy = dias.find(d => d.dia === diaActual);
+                if (infoHoy) {
+                    turnoActivo = infoHoy.turno_dia;
+                    tipoTurno = 'Día';
+                }
+            } else {
+                // Turno de noche
+                tipoTurno = 'Noche';
+                if (horaActual >= 21) {
+                    // El turno de noche que comenzó hoy
+                    const infoHoy = dias.find(d => d.dia === diaActual);
+                    if (infoHoy) turnoActivo = infoHoy.turno_noche;
+                } else {
+                    // El turno de noche que comenzó ayer
+                    const infoAyer = dias.find(d => d.dia === diaDeAyer);
+                    if (infoAyer) turnoActivo = infoAyer.turno_noche;
+                }
+            }
+
+            // Seleccionar los contenedores
+            const llamadoContainer = document.getElementById('turno-llamado-container');
+            const operadoresContainer = document.getElementById('turno-operadores-container');
+
+            if (turnoActivo) {
+                // Mostrar Profesional de Llamada
+                const nombreLlamado = personal[turnoActivo.llamado] || turnoActivo.llamado;
+                llamadoContainer.innerHTML = `<h4>Profesional de Llamada (${tipoTurno})</h4><p>${nombreLlamado}</p>`;
+
+                // Mostrar Operadores de Turno
+                const nombreOp1 = personal[turnoActivo.op1] || turnoActivo.op1;
+                const nombreOp2 = personal[turnoActivo.op2] || turnoActivo.op2;
+                operadoresContainer.innerHTML = `<h4>Operadores de Turno (${tipoTurno})</h4><div><p class="turno-op">${nombreOp1}</p><p class="turno-op">${nombreOp2}</p></div>`;
+            } else {
+                llamadoContainer.innerHTML = '<h4>Profesional de Llamada</h4><p>No definido</p>';
+                operadoresContainer.innerHTML = '<h4>Operadores de Turno</h4><p>No definido</p>';
+            }
+
+        } catch (error) {
+            console.error("Error al cargar datos de turnos:", error);
+        }
+    }
+
     // Lógica de Reloj LED   
     function updateLedClock(clockId, timeString) {
         const clock = document.getElementById(clockId);
@@ -1094,6 +1169,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if(prevBtn) prevBtn.addEventListener('click', prevMapSlide);
 
         // 5. Configuramos las actualizaciones periódicas
+        fetchAndDisplayTurnos(); // 
+        setInterval(fetchAndDisplayTurnos, 5 * 60 * 1000);
         setInterval(fetchAndRenderMainData, 60 * 1000); // Actualiza datos principales cada 1 min
         setInterval(fetchAndRenderWazeData, 2 * 60 * 1000); // Actualiza Waze cada 2 min
     }

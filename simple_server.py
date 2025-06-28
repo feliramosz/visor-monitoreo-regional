@@ -27,6 +27,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.expanduser('~'), 'senapred-monitor.
 DATA_FOLDER_PATH = os.path.join(os.path.expanduser('~'), 'SistemaMonitoreoSENAPRED', 'datos_extraidos')
 DATA_FILE = os.path.join(DATA_FOLDER_PATH, 'ultimo_informe.json')
 NOVEDADES_FILE = os.path.join(DATA_FOLDER_PATH, 'novedades.json')
+TURNOS_FILE = os.path.join(DATA_FOLDER_PATH, 'turnos.json')
 SERVER_ROOT = os.path.dirname(os.path.abspath(__file__))
 DYNAMIC_SLIDES_FOLDER = os.path.join(SERVER_ROOT, 'assets', 'dynamic_slides')
 SESSIONS = {} # Un diccionario para guardar las sesiones activas: { 'token': 'username' }
@@ -203,6 +204,19 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(novedades_data, ensure_ascii=False, indent=4).encode('utf-8'))
                 return
             # --- FIN ENDPOINT NOVEDADES ---
+
+            # --- ENDPOINT TURNOS ---
+            elif requested_path == '/api/turnos':
+                if os.path.exists(TURNOS_FILE):
+                    with open(TURNOS_FILE, 'r', encoding='utf-8') as f:
+                        turnos_data = json.load(f)
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(turnos_data, ensure_ascii=False).encode('utf-8'))
+                else:
+                    self._set_headers(404, 'application/json')
+                    self.wfile.write(json.dumps({"error": "Archivo de turnos no encontrado."}).encode('utf-8'))
+                return
+            # --- FIN ENDPOINT TURNOS ---
 
             # --- RUTA PARA OBTENER LAS HORAS DEL SHOA ---
             elif requested_path == '/api/shoa_times':
