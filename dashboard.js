@@ -319,15 +319,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const hasData = station.nivel_m !== null || station.caudal_m3s !== null;
             const ledClass = hasData ? 'led-green' : 'led-red';
 
-            // Esta es la función que calcula la rotación de la aguja y otros valores.
             const getGaugeData = (value, threshold) => {
                 const currentValue = (value !== null && !isNaN(value)) ? value : 0;
                 let rotation;
-
                 if (currentValue <= 0) {
                     rotation = -90;
                 } else {
-                    // Lógica lineal (correcta)
                     const maxThreshold = threshold.roja;
                     let percentage = 0;
                     if (maxThreshold > 0) {
@@ -335,14 +332,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     rotation = -90 + (percentage * 180);
                 }
-
                 return {
                     value: currentValue.toFixed(2),
                     rotation: Math.max(-90, Math.min(90, rotation)),
                     amarilla: threshold.amarilla.toFixed(2),
                     roja: threshold.roja.toFixed(2)
                 };
-            }; // <--- La llave de cierre de getGaugeData
+            };
 
             const nivelGauge = getGaugeData(station.nivel_m, thresholds.nivel);
             const caudalGauge = getGaugeData(station.caudal_m3s, thresholds.caudal);
@@ -370,7 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="threshold-label-left"><span class="threshold-amarillo">A: ${caudalGauge.amarilla}</span></div>
                             <div class="gauge-wrapper">
                                 <div class="gauge-arc-background"></div>
-                                <div class.name="gauge-needle" style="transform: rotate(${caudalGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
+                                <div class="gauge-needle" style="transform: rotate(${caudalGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
                             </div>
                             <div class="threshold-label-right"><span class="threshold-rojo">R: ${caudalGauge.roja}</span></div>
                             <p class="gauge-current-value blinking-value">${caudalGauge.value}</p>
@@ -381,7 +377,6 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }).join('');
     }
-
     // Lógica de Reloj LED   
     function updateLedClock(clockId, timeString) {
         const clock = document.getElementById(clockId);
