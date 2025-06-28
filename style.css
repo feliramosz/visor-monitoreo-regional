@@ -2198,6 +2198,7 @@ footer {
 #hydro-stations-wrapper {
     display: flex;
     gap: 15px; /* Espacio entre las tarjetas de hidrometría */
+    align-self: center;
 }
 
 .turno-container {
