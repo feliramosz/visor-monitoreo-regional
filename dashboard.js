@@ -576,53 +576,59 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FUNCIÓN PARA EL CARRUSEL DE NOVEDADES ---
     function setupNovedadesCarousel(novedadesData) {
         const container = document.getElementById('novedades-content');
-        if (!container) return;
+        const indicator = document.getElementById('novedades-page-indicator'); // <-- Nueva referencia
+        if (!container || !indicator) return;
 
-        // Limpiar el carrusel anterior si existiera
         if (window.novedadesCarouselInterval) {
             clearInterval(window.novedadesCarouselInterval);
         }
 
         const entradas = novedadesData.entradas || [];
+        indicator.textContent = ''; // Limpiar indicador por defecto
+
         if (entradas.length === 0) {
             container.innerHTML = '<p>No hay novedades para mostrar.</p>';
             return;
         }
 
-        const ITEMS_PER_PAGE = 5; // Mostraremos 5 novedades por página
+        const ITEMS_PER_PAGE = 5;
+        const reversedEntradas = entradas.slice().reverse();
+        const totalPages = Math.ceil(reversedEntradas.length / ITEMS_PER_PAGE);
 
-        // Si no se necesita paginación, solo muestra las entradas y termina
-        if (entradas.length <= ITEMS_PER_PAGE) {
-            container.innerHTML = entradas.slice().reverse().map(item =>
+        if (totalPages <= 1) {
+            container.innerHTML = reversedEntradas.map(item =>
                 `<p><strong>[${item.timestamp}]</strong>: ${item.texto}</p>`
             ).join('');
             return;
         }
 
-        // Crear las páginas
         const pages = [];
-        const reversedEntradas = entradas.slice().reverse(); // Invertimos para mostrar las más nuevas primero
         for (let i = 0; i < reversedEntradas.length; i += ITEMS_PER_PAGE) {
             pages.push(reversedEntradas.slice(i, i + ITEMS_PER_PAGE));
         }
 
-        // Generar el HTML para cada página
         container.innerHTML = pages.map((page, index) => `
             <div class="novedad-page ${index === 0 ? 'active' : ''}">
                 ${page.map(item => `<p><strong>[${item.timestamp}]</strong>: ${item.texto}</p>`).join('')}
             </div>
         `).join('');
 
-        // Iniciar el carrusel
         let currentPage = 0;
-        const totalPages = pages.length;
         const pageElements = container.querySelectorAll('.novedad-page');
+
+        // Función para actualizar el indicador
+        const updateIndicator = () => {
+            indicator.textContent = `Página ${currentPage + 1} de ${totalPages}`;
+        };
+
+        updateIndicator(); // Mostrar el indicador inicial
 
         window.novedadesCarouselInterval = setInterval(() => {
             pageElements[currentPage].classList.remove('active');
             currentPage = (currentPage + 1) % totalPages;
             pageElements[currentPage].classList.add('active');
-        }, 15000); // Cambia de página cada 15 segundos
+            updateIndicator(); // Actualizar el indicador en cada cambio
+        }, 15000);
     }
 
     function renderAlertasList(container, items, noItemsText) {
