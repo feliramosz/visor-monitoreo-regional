@@ -451,7 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (turnoActivo && llamadoContainer && operadoresContainer) {
                 // Panel Izquierdo: Profesional a llamado
-                llamadoContainer.innerHTML = `<h4>Profesional a llamado (${tipoTurno})</h4><p class="turno-op-nombre">${personal[turnoActivo.llamado] || 'N/A'}</p>`;
+                llamadoContainer.innerHTML = `<h4>Profesional a llamado </h4><p class="turno-op-nombre">${personal[turnoActivo.llamado] || 'N/A'}</p>`;
 
                 // Panel Derecho: Operadores de Turno
                 let proximoTurnoHtml = '<p class="proximo-turno">Próximo turno: <strong>No definido</strong></p>';
