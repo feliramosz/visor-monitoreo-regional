@@ -402,84 +402,76 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchAndDisplayTurnos() {
         try {
             const response = await fetch('/api/turnos');
-            if (!response.ok) {
-                console.error("Error al obtener /api/turnos:", response.statusText);
-                return;
-            }
+            if (!response.ok) return;
 
             const turnosData = await response.json();
 
-            // Lógica MEJORADA que entiende la estructura por meses
             const ahora = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Santiago"}));
-
-            const nombreMesActual = ahora.toLocaleString('es-CL', { month: 'long' });
-            const mesActualCapitalizado = nombreMesActual.charAt(0).toUpperCase() + nombreMesActual.slice(1);
-
+            const mesActualCapitalizado = (ahora.toLocaleString('es-CL', { month: 'long' })).replace(/^\w/, c => c.toUpperCase());
             const diaActual = ahora.getDate();
             const horaActual = ahora.getHours();
 
-            const diaAyer = new Date(ahora);
-            diaAyer.setDate(ahora.getDate() - 1);
-            const diaDeAyer = diaAyer.getDate();
-
-            const nombreMesAyer = diaAyer.toLocaleString('es-CL', { month: 'long' });
-            const mesAyerCapitalizado = nombreMesAyer.charAt(0).toUpperCase() + nombreMesAyer.slice(1);
-
-            // Seleccionamos los datos del mes correcto del JSON
             const datosMesActual = turnosData[mesActualCapitalizado];
-            const datosMesAyer = turnosData[mesAyerCapitalizado];
+            if (!datosMesActual) return; // Salir si no hay datos para el mes actual
 
-            let turnoActivo = null;
-            let tipoTurno = '';
-            let personal = {};
-
-            // Verificamos que existan datos para el mes actual antes de usarlos
-            if (datosMesActual) {
-                personal = datosMesActual.personal || {};
-            }
+            // --- Lógica para encontrar el turno actual y el próximo ---
+            let turnoActivo = null, proximoTurno = null, tipoTurno = '', personal = datosMesActual.personal;
+            const infoHoy = datosMesActual.dias.find(d => d.dia === diaActual);
 
             if (horaActual >= 9 && horaActual < 21) {
                 tipoTurno = 'Día';
-                if (datosMesActual) {
-                    const infoHoy = datosMesActual.dias.find(d => d.dia === diaActual);
-                    if (infoHoy) turnoActivo = infoHoy.turno_dia;
+                if (infoHoy) {
+                    turnoActivo = infoHoy.turno_dia;
+                    proximoTurno = infoHoy.turno_noche; // El próximo turno es el de la noche de hoy
                 }
             } else {
                 tipoTurno = 'Noche';
+                let infoTurnoNoche;
                 if (horaActual >= 21) {
-                    if (datosMesActual) {
-                        const infoHoy = datosMesActual.dias.find(d => d.dia === diaActual);
-                        if (infoHoy) turnoActivo = infoHoy.turno_noche;
-                    }
-                } else {
+                    infoTurnoNoche = infoHoy; // El turno de noche que comenzó hoy
+                } else { // Antes de las 9am
+                    const diaAyer = new Date(ahora); diaAyer.setDate(ahora.getDate() - 1);
+                    const mesAyerCapitalizado = (diaAyer.toLocaleString('es-CL', { month: 'long' })).replace(/^\w/, c => c.toUpperCase());
+                    const datosMesAyer = turnosData[mesAyerCapitalizado];
                     if (datosMesAyer) {
-                        const infoAyer = datosMesAyer.dias.find(d => d.dia === diaDeAyer);
-                        if (infoAyer) {
-                            turnoActivo = infoAyer.turno_noche;
-                            personal = datosMesAyer.personal || {}; // Usar el personal del mes de ayer
-                        }
+                        infoTurnoNoche = datosMesAyer.dias.find(d => d.dia === diaAyer.getDate());
+                        personal = datosMesAyer.personal;
                     }
+                }
+                if (infoTurnoNoche) {
+                    turnoActivo = infoTurnoNoche.turno_noche;
+                    // El próximo turno es el de día de mañana (que es el día actual para esta franja horaria)
+                    if (infoHoy) proximoTurno = infoHoy.turno_dia;
                 }
             }
 
+            // --- Renderizar la información ---
             const llamadoContainer = document.getElementById('turno-llamado-container');
             const operadoresContainer = document.getElementById('turno-operadores-container');
 
             if (turnoActivo && llamadoContainer && operadoresContainer) {
-                const nombreLlamado = personal[turnoActivo.llamado] || turnoActivo.llamado;
-                llamadoContainer.innerHTML = `<h4>Profesional a llamado (Negro)</h4><p>${nombreLlamado}</p>`;
+                // Panel Izquierdo: Profesional a llamado
+                llamadoContainer.innerHTML = `<h4>Profesional a llamado (${tipoTurno})</h4><p class="turno-op-nombre">${personal[turnoActivo.llamado] || 'N/A'}</p>`;
 
-                const nombreOp1 = personal[turnoActivo.op1] || turnoActivo.op1;
-                const nombreOp2 = personal[turnoActivo.op2] || turnoActivo.op2;
-                operadoresContainer.innerHTML = `<h4>Operadores de Turno (${tipoTurno})</h4><div><p class="turno-op">${nombreOp1}</p><p class="turno-op">${nombreOp2}</p></div>`;
+                // Panel Derecho: Operadores de Turno
+                let proximoTurnoHtml = '<p class="proximo-turno">Próximo turno: <strong>No definido</strong></p>';
+                if (proximoTurno) {
+                    proximoTurnoHtml = `<p class="proximo-turno">Próximo turno: <strong>${proximoTurno.op1} / ${proximoTurno.op2}</strong></p>`;
+                }
+
+                operadoresContainer.innerHTML = `
+                    <h4>Op. Turno (${tipoTurno})</h4>
+                    <div>
+                        <span class="turno-op-nombre">${personal[turnoActivo.op1] || 'N/A'}</span>
+                        <span class="turno-op-nombre">${personal[turnoActivo.op2] || 'N/A'}</span>
+                    </div>
+                    ${proximoTurnoHtml}
+                `;
             } else if (llamadoContainer && operadoresContainer) {
                 llamadoContainer.innerHTML = '<h4>Profesional de Llamada</h4><p>No definido</p>';
-                operadoresContainer.innerHTML = '<h4>Operadores de Turno</h4><p>No definido</p>';
+                operadoresContainer.innerHTML = '<h4>Op. Turno</h4><p>No definido</p>';
             }
-
-        } catch (error) {
-            console.error("Error al procesar datos de turnos:", error);
-        }
+        } catch (error) { console.error("Error al procesar datos de turnos:", error); }
     }
 
     // Lógica de Reloj LED   
@@ -574,13 +566,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('right-column-carousel-container');
         if (!container) return;
 
-        // Limpiar el intervalo anterior
         if (window.rightColumnCarouselTimeout) {
             clearTimeout(window.rightColumnCarouselTimeout);
         }
 
-        // Primero, configuramos el panel de novedades y obtenemos cuántas páginas tiene.
         const numNovedadesPages = setupNovedadesCarousel(novedades);
+
+        // --- LÓGICA CORREGIDA PARA LEER EL CHECKBOX ---
+        const localPref = localStorage.getItem('rightColumnCarouselEnabled');
+        let useCarousel;
+        if (localPref === 'true') {
+            useCarousel = true;
+        } else if (localPref === 'false') {
+            useCarousel = false;
+        } else {
+            useCarousel = data.novedades_carousel_enabled; // Usar el default del admin
+        }
+        toggleRightColumnCheck.checked = useCarousel; // Sincroniza el checkbox
+        // --- FIN DE LA CORRECCIÓN ---
+
+        const emergencias = data.emergencias_ultimas_24_horas || [];
+        const finalUseCarousel = useCarousel && emergencias.length > 0;
 
         // Limpiamos slides de emergencias de ejecuciones anteriores
         const existingEmergenciasSlide = container.querySelector('#panel-emergencias-dashboard');
@@ -588,68 +594,26 @@ document.addEventListener('DOMContentLoaded', () => {
             existingEmergenciasSlide.parentElement.remove();
         }
 
-        const useCarousel = data.novedades_carousel_enabled && data.emergencias_ultimas_24_horas && data.emergencias_ultimas_24_horas.length > 0;
-
-        if (useCarousel) {
-            // Construimos la slide de emergencias
-            const emergenciasItemsHtml = data.emergencias_ultimas_24_horas.map(item => `
-                <tr>
-                    <td>${item.n_informe || 'N/A'}</td>
-                    <td>${item.fecha_hora || 'N/A'}</td>
-                    <td>${item.evento_lugar || 'N/A'}</td>
-                </tr>
-            `).join('');
-
-            const emergenciasSlideHtml = `
-                <div class="right-column-slide">
-                    <div id="panel-emergencias-dashboard" class="dashboard-panel">
-                        <h3>Informes Emitidos (Últimas 24h)</h3>
-                        <div class="table-container">
-                            <table>
-                                <thead><tr><th>N° Informe</th><th>Fecha y Hora</th><th>Evento / Lugar</th></tr></thead>
-                                <tbody>${emergenciasItemsHtml}</tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>`;
+        if (finalUseCarousel) {
+            const emergenciasItemsHtml = emergencias.map(item => `
+                <tr><td>${item.n_informe || 'N/A'}</td><td>${item.fecha_hora || 'N/A'}</td><td>${item.evento_lugar || 'N/A'}</td></tr>`
+            ).join('');
+            const emergenciasSlideHtml = `<div class="right-column-slide"><div id="panel-emergencias-dashboard" class="dashboard-panel"><h3>Informes Emitidos (Últimas 24h)</h3><div class="table-container"><table><thead><tr><th>N° Informe</th><th>Fecha y Hora</th><th>Evento / Lugar</th></tr></thead><tbody>${emergenciasItemsHtml}</tbody></table></div></div></div>`;
             container.insertAdjacentHTML('beforeend', emergenciasSlideHtml);
 
-            // --- NUEVA LÓGICA DE CARRUSEL CON TIMEOUT ---
             let currentSlideIndex = 0;
             const slides = container.querySelectorAll('.right-column-slide');
 
             const switchSlide = () => {
-                slides.forEach((slide, index) => {
-                    slide.classList.toggle('active-right-slide', index === currentSlideIndex);
-                });
-
-                let duration;
-                // Si la diapositiva activa es la de Novedades (índice 0)
-                if (currentSlideIndex === 0) {
-                    // La duración es el número de páginas de novedades por 15 segundos cada una.
-                    const DURATION_PER_NOVEDAD_PAGE = 15000;
-                    duration = numNovedadesPages * DURATION_PER_NOVEDAD_PAGE;
-                } else {
-                    // Para la diapositiva de Emergencias, usamos la duración fija.
-                    duration = rightColumnSlideDuration; // 10000 ms
-                }
-
-                // Avanzamos al siguiente slide
+                slides.forEach((slide, index) => slide.classList.toggle('active-right-slide', index === currentSlideIndex));
+                let duration = (currentSlideIndex === 0) ? (numNovedadesPages * 15000) : rightColumnSlideDuration;
                 currentSlideIndex = (currentSlideIndex + 1) % slides.length;
-
-                // Programamos el próximo cambio
                 window.rightColumnCarouselTimeout = setTimeout(switchSlide, duration);
             };
-
-            // Iniciar el ciclo del carrusel por primera vez
             switchSlide();
-
         } else {
-            // Si el carrusel no está habilitado, solo la primera slide (Novedades) es visible
             const slides = container.querySelectorAll('.right-column-slide');
-            slides.forEach((slide, index) => {
-                slide.classList.toggle('active-right-slide', index === 0);
-            });
+            slides.forEach((slide, index) => slide.classList.toggle('active-right-slide', index === 0));
         }
     }
     

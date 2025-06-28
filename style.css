@@ -2251,3 +2251,24 @@ footer {
 .turno-container .turno-op {
     display: block; /* Muestra cada operador en su propia línea */
 }
+
+/* --- ESTILOS ADICIONALES PARA PANEL DE TURNOS --- */
+.turno-container .turno-op-nombre {
+    display: block;
+    font-size: 1.1em; /* Un poco más pequeño que el tamaño actual */
+    font-weight: bold;
+    line-height: 1.3;
+    color: #333;
+}
+
+.turno-container .proximo-turno {
+    margin-top: 12px;
+    font-size: 0.9em;
+    font-weight: normal;
+    color: #6c757d;
+}
+
+.turno-container .proximo-turno strong {
+    font-weight: bold;
+    color: #555;
+}
