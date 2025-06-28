@@ -392,8 +392,9 @@ def main():
     if json_ruta:
         print(f"Proceso de extracción completado exitosamente para: {json_ruta}")
         try:
-            os.remove(ruta_informe_descargado)
-            print(f"Archivo de informe '{nombre_archivo}' eliminado después de procesar.")
+            #os.remove(ruta_informe_descargado)
+            #print(f"Archivo de informe '{nombre_archivo}' eliminado después de procesar.")
+            print("NOTA: La eliminación del archivo .docx está desactivada temporalmente para el diagnóstico.")
         except OSError as e:
             print(f"Error al intentar eliminar el archivo del informe: {e}")
     else:
