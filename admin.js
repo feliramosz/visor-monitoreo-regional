@@ -72,6 +72,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addPasoFronterizoBtn = document.getElementById('addPasoFronterizoBtn');
     const puertosContainer = document.getElementById('puertosContainer');
     const addPuertoBtn = document.getElementById('addPuertoBtn');
+    const hidroContainer = document.getElementById('hidroContainer');
+    const addHidroBtn = document.getElementById('addHidroBtn');
     const imageFile = document.getElementById('imageFile');
     const imageTitle = document.getElementById('imageTitle');
     const imageDescription = document.getElementById('imageDescription');
@@ -166,6 +168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderSectionItems(carreterasContainer, data.estado_carreteras, createCarreteraFormItem, 'No hay carreteras para editar.');
         renderSectionItems(pasosFronterizosContainer, data.estado_pasos_fronterizos, createPasoFronterizoFormItem, 'No hay pasos fronterizos para editar.');
         renderSectionItems(puertosContainer, data.estado_puertos, createPuertoFormItem, 'No hay puertos para editar.');
+        renderSectionItems(hidroContainer, data.datos_hidrometricos, createHidroFormItem, 'No hay datos hidrométricos para editar.');
         renderSectionItems(dynamicSlidesContainer, data.dynamic_slides, createDynamicSlideItem, 'No hay slides dinámicas añadidas.');
 
         if (data.radiacion_uv) {
@@ -344,6 +347,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         return div;
     }
 
+    function createHidroFormItem(item = {}, index) {
+        const div = document.createElement('div');
+        div.className = 'form-item-grid'; // Usaremos una clase genérica para estilo
+        div.innerHTML = `
+            <label>Nombre Estación:</label><input type="text" class="hidro-nombre" value="${item.nombre_estacion || ''}">
+            <label>Nivel (m):</label><input type="number" step="0.01" class="hidro-nivel" value="${item.nivel_m || ''}">
+            <label>Caudal (m³/s):</label><input type="number" step="0.01" class="hidro-caudal" value="${item.caudal_m3s || ''}">
+            <button type="button" class="remove-item-btn remove">Eliminar</button>
+        `;
+        div.querySelector('.remove-item-btn').addEventListener('click', () => div.remove());
+        return div;
+    }
+
     function createDynamicSlideItem(slide = {}, index) {
         const div = document.createElement('div');
         div.className = 'dynamic-slide-item';
@@ -366,6 +382,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     addCarreteraBtn.addEventListener('click', () => carreterasContainer.appendChild(createCarreteraFormItem()));
     addPasoFronterizoBtn.addEventListener('click', () => pasosFronterizosContainer.appendChild(createPasoFronterizoFormItem()));
     addPuertoBtn.addEventListener('click', () => puertosContainer.appendChild(createPuertoFormItem()));
+    addHidroBtn.addEventListener('click', () => hidroContainer.appendChild(createHidroFormItem()));
 
     // --- Lógica de Descarga Manual ---
     runScriptBtn.addEventListener('click', async () => {
@@ -470,6 +487,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updatedInformeData.estado_carreteras = Array.from(carreterasContainer.querySelectorAll('.carretera-item')).map(item => ({ carretera: item.querySelector('.carretera-nombre').value, estado: item.querySelector('.carretera-estado').value, condicion: item.querySelector('.carretera-condicion').value }));
         updatedInformeData.estado_pasos_fronterizos = Array.from(pasosFronterizosContainer.querySelectorAll('.paso-item')).map(item => ({ nombre_paso: item.querySelector('.paso-nombre').value, condicion: item.querySelector('.paso-condicion').value, observaciones: item.querySelector('.paso-observaciones').value }));
         updatedInformeData.estado_puertos = Array.from(puertosContainer.querySelectorAll('.puerto-item')).map(item => ({ puerto: item.querySelector('.puerto-nombre').value, estado_del_puerto: item.querySelector('.puerto-estado').value, condicion: item.querySelector('.puerto-condicion').value }));
+        updatedInformeData.datos_hidrometricos = Array.from(hidroContainer.querySelectorAll('.form-item-grid')).map(item => ({ nombre_estacion: item.querySelector('.hidro-nombre').value, nivel_m: parseFloat(item.querySelector('.hidro-nivel').value) || null, caudal_m3s: parseFloat(item.querySelector('.hidro-caudal').value) || null }));
         updatedInformeData.dynamic_slides = Array.from(dynamicSlidesContainer.querySelectorAll('.dynamic-slide-item')).map(item => ({ id: item.dataset.id, image_url: item.querySelector('.slide-image-url').value, title: item.querySelector('.slide-title').value, description: item.querySelector('.slide-description').value }));
         updatedInformeData.dashboard_carousel_enabled = document.getElementById('adminEnableDashboardCarousel').checked;
         updatedInformeData.novedades_carousel_enabled = document.getElementById('adminEnableNovedadesCarousel').checked;

@@ -549,6 +549,13 @@ document.addEventListener('DOMContentLoaded', () => {
         setInterval(fetchAndRenderSismos, 5 * 60 * 1000);
         setInterval(fetchAndRenderAirQuality, 5 * 60 * 1000);
     }
+    
+     window.addEventListener('storage', (event) => {        
+        if (event.key === 'data_updated') {
+            console.log('Se detectó un cambio de datos desde otra pestaña. Actualizando visor...');            
+            fetchDataAndRender(); // Llama a la función principal para recargar y renderizar todo.
+        }
+    });
 
     initializeApp();
 });
