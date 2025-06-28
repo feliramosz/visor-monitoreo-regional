@@ -2095,3 +2095,36 @@ img, table {
 .blinking-value {
     animation: blink-red 1.5s linear infinite;
 }
+
+/* --- ESTILOS PARA CONTROLES DE VISUALIZACIÓN EN EL FOOTER --- */
+footer {
+    display: flex;
+    justify-content: space-between; /* Alinea el texto de copyright a la derecha */
+    align-items: center;
+    padding: 5px 20px; /* Ajusta el padding del footer */
+}
+
+#dashboard-controls-container {
+    display: flex;
+    gap: 25px; /* Espacio entre cada grupo de control */
+    align-items: center;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.control-group label {
+    font-size: 0.9em;
+    color: #f0f0f0;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.control-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}

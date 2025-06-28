@@ -17,7 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const headerAlertBanner = document.getElementById('header-alert-banner');
     const numeroInformeDisplay = document.getElementById('numero-informe-display');
     const novedadesContent = document.getElementById('novedades-content');
-  
+    const toggleTopBannerCheck = document.getElementById('toggleTopBanner');
+    const toggleCentralCarouselCheck = document.getElementById('toggleCentralCarousel');
+    const toggleRightColumnCheck = document.getElementById('toggleRightColumn');
+    let lastData = {}; // Para guardar la última data cargada
+
     // --- Controles del carrusel de MAPAS ---
     const mapPanelTitle = document.getElementById('map-panel-title');
     const airQualityMapContainer = document.getElementById('air-quality-map-container-dashboard');
@@ -89,7 +93,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.innerHTML = '';
 
-        const useCarousel = data.dashboard_carousel_enabled && data.dynamic_slides && data.dynamic_slides.length > 0;
+        const localPref = localStorage.getItem('centralCarouselEnabled');
+        let useCarousel;
+        if (localPref === 'true') {
+            useCarousel = true;
+        } else if (localPref === 'false') {
+            useCarousel = false;
+        } else {
+            useCarousel = data.dashboard_carousel_enabled; // Usar el default del admin
+        }
+
+        // Actualizar el estado del checkbox
+        toggleCentralCarouselCheck.checked = useCarousel;
+
+        // La condición final también depende de si existen imágenes
+        const finalUseCarousel = useCarousel && data.dynamic_slides && data.dynamic_slides.length > 0;
 
         if (useCarousel) {
             // 1. Construir el HTML de las slides
@@ -225,37 +243,40 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('weather-banner-container');
         if (!container) return;
 
+        // Decidir si el carrusel debe estar activo
+        const localPref = localStorage.getItem('topBannerCarouselEnabled');
+        let isCarouselActive;
+        if (localPref === 'false') {
+            isCarouselActive = false;
+        } else {
+            isCarouselActive = true; // Por defecto o si es 'true'
+        }
+
+        // Actualizar el estado del checkbox
+        toggleTopBannerCheck.checked = isCarouselActive;
+
         if (window.topBannerInterval) {
             clearInterval(window.topBannerInterval);
         }
 
-        // Aseguramos que los contenedores de los slides existan
         if (!container.querySelector('#weather-slide')) {
-            container.innerHTML = `
-                <div id="weather-slide" class="top-banner-slide active-top-slide"></div>
-                <div id="hydro-slide" class="top-banner-slide"></div>
-            `;
+            container.innerHTML = `<div id="weather-slide" class="top-banner-slide active-top-slide"></div><div id="hydro-slide" class="top-banner-slide"></div>`;
         }
 
         renderWeatherSlide(data);
         renderStaticHydroSlide(data);
 
-        // Reinicia el intervalo del carrusel
-        window.topBannerInterval = setInterval(() => {
-            const slides = container.querySelectorAll('.top-banner-slide');
-            if (slides.length <= 1) return;
-
-            let currentActiveIndex = 0;
-            slides.forEach((slide, index) => {
-                if (slide.classList.contains('active-top-slide')) {
-                    currentActiveIndex = index;
-                }
-            });
-
-            slides[currentActiveIndex].classList.remove('active-top-slide');
-            const nextSlideIndex = (currentActiveIndex + 1) % slides.length;
-            slides[nextSlideIndex].classList.add('active-top-slide');
-        }, topBannerSlideDuration); 
+        // Solo iniciar el carrusel si está activo
+        if (isCarouselActive) {
+            window.topBannerInterval = setInterval(() => {
+                const slides = container.querySelectorAll('.top-banner-slide');
+                if (slides.length <= 1) return;
+                let currentActiveIndex = Array.from(slides).findIndex(s => s.classList.contains('active-top-slide'));
+                slides[currentActiveIndex].classList.remove('active-top-slide');
+                const nextSlideIndex = (currentActiveIndex + 1) % slides.length;
+                slides[nextSlideIndex].classList.add('active-top-slide');
+            }, topBannerSlideDuration);
+        }
     }
 
     /**
@@ -451,6 +472,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ]);
             const data = await dataResponse.json();
             const novedades = await novedadesResponse.json();
+            
+            lastData = data;
 
             numeroInformeDisplay.textContent = novedades.numero_informe_manual || 'N/A';
             if (novedades.entradas && novedades.entradas.length > 0) {
@@ -482,7 +505,20 @@ document.addEventListener('DOMContentLoaded', () => {
             existingEmergenciasSlide.parentElement.remove();
         }
 
-        const useCarousel = data.novedades_carousel_enabled && data.emergencias_ultimas_24_horas && data.emergencias_ultimas_24_horas.length > 0;
+        const localPref = localStorage.getItem('rightColumnCarouselEnabled');
+        let useCarousel;
+        if (localPref === 'true') {
+            useCarousel = true;
+        } else if (localPref === 'false') {
+            useCarousel = false;
+        } else {
+            useCarousel = data.novedades_carousel_enabled; // Usar el default del admin
+        }
+
+        // Actualizar el estado del checkbox
+        toggleRightColumnCheck.checked = useCarousel;
+
+        const finalUseCarousel = useCarousel && data.emergencias_ultimas_24_horas && data.emergencias_ultimas_24_horas.length > 0;
 
         if (useCarousel) {
             // Construimos la nueva slide con la tabla de emergencias
@@ -1022,6 +1058,21 @@ document.addEventListener('DOMContentLoaded', () => {
             // Llama a la función principal para recargar y renderizar todos los datos
             fetchAndRenderMainData();
         }
+    });
+
+    toggleTopBannerCheck.addEventListener('change', (e) => {
+        localStorage.setItem('topBannerCarouselEnabled', e.target.checked);
+        setupTopBannerCarousel(lastData); // Re-ejecuta la configuración del carrusel
+    });
+
+    toggleCentralCarouselCheck.addEventListener('change', (e) => {
+        localStorage.setItem('centralCarouselEnabled', e.target.checked);
+        setupCentralContent(lastData); // Re-ejecuta la configuración del carrusel
+    });
+
+    toggleRightColumnCheck.addEventListener('change', (e) => {
+        localStorage.setItem('rightColumnCarouselEnabled', e.target.checked);
+        setupRightColumnCarousel(lastData); // Re-ejecuta la configuración del carrusel
     });
 
     initializeApp();
