@@ -2199,6 +2199,19 @@ footer {
     display: flex;
     gap: 15px; /* Espacio entre las tarjetas de hidrometría */
     align-self: center;
+    box-shadow:
+    /*superior*/
+    0px -1px 1px rgba(0,0,0,0.2),
+    /*inferior*/
+    0px 1px 3px rgba(0,0,0,0.4),
+    /*izquierda*/
+    -1px 0px 3px rgba(0,0,0,0.4),
+    /*derecha*/
+    1px 0px 3px rgba(0,0,0,0.4),
+    /*interior*/
+    inset 1px 1px 3px rgba(0,0,0,0.4); 
+    border-left: 2px solid #007bff;
+    border-right: 2px solid #007bff;
 }
 
 .turno-container {
