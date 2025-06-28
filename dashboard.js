@@ -243,6 +243,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('weather-banner-container');
         if (!container) return;
 
+        let activeSlideId = 'weather-slide'; // Por defecto, es la del clima.
+        const currentActive = container.querySelector('.active-top-slide');
+        if (currentActive) {
+            activeSlideId = currentActive.id;
+        }
+
         const localPref = localStorage.getItem('topBannerCarouselEnabled');
         let isCarouselActive = (localPref === 'false') ? false : true;
         toggleTopBannerCheck.checked = isCarouselActive;
@@ -266,7 +272,10 @@ document.addEventListener('DOMContentLoaded', () => {
        
         fetchAndDisplayTurnos();
 
-        container.querySelector('#weather-slide').classList.add('active-top-slide');
+        const slideToActivate = document.getElementById(activeSlideId);
+        if (slideToActivate) {
+            slideToActivate.classList.add('active-top-slide');
+        }
 
         if (isCarouselActive) {
             window.topBannerInterval = setInterval(() => {
