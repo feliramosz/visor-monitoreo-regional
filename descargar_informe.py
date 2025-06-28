@@ -294,13 +294,22 @@ def extraer_datos_docx(docx_filepath, subject_email, report_id):
                     nivel_m = None
                     caudal_m3s = None
 
-                    try:                        
+                    try:
+                        # Nueva lógica más robusta para manejar el formato "Nivel/Caudal/seg"
                         parts = nivel_caudal_str.split('/')
-                        if len(parts) == 2:                           
-                            nivel_str = re.findall(r"[\d\.]+", parts[0])[0]
-                            caudal_str = re.findall(r"[\d\.]+", parts[1])[0]
-                            nivel_m = float(nivel_str)
-                            caudal_m3s = float(caudal_str)
+
+                        # Nos aseguramos de que haya al menos 2 partes (Nivel y Caudal)
+                        if len(parts) >= 2:
+                            # Extraemos el número de la primera parte (Nivel)
+                            nivel_str_match = re.search(r'[\d\.]+', parts[0])
+                            if nivel_str_match:
+                                nivel_m = float(nivel_str_match.group(0))
+
+                            # Extraemos el número de la segunda parte (Caudal)
+                            caudal_str_match = re.search(r'[\d\.]+', parts[1])
+                            if caudal_str_match:
+                                caudal_m3s = float(caudal_str_match.group(0))
+
                     except (IndexError, ValueError) as e:
                         print(f"Advertencia: No se pudo procesar el valor de Nivel/Caudal '{nivel_caudal_str}'. Error: {e}")
 
@@ -392,9 +401,8 @@ def main():
     if json_ruta:
         print(f"Proceso de extracción completado exitosamente para: {json_ruta}")
         try:
-            #os.remove(ruta_informe_descargado)
-            #print(f"Archivo de informe '{nombre_archivo}' eliminado después de procesar.")
-            print("NOTA: La eliminación del archivo .docx está desactivada temporalmente para el diagnóstico.")
+            os.remove(ruta_informe_descargado)
+            print(f"Archivo de informe '{nombre_archivo}' eliminado después de procesar.")            
         except OSError as e:
             print(f"Error al intentar eliminar el archivo del informe: {e}")
     else:
