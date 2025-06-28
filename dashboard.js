@@ -457,7 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (turnoActivo) {
                 // Mostrar Profesional de Llamada
                 const nombreLlamado = personal[turnoActivo.llamado] || turnoActivo.llamado;
-                llamadoContainer.innerHTML = `<h4>Profesional de Llamada (${tipoTurno})</h4><p>${nombreLlamado}</p>`;
+                llamadoContainer.innerHTML = `<h4>Profesional a llamado (negro)</h4><p>${nombreLlamado}</p>`;
 
                 // Mostrar Operadores de Turno
                 const nombreOp1 = personal[turnoActivo.op1] || turnoActivo.op1;
