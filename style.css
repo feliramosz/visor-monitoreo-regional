@@ -1817,8 +1817,6 @@ img, table {
     padding: 10px;
     box-sizing: border-box;
     height: 154px; 
-    border-top: 2px solid #007bff;
-    border-bottom: 2px solid #007bff;
     box-shadow:
     /*superior*/
     0px -1px 1px rgba(0,0,0,0.2),
@@ -2083,6 +2081,8 @@ img, table {
     padding-top: 0;
     margin-top: 5px;
     border-top: 1px solid #eee;
+    border-top: 2px solid #007bff;
+    border-bottom: 2px solid #007bff;
 }
 
 /* Ajuste al tamaño del LED para que no sea tan grande */
