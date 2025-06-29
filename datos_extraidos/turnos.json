@@ -2,7 +2,7 @@
   "Junio": {
     "ano": 2025,
     "personal": {
-        "FSP": "Francisco Salas P.", "FRZ": "Felipe Ramos Z.", "PAM": "Paulina Aceituno M.", "LCC": "Lorena Cifuentes C.", "MZH": "Manina Zamora H.", "SMM": "Sebastián Miranda M.", "EPA": "Eric Pino A.", "AAG": "Alonso Altamirano G.", "BRL": "Brian Rahmer L.", "PAR": "Patricio Araneda R.", "FSA": "Fernando Soto A.", "FED": "Felipe Estay D.", "GMH": "Gianni Muzio H.", "VMV": "Vladimir Maturana V."
+        "FSP": "Francisco Salas P.", "FRZ": "Felipe Ramos Z.", "PAM": "Paulina Aceituno M.", "LCC": "Lorena Cifuentes C.", "MZH": "Marina Zamora H.", "SMM": "Sebastián Miranda M.", "EPA": "Eric Pino A.", "AAG": "Alonso Altamirano G.", "BRL": "Brian Rahmer L.", "PAR": "Patricio Araneda R.", "FSA": "Fernando Soto A.", "FED": "Felipe Estay D.", "GMH": "Gianni Muzio H.", "VMV": "Vladimir Maturana V."
     },
     "dias": [
       { "dia": 27, "turno_dia": {"op1": "AAG", "op2": "SMM", "llamado": "GMH"}, "turno_noche": {"op1": "LCC", "op2": "FRZ", "llamado": "GMH"} },
@@ -15,7 +15,7 @@
     "mes": "Julio",
     "ano": 2025,
     "personal": {
-      "FSP": "Francisco Salas P.", "FRZ": "Felipe Ramos Z.", "PAM": "Paulina Aceituno M.", "LCC": "Lorena Cifuentes C.", "MZH": "Manina Zamora H.", "SMM": "Sebastián Miranda M.", "EPA": "Eric Pino A.", "AAG": "Alonso Altamirano G.", "BRL": "Brian Rahmer L.", "PAR": "Patricio Araneda R.", "FSA": "Fernando Soto A.", "FED": "Felipe Estay D.", "GMH": "Gianni Muzio H.", "VMV": "Vladimir Maturana V."
+      "FSP": "Francisco Salas P.", "FRZ": "Felipe Ramos Z.", "PAM": "Paulina Aceituno M.", "LCC": "Lorena Cifuentes C.", "MZH": "Marina Zamora H.", "SMM": "Sebastián Miranda M.", "EPA": "Eric Pino A.", "AAG": "Alonso Altamirano G.", "BRL": "Brian Rahmer L.", "PAR": "Patricio Araneda R.", "FSA": "Fernando Soto A.", "FED": "Felipe Estay D.", "GMH": "Gianni Muzio H.", "VMV": "Vladimir Maturana V."
     },
     "dias": [
       { "dia": 1, "turno_dia": {"op1": "FSP", "op2": "MZH", "llamado": "BRL"}, "turno_noche": {"op1": "FRZ", "op2": "PAM", "llamado": "BRL"} },
