@@ -212,7 +212,203 @@ document.addEventListener('DOMContentLoaded', () => {
             setupAvisosCarousel(avisosContainer, avisosTitle, avisosControls, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
         }
     }
-  
+    
+    /**
+     * Convierte un texto a voz utilizando la Web Speech API del navegador.
+     * @param {string} texto - El texto a ser leído en voz alta.
+     */
+    function hablar(texto) {
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel(); // Si ya está hablando, cancela para dar paso al nuevo mensaje.
+        }
+        const enunciado = new SpeechSynthesisUtterance(texto);
+        enunciado.lang = 'es-CL'; // Español de Chile para una mejor entonación.
+        enunciado.rate = 0.95; // Un poco más lento para mayor claridad.
+        window.speechSynthesis.speak(enunciado);
+    }
+    
+    // Objeto para almacenar las horas y minutos de los boletines
+    const momentosBoletin = [
+        { hora: 8, minuto: 55 },
+        { hora: 12, minuto: 0 },
+        { hora: 20, minuto: 55 }
+    ];
+    let ultimoBoletinLeido = { hora: -1, minuto: -1 };
+
+    setInterval(() => {
+        const ahora = new Date();
+        const horaActual = ahora.getHours();
+        const minutoActual = ahora.getMinutes();
+
+        // Revisa si es momento de un boletín
+        const esMomento = momentosBoletin.find(m => m.hora === horaActual && m.minuto === minutoActual);
+
+        // Si es momento y no se ha leído en este minuto exacto
+        if (esMomento && (ultimoBoletinLeido.hora !== horaActual || ultimoBoletinLeido.minuto !== minutoActual)) {
+            console.log(`Disparando boletín para las ${horaActual}:${minutoActual}`);
+            generarYLeerBoletin(horaActual, minutoActual);
+            ultimoBoletinLeido = { hora: horaActual, minuto: minutoActual };
+        }
+    }, 30000); // Se comprueba cada 30 segundos
+
+    /**
+     * Orquesta la creación y lectura del boletín informativo.
+     * @param {number} hora - La hora actual para el boletín.
+     * @param {number} minuto - El minuto actual para el boletín.
+     */
+    async function generarYLeerBoletin(hora, minuto) {
+        const horaFormato = `${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}`;
+        let boletinCompleto = [];
+
+        // 1. Encabezado
+        boletinCompleto.push(`Boletín informativo de las ${horaFormato} horas. El Servicio Nacional de Prevención y Respuesta ante desastres informa que se mantiene vigente para la Región de Valparaíso:`);
+
+        // 2. Contenido dinámico
+        boletinCompleto.push(generarTextoAlertas());
+        boletinCompleto.push(generarTextoAvisos());
+        boletinCompleto.push(generarTextoEmergencias());
+        boletinCompleto.push(await generarTextoCalidadAire());
+        boletinCompleto.push(generarTextoPasoFronterizo());
+        boletinCompleto.push(generarTextoHidrometria());
+        boletinCompleto.push(await generarTextoTurnos());
+        
+        // 3. Cierre
+        let saludoFinal;
+        if (hora < 12) saludoFinal = "buenos días.";
+        else if (hora < 21) saludoFinal = "buenas tardes.";
+        else saludoFinal = "buenas noches.";
+        boletinCompleto.push(`Finaliza el boletín informativo de las ${horaFormato} horas, ${saludoFinal}`);
+        
+        // Filtra las partes vacías y las une con pausas.
+        const textoFinal = boletinCompleto.filter(Boolean).join(" ... ");
+        
+        // Lógica para reproducir sonido a las 12:00
+        if (hora === 12 && minuto === 0) {
+            const audioIntro = new Audio('assets/boletin_intro.mp3');
+            audioIntro.play();
+            // Cuando el audio termine, lee el boletín.
+            audioIntro.onended = () => {
+                hablar(textoFinal);
+            };
+        } else {
+            hablar(textoFinal);
+        }
+    }
+
+    // --- FUNCIONES AUXILIARES PARA GENERAR EL TEXTO DEL BOLETÍN ---
+
+    function generarTextoAlertas() {
+        const alertas = lastData.alertas_vigentes || [];
+        if (alertas.length === 0) return "No se registran alertas vigentes.";
+        return alertas.map(a => `Alerta ${a.nivel_alerta}, por evento ${a.evento}, cobertura ${a.cobertura}.`).join(" ");
+    }
+
+    function generarTextoAvisos() {
+        const avisos = lastData.avisos_alertas_meteorologicas || [];
+        if (avisos.length === 0) return ""; // Si no hay, no se dice nada.
+        const textoIntro = "Además se mantienen vigentes los siguientes avisos:";
+        const textoAvisos = avisos.map(a => `${a.aviso_alerta_alarma}, por evento de ${a.descripcion}, cobertura ${a.cobertura}.`).join(" ");
+        return `${textoIntro} ${textoAvisos}`;
+    }
+
+    function generarTextoEmergencias() {
+        const emergencias = lastData.emergencias_ultimas_24_horas || [];
+        return `En las últimas 24 horas, se han emitido ${emergencias.length} informes al SINAPRED.`;
+    }
+
+    async function generarTextoCalidadAire() {
+        try {
+            const response = await fetch('/api/calidad_aire'); // Llama a la API definida en simple_server.py
+            const estaciones = await response.json();
+            const estacionesAlteradas = estaciones.filter(e => e.estado !== 'bueno' && e.estado !== 'no_disponible');
+
+            if (estacionesAlteradas.length === 0) {
+                return "Las estaciones automáticas de calidad del aire reportan buena condición en la Región de Valparaíso.";
+            } else {
+                const nombres = estacionesAlteradas.map(e => e.nombre_estacion).join(", ");
+                const texto = (estacionesAlteradas.length > 1) ? `reportan que las estaciones ${nombres} registran alteración.` : `reportan que la estación ${nombres} registra alteración.`;
+                return `Las estaciones automáticas de calidad del aire ${texto}`;
+            }
+        } catch (error) {
+            console.error("Error al generar texto de calidad del aire:", error);
+            return "No fue posible obtener la información de calidad del aire.";
+        }
+    }
+
+    function generarTextoPasoFronterizo() {
+        const pasos = lastData.estado_pasos_fronterizos || [];
+        const losLibertadores = pasos.find(p => p.nombre_paso.includes('Los Libertadores')); // Busca el paso fronterizo "Los Libertadores"
+        if (losLibertadores && losLibertadores.condicion) {
+            return `El Complejo Fronterizo Los Libertadores, se encuentra ${losLibertadores.condicion}.`;
+        }
+        return "No se pudo obtener la condición del Complejo Fronterizo Los Libertadores.";
+    }
+
+    function generarTextoHidrometria() {
+        // Reutilizamos los umbrales definidos en dashboard.js para los medidores
+        const hydroThresholds = {
+            'Aconcagua en Chacabuquito': { nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.60 } },
+            'Aconcagua San Felipe 2': { nivel: { amarilla: 2.80, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
+            'Putaendo Resguardo Los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
+        };
+        const estaciones = lastData.datos_hidrometricos || [];
+        let anomalias = [];
+
+        estaciones.forEach(est => {
+            const umbrales = hydroThresholds[est.nombre_estacion];
+            if (!umbrales) return;
+
+            if (est.nivel_m >= umbrales.nivel.roja) anomalias.push(`La estación ${est.nombre_estacion} registra para altura alerta Roja.`);
+            else if (est.nivel_m >= umbrales.nivel.amarilla) anomalias.push(`La estación ${est.nombre_estacion} registra para altura alerta Amarilla.`);
+
+            if (est.caudal_m3s >= umbrales.caudal.roja) anomalias.push(`La estación ${est.nombre_estacion} registra para caudal alerta Roja.`);
+            else if (est.caudal_m3s >= umbrales.caudal.amarilla) anomalias.push(`La estación ${est.nombre_estacion} registra para caudal alerta Amarilla.`);
+        });
+
+        if (anomalias.length === 0) {
+            return "Las estaciones Hidrométricas de la Dirección General de Aguas reportan una condición Normal.";
+        }
+        return anomalias.join(" ... ");
+    }
+
+    async function generarTextoTurnos() {
+        try {
+            const response = await fetch('/api/turnos'); // Llama a la API de turnos definida en simple_server.py
+            if (!response.ok) throw new Error('Respuesta de red no fue exitosa.');
+            const turnosData = await response.json();
+            
+            const ahora = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Santiago" }));
+            const mesActual = ahora.toLocaleString('es-CL', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
+            const datosMes = turnosData[mesActual];
+            if (!datosMes) return "";
+
+            // Lógica para determinar turno activo (simplificada, ya la tenemos en dashboard.js)
+            const horaActual = ahora.getHours();
+            const infoDia = datosMes.dias.find(d => d.dia === ahora.getDate());
+            let turnoActivo;
+            if (horaActual >= 9 && horaActual < 21) turnoActivo = infoDia?.turno_dia;
+            else {
+                if (horaActual >= 21) turnoActivo = infoDia?.turno_noche;
+                else {
+                    const ayer = new Date(ahora); ayer.setDate(ahora.getDate() - 1);
+                    const mesAyer = ayer.toLocaleString('es-CL', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
+                    turnoActivo = turnosData[mesAyer]?.dias.find(d => d.dia === ayer.getDate())?.turno_noche;
+                }
+            }
+            
+            if (turnoActivo) {
+                const profesional = datosMes.personal[turnoActivo.llamado] || 'No definido';
+                const op1 = datosMes.personal[turnoActivo.op1] || 'No definido';
+                const op2 = datosMes.personal[turnoActivo.op2] || 'No definido';
+                return `El Profesional que se encuentra a llamado ante emergencias corresponde a ${profesional}. Y los Operadores de turno en la unidad de alerta temprana corresponden a ${op1} y ${op2}.`;
+            }
+            return "";
+        } catch (error) {
+            console.error("Error al generar texto de turnos:", error);
+            return "No fue posible obtener la información del personal de turno.";
+        }
+    }
+
     // Lógica de Relojes
     async function updateClocks() {
         try {
