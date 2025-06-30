@@ -8,7 +8,7 @@
       { "dia": 27, "turno_dia": {"op1": "AAG", "op2": "SMM", "llamado": "GMH"}, "turno_noche": {"op1": "LCC", "op2": "FRZ", "llamado": "GMH"} },
       { "dia": 28, "turno_dia": {"op1": "SMM", "op2": "EPA", "llamado": "GMH"}, "turno_noche": {"op1": "MZH", "op2": "AAG", "llamado": "GMH"} },
       { "dia": 29, "turno_dia": {"op1": "EPA", "op2": "PAM", "llamado": "GMH"}, "turno_noche": {"op1": "AAG", "op2": "SMM", "llamado": "GMH"} },
-      { "dia": 30, "turno_dia": {"op1": "PAM", "op2": "FRZ", "llamado": "FSP"}, "turno_noche": {"op1": "SMM", "op2": "EPA", "llamado": "FSP"} }
+      { "dia": 30, "turno_dia": {"op1": "PAM", "op2": "FRZ", "llamado": "BRL"}, "turno_noche": {"op1": "SMM", "op2": "EPA", "llamado": "BRL"} }
     ]
   },
   "Julio": {
