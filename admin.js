@@ -35,25 +35,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     const testBoletinBtn = document.getElementById('testBoletinBtn');
     if (testBoletinBtn) {
         testBoletinBtn.addEventListener('click', async () => {
-            // Deshabilitar el botón para evitar clics múltiples
             testBoletinBtn.disabled = true;
             testBoletinBtn.textContent = 'Generando boletín...';
 
             try {
-                await generarYLeerBoletinPrueba();
+                // Esta nueva función llamará a la lógica centralizada
+                await ejecutarBoletinDePruebaAdmin();
             } catch (error) {
                 console.error("Error al generar el boletín de prueba:", error);
                 alert("Ocurrió un error al generar el boletín. Revisa la consola para más detalles.");
             } finally {
-                // Volver a habilitar el botón después de un tiempo prudente
-                // para que la voz termine de hablar
                 setTimeout(() => {
                     testBoletinBtn.disabled = false;
                     testBoletinBtn.textContent = '▶️ Probar Boletín por Voz';
-                }, 5000); // 5 segundos de espera
+                }, 5000);
             }
         });
     }
+    
     // Llamamos a la función para que se ejecute al cargar la página
     setupUIForUserRole();
 
@@ -679,154 +678,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // ===== BOTÓN DE PRUEBA DEL BOLETÍN =====
-
-    // --- 1. Función base para la síntesis de voz ---
-    function hablar(texto) {
-        if (window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel();
-        }
-        const enunciado = new SpeechSynthesisUtterance(texto);
-        enunciado.lang = 'es-CL';
-        enunciado.rate = 0.95;
-        window.speechSynthesis.speak(enunciado);
-    }
-
-    // --- 2. Funciones auxiliares para generar cada parte del boletín ---
-    // Usarán la variable `currentData` que ya existe en admin.js
-
-    function generarTextoAlertasAdmin() {
-        const alertas = currentData.alertas_vigentes || [];
-        if (alertas.length === 0) return "No se registran alertas vigentes.";
-        return alertas.map(a => `Alerta ${a.nivel_alerta}, por evento ${a.evento}, cobertura ${a.cobertura}.`).join(" ");
-    }
-
-    function generarTextoAvisosAdmin() {
-        const avisos = currentData.avisos_alertas_meteorologicas || [];
-        if (avisos.length === 0) return "";
-        const textoIntro = "Además se mantienen vigentes los siguientes avisos:";
-        const textoAvisos = avisos.map(a => `${a.aviso_alerta_alarma}, por evento de ${a.descripcion}, cobertura ${a.cobertura}.`).join(" ");
-        return `${textoIntro} ${textoAvisos}`;
-    }
-
-    function generarTextoEmergenciasAdmin() {
-        const emergencias = currentData.emergencias_ultimas_24_horas || [];
-        return `En las últimas 24 horas, se han emitido ${emergencias.length} informes al SINAPRED.`;
-    }
-
-    async function generarTextoCalidadAireAdmin() {
-        try {
-            const response = await fetch('/api/calidad_aire');
-            const estaciones = await response.json();
-            const estacionesAlteradas = estaciones.filter(e => e.estado !== 'bueno' && e.estado !== 'no_disponible');
-            if (estacionesAlteradas.length === 0) {
-                return "Las estaciones automáticas de calidad del aire reportan buena condición en la Región de Valparaíso.";
-            } else {
-                const nombres = estacionesAlteradas.map(e => e.nombre_estacion).join(", ");
-                const texto = (estacionesAlteradas.length > 1) ? `reportan que las estaciones ${nombres} registran alteración.` : `reportan que la estación ${nombres} registra alteración.`;
-                return `Las estaciones automáticas de calidad del aire ${texto}`;
-            }
-        } catch (error) {
-            return "No fue posible obtener la información de calidad del aire.";
-        }
-    }
-
-    function generarTextoPasoFronterizoAdmin() {
-        const pasos = currentData.estado_pasos_fronterizos || [];
-        const losLibertadores = pasos.find(p => p.nombre_paso.includes('Los Libertadores'));
-        if (losLibertadores) {
-            return `El Complejo Fronterizo Los Libertadores, se encuentra ${losLibertadores.condicion}.`;
-        }
-        return "No se pudo obtener la condición del Complejo Fronterizo Los Libertadores.";
-    }
-
-    function generarTextoHidrometriaAdmin() {
-        const hydroThresholds = {
-            'Aconcagua en Chacabuquito': { nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.60 } },
-            'Aconcagua San Felipe 2': { nivel: { amarilla: 2.80, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
-            'Putaendo Resguardo Los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
-        };
-        const estaciones = currentData.datos_hidrometricos || [];
-        let anomalias = [];
-        estaciones.forEach(est => {
-            const umbrales = hydroThresholds[est.nombre_estacion];
-            if (!umbrales) return;
-            if (est.nivel_m >= umbrales.nivel.roja) anomalias.push(`La estación ${est.nombre_estacion} registra para altura alerta Roja.`);
-            else if (est.nivel_m >= umbrales.nivel.amarilla) anomalias.push(`La estación ${est.nombre_estacion} registra para altura alerta Amarilla.`);
-            if (est.caudal_m3s >= umbrales.caudal.roja) anomalias.push(`La estación ${est.nombre_estacion} registra para caudal alerta Roja.`);
-            else if (est.caudal_m3s >= umbrales.caudal.amarilla) anomalias.push(`La estación ${est.nombre_estacion} registra para caudal alerta Amarilla.`);
-        });
-        if (anomalias.length === 0) return "Las estaciones Hidrométricas de la Dirección General de Aguas reportan una condición Normal.";
-        return anomalias.join(" ... ");
-    }
-
-    async function generarTextoTurnosAdmin() {
-        try {
-            const response = await fetch('/api/turnos');
-            const turnosData = await response.json();
-            const ahora = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Santiago" }));
-            const mesActual = ahora.toLocaleString('es-CL', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
-            const datosMes = turnosData[mesActual];
-            if (!datosMes) return "";
-            const horaActual = ahora.getHours();
-            const infoDia = datosMes.dias.find(d => d.dia === ahora.getDate());
-            let turnoActivo;
-            if (horaActual >= 9 && horaActual < 21) turnoActivo = infoDia?.turno_dia;
-            else {
-                if (horaActual >= 21) turnoActivo = infoDia?.turno_noche;
-                else {
-                    const ayer = new Date(ahora); ayer.setDate(ahora.getDate() - 1);
-                    const mesAyer = ayer.toLocaleString('es-CL', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
-                    turnoActivo = turnosData[mesAyer]?.dias.find(d => d.dia === ayer.getDate())?.turno_noche;
-                }
-            }
-            if (turnoActivo) {
-                const profesional = datosMes.personal[turnoActivo.llamado] || 'No definido';
-                const op1 = datosMes.personal[turnoActivo.op1] || 'No definido';
-                const op2 = datosMes.personal[turnoActivo.op2] || 'No definido';
-                return `El Profesional que se encuentra a llamado ante emergencias corresponde a ${profesional}. Y los Operadores de turno en la unidad de alerta temprana corresponden a ${op1} y ${op2}.`;
-            }
-            return "";
-        } catch (error) {
-            return "No fue posible obtener la información del personal de turno.";
-        }
-    }
-
-
-    // --- 3. Función principal que une todo ---
-    /**
-     * Función principal que une todo para el botón de prueba.
-     */
-    async function generarYLeerBoletinPrueba() {
+    async function ejecutarBoletinDePruebaAdmin() {
         const ahora = new Date();
         const hora = ahora.getHours();
         const minuto = ahora.getMinutes();
         const horaFormato = `${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}`;
         
-        // --- (El código para construir el boletín no cambia) ---
+        // Usamos las funciones de boletin-logic.js, pasando la variable 'currentData' de admin.js
         let boletinCompleto = [
             `Boletín de prueba, son las ${horaFormato} horas. El Servicio Nacional de Prevención y Respuesta ante desastres informa que se mantiene vigente para la Región de Valparaíso:`,
-            generarTextoAlertasAdmin(),
-            generarTextoAvisosAdmin(),
-            generarTextoEmergenciasAdmin(),
-            await generarTextoCalidadAireAdmin(),
-            generarTextoPasoFronterizoAdmin(),
-            generarTextoHidrometriaAdmin(),
-            await generarTextoTurnosAdmin()
+            generarTextoAlertas(currentData),
+            generarTextoAvisos(currentData),
+            generarTextoEmergencias(currentData),
+            await generarTextoCalidadAire(),
+            generarTextoPasoFronterizo(currentData),
+            generarTextoHidrometria(currentData),
+            await generarTextoTurnos()
         ];
+        
         let saludoFinal;
         if (hora < 12) saludoFinal = "buenos días.";
         else if (hora < 21) saludoFinal = "buenas tardes.";
         else saludoFinal = "buenas noches.";
         boletinCompleto.push(`Finaliza el boletín informativo de las ${horaFormato} horas, ${saludoFinal}`);
+        
         const textoFinal = boletinCompleto.filter(Boolean).join(" ... ");
-        // --- (Fin del código de construcción de texto) ---
-
-        // --- LÓGICA DE REPRODUCCIÓN ACTUALIZADA ---
+        
         const sonidoNotificacion = new Audio('assets/notificacion_boletin.mp3');
         sonidoNotificacion.play();
-
-        // Cuando la notificación termine, lee el boletín.
         sonidoNotificacion.onended = () => {
             hablar(textoFinal);
         };

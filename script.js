@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let initialLocalTimestamp = 0;
     let airQualityMap = null;
     let airQualityMarkers = [];
+    let lastData = {};
 
     // --- LÓGICA DEL CARRUSEL ---
     function showSlide(index) {
@@ -530,8 +531,67 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    const momentosBoletinIndex = [
+        { hora: 8, minuto: 55 },
+        { hora: 12, minuto: 0 },
+        { hora: 20, minuto: 55 }
+    ];
+    let ultimoBoletinLeidoIndex = { hora: -1, minuto: -1 };
+
+    setInterval(() => {
+        const ahora = new Date();
+        const horaActual = ahora.getHours();
+        const minutoActual = ahora.getMinutes();
+        const esMomento = momentosBoletinIndex.find(m => m.hora === horaActual && m.minuto === minutoActual);
+
+        if (esMomento && (ultimoBoletinLeidoIndex.hora !== horaActual || ultimoBoletinLeidoIndex.minuto !== minutoActual)) {
+            if (Object.keys(lastData).length > 0) {
+                console.log(`Disparando boletín para las ${horaActual}:${minutoActual} en index.html`);
+                generarYLeerBoletinIndex(horaActual, minutoActual);
+                ultimoBoletinLeidoIndex = { hora: horaActual, minuto: minutoActual };
+            }
+        }
+    }, 30000);
+
+    async function generarYLeerBoletinIndex(hora, minuto) {
+        const horaFormato = `${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}`;
+        let boletinCompleto = [];
+
+        boletinCompleto.push(`Boletín informativo de las ${horaFormato} horas. El Servicio Nacional de Prevención y Respuesta ante desastres informa que se mantiene vigente para la Región de Valparaíso:`);
+        boletinCompleto.push(generarTextoAlertas(lastData));
+        boletinCompleto.push(generarTextoAvisos(lastData));
+        boletinCompleto.push(generarTextoEmergencias(lastData));
+        boletinCompleto.push(await generarTextoCalidadAire());
+        boletinCompleto.push(generarTextoPasoFronterizo(lastData));
+        boletinCompleto.push(generarTextoHidrometria(lastData));
+        boletinCompleto.push(await generarTextoTurnos());
+        
+        let saludoFinal;
+        if (hora < 12) saludoFinal = "buenos días.";
+        else if (hora < 21) saludoFinal = "buenas tardes.";
+        else saludoFinal = "buenas noches.";
+        boletinCompleto.push(`Finaliza el boletín informativo de las ${horaFormato} horas, ${saludoFinal}`);
+        
+        const textoFinal = boletinCompleto.filter(Boolean).join(" ... ");
+        
+        const sonidoNotificacion = new Audio('assets/notificacion_boletin.mp3');
+        sonidoNotificacion.play();
+        sonidoNotificacion.onended = () => {
+            if (hora === 12 && minuto === 0) {
+                const audioIntro = new Audio('assets/boletin_intro.mp3');
+                audioIntro.play();
+                audioIntro.onended = () => {
+                    hablar(textoFinal);
+                };
+            } else {
+                hablar(textoFinal);
+            }
+        };
+    }
+
     async function fetchDataAndRender() {
         const data = await loadLatestJson();
+        lastData = data;
         renderData(data);
     }
 
