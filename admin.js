@@ -794,12 +794,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     // --- 3. Función principal que une todo ---
+    /**
+     * Función principal que une todo para el botón de prueba.
+     */
     async function generarYLeerBoletinPrueba() {
         const ahora = new Date();
         const hora = ahora.getHours();
         const minuto = ahora.getMinutes();
         const horaFormato = `${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}`;
         
+        // --- (El código para construir el boletín no cambia) ---
         let boletinCompleto = [
             `Boletín de prueba, son las ${horaFormato} horas. El Servicio Nacional de Prevención y Respuesta ante desastres informa que se mantiene vigente para la Región de Valparaíso:`,
             generarTextoAlertasAdmin(),
@@ -810,16 +814,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             generarTextoHidrometriaAdmin(),
             await generarTextoTurnosAdmin()
         ];
-        
         let saludoFinal;
         if (hora < 12) saludoFinal = "buenos días.";
         else if (hora < 21) saludoFinal = "buenas tardes.";
         else saludoFinal = "buenas noches.";
-        
         boletinCompleto.push(`Finaliza el boletín informativo de las ${horaFormato} horas, ${saludoFinal}`);
-        
         const textoFinal = boletinCompleto.filter(Boolean).join(" ... ");
-        hablar(textoFinal);
+        // --- (Fin del código de construcción de texto) ---
+
+        // --- LÓGICA DE REPRODUCCIÓN ACTUALIZADA ---
+        const sonidoNotificacion = new Audio('assets/notificacion_boletin.mp3');
+        sonidoNotificacion.play();
+
+        // Cuando la notificación termine, lee el boletín.
+        sonidoNotificacion.onended = () => {
+            hablar(textoFinal);
+        };
     }
     
     // Event listener para los botones de la tabla (editar y eliminar)

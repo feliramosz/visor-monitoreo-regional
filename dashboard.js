@@ -252,7 +252,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 30000); // Se comprueba cada 30 segundos
 
     /**
-     * Orquesta la creación y lectura del boletín informativo.
+     * Orquesta la creación y lectura del boletín informativo,
+     * incluyendo los sonidos de notificación e introducción.
      * @param {number} hora - La hora actual para el boletín.
      * @param {number} minuto - El minuto actual para el boletín.
      */
@@ -260,10 +261,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const horaFormato = `${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}`;
         let boletinCompleto = [];
 
-        // 1. Encabezado
+        // --- (El código para construir el boletín no cambia) ---
         boletinCompleto.push(`Boletín informativo de las ${horaFormato} horas. El Servicio Nacional de Prevención y Respuesta ante desastres informa que se mantiene vigente para la Región de Valparaíso:`);
-
-        // 2. Contenido dinámico
         boletinCompleto.push(generarTextoAlertas());
         boletinCompleto.push(generarTextoAvisos());
         boletinCompleto.push(generarTextoEmergencias());
@@ -271,28 +270,33 @@ document.addEventListener('DOMContentLoaded', () => {
         boletinCompleto.push(generarTextoPasoFronterizo());
         boletinCompleto.push(generarTextoHidrometria());
         boletinCompleto.push(await generarTextoTurnos());
-        
-        // 3. Cierre
         let saludoFinal;
         if (hora < 12) saludoFinal = "buenos días.";
         else if (hora < 21) saludoFinal = "buenas tardes.";
         else saludoFinal = "buenas noches.";
         boletinCompleto.push(`Finaliza el boletín informativo de las ${horaFormato} horas, ${saludoFinal}`);
-        
-        // Filtra las partes vacías y las une con pausas.
         const textoFinal = boletinCompleto.filter(Boolean).join(" ... ");
-        
-        // Lógica para reproducir sonido a las 12:00
-        if (hora === 12 && minuto === 0) {
-            const audioIntro = new Audio('assets/boletin_intro.mp3');
-            audioIntro.play();
-            // Cuando el audio termine, lee el boletín.
-            audioIntro.onended = () => {
+        // --- (Fin del código de construcción de texto) ---
+
+        // --- NUEVA LÓGICA DE REPRODUCCIÓN ---
+        const sonidoNotificacion = new Audio('assets/notificacion_boletin.mp3');
+        sonidoNotificacion.play();
+
+        // Cuando la notificación termine, decidimos qué hacer después.
+        sonidoNotificacion.onended = () => {
+            // Si es el boletín de mediodía, reproducimos el intro especial.
+            if (hora === 12 && minuto === 0) {
+                const audioIntro = new Audio('assets/boletin_intro.mp3');
+                audioIntro.play();
+                // Cuando el intro termine, finalmente leemos el boletín.
+                audioIntro.onended = () => {
+                    hablar(textoFinal);
+                };
+            } else {
+                // Para cualquier otro boletín, hablamos directamente después de la notificación.
                 hablar(textoFinal);
-            };
-        } else {
-            hablar(textoFinal);
-        }
+            }
+        };
     }
 
     // --- FUNCIONES AUXILIARES PARA GENERAR EL TEXTO DEL BOLETÍN ---
