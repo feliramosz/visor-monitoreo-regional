@@ -22,14 +22,17 @@ async function seleccionarVoz() {
     // Esperamos a que la promesa de voces se resuelva, asegurando que la lista no esté vacía.
     const vocesDisponibles = await vocesPromise;
 
-    const busquedas = [
-        voz => voz.lang === 'es-CL',
-        voz => voz.name === 'Microsoft Francisca - Spanish (Chile)',
-        voz => voz.name === 'Micorsoft Pablo',
-        voz => voz.name === 'Paulina',
-        voz => voz.lang === 'es-ES',
-        voz => voz.lang === 'es-MX',
-        voz => voz.lang.startsWith('es-')
+    const busquedas = [   
+        // voz => voz.name.startsWith('Microsoft Laura'),   // Opción 1: Laura
+        voz => voz.name.startsWith('Microsoft Pablo'),   // Opción 2: Pablo
+        // voz => voz.name.startsWith('Microsoft Helena'),  // Opción 3: Helena
+
+        // --- Búsquedas de respaldo (si las anteriores no se encuentran) ---
+        voz => voz.lang === 'es-CL', // Prioridad: Español de Chile
+        voz => voz.name.startsWith('Microsoft Francisca'), // Voz común en Windows
+        voz => voz.name === 'Paulina', // Voz común en macOS
+        voz => voz.lang === 'es-ES', // Siguiente opción: Español de España
+        voz => voz.lang.startsWith('es-') // Última opción: Cualquier otra variante de español
     ];
 
     for (const busqueda of busquedas) {
