@@ -802,7 +802,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const titulo = item.aviso_alerta_alarma || "Sin Título";
                     const descripcion = item.descripcion || "Sin Descripción";
                     const cobertura = item.cobertura || "N/A";
-                    const claseCss = `aviso-${page.key}s`; // Crea la clase ej: "aviso-avisos"
+                    const claseCss = `aviso-${page.key}`; // Crea la clase ej: "aviso-avisos"
 
                     // Se aplica la clase al <strong>
                     return `<li><strong class="${claseCss}">${titulo}:</strong> ${descripcion}; Cobertura: ${cobertura}</li>`;
@@ -864,14 +864,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function toggleAvisoPausePlay() {
         isAvisoCarouselPaused = !isAvisoCarouselPaused;
+        const btn = document.getElementById('aviso-pause-play-btn');
+
         if (isAvisoCarouselPaused) {
             clearInterval(avisosCarouselInterval);
-            avisoPausePlayBtn.textContent = '▶';
-            avisoPausePlayBtn.classList.add('paused');
+            if (btn) {
+                btn.textContent = '▶';
+                btn.classList.add('paused');
+            }
         } else {
-            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-            avisoPausePlayBtn.textContent = '||';
-            avisoPausePlayBtn.classList.remove('paused');
+            resetAvisoInterval();
+            if (btn) {
+                btn.textContent = '||';
+                btn.classList.remove('paused');
+            }
         }
     }
 
