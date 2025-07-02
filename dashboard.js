@@ -825,7 +825,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupAvisosCarousel(container, titleContainer, items, noItemsText) {
         if (!container || !titleContainer) return 1;
 
-        // La función ahora busca su propio contenedor de controles. ¡Más seguro!
         const controlsContainer = document.getElementById('avisos-carousel-controls');
         if (!controlsContainer) {
             console.error("No se encontró el contenedor de controles #avisos-carousel-controls");
@@ -834,27 +833,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         clearInterval(avisosCarouselInterval);
         const groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
+        
         if (items && items.length > 0) {
+            
+            // ---- LÍNEA DE DIAGNÓSTICO AÑADIDA ----
+            console.log("Datos de 'avisos' recibidos:", items); 
+            // ------------------------------------
+
             items.forEach(item => {
-                const titleText = item.aviso_alerta_alarma.toLowerCase();
+                // Este bloque probablemente está fallando porque 'item.aviso_alerta_alarma' no existe o es incorrecto
+                const titleText = (item.aviso_alerta_alarma || '').toLowerCase(); 
                 if (titleText.includes('marejada')) groups.marejadas.push(item);
                 else if (titleText.includes('alarma')) groups.alarmas.push(item);
                 else if (titleText.includes('alerta')) groups.alertas.push(item);
                 else groups.avisos.push(item);
             });
         }
-
-        Object.keys(groups).forEach(key => {
-            const span = titleContainer.querySelector(`span[data-title-key="${key}"]`);
-            if (span) {
-                const originalText = key.charAt(0).toUpperCase() + key.slice(1);
-                if (groups[key].length > 0) {
-                    span.innerHTML = `${originalText} (${groups[key].length})`;
-                } else {
-                    span.innerHTML = originalText;
-                }
-            }
-        });
 
         avisoPages = [];
         Object.keys(groups).forEach(key => {
@@ -863,14 +857,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // Log de diagnóstico para ver cuántas páginas se generaron
-        console.log("Número de páginas de avisos:", avisoPages.length);
+        console.log("Número de páginas de avisos calculado:", avisoPages.length);
 
         titleContainer.querySelectorAll('span').forEach(span => span.classList.remove('active-title'));
 
         if (avisoPages.length > 1) {
-            console.log("Mostrando botones de navegación de avisos.");
-            controlsContainer.style.display = 'flex'; // Muestra los botones
+            console.log("Intentando mostrar botones de navegación.");
+            controlsContainer.style.display = 'flex';
             let carouselHtml = '';
             avisoPages.forEach((page, index) => {
                 const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
@@ -881,18 +874,19 @@ document.addEventListener('DOMContentLoaded', () => {
             currentAvisoPage = 0;
             showAvisoPage(currentAvisoPage);
             avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-        } else if (avisoPages.length === 1) {
-            console.log("Ocultando botones, solo hay una página de avisos.");
-            controlsContainer.style.display = 'none'; // Oculta los botones
-            const page = avisoPages[0];
-            const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
-            container.innerHTML = `<ul class="dashboard-list">${listItemsHtml}</ul>`;
-            titleContainer.querySelector(`span[data-title-key="${page.key}"]`).classList.add('active-title');
-            checkAndApplyVerticalScroll(container);
         } else {
-            console.log("Ocultando botones, no hay avisos.");
-            controlsContainer.style.display = 'none'; // Oculta los botones
-            container.innerHTML = noItemsText;
+            // ... el resto de la función es igual ...
+            console.log("Ocultando botones, no hay suficientes páginas.");
+            controlsContainer.style.display = 'none';
+            if (avisoPages.length === 1) {
+                const page = avisoPages[0];
+                const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
+                container.innerHTML = `<ul class="dashboard-list">${listItemsHtml}</ul>`;
+                titleContainer.querySelector(`span[data-title-key="${page.key}"]`).classList.add('active-title');
+                checkAndApplyVerticalScroll(container);
+            } else {
+                container.innerHTML = noItemsText;
+            }
         }
         return avisoPages.length;
     }
