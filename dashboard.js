@@ -870,7 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (avisoPages.length > 0) {
             container.innerHTML = avisoPages.map(page =>
                 `<div class="aviso-slide"><ul class="dashboard-list">${page.items.map(item =>
-                    `<li><strong>${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`
+                    `<li><strong class="aviso-${page.key}s">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`
                 ).join('')}</ul></div>`
             ).join('');
             
