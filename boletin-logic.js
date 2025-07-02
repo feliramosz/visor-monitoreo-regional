@@ -2,15 +2,73 @@
  * Convierte un texto a voz utilizando la Web Speech API del navegador.
  * @param {string} texto - El texto a ser leído en voz alta.
  */
-function hablar(texto) {
+const vocesPromise = new Promise((resolve) => {
+    // Si las voces ya están cargadas, resuelve inmediatamente.
+    if (speechSynthesis.getVoices().length) {
+        resolve(speechSynthesis.getVoices());
+        return;
+    }
+    // Si no, espera al evento 'voiceschanged' para resolver.
+    speechSynthesis.onvoiceschanged = () => {
+        resolve(speechSynthesis.getVoices());
+    };
+});
+
+/**
+ * Busca y selecciona la mejor voz en español disponible en el sistema de forma asíncrona.
+ * @returns {Promise<SpeechSynthesisVoice|null>} Una promesa que resuelve con la voz seleccionada.
+ */
+async function seleccionarVoz() {
+    // Esperamos a que la promesa de voces se resuelva, asegurando que la lista no esté vacía.
+    const vocesDisponibles = await vocesPromise;
+
+    const busquedas = [   
+        // voz => voz.name.startsWith('Microsoft Laura'),   // Opción 1: Laura
+        voz => voz.name.startsWith('Microsoft Pablo'),   // Opción 2: Pablo
+        // voz => voz.name.startsWith('Microsoft Helena'),  // Opción 3: Helena
+
+        // --- Búsquedas de respaldo (si las anteriores no se encuentran) ---
+        voz => voz.lang === 'es-CL', // Prioridad: Español de Chile
+        voz => voz.name.startsWith('Microsoft Francisca'), // Voz común en Windows
+        voz => voz.name === 'Paulina', // Voz común en macOS
+        voz => voz.lang === 'es-ES', // Siguiente opción: Español de España
+        voz => voz.lang.startsWith('es-') // Última opción: Cualquier otra variante de español
+    ];
+
+    for (const busqueda of busquedas) {
+        const vozEncontrada = vocesDisponibles.find(busqueda);
+        if (vozEncontrada) {
+            console.log("Voz seleccionada:", vozEncontrada.name);
+            return vozEncontrada;
+        }
+    }
+    
+    console.log("No se encontró una voz preferida en español. Usando la voz por defecto.");
+    return null;
+}
+
+/**
+ * Convierte texto a voz de forma asíncrona, esperando a que las voces estén listas.
+ * @param {string} texto - El texto a ser leído en voz alta.
+ */
+async function hablar(texto) {
     if (window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
     }
     const enunciado = new SpeechSynthesisUtterance(texto);
+
+    // Esperamos a que se seleccione la voz preferida.
+    const vozPreferida = await seleccionarVoz();
+    if (vozPreferida) {
+        enunciado.voice = vozPreferida;
+    }
+    
     enunciado.lang = 'es-CL';
     enunciado.rate = 0.95;
+
     window.speechSynthesis.speak(enunciado);
 }
+
 
 // --- FUNCIONES AUXILIARES REUTILIZABLES ---
 
