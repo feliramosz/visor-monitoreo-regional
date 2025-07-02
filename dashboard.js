@@ -1260,6 +1260,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setInterval(fetchAndDisplayTurnos, 5 * 60 * 1000);
         setInterval(fetchAndRenderMainData, 60 * 1000); // Actualiza datos principales cada 1 min
         setInterval(fetchAndRenderWazeData, 2 * 60 * 1000); // Actualiza Waze cada 2 min
+        setInterval(checkForUpdates, 5000);
     }
 
     // --- Lógica para escuchar cambios desde otras pestañas ---
