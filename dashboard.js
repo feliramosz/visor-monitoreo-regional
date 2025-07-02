@@ -2,8 +2,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('session_token');
     if (!token) {
         window.location.href = `/login.html?redirect_to=${window.location.pathname}`;
-        return; // Detiene la ejecución del resto del script
+        return;
     }
+
     // URLs de las APIs
     const DATA_API_URL = '/api/data';
     const NOVEDADES_API_URL = '/api/novedades';
@@ -16,13 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const weatherBannerContainer = document.getElementById('weather-banner-container');
     const headerAlertBanner = document.getElementById('header-alert-banner');
     const numeroInformeDisplay = document.getElementById('numero-informe-display');
-    const novedadesContent = document.getElementById('novedades-content');
     const toggleTopBannerCheck = document.getElementById('toggleTopBanner');
     const toggleCentralCarouselCheck = document.getElementById('toggleCentralCarousel');
     const toggleRightColumnCheck = document.getElementById('toggleRightColumn');
-    let lastData = {}; // Para guardar la última data cargada
-
-    // --- Controles del carrusel de MAPAS ---
+    
+    // Controles del carrusel de MAPAS
     const mapPanelTitle = document.getElementById('map-panel-title');
     const airQualityMapContainer = document.getElementById('air-quality-map-container-dashboard');
     const precipitationMapContainer = document.getElementById('precipitation-map-container-dashboard');
@@ -32,82 +31,114 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevBtn = document.getElementById('map-prev-btn');
     const nextBtn = document.getElementById('map-next-btn');
     
-    // --- Controles del carrusel de AVISOS ---    
+    // Variables de estado
+    let lastData = {};
     let lastDataTimestamp = 0;
-
-    // Estado del carrusel de mapas
-    let mapCarouselInterval;
-    let currentMapSlide = 0;
-    const mapSlideDuration = 20000;
-    let isMapCarouselPaused = false;
-    const mapTitles = ["Calidad del Aire (SINCA)", "Precipitaciones Últ. 24h"];
-
-    // Estado del carrusel de AVISOS
-    let avisosCarouselInterval;
-    let currentAvisoPage = 0;
-    let avisoPages = [];
-    const avisoPageDuration = 10000;
-    let isAvisoCarouselPaused = false;
-    let borderPassStatus = {};
-
-    // Variables de los mapas y marcadores
-    const stateToColor = {'bueno': '#4caf50', 'regular': '#ffeb3b', 'alerta': '#ff9800', 'preemergencia': '#f44336', 'emergencia': '#9c27b0', 'no_disponible': '#9e9e9e'};
-    let airQualityMap = null;
-    let airQualityMarkers = [];
-    let precipitationMap = null;
-    let precipitationMarkers = [];
-
-    // Estado del carrusel de WAZE
-    let wazeCarouselInterval;
-    let currentWazeSlide = 0;
-    let wazePages = [];
-    const wazePageDuration = 15000; // 15 segundos por página
-    let isWazeCarouselPaused = false;
-    let topBannerInterval;
-    let currentTopBannerSlide = 0;
-    const topBannerSlideDuration = 10000;    
-    let rightColumnCarouselInterval;
-    let currentRightColumnSlide = 0;
-    const rightColumnSlideDuration = 10000;
+    let mapCarouselInterval, avisosCarouselInterval, wazeCarouselInterval, topBannerInterval, rightColumnCarouselInterval;
+    let centralCarouselInterval, imageCarouselInterval, infoPanelTimeout;
     
+    let currentMapSlide = 0, currentAvisoPage = 0, currentWazeSlide = 0, currentTopBannerSlide = 0, currentRightColumnSlide = 0, currentCentralSlide = 0;
+    let avisoPages = [], wazePages = [];
+    
+    let isMapCarouselPaused = false, isAvisoCarouselPaused = false, isWazeCarouselPaused = false;
+    
+    const mapSlideDuration = 20000;
+    const avisoPageDuration = 10000;
+    const wazePageDuration = 15000;
+    const topBannerSlideDuration = 10000;
+    const rightColumnSlideDuration = 10000;
+    const centralSlideDuration = 15000;
 
-    // Lógica carrusel central
-    let centralCarouselInterval;
-    let currentCentralSlide = 0;
-    const centralSlideDuration = 15000; // 15 segundos por slide
-    let imageCarouselInterval;
-    let infoPanelTimeout;
+    let airQualityMap, precipitationMap;
+    let airQualityMarkers = [], precipitationMarkers = [];
+    const stateToColor = {'bueno': '#4caf50', 'regular': '#ffeb3b', 'alerta': '#ff9800', 'preemergencia': '#f44336', 'emergencia': '#9c27b0', 'no_disponible': '#9e9e9e'};
+
+    // --- Lógica del Boletín por Voz ---
+    const momentosBoletin = [{ hora: 8, minuto: 55 }, { hora: 12, minuto: 0 }, { hora: 20, minuto: 55 }];
+    let ultimoBoletinLeido = { hora: -1, minuto: -1 };
+
+    setInterval(() => {
+        const ahora = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Santiago" }));
+        const horaActual = ahora.getHours();
+        const minutoActual = ahora.getMinutes();
+        const esMomento = momentosBoletin.find(m => m.hora === horaActual && m.minuto === minutoActual);
+
+        if (esMomento && (ultimoBoletinLeido.hora !== horaActual || ultimoBoletinLeido.minuto !== minutoActual)) {
+            if (Object.keys(lastData).length > 0) {
+                generarYLeerBoletinDashboard(horaActual, minutoActual);
+                ultimoBoletinLeido = { hora: horaActual, minuto: minutoActual };
+            }
+        }
+    }, 30000);
+
+    async function generarYLeerBoletinDashboard(hora, minuto) {
+        const horaFormato = `${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}`;
+        const boletinCompleto = [
+            `Boletín informativo de las ${horaFormato} horas. El Servicio Nacional de Prevención y Respuesta ante desastres informa que se mantiene vigente para la Región de Valparaíso:`,
+            generarTextoAlertas(lastData),
+            generarTextoAvisos(lastData),
+            generarTextoEmergencias(lastData),
+            await generadorTextoCalidadAire(),
+            generarTextoPasoFronterizo(lastData),
+            generarTextoHidrometria(lastData),
+            await generarTextoTurnos()
+        ];
         
+        let saludoFinal = (hora < 12) ? "buenos días." : (hora < 21) ? "buenas tardes." : "buenas noches.";
+        boletinCompleto.push(`Finaliza el boletín informativo de las ${horaFormato} horas, ${saludoFinal}`);
+        
+        const textoFinal = boletinCompleto.filter(Boolean).join(" ... ");
+        const sonidoNotificacion = new Audio('assets/notificacion_boletin.mp3');
+        
+        sonidoNotificacion.play();
+        sonidoNotificacion.onended = () => {
+            if (hora === 12 && minuto === 0) {
+                const audioIntro = new Audio('assets/boletin_intro.mp3');
+                audioIntro.play();
+                audioIntro.onended = () => hablar(textoFinal);
+            } else {
+                hablar(textoFinal);
+            }
+        };
+    }
+
+    // --- Lógica Principal de Renderizado y Actualización ---
+    async function fetchAndRenderMainData() {
+        try {
+            const [dataResponse, novedadesResponse] = await Promise.all([fetch(DATA_API_URL), fetch(NOVEDADES_API_URL)]);
+            const data = await dataResponse.json();
+            const novedades = await novedadesResponse.json();
+            
+            console.log("Estructura de datos COMPLETA recibida del servidor:", data);
+            lastData = data;
+
+            numeroInformeDisplay.textContent = novedades.numero_informe_manual || 'N/A';
+            setupTopBannerCarousel(data);
+            setupCentralContent(data);
+            setupRightColumnCarousel(data, novedades);
+            fetchAndDisplayTurnos();
+
+        } catch (error) { console.error("Error al cargar datos principales:", error); }
+    }
+    
     function setupCentralContent(data) {
         const container = document.getElementById('central-carousel-container');
         if (!container) return;
-        
-        // Limpiamos TODOS los intervalos y temporizadores relacionados para un reinicio limpio
+
         clearTimeout(infoPanelTimeout);
         clearInterval(centralCarouselInterval);
         clearInterval(imageCarouselInterval);
-        // El intervalo de avisos se limpia dentro de su propia función de configuración       
 
         container.innerHTML = '';
 
         const localPref = localStorage.getItem('centralCarouselEnabled');
-        let useCarousel;
-        if (localPref === 'true') {
-            useCarousel = true;
-        } else if (localPref === 'false') {
-            useCarousel = false;
-        } else {
-            useCarousel = data.dashboard_carousel_enabled; // Usar el default del admin
-        }
-
-        // Actualizar el estado del checkbox
+        let useCarousel = (localPref !== null) ? (localPref === 'true') : data.dashboard_carousel_enabled;
         toggleCentralCarouselCheck.checked = useCarousel;
 
-        // La condición final también depende de si existen imágenes
         const finalUseCarousel = useCarousel && data.dynamic_slides && data.dynamic_slides.length > 0;
 
-        if (useCarousel) {
-            // 1. Construir el HTML de las slides
+        if (finalUseCarousel) {
+            container.className = '';
             const slides = [];
             const infoPanelsSlide = `
                 <div class="central-slide active-central-slide">
@@ -130,182 +161,65 @@ document.addEventListener('DOMContentLoaded', () => {
             slides.push(infoPanelsSlide);
 
             data.dynamic_slides.forEach(slideInfo => {
-                const imageSlide = `
+                slides.push(`
                     <div class="central-slide dynamic-image-slide">
                         <div class="image-slide-content">
                             <h2>${slideInfo.title || 'Visor de Monitoreo'}</h2>
                             <img src="${slideInfo.image_url}" alt="${slideInfo.title || ''}" class="responsive-image">
                             ${slideInfo.description ? `<p>${slideInfo.description}</p>` : ''}
                         </div>
-                    </div>`;
-                slides.push(imageSlide);
+                    </div>`);
             });
-
             container.innerHTML = slides.join('');
 
-            // 2. Renderizar contenido dentro de los paneles
             const alertasContainer = document.getElementById('alertas-list-container');
             const avisosContainer = document.getElementById('avisos-list-container');
             const avisosTitle = container.querySelector('#panel-avisos .dynamic-title');
-            const avisosControls = document.getElementById('avisos-carousel-controls');
             
-            renderAlertasList(alertasContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
-            const numAvisoPages = setupAvisosCarousel(avisosContainer, avisosTitle, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
+            renderAlertasList(alertasContainer, data.alertas_vigentes);
+            const numAvisoPages = setupAvisosCarousel(avisosContainer, avisosTitle, data.avisos_alertas_meteorologicas);
 
             const newAvisoPrevBtn = document.getElementById('aviso-prev-btn');
             const newAvisoPausePlayBtn = document.getElementById('aviso-pause-play-btn');
             const newAvisoNextBtn = document.getElementById('aviso-next-btn');
 
-            if (newAvisoPrevBtn) {
-                newAvisoPrevBtn.addEventListener('click', () => {
-                    prevAvisoPage();
-                    resetAvisoInterval();
-                });
-            }
-            if (newAvisoNextBtn) {
-                newAvisoNextBtn.addEventListener('click', () => {
-                    nextAvisoPage();
-                    resetAvisoInterval();
-                });
-            }
-            if (newAvisoPausePlayBtn) {
-                newAvisoPausePlayBtn.addEventListener('click', toggleAvisoPausePlay);
-            }
+            if (newAvisoPrevBtn) newAvisoPrevBtn.addEventListener('click', () => { prevAvisoPage(); resetAvisoInterval(); });
+            if (newAvisoNextBtn) newAvisoNextBtn.addEventListener('click', () => { nextAvisoPage(); resetAvisoInterval(); });
+            if (newAvisoPausePlayBtn) newAvisoPausePlayBtn.addEventListener('click', toggleAvisoPausePlay);
 
             const allSlides = container.querySelectorAll('.central-slide');
             currentCentralSlide = 0;
 
-            // 3. Lógica del carrusel inteligente
             const startImageCarousel = () => {
                 clearInterval(avisosCarouselInterval);
-
                 allSlides[0].classList.remove('active-central-slide');
                 currentCentralSlide = 1;
-                if (currentCentralSlide >= allSlides.length) {
-                    setupCentralContent(data); 
-                    return;
-                }
+                if (currentCentralSlide >= allSlides.length) { setupCentralContent(data); return; }
                 allSlides[currentCentralSlide].classList.add('active-central-slide');
 
                 imageCarouselInterval = setInterval(() => {
                     allSlides[currentCentralSlide].classList.remove('active-central-slide');
                     currentCentralSlide++;
-
-                    if (currentCentralSlide >= allSlides.length) {
-                        clearInterval(imageCarouselInterval);
-                        setupCentralContent(data);
-                        return;
-                    }
+                    if (currentCentralSlide >= allSlides.length) { clearInterval(imageCarouselInterval); setupCentralContent(data); return; }
                     allSlides[currentCentralSlide].classList.add('active-central-slide');
                 }, centralSlideDuration);
             };
 
-            // 4. Calcular la duración del panel de info
-            const infoPanelDuration = (numAvisoPages > 1) 
-                ? (numAvisoPages * avisoPageDuration) + 500
-                : centralSlideDuration;
-           
-            // 5. Programar la transición usando la variable global
-            infoPanelTimeout = setTimeout(startImageCarousel, infoPanelDuration);           
+            const infoPanelDuration = (numAvisoPages > 1) ? (numAvisoPages * avisoPageDuration) + 500 : centralSlideDuration;
+            infoPanelTimeout = setTimeout(startImageCarousel, infoPanelDuration);
 
         } else {
-            // Lógica para el modo estático
             container.className = 'static-mode';
             container.innerHTML = `
-                <div id="panel-alertas" class="dashboard-panel">
-                    <h3>Alertas Vigentes</h3>
-                    <div id="alertas-list-container"></div>
-                </div>
+                <div id="panel-alertas" class="dashboard-panel"><h3>Alertas Vigentes</h3><div id="alertas-list-container"></div></div>
                 <div id="panel-avisos" class="dashboard-panel">
-                    <h3 class="dynamic-title">
-                        <span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarmas</span> / <span data-title-key="marejadas">Marejadas</span>
-                    </h3>
+                    <h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarmas</span> / <span data-title-key="marejadas">Marejadas</span></h3>
                     <div id="avisos-list-container"></div>
                     <div id="avisos-carousel-controls" style="display: none;"></div>
                 </div>`;
-
-            const alertasContainer = document.getElementById('alertas-list-container');
-            const avisosContainer = document.getElementById('avisos-list-container');
-            const avisosTitle = container.querySelector('#panel-avisos .dynamic-title');
-            const avisosControls = document.getElementById('avisos-carousel-controls');
-
-            renderAlertasList(alertasContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
-            setupAvisosCarousel(avisosContainer, avisosTitle, avisosControls, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
+            renderAlertasList(document.getElementById('alertas-list-container'), data.alertas_vigentes);
+            setupAvisosCarousel(document.getElementById('avisos-list-container'), container.querySelector('#panel-avisos .dynamic-title'), data.avisos_alertas_meteorologicas);
         }
-    }
-    
-    /**
-     * Convierte un texto a voz utilizando la Web Speech API del navegador.
-     * @param {string} texto - El texto a ser leído en voz alta.
-     */
-    function hablar(texto) {
-        if (window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel(); // Si ya está hablando, cancela para dar paso al nuevo mensaje.
-        }
-        const enunciado = new SpeechSynthesisUtterance(texto);
-        enunciado.lang = 'es-CL'; // Español de Chile para una mejor entonación.
-        enunciado.rate = 0.95; // Un poco más lento para mayor claridad.
-        window.speechSynthesis.speak(enunciado);
-    }
-    
-    // Objeto para almacenar las horas y minutos de los boletines
-        const momentosBoletin = [
-        { hora: 8, minuto: 55 },
-        { hora: 12, minuto: 0 },
-        { hora: 20, minuto: 55 }
-    ];
-    let ultimoBoletinLeido = { hora: -1, minuto: -1 };
-
-    setInterval(() => {
-        const ahora = new Date();
-        const horaActual = ahora.getHours();
-        const minutoActual = ahora.getMinutes();
-        const esMomento = momentosBoletin.find(m => m.hora === horaActual && m.minuto === minutoActual);
-
-        if (esMomento && (ultimoBoletinLeido.hora !== horaActual || ultimoBoletinLeido.minuto !== minutoActual)) {
-            if (Object.keys(lastData).length > 0) {
-                console.log(`Disparando boletín para las ${horaActual}:${minutoActual} en dashboard.html`);
-                generarYLeerBoletinDashboard(horaActual, minutoActual);
-                ultimoBoletinLeido = { hora: horaActual, minuto: minutoActual };
-            }
-        }
-    }, 30000);
-
-    async function generarYLeerBoletinDashboard(hora, minuto) {
-        const horaFormato = `${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}`;
-        let boletinCompleto = [];
-
-        // Llamamos a las funciones del archivo compartido, pasándoles los datos de 'lastData'
-        boletinCompleto.push(`Boletín informativo de las ${horaFormato} horas. El Servicio Nacional de Prevención y Respuesta ante desastres informa que se mantiene vigente para la Región de Valparaíso:`);
-        boletinCompleto.push(generarTextoAlertas(lastData));
-        boletinCompleto.push(generarTextoAvisos(lastData));
-        boletinCompleto.push(generarTextoEmergencias(lastData));
-        boletinCompleto.push(await generarTextoCalidadAire());
-        boletinCompleto.push(generarTextoPasoFronterizo(lastData));
-        boletinCompleto.push(generarTextoHidrometria(lastData));
-        boletinCompleto.push(await generarTextoTurnos());
-        
-        let saludoFinal;
-        if (hora < 12) saludoFinal = "buenos días.";
-        else if (hora < 21) saludoFinal = "buenas tardes.";
-        else saludoFinal = "buenas noches.";
-        boletinCompleto.push(`Finaliza el boletín informativo de las ${horaFormato} horas, ${saludoFinal}`);
-        
-        const textoFinal = boletinCompleto.filter(Boolean).join(" ... ");
-        
-        const sonidoNotificacion = new Audio('assets/notificacion_boletin.mp3');
-        sonidoNotificacion.play();
-        sonidoNotificacion.onended = () => {
-            if (hora === 12 && minuto === 0) {
-                const audioIntro = new Audio('assets/boletin_intro.mp3');
-                audioIntro.play();
-                audioIntro.onended = () => {
-                    hablar(textoFinal);
-                };
-            } else {
-                hablar(textoFinal);
-            }
-        };
     }
 
     // Lógica de Relojes
@@ -644,28 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function fetchAndRenderMainData() {
-        try {
-            const [dataResponse, novedadesResponse] = await Promise.all([
-                fetch(DATA_API_URL),
-                fetch(NOVEDADES_API_URL)
-            ]);
-            const data = await dataResponse.json();
-            const novedades = await novedadesResponse.json();
-            console.log("Estructura de datos COMPLETA recibida del servidor:", data);
-
-            lastData = data;
-
-            numeroInformeDisplay.textContent = novedades.numero_informe_manual || 'N/A';
-            setupNovedadesCarousel(novedades);            
-            setupTopBannerCarousel(data);
-            setupCentralContent(data);
-            setupRightColumnCarousel(data, novedades);
-
-        } catch (error) { console.error("Error al cargar datos principales:", error); }
-    }
-
-
+   
     //Funcion de carrusel columna derecha (novedades y waze)
     function setupRightColumnCarousel(data, novedades) {
         const container = document.getElementById('right-column-carousel-container');
@@ -780,169 +673,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return totalPages; // <-- ¡LA LÍNEA MÁS IMPORTANTE!
     }
-
-    function renderAlertasList(container, items, noItemsText) {
-        if (items && items.length > 0) {         
-
-            // 1. Definimos el orden de prioridad. Menor número = mayor prioridad.
-            const priorityOrder = {
-                'roja': 1,
-                'amarilla': 2,
-                'temprana preventiva': 3
-            };
-
-            // 2. Ordenamos la lista 'items'
-            items.sort((a, b) => {
-                const nivelA = a.nivel_alerta.toLowerCase();
-                const nivelB = b.nivel_alerta.toLowerCase();
-
-                // Encontramos la prioridad de cada alerta basándonos en las palabras clave
-                const priorityA = Object.keys(priorityOrder).find(key => nivelA.includes(key));
-                const priorityB = Object.keys(priorityOrder).find(key => nivelB.includes(key));
-
-                // Obtenemos el valor numérico (1, 2, 3) o un valor alto (99) si no se encuentra
-                const scoreA = priorityA ? priorityOrder[priorityA] : 99;
-                const scoreB = priorityB ? priorityOrder[priorityB] : 99;
-                
-                return scoreA - scoreB;
-            });
-  
-
-            const listHtml = items.map(item => {
-                let itemClass = '';
-                const nivel = item.nivel_alerta.toLowerCase();
-                if (nivel.includes('roja')) itemClass = 'alerta-roja';
-                else if (nivel.includes('amarilla')) itemClass = 'alerta-amarilla';
-                else if (nivel.includes('temprana preventiva')) itemClass = 'alerta-temprana-preventiva';
-                return `<li class="${itemClass}">${item.nivel_alerta}, ${item.evento}, ${item.cobertura}.</li>`;
-            }).join('');
-            container.innerHTML = `<ul class="dashboard-list">${listHtml}</ul>`;
-        } else { container.innerHTML = noItemsText; }
-        
-        checkAndApplyVerticalScroll(container);
-    }
-
-    // --- Sistema de Carrusel de Avisos ---
-    function setupAvisosCarousel(container, titleContainer, items, noItemsText) {
-        if (!container || !titleContainer) return 1;
-
-        const controlsContainer = document.getElementById('avisos-carousel-controls');
-        if (!controlsContainer) {
-            console.error("No se encontró el contenedor de controles #avisos-carousel-controls");
-            return 1;
-        }
-
-        clearInterval(avisosCarouselInterval);
-        const groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
-        
-        if (items && items.length > 0) {
-            
-            // ---- LÍNEA DE DIAGNÓSTICO AÑADIDA ----
-            console.log("Datos de 'avisos' recibidos:", items); 
-            // ------------------------------------
-
-            items.forEach(item => {
-                // Este bloque probablemente está fallando porque 'item.aviso_alerta_alarma' no existe o es incorrecto
-                const titleText = (item.aviso_alerta_alarma || '').toLowerCase(); 
-                if (titleText.includes('marejada')) groups.marejadas.push(item);
-                else if (titleText.includes('alarma')) groups.alarmas.push(item);
-                else if (titleText.includes('alerta')) groups.alertas.push(item);
-                else groups.avisos.push(item);
-            });
-        }
-
-        avisoPages = [];
-        Object.keys(groups).forEach(key => {
-            if (groups[key].length > 0) {
-                avisoPages.push({ key: key, items: groups[key] });
-            }
-        });
-        
-        console.log("Número de páginas de avisos calculado:", avisoPages.length);
-
-        titleContainer.querySelectorAll('span').forEach(span => span.classList.remove('active-title'));
-
-        if (avisoPages.length > 1) {
-            console.log("Intentando mostrar botones de navegación.");
-            controlsContainer.style.display = 'flex';
-            let carouselHtml = '';
-            avisoPages.forEach((page, index) => {
-                const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
-                carouselHtml += `<div class="aviso-slide" data-page-index="${index}"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
-            });
-            container.innerHTML = carouselHtml;
-
-            currentAvisoPage = 0;
-            showAvisoPage(currentAvisoPage);
-            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-        } else {
-            // ... el resto de la función es igual ...
-            console.log("Ocultando botones, no hay suficientes páginas.");
-            controlsContainer.style.display = 'none';
-            if (avisoPages.length === 1) {
-                const page = avisoPages[0];
-                const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
-                container.innerHTML = `<ul class="dashboard-list">${listItemsHtml}</ul>`;
-                titleContainer.querySelector(`span[data-title-key="${page.key}"]`).classList.add('active-title');
-                checkAndApplyVerticalScroll(container);
-            } else {
-                container.innerHTML = noItemsText;
-            }
-        }
-        return avisoPages.length;
-    }
-
-    function showAvisoPage(index) {        
-        const titleContainer = document.querySelector('#panel-avisos .dynamic-title');
-        const slides = document.querySelectorAll('.aviso-slide');
-
-        if (!titleContainer || slides.length === 0) return; 
-
-        slides.forEach((slide, i) => {
-            slide.style.transform = `translateX(${(i - index) * 100}%)`;
-        });
-
-        const activeKey = avisoPages[index].key;
-        titleContainer.querySelectorAll('span').forEach(span => {
-            span.classList.toggle('active-title', span.dataset.titleKey === activeKey);
-        });
-
-        const activeSlideContent = document.querySelector(`.aviso-slide[data-page-index="${index}"]`);
-        checkAndApplyVerticalScroll(activeSlideContent);
-    }
-    
-    function nextAvisoPage() {
-        if (avisoPages.length <= 1) return;
-        currentAvisoPage = (currentAvisoPage + 1) % avisoPages.length;
-        showAvisoPage(currentAvisoPage);
-    }
-
-    function prevAvisoPage() {
-        if (avisoPages.length <= 1) return;
-        currentAvisoPage = (currentAvisoPage - 1 + avisoPages.length) % avisoPages.length;
-        showAvisoPage(currentAvisoPage);
-    }
-    
-    function toggleAvisoPausePlay() {
-        isAvisoCarouselPaused = !isAvisoCarouselPaused;
-        if (isAvisoCarouselPaused) {
-            clearInterval(avisosCarouselInterval);
-            avisoPausePlayBtn.textContent = '▶';
-            avisoPausePlayBtn.classList.add('paused');
-        } else {
-            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-            avisoPausePlayBtn.textContent = '||';
-            avisoPausePlayBtn.classList.remove('paused');
-        }
-    }
-
-    function resetAvisoInterval() {
-        if (!isAvisoCarouselPaused) {
-            clearInterval(avisosCarouselInterval);
-            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-        }
-    }
-
+      
+ 
     function checkAndApplyVerticalScroll(container) {
         if (!container) return;
         const list = container.querySelector('ul');
@@ -1245,20 +977,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function initializeApp() {
-        // 1. Tareas iniciales que no dependen de nada
         updateClocks();
         initializeAirQualityMap();
         initializePrecipitationMap();
 
-        // 2. OBTENEMOS LOS DATOS PRINCIPALES Y ESPERAMOS A QUE TERMINEN.
         await fetchAndRenderMainData();
 
-        // 3. AHORA que los contenedores ya existen, podemos llamar al resto de las funciones.
         fetchAndRenderAirQuality();
         fetchAndRenderPrecipitationData();
         fetchAndRenderWazeData();
 
-        // 4. Activamos los carruseles y listeners de botones estáticos
         showMapSlide(0);
         mapCarouselInterval = setInterval(nextMapSlide, mapSlideDuration);
 
@@ -1266,10 +994,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if(nextBtn) nextBtn.addEventListener('click', nextMapSlide);
         if(prevBtn) prevBtn.addEventListener('click', prevMapSlide);
 
-        // 5. Configuramos las actualizaciones periódicas
         setInterval(fetchAndDisplayTurnos, 5 * 60 * 1000);
-        setInterval(fetchAndRenderMainData, 60 * 1000); // Actualiza datos principales cada 1 min
-        setInterval(fetchAndRenderWazeData, 2 * 60 * 1000); // Actualiza Waze cada 2 min
+        setInterval(fetchAndRenderWazeData, 2 * 60 * 1000);
         setInterval(checkForUpdates, 5000);
     }
 
