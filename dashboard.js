@@ -80,7 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let infoPanelTimeout;
     let memoriaNotificaciones = {
     calidadAire: {},
-    precipitacion: {}
+    precipitacion: {},
+    pasoFronterizo: {}
     };
         
     function setupCentralContent(data) {
@@ -1289,6 +1290,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Llamamos a los gestores de cada tipo de notificación
         gestionarNotificacionesCalidadAire(lastData.calidad_aire || []);
         gestionarNotificacionesPrecipitacion(lastData.weather_data || []);
+        gestionarNotificacionesPasoFronterizo(lastData.estado_pasos_fronterizos || []);
     }
 
     function gestionarNotificacionesCalidadAire(estaciones) {
@@ -1361,6 +1363,43 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             lanzarNotificacion(sonido, mensajeVoz);
+        }
+    }
+
+    function gestionarNotificacionesPasoFronterizo(pasos) {
+        if (!pasos || pasos.length === 0) return;
+
+        // 1. Buscamos específicamente el paso que nos interesa
+        const pasoLibertadores = pasos.find(p => p.nombre_paso.includes('Los Libertadores'));
+        if (!pasoLibertadores) return; // No hacemos nada si no se encuentran datos del paso
+
+        const estadoNuevo = pasoLibertadores.condicion;
+        const memoriaPaso = memoriaNotificaciones.pasoFronterizo['Los Libertadores'] || { estado: 'No informado', ultimaNotificacion: 0 };
+        const estadoAnterior = memoriaPaso.estado;
+
+        // 2. Comparamos el estado nuevo con el anterior para ver si cambió
+        if (estadoNuevo && estadoNuevo !== estadoAnterior) {
+            // ¡Hubo un cambio de estado!
+            const mensajeVoz = `¡Atención! El estado del Complejo Fronterizo Los Libertadores ha cambiado a: ${estadoNuevo}.`;
+            
+            // Usamos un sonido de alerta genérico
+            lanzarNotificacion('assets/notificacion_alerta.mp3', mensajeVoz);
+
+            // 3. Actualizamos la memoria para no volver a notificar
+            memoriaNotificaciones.pasoFronterizo['Los Libertadores'] = { estado: estadoNuevo, ultimaNotificacion: Date.now() };
+
+        } else if (estadoNuevo === estadoAnterior && estadoNuevo.toLowerCase().includes('cerrado')) {
+            // Lógica de recordatorio: solo si se mantiene cerrado
+            const ahora = Date.now();
+            const tiempoDesdeUltimaNotificacion = ahora - memoriaPaso.ultimaNotificacion;
+            const dosHoras = 2 * 3600 * 1000;
+
+            if (tiempoDesdeUltimaNotificacion > dosHoras) {
+                const mensajeVoz = `Recordatorio: El Complejo Fronterizo Los Libertadores se mantiene ${estadoNuevo}.`;
+                // Usamos un sonido sutil para el recordatorio
+                lanzarNotificacion('assets/notificacion_regular.mp3', mensajeVoz);
+                memoriaNotificaciones.pasoFronterizo['Los Libertadores'].ultimaNotificacion = ahora;
+            }
         }
     }
 
