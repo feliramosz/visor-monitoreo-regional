@@ -32,10 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevBtn = document.getElementById('map-prev-btn');
     const nextBtn = document.getElementById('map-next-btn');
     
-    // --- Controles del carrusel de AVISOS ---
-    const avisoPrevBtn = document.getElementById('aviso-prev-btn');
-    const avisoPausePlayBtn = document.getElementById('aviso-pause-play-btn');
-    const avisoNextBtn = document.getElementById('aviso-next-btn');
+    // --- Controles del carrusel de AVISOS ---    
     let lastDataTimestamp = 0;
 
     // Estado del carrusel de mapas
@@ -151,9 +148,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const avisosContainer = document.getElementById('avisos-list-container');
             const avisosTitle = container.querySelector('#panel-avisos .dynamic-title');
             const avisosControls = document.getElementById('avisos-carousel-controls');
-
+            
             renderAlertasList(alertasContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
             const numAvisoPages = setupAvisosCarousel(avisosContainer, avisosTitle, avisosControls, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
+
+            const newAvisoPrevBtn = document.getElementById('aviso-prev-btn');
+            const newAvisoPausePlayBtn = document.getElementById('aviso-pause-play-btn');
+            const newAvisoNextBtn = document.getElementById('aviso-next-btn');
+
+            if (newAvisoPrevBtn) {
+                newAvisoPrevBtn.addEventListener('click', () => {
+                    prevAvisoPage();
+                    resetAvisoInterval();
+                });
+            }
+            if (newAvisoNextBtn) {
+                newAvisoNextBtn.addEventListener('click', () => {
+                    nextAvisoPage();
+                    resetAvisoInterval();
+                });
+            }
+            if (newAvisoPausePlayBtn) {
+                newAvisoPausePlayBtn.addEventListener('click', toggleAvisoPausePlay);
+            }
 
             const allSlides = container.querySelectorAll('.central-slide');
             currentCentralSlide = 0;
@@ -1157,23 +1174,7 @@ document.addEventListener('DOMContentLoaded', () => {
             controls.style.display = 'none';
         }
     }
-
-    if (avisoPrevBtn) {
-        avisoPrevBtn.addEventListener('click', () => {
-            prevAvisoPage();
-            resetAvisoInterval(); // Reinicia el temporizador para dar tiempo a leer
-        });
-    }
-    if (avisoNextBtn) {
-        avisoNextBtn.addEventListener('click', () => {
-            nextAvisoPage();
-            resetAvisoInterval(); // Reinicia el temporizador
-        });
-    }
-    if (avisoPausePlayBtn) {
-        avisoPausePlayBtn.addEventListener('click', toggleAvisoPausePlay);
-    }
-
+    
     function formatTimeAgo(millis) {
         const seconds = Math.floor((Date.now() - millis) / 1000);
         let interval = seconds / 31536000;
