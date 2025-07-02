@@ -805,17 +805,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Sistema de Carrusel de Avisos ---
     function setupAvisosCarousel(container, titleContainer, items, noItemsText) {
-        if (!container || !titleContainer || !controlsContainer) return; // Verificación de seguridad
-        
+        if (!container || !titleContainer) return 1;
+
+        // La función ahora busca su propio contenedor de controles. ¡Más seguro!
+        const controlsContainer = document.getElementById('avisos-carousel-controls');
+        if (!controlsContainer) {
+            console.error("No se encontró el contenedor de controles #avisos-carousel-controls");
+            return 1;
+        }
+
         clearInterval(avisosCarouselInterval);
         const groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
         if (items && items.length > 0) {
             items.forEach(item => {
-                const titleText = item.aviso_alerta_alarma.toLowerCase();
+                const titleText = (item.aviso_alerta_alarma || '').toLowerCase();
                 if (titleText.includes('marejada')) groups.marejadas.push(item);
                 else if (titleText.includes('alarma')) groups.alarmas.push(item);
                 else if (titleText.includes('alerta')) groups.alertas.push(item);
-                else if (titleText.includes('aviso')) groups.avisos.push(item);
+                else groups.avisos.push(item);
             });
         }
 
@@ -823,14 +830,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const span = titleContainer.querySelector(`span[data-title-key="${key}"]`);
             if (span) {
                 const originalText = key.charAt(0).toUpperCase() + key.slice(1);
-                if (groups[key].length > 0) {                    
-                    span.innerHTML = `${originalText} (${groups[key].length})`;
-                } else {                    
-                    span.innerHTML = originalText;
-                }
+                span.innerHTML = (groups[key].length > 0) ? `${originalText} (${groups[key].length})` : originalText;
             }
         });
 
+        // Hacemos que los títulos sean "cliqueables" para navegar
         titleContainer.querySelectorAll('span').forEach(span => {
             span.addEventListener('click', () => {
                 const keyToFind = span.dataset.titleKey;
@@ -843,37 +847,32 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        avisoPages = [];
-        Object.keys(groups).forEach(key => {
-            if (groups[key].length > 0) {
-                avisoPages.push({ key: key, items: groups[key] });
-            }
-        });
+        avisoPages = Object.keys(groups).filter(key => groups[key].length > 0).map(key => ({ key, items: groups[key] }));
+        titleContainer.querySelectorAll('span').forEach(span => span.classList.remove('active-title'));
+
+        const pauseBtn = document.getElementById('aviso-pause-play-btn');
 
         if (avisoPages.length > 1) {
-            let carouselHtml = '';
-            avisoPages.forEach((page, index) => {
-                const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
-                carouselHtml += `<div class="aviso-slide" data-page-index="${index}"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
-            });
-            container.innerHTML = carouselHtml;
+            if (pauseBtn) pauseBtn.style.display = 'block'; // Muestra el botón de pausa
 
+            container.innerHTML = avisoPages.map(page => {
+                const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
+                return `<div class="aviso-slide"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
+            }).join('');
             currentAvisoPage = 0;
             showAvisoPage(currentAvisoPage);
             avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-            const pauseBtn = document.getElementById('aviso-pause-play-btn');
-            if (pauseBtn) pauseBtn.style.display = 'block';
         } else if (avisoPages.length === 1) {
+            if (pauseBtn) pauseBtn.style.display = 'none'; // Oculta el botón de pausa
             const page = avisoPages[0];
-            const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
-            container.innerHTML = `<ul class="dashboard-list">${listItemsHtml}</ul>`;
+            container.innerHTML = `<ul class="dashboard-list">${page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('')}</ul>`;
+            if (titleContainer.querySelector(`span[data-title-key="${page.key}"]`)) {
+                titleContainer.querySelector(`span[data-title-key="${page.key}"]`).classList.add('active-title');
+            }
             checkAndApplyVerticalScroll(container);
-            titleContainer.querySelector(`span[data-title-key="${page.key}"]`).classList.add('active-title');
-            controlsContainer.style.display = 'none';
         } else {
-            container.innerHTML = noItemsText;
-            titleContainer.querySelectorAll('span').forEach(span => span.classList.remove('active-title'));
-            controlsContainer.style.display = 'none';
+            if (pauseBtn) pauseBtn.style.display = 'none'; // Oculta el botón de pausa
+            container.innerHTML = noItemsText || '<p>No hay avisos meteorológicos.</p>';
         }
         return avisoPages.length;
     }
