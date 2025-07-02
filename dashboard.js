@@ -805,76 +805,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Sistema de Carrusel de Avisos ---
     function setupAvisosCarousel(container, titleContainer, items, noItemsText) {
-        if (!container || !titleContainer) return 1;
-
-        // La función ahora busca su propio contenedor de controles. ¡Más seguro!
-        const controlsContainer = document.getElementById('avisos-carousel-controls');
-        if (!controlsContainer) {
-            console.error("No se encontró el contenedor de controles #avisos-carousel-controls");
-            return 1;
+        console.log("Ejecutando setupAvisosCarousel en MODO SIMPLE DE DIAGNÓSTICO.");
+        
+        if (!container) {
+            console.error("El contenedor de avisos no existe. Abortando.");
+            return;
         }
 
-        clearInterval(avisosCarouselInterval);
-        const groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
-        if (items && items.length > 0) {
-            items.forEach(item => {
-                const titleText = (item.aviso_alerta_alarma || '').toLowerCase();
-                if (titleText.includes('marejada')) groups.marejadas.push(item);
-                else if (titleText.includes('alarma')) groups.alarmas.push(item);
-                else if (titleText.includes('alerta')) groups.alertas.push(item);
-                else groups.avisos.push(item);
-            });
-        }
-
-        Object.keys(groups).forEach(key => {
-            const span = titleContainer.querySelector(`span[data-title-key="${key}"]`);
-            if (span) {
-                const originalText = key.charAt(0).toUpperCase() + key.slice(1);
-                span.innerHTML = (groups[key].length > 0) ? `${originalText} (${groups[key].length})` : originalText;
-            }
-        });
-
-        // Hacemos que los títulos sean "cliqueables" para navegar
-        titleContainer.querySelectorAll('span').forEach(span => {
-            span.addEventListener('click', () => {
-                const keyToFind = span.dataset.titleKey;
-                const pageIndex = avisoPages.findIndex(p => p.key === keyToFind);
-                if (pageIndex !== -1) {
-                    currentAvisoPage = pageIndex;
-                    showAvisoPage(currentAvisoPage);
-                    resetAvisoInterval(); // Reinicia el temporizador al navegar manualmente
-                }
-            });
-        });
-
-        avisoPages = Object.keys(groups).filter(key => groups[key].length > 0).map(key => ({ key, items: groups[key] }));
-        titleContainer.querySelectorAll('span').forEach(span => span.classList.remove('active-title'));
-
+        // Ocultamos los elementos de navegación que no usaremos
         const pauseBtn = document.getElementById('aviso-pause-play-btn');
+        if (pauseBtn) {
+            pauseBtn.style.display = 'none';
+        }
 
-        if (avisoPages.length > 1) {
-            if (pauseBtn) pauseBtn.style.display = 'block'; // Muestra el botón de pausa
+        if (items && items.length > 0) {
+            // Si hay datos, los mostramos como una lista simple
+            console.log(`Se encontraron ${items.length} avisos. Renderizando lista estática.`);
 
-            container.innerHTML = avisoPages.map(page => {
-                const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
-                return `<div class="aviso-slide"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
+            const listItemsHtml = items.map(item => {
+                // Aseguramos que las propiedades existan antes de usarlas
+                const titulo = item.aviso_alerta_alarma || "Sin Título";
+                const descripcion = item.descripcion || "Sin Descripción";
+                const cobertura = item.cobertura || "N/A";
+                
+                return `<li><strong>${titulo}:</strong> ${descripcion}; Cobertura: ${cobertura}</li>`;
             }).join('');
-            currentAvisoPage = 0;
-            showAvisoPage(currentAvisoPage);
-            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-        } else if (avisoPages.length === 1) {
-            if (pauseBtn) pauseBtn.style.display = 'none'; // Oculta el botón de pausa
-            const page = avisoPages[0];
-            container.innerHTML = `<ul class="dashboard-list">${page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('')}</ul>`;
-            if (titleContainer.querySelector(`span[data-title-key="${page.key}"]`)) {
-                titleContainer.querySelector(`span[data-title-key="${page.key}"]`).classList.add('active-title');
-            }
-            checkAndApplyVerticalScroll(container);
+
+            container.innerHTML = `<ul class="dashboard-list">${listItemsHtml}</ul>`;
+
         } else {
-            if (pauseBtn) pauseBtn.style.display = 'none'; // Oculta el botón de pausa
+            // Si no hay datos, mostramos el mensaje por defecto
+            console.log("No se encontraron avisos en los datos.");
             container.innerHTML = noItemsText || '<p>No hay avisos meteorológicos.</p>';
         }
-        return avisoPages.length;
     }
 
     function showAvisoPage(index) {        
