@@ -751,10 +751,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Sistema de Carrusel de Avisos ---
     function setupAvisosCarousel(container, titleContainer, items, noItemsText) {
-        if (!container || !titleContainer) {
-            console.error("Contenedor o título de avisos no encontrado.");
-            return 0;
-        }
+        if (!container || !titleContainer) return 0;
         
         const pauseBtn = document.getElementById('aviso-pause-play-btn');
         clearInterval(avisosCarouselInterval);
@@ -770,52 +767,47 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        avisoPages = Object.keys(groups)
-            .filter(key => groups[key].length > 0)
-            .map(key => ({ key, items: groups[key] }));
+        avisoPages = [];
+        const ITEMS_PER_PAGE = 5; // Máximo 5 items por página
 
-        titleContainer.querySelectorAll('span').forEach(span => {
-            const key = span.dataset.titleKey;
-            const groupItems = groups[key] || [];
-            span.innerHTML = `${key.charAt(0).toUpperCase() + key.slice(1)}${groupItems.length > 0 ? ` (${groupItems.length})` : ''}`;
-            
+        Object.keys(groups).forEach(key => {
+            const groupItems = groups[key];
             if (groupItems.length > 0) {
-                span.style.cursor = "pointer";
-                span.onclick = () => {
-                    const pageIndex = avisoPages.findIndex(p => p.key === key);
-                    if (pageIndex !== -1) {
-                        currentAvisoPage = pageIndex;
-                        showAvisoPage(currentAvisoPage);
-                        resetAvisoInterval();
-                    }
-                };
-            } else {
-                span.style.cursor = "default";
-                span.onclick = null;
+                const totalPages = Math.ceil(groupItems.length / ITEMS_PER_PAGE);
+                for (let i = 0; i < totalPages; i++) {
+                    const pageItems = groupItems.slice(i * ITEMS_PER_PAGE, (i + 1) * ITEMS_PER_PAGE);
+                    avisoPages.push({
+                        key: key,
+                        items: pageItems,
+                        pageNum: i + 1,
+                        totalPages: totalPages
+                    });
+                }
             }
         });
 
+        // Limpiamos los títulos, ya que se actualizarán dinámicamente
+        titleContainer.querySelectorAll('span').forEach(span => {
+            const key = span.dataset.titleKey;
+            span.innerHTML = key.charAt(0).toUpperCase() + key.slice(1);
+            span.style.cursor = "default";
+            span.onclick = null;
+        });
+
         if (avisoPages.length > 0) {
-            // Construimos el HTML de una forma más clara y segura
             const slidesHtml = avisoPages.map(page => {
                 const listItemsHtml = page.items.map(item => {
                     const titulo = item.aviso_alerta_alarma || "Sin Título";
                     const descripcion = item.descripcion || "Sin Descripción";
                     const cobertura = item.cobertura || "N/A";
-                    const claseCss = `aviso-${page.key}`; // Crea la clase ej: "aviso-avisos"
-
-                    // Se aplica la clase al <strong>
+                    const claseCss = `aviso-${page.key}`;
                     return `<li><strong class="${claseCss}">${titulo}:</strong> ${descripcion}; Cobertura: ${cobertura}</li>`;
                 }).join('');
-
                 return `<div class="aviso-slide"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
             }).join('');
+            container.innerHTML = slidesHtml;
 
-            container.innerHTML = slidesHtml; // Se inserta el HTML ya construido
-
-            if (pauseBtn) {
-                pauseBtn.style.display = avisoPages.length > 1 ? 'block' : 'none';
-            }
+            if (pauseBtn) pauseBtn.style.display = avisoPages.length > 1 ? 'block' : 'none';
             
             currentAvisoPage = 0;
             showAvisoPage(currentAvisoPage);
@@ -824,30 +816,41 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             container.innerHTML = noItemsText || '<p>No hay avisos meteorológicos.</p>';
-            if (pauseBtn) {
-                pauseBtn.style.display = 'none';
-            }
+            if (pauseBtn) pauseBtn.style.display = 'none';
         }
         return avisoPages.length;
     }
 
-    function showAvisoPage(index) {        
+    function showAvisoPage(index) {
         const titleContainer = document.querySelector('#panel-avisos .dynamic-title');
-        const slides = document.querySelectorAll('.aviso-slide');
-
-        if (!titleContainer || slides.length === 0) return; 
+        const slides = document.querySelectorAll('#avisos-list-container .aviso-slide');
+        if (!titleContainer || slides.length === 0 || !avisoPages[index]) return;
 
         slides.forEach((slide, i) => {
             slide.style.transform = `translateX(${(i - index) * 100}%)`;
         });
 
-        const activeKey = avisoPages[index].key;
+        const activePage = avisoPages[index];
+        
+        // Actualiza dinámicamente TODOS los títulos
         titleContainer.querySelectorAll('span').forEach(span => {
-            span.classList.toggle('active-title', span.dataset.titleKey === activeKey);
+            const key = span.dataset.titleKey;
+            const originalText = key.charAt(0).toUpperCase() + key.slice(1);
+            
+            if (key === activePage.key) {
+                // Si es el título activo, muestra el conteo de páginas
+                const pageText = activePage.totalPages > 1 ? ` (${activePage.pageNum}/${activePage.totalPages})` : '';
+                span.innerHTML = `${originalText}${pageText}`;
+                span.classList.add('active-title');
+            } else {
+                // Si no es activo, solo muestra el nombre
+                span.innerHTML = originalText;
+                span.classList.remove('active-title');
+            }
         });
 
-        const activeSlideContent = document.querySelector(`.aviso-slide[data-page-index="${index}"]`);
-        checkAndApplyVerticalScroll(activeSlideContent);
+        const activeSlideContent = document.querySelector(`.aviso-slide[style*="translateX(0%)"]`);
+        if(activeSlideContent) checkAndApplyVerticalScroll(activeSlideContent);
     }
     
     function nextAvisoPage() {
