@@ -123,7 +123,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarmas</span> / <span data-title-key="marejadas">Marejadas</span>
                         </h3>
                         <div id="avisos-list-container"></div>
-                        <div id="avisos-carousel-controls" style="display: none;"></div>
+                        <div id="avisos-carousel-controls" style="display: none;">
+                            <button id="aviso-prev-btn">&lt;</button>
+                            <button id="aviso-pause-play-btn">||</button>
+                            <button id="aviso-next-btn">&gt;</button>
+                        </div>
                     </div>
                 </div>`;
             slides.push(infoPanelsSlide);
@@ -816,6 +820,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        Object.keys(groups).forEach(key => {
+            const span = titleContainer.querySelector(`span[data-title-key="${key}"]`);
+            if (span) {
+                const originalText = key.charAt(0).toUpperCase() + key.slice(1);
+                if (groups[key].length > 0) {                    
+                    span.innerHTML = `${originalText} (${groups[key].length})`;
+                } else {                    
+                    span.innerHTML = originalText;
+                }
+            }
+        });
+
         avisoPages = [];
         Object.keys(groups).forEach(key => {
             if (groups[key].length > 0) {
@@ -1140,6 +1156,22 @@ document.addEventListener('DOMContentLoaded', () => {
             container.innerHTML = '<p style="color:red;">No se pudieron cargar los datos de Waze.</p>';
             controls.style.display = 'none';
         }
+    }
+
+    if (avisoPrevBtn) {
+        avisoPrevBtn.addEventListener('click', () => {
+            prevAvisoPage();
+            resetAvisoInterval(); // Reinicia el temporizador para dar tiempo a leer
+        });
+    }
+    if (avisoNextBtn) {
+        avisoNextBtn.addEventListener('click', () => {
+            nextAvisoPage();
+            resetAvisoInterval(); // Reinicia el temporizador
+        });
+    }
+    if (avisoPausePlayBtn) {
+        avisoPausePlayBtn.addEventListener('click', toggleAvisoPausePlay);
     }
 
     function formatTimeAgo(millis) {
