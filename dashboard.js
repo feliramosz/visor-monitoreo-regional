@@ -868,12 +868,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (avisoPages.length > 0) {
-            container.innerHTML = avisoPages.map(page =>
-                `<div class="aviso-slide"><ul class="dashboard-list">${page.items.map(item =>
-                    `<li><strong class="aviso-${page.key}s">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`
-                ).join('')}</ul></div>`
-            ).join('');
-            
+            // Construimos el HTML de una forma más clara y segura
+            const slidesHtml = avisoPages.map(page => {
+                const listItemsHtml = page.items.map(item => {
+                    const titulo = item.aviso_alerta_alarma || "Sin Título";
+                    const descripcion = item.descripcion || "Sin Descripción";
+                    const cobertura = item.cobertura || "N/A";
+                    const claseCss = `aviso-${page.key}s`; // Crea la clase ej: "aviso-avisos"
+
+                    // Se aplica la clase al <strong>
+                    return `<li><strong class="${claseCss}">${titulo}:</strong> ${descripcion}; Cobertura: ${cobertura}</li>`;
+                }).join('');
+
+                return `<div class="aviso-slide"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
+            }).join('');
+
+            container.innerHTML = slidesHtml; // Se inserta el HTML ya construido
+
             if (pauseBtn) {
                 pauseBtn.style.display = avisoPages.length > 1 ? 'block' : 'none';
             }
