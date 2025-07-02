@@ -1418,10 +1418,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Función genérica para lanzar sonido y voz
     function lanzarNotificacion(archivoSonido, texto) {
         const sonido = new Audio(archivoSonido);
-        sonido.play().catch(e => console.error("Error al reproducir sonido:", e));
-        sonido.onended = () => {
-            hablar(texto);
-        };
+        const promise = sonido.play();
+
+        if (promise !== undefined) {
+            promise.then(_ => {
+                // El sonido se reprodujo correctamente. La voz se leerá cuando termine.
+                sonido.onended = () => hablar(texto);
+            }).catch(error => {
+                // El navegador bloqueó el sonido.
+                console.warn("Sonido de notificación bloqueado por el navegador (se requiere interacción). Reproduciendo solo la voz.");
+                // Pasamos directamente a la voz, sin esperar al sonido.
+                hablar(texto);
+            });
+        }
     }
 
     initializeApp();
