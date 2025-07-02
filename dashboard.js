@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapSlideDuration = 20000;
     let isMapCarouselPaused = false;
     const mapTitles = ["Calidad del Aire (SINCA)", "Precipitaciones Últ. 24h"];
+    let groups = {};
 
     // Estado del carrusel de AVISOS
     let avisosCarouselInterval;
@@ -756,7 +757,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const pauseBtn = document.getElementById('aviso-pause-play-btn');
         clearInterval(avisosCarouselInterval);
 
-        const groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
+        groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
         if (items && items.length > 0) {
             items.forEach(item => {
                 const titleText = (item.aviso_alerta_alarma || '').toLowerCase();
@@ -839,33 +840,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const activePage = avisoPages[index];
         
-        // Actualiza dinámicamente el texto de TODOS los títulos en cada cambio
+        // Actualiza dinámicamente el texto de TODOS los títulos
         titleContainer.querySelectorAll('span').forEach(span => {
             const key = span.dataset.titleKey;
             const originalText = key.charAt(0).toUpperCase() + key.slice(1);
-            let totalInCategory = 0;
             
-            // Buscamos la primera página de esta categoría para obtener el total de páginas
-            const firstPageOfCategory = avisoPages.find(p => p.key === key);
-            if (firstPageOfCategory) {
-                totalInCategory = firstPageOfCategory.totalPages;
+            // Obtiene el conteo total de la variable 'groups'
+            const totalItems = (groups[key] || []).length;
+            const prefix = totalItems > 0 ? `[${totalItems}] ` : '';
+
+            // Determina el sufijo de paginación (solo para la página activa)
+            let suffix = '';
+            if (key === activePage.key && activePage.totalPages > 1) {
+                suffix = ` (${activePage.pageNum}/${activePage.totalPages})`;
             }
 
-            if (key === activePage.key) {
-                // Si es el título activo, muestra el conteo de páginas
-                const pageText = activePage.totalPages > 1 ? ` (${activePage.pageNum}/${activePage.totalPages})` : '';
-                span.innerHTML = `${originalText}${pageText}`;
-                span.classList.add('active-title');
-            } else {
-                // Si no es activo, muestra el conteo total de items si existe
-                const groupItems = (lastData.avisos_alertas_meteorologicas || []).filter(item => (item.aviso_alerta_alarma || '').toLowerCase().includes(key));
-                const countText = groupItems.length > 0 ? ` (${groupItems.length})` : '';
-                span.innerHTML = `${originalText}${countText}`;
-                span.classList.remove('active-title');
-            }
+            // Construye y aplica el título final
+            span.innerHTML = `${prefix}${originalText}${suffix}`;
+            span.classList.toggle('active-title', key === activePage.key);
         });
 
-        const activeSlideContent = document.querySelector(`.aviso-slide[style*="translateX(0%)"]`);
+        const activeSlideContent = document.querySelector(`.aviso-slide[style*="transform: translateX(0%)"]`);
         if(activeSlideContent) checkAndApplyVerticalScroll(activeSlideContent);
     }
     
