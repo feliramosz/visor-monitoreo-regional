@@ -202,6 +202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('adminEnableDashboardCarousel').checked = data.dashboard_carousel_enabled || false;
         document.getElementById('adminEnableNovedadesCarousel').checked = data.novedades_carousel_enabled || false;
         document.getElementById('adminIntervaloSlide').value = data.slide_interval || '10000';
+        document.getElementById('adminNotificacionesActivas').checked = data.notificaciones_activadas || false;
     }
 
     function renderSectionItems(container, items, createItemFn, noItemsText) {
@@ -512,7 +513,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updatedInformeData.dynamic_slides = Array.from(dynamicSlidesContainer.querySelectorAll('.dynamic-slide-item')).map(item => ({ id: item.dataset.id, image_url: item.querySelector('.slide-image-url').value, title: item.querySelector('.slide-title').value, description: item.querySelector('.slide-description').value }));
         updatedInformeData.dashboard_carousel_enabled = document.getElementById('adminEnableDashboardCarousel').checked;
         updatedInformeData.novedades_carousel_enabled = document.getElementById('adminEnableNovedadesCarousel').checked;
-        updatedInformeData.slide_interval = parseInt(document.getElementById('adminIntervaloSlide').value, 10);
+        updatedInformeData.notificaciones_activadas = document.getElementById('adminNotificacionesActivas').checked;
         
         // --- 2. Guardar datos de novedades ---
         const updatedNovedadesData = { ...novedadesData };
@@ -765,4 +766,38 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.location.href = '/login.html';
         });
     }
+
+    const testNotificationBtn = document.getElementById('testNotificationBtn');
+    if (testNotificationBtn) {
+        testNotificationBtn.addEventListener('click', () => {
+            const type = document.getElementById('testNotificationType').value;
+            let sonido, mensaje;
+
+            switch(type) {
+                case 'regular':
+                    sonido = 'assets/notificacion_regular.mp3';
+                    mensaje = 'Prueba de notificación. La estación ha pasado a estado regular.';
+                    break;
+                case 'alerta':
+                    sonido = 'assets/notificacion_alerta.mp3';
+                    mensaje = 'Prueba de notificación. Atención, la estación ha cambiado a estado de alerta.';
+                    break;
+                case 'emergencia':
+                    sonido = 'assets/notificacion_emergencia.mp3';
+                    mensaje = 'Prueba de notificación. Atención, la estación ha cambiado a estado de emergencia, se debe activar protocolo.';
+                    break;
+                case 'precipitacion':
+                    sonido = 'assets/notificacion_precipitacion.mp3';
+                    mensaje = 'Prueba de notificación. A esta hora se registran precipitaciones.';
+                    break;
+            }
+
+            if(sonido && mensaje) {
+                const audio = new Audio(sonido);
+                audio.play();
+                audio.onended = () => hablar(mensaje);
+            }
+        });
+    }
+
 });

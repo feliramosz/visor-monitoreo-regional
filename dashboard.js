@@ -78,6 +78,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const centralSlideDuration = 15000; // 15 segundos por slide
     let imageCarouselInterval;
     let infoPanelTimeout;
+    let memoriaNotificaciones = {
+    calidadAire: {},
+    precipitacion: {}
+    };
         
     function setupCentralContent(data) {
         const container = document.getElementById('central-carousel-container');
@@ -1230,6 +1234,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setInterval(fetchAndRenderMainData, 60 * 1000); // Actualiza datos principales cada 1 min
         setInterval(fetchAndRenderWazeData, 2 * 60 * 1000); // Actualiza Waze cada 2 min
         setInterval(checkForUpdates, 5000);
+        setInterval(verificarNotificaciones, 60000);
     }
 
     // --- Lógica para escuchar cambios desde otras pestañas ---
@@ -1256,6 +1261,121 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('rightColumnCarouselEnabled', e.target.checked);
         setupRightColumnCarousel(lastData); // Re-ejecuta la configuración del carrusel
     });
+
+    //Listener para boton de notificaciones
+    const toggleNotificationsCheck = document.getElementById('toggleNotifications');
+    if (toggleNotificationsCheck) {
+        // Al cargar, establece el estado del checkbox según lo guardado
+        toggleNotificationsCheck.checked = localStorage.getItem('notificacionesLocalesActivas') !== 'false';
+
+        // Al cambiar, guarda la preferencia
+        toggleNotificationsCheck.addEventListener('change', (e) => {
+            localStorage.setItem('notificacionesLocalesActivas', e.target.checked);
+        });
+    }
+
+    // --- SISTEMA DE NOTIFICACIONES POR VOZ ---
+    // Función principal que se ejecuta cada minuto
+    function verificarNotificaciones() {
+        // Guardas para los controles global y local
+        if (!lastData.notificaciones_activadas) {
+            return; // El admin desactivó las notificaciones globalmente
+        }
+        const notificacionesLocales = localStorage.getItem('notificacionesLocalesActivas') !== 'false';
+        if (!notificacionesLocales) {
+            return; // El operador desactivó las notificaciones para su sesión
+        }
+
+        // Llamamos a los gestores de cada tipo de notificación
+        gestionarNotificacionesCalidadAire(lastData.calidad_aire || []);
+        gestionarNotificacionesPrecipitacion(lastData.weather_data || []);
+    }
+
+    function gestionarNotificacionesCalidadAire(estaciones) {
+        let cambios = []; // Almacenará los cambios detectados en este ciclo
+
+        estaciones.forEach(estacion => {
+            const estadoNuevo = estacion.estado;
+            const memoriaEstacion = memoriaNotificaciones.calidadAire[estacion.nombre_estacion] || { estado: 'bueno', ultimaNotificacion: 0 };
+            const estadoAnterior = memoriaEstacion.estado;
+
+            const ahora = Date.now();
+            const tiempoDesdeUltimaNotificacion = ahora - memoriaEstacion.ultimaNotificacion;
+
+            // Mapeo de estados a su severidad y tiempo de recordatorio
+            const severidad = { 'emergencia': 1, 'alarma': 2, 'alerta': 2, 'preemergencia': 2, 'regular': 3 };
+            const tiempoRecordatorio = {
+                'emergencia': 1 * 3600 * 1000, // 1 hora
+                'alarma': 1 * 3600 * 1000,     // 1 hora
+                'alerta': 2 * 3600 * 1000,     // 2 horas
+                'preemergencia': 2 * 3600 * 1000, // 2 horas
+                'regular': 3 * 3600 * 1000      // 3 horas
+            };
+
+            // Detección de un CAMBIO de estado
+            if (estadoNuevo !== estadoAnterior && severidad[estadoNuevo]) {
+                cambios.push({
+                    tipo: 'calidad_aire',
+                    severidad: severidad[estadoNuevo],
+                    nombre: estacion.nombre_estacion,
+                    estado: estadoNuevo
+                });
+                memoriaNotificaciones.calidadAire[estacion.nombre_estacion] = { estado: estadoNuevo, ultimaNotificacion: ahora };
+            }
+            // Detección de un RECORDATORIO
+            else if (estadoNuevo === estadoAnterior && severidad[estadoNuevo] && tiempoDesdeUltimaNotificacion > tiempoRecordatorio[estadoNuevo]) {
+                cambios.push({
+                    tipo: 'recordatorio_calidad_aire',
+                    severidad: severidad[estadoNuevo],
+                    nombre: estacion.nombre_estacion,
+                    estado: estadoNuevo
+                });
+                memoriaNotificaciones.calidadAire[estacion.nombre_estacion].ultimaNotificacion = ahora;
+            }
+        });
+
+        // Procesar y lanzar notificación agrupada si hay cambios
+        if (cambios.length > 0) {
+            // Ordenar por severidad (menor número es más severo)
+            cambios.sort((a, b) => a.severidad - b.severidad);
+
+            const eventoMasGrave = cambios[0];
+            let sonido = `assets/notificacion_${eventoMasGrave.estado}.mp3`;
+
+            let mensajeVoz = "";
+            if (eventoMasGrave.tipo === 'calidad_aire') {
+                mensajeVoz = `Atención, la estación ${eventoMasGrave.nombre} ha cambiado a estado de ${eventoMasGrave.estado}.`;
+                if (eventoMasGrave.severidad <= 2) {
+                    mensajeVoz += " Se debe activar protocolo de contaminación.";
+                }
+            } else { // Recordatorio
+                sonido = 'assets/notificacion_regular.mp3'; // Un sonido sutil para recordatorios
+                mensajeVoz = `Recordatorio: la estación ${eventoMasGrave.nombre} se mantiene en estado de ${eventoMasGrave.estado}.`;
+            }
+
+            // Agrupar el resto de los mensajes
+            if (cambios.length > 1) {
+                mensajeVoz += " Adicionalmente, ";
+                mensajeVoz += cambios.slice(1).map(c => `la estación ${c.nombre} ha pasado a estado ${c.estado}`).join(', ');
+                mensajeVoz += ".";
+            }
+
+            lanzarNotificacion(sonido, mensajeVoz);
+        }
+    }
+
+    function gestionarNotificacionesPrecipitacion(estaciones) {
+        // Implementación futura siguiendo la misma lógica de agrupar y notificar
+    }
+
+    // Función genérica para lanzar sonido y voz
+    function lanzarNotificacion(archivoSonido, texto) {
+        const sonido = new Audio(archivoSonido);
+        sonido.play().catch(e => console.error("Error al reproducir sonido:", e));
+        sonido.onended = () => {
+            hablar(texto);
+        };
+    }
 
     initializeApp();
 });
