@@ -823,8 +823,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Sistema de Carrusel de Avisos ---
     function setupAvisosCarousel(container, titleContainer, controlsContainer, items, noItemsText) {
-        if (!container || !titleContainer || !controlsContainer) return; // Verificación de seguridad
-        
+        if (!container || !titleContainer || !controlsContainer) return 1;
+
         clearInterval(avisosCarouselInterval);
         const groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
         if (items && items.length > 0) {
@@ -833,7 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (titleText.includes('marejada')) groups.marejadas.push(item);
                 else if (titleText.includes('alarma')) groups.alarmas.push(item);
                 else if (titleText.includes('alerta')) groups.alertas.push(item);
-                else if (titleText.includes('aviso')) groups.avisos.push(item);
+                else groups.avisos.push(item); // Aviso como default
             });
         }
 
@@ -841,9 +841,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const span = titleContainer.querySelector(`span[data-title-key="${key}"]`);
             if (span) {
                 const originalText = key.charAt(0).toUpperCase() + key.slice(1);
-                if (groups[key].length > 0) {                    
+                if (groups[key].length > 0) {
                     span.innerHTML = `${originalText} (${groups[key].length})`;
-                } else {                    
+                } else {
                     span.innerHTML = originalText;
                 }
             }
@@ -856,7 +856,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        titleContainer.querySelectorAll('span').forEach(span => span.classList.remove('active-title'));
+
         if (avisoPages.length > 1) {
+            controlsContainer.style.display = 'flex'; // Muestra los botones
             let carouselHtml = '';
             avisoPages.forEach((page, index) => {
                 const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
@@ -867,18 +870,16 @@ document.addEventListener('DOMContentLoaded', () => {
             currentAvisoPage = 0;
             showAvisoPage(currentAvisoPage);
             avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-            controlsContainer.style.display = 'flex';
         } else if (avisoPages.length === 1) {
+            controlsContainer.style.display = 'none'; // Oculta los botones
             const page = avisoPages[0];
             const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
             container.innerHTML = `<ul class="dashboard-list">${listItemsHtml}</ul>`;
-            checkAndApplyVerticalScroll(container);
             titleContainer.querySelector(`span[data-title-key="${page.key}"]`).classList.add('active-title');
-            controlsContainer.style.display = 'none';
+            checkAndApplyVerticalScroll(container);
         } else {
+            controlsContainer.style.display = 'none'; // Oculta los botones
             container.innerHTML = noItemsText;
-            titleContainer.querySelectorAll('span').forEach(span => span.classList.remove('active-title'));
-            controlsContainer.style.display = 'none';
         }
         return avisoPages.length;
     }

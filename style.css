@@ -2283,3 +2283,11 @@ footer {
     font-weight: bold;
     color: #555;
 }
+
+/* AJUSTE PARA TÍTULO DE AVISOS EN DASHBOARD */
+#panel-avisos .dynamic-title {
+    font-size: 1.1em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
