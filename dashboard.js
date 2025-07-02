@@ -144,11 +144,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. Renderizar contenido dentro de los paneles
             const alertasContainer = document.getElementById('alertas-list-container');
             const avisosContainer = document.getElementById('avisos-list-container');
-            const avisosTitle = container.querySelector('#panel-avisos .dynamic-title');
-            const avisosControls = document.getElementById('avisos-carousel-controls');
+            const avisosTitle = container.querySelector('#panel-avisos .dynamic-title');            
             
             renderAlertasList(alertasContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
-            const numAvisoPages = setupAvisosCarousel(avisosContainer, avisosTitle, avisosControls, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
+            const numAvisoPages = setupAvisosCarousel(avisosContainer, avisosTitle, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
 
             const newAvisoPausePlayBtn = document.getElementById('aviso-pause-play-btn');
             if (newAvisoPausePlayBtn) {
