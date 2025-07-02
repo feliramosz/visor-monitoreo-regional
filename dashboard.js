@@ -652,7 +652,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ]);
             const data = await dataResponse.json();
             const novedades = await novedadesResponse.json();
-            
+            console.log("Estructura de datos COMPLETA recibida del servidor:", data);
+
             lastData = data;
 
             numeroInformeDisplay.textContent = novedades.numero_informe_manual || 'N/A';
