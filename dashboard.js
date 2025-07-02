@@ -81,159 +81,87 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupCentralContent(data) {
         const container = document.getElementById('central-carousel-container');
         if (!container) return;
-        
-        // Limpiamos TODOS los intervalos y temporizadores relacionados para un reinicio limpio
-        clearTimeout(infoPanelTimeout);
-        clearInterval(centralCarouselInterval);
-        clearInterval(imageCarouselInterval);
-        // El intervalo de avisos se limpia dentro de su propia función de configuración       
 
-        container.innerHTML = '';
+        // Limpia todos los intervalos para evitar duplicados
+        clearTimeout(infoPanelTimeout);
+        clearInterval(imageCarouselInterval);
 
         const localPref = localStorage.getItem('centralCarouselEnabled');
-        let useCarousel;
-        if (localPref === 'true') {
-            useCarousel = true;
-        } else if (localPref === 'false') {
-            useCarousel = false;
-        } else {
-            useCarousel = data.dashboard_carousel_enabled; // Usar el default del admin
-        }
-
-        // Actualizar el estado del checkbox
+        const useCarousel = (localPref !== null) ? (localPref === 'true') : (data.dashboard_carousel_enabled || false);
         toggleCentralCarouselCheck.checked = useCarousel;
 
-        // La condición final también depende de si existen imágenes
         const finalUseCarousel = useCarousel && data.dynamic_slides && data.dynamic_slides.length > 0;
 
-        if (useCarousel) {
-            // 1. Construir el HTML de las slides
-            const slides = [];
-            const infoPanelsSlide = `
-                <div class="central-slide active-central-slide">
-                    <div id="panel-alertas" class="dashboard-panel">
-                        <h3>Alertas Vigentes</h3>
-                        <div id="alertas-list-container"></div>
-                    </div>
-                    <div id="panel-avisos" class="dashboard-panel">
-                        <h3 class="dynamic-title">
-                            <span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarmas</span> / <span data-title-key="marejadas">Marejadas</span>
-                        </h3>
-                        <div id="avisos-list-container"></div>
-                        <div id="avisos-carousel-controls" style="display: none;">
-                            <button id="aviso-prev-btn">&lt;</button>
-                            <button id="aviso-pause-play-btn">||</button>
-                            <button id="aviso-next-btn">&gt;</button>
-                        </div>
-                    </div>
-                </div>`;
-            slides.push(infoPanelsSlide);
-
-            data.dynamic_slides.forEach(slideInfo => {
-                const imageSlide = `
-                    <div class="central-slide dynamic-image-slide">
-                        <div class="image-slide-content">
-                            <h2>${slideInfo.title || 'Visor de Monitoreo'}</h2>
-                            <img src="${slideInfo.image_url}" alt="${slideInfo.title || ''}" class="responsive-image">
-                            ${slideInfo.description ? `<p>${slideInfo.description}</p>` : ''}
-                        </div>
-                    </div>`;
-                slides.push(imageSlide);
-            });
-
-            container.innerHTML = slides.join('');
-
-            // 2. Renderizar contenido dentro de los paneles
-            const alertasContainer = document.getElementById('alertas-list-container');
-            const avisosContainer = document.getElementById('avisos-list-container');
-            const avisosTitle = container.querySelector('#panel-avisos .dynamic-title');
-            const avisosControls = document.getElementById('avisos-carousel-controls');
-            
-            renderAlertasList(alertasContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
-            const numAvisoPages = setupAvisosCarousel(avisosContainer, avisosTitle, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
-
-            const newAvisoPrevBtn = document.getElementById('aviso-prev-btn');
+        // Lógica unificada para renderizar los paneles de Alertas y Avisos
+        const renderInfoPanels = () => {
+            renderAlertasList(document.getElementById('alertas-list-container'), data.alertas_vigentes);
+            setupAvisosCarousel(document.getElementById('avisos-list-container'), container.querySelector('#panel-avisos .dynamic-title'), data.avisos_alertas_meteorologicas);
             const newAvisoPausePlayBtn = document.getElementById('aviso-pause-play-btn');
-            const newAvisoNextBtn = document.getElementById('aviso-next-btn');
-
-            if (newAvisoPrevBtn) {
-                newAvisoPrevBtn.addEventListener('click', () => {
-                    prevAvisoPage();
-                    resetAvisoInterval();
-                });
-            }
-            if (newAvisoNextBtn) {
-                newAvisoNextBtn.addEventListener('click', () => {
-                    nextAvisoPage();
-                    resetAvisoInterval();
-                });
-            }
             if (newAvisoPausePlayBtn) {
                 newAvisoPausePlayBtn.addEventListener('click', toggleAvisoPausePlay);
             }
+        };
+
+        if (finalUseCarousel) {
+            container.className = ''; // Quita el modo estático si aplica
+            const slides = [];
+            // Slide 1: Paneles de información
+            slides.push(`
+                <div class="central-slide active-central-slide">
+                    <div id="panel-alertas" class="dashboard-panel"><h3>Alertas Vigentes</h3><div id="alertas-list-container"></div></div>
+                    <div id="panel-avisos" class="dashboard-panel">
+                        <div id="panel-avisos-header">
+                            <h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarma</span> / <span data-title-key="marejadas">Marejadas</span></h3>
+                            <button id="aviso-pause-play-btn" style="display: none;">||</button>
+                        </div>
+                        <div id="avisos-list-container"></div>
+                    </div>
+                </div>`);
+
+            // Slides siguientes: Imágenes dinámicas
+            data.dynamic_slides.forEach(slideInfo => {
+                slides.push(`<div class="central-slide dynamic-image-slide"><div class="image-slide-content"><h2>${slideInfo.title || 'Visor de Monitoreo'}</h2><img src="${slideInfo.image_url}" alt="${slideInfo.title || ''}" class="responsive-image">${slideInfo.description ? `<p>${slideInfo.description}</p>` : ''}</div></div>`);
+            });
+            container.innerHTML = slides.join('');
+
+            const numAvisoPages = renderInfoPanels();
 
             const allSlides = container.querySelectorAll('.central-slide');
-            currentCentralSlide = 0;
-
-            // 3. Lógica del carrusel inteligente
+            let currentCentralSlide = 0;
             const startImageCarousel = () => {
                 clearInterval(avisosCarouselInterval);
-
                 allSlides[0].classList.remove('active-central-slide');
                 currentCentralSlide = 1;
-                if (currentCentralSlide >= allSlides.length) {
-                    setupCentralContent(data); 
-                    return;
-                }
+                if (currentCentralSlide >= allSlides.length) { setupCentralContent(data); return; }
                 allSlides[currentCentralSlide].classList.add('active-central-slide');
 
                 imageCarouselInterval = setInterval(() => {
                     allSlides[currentCentralSlide].classList.remove('active-central-slide');
                     currentCentralSlide++;
-
-                    if (currentCentralSlide >= allSlides.length) {
-                        clearInterval(imageCarouselInterval);
-                        setupCentralContent(data);
-                        return;
-                    }
+                    if (currentCentralSlide >= allSlides.length) { clearInterval(imageCarouselInterval); setupCentralContent(data); return; }
                     allSlides[currentCentralSlide].classList.add('active-central-slide');
                 }, centralSlideDuration);
             };
 
-            // 4. Calcular la duración del panel de info
-            const infoPanelDuration = (numAvisoPages > 1) 
-                ? (numAvisoPages * avisoPageDuration) + 500
-                : centralSlideDuration;
-           
-            // 5. Programar la transición usando la variable global
-            infoPanelTimeout = setTimeout(startImageCarousel, infoPanelDuration);           
+            const infoPanelDuration = (numAvisoPages > 1) ? (numAvisoPages * avisoPageDuration) : centralSlideDuration;
+            infoPanelTimeout = setTimeout(startImageCarousel, infoPanelDuration);
 
         } else {
-            // Lógica para el modo estático
+            // Modo Estático (Sin carrusel de imágenes)
             container.className = 'static-mode';
             container.innerHTML = `
-                <div id="panel-alertas" class="dashboard-panel">
-                    <h3>Alertas Vigentes</h3>
-                    <div id="alertas-list-container"></div>
-                </div>
+                <div id="panel-alertas" class="dashboard-panel"><h3>Alertas Vigentes</h3><div id="alertas-list-container"></div></div>
                 <div id="panel-avisos" class="dashboard-panel">
-                    <h3 class="dynamic-title">
-                        <span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarmas</span> / <span data-title-key="marejadas">Marejadas</span>
-                    </h3>
+                    <div id="panel-avisos-header">
+                        <h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarmas</span> / <span data-title-key="marejadas">Marejadas</span></h3>
+                        <button id="aviso-pause-play-btn" style="display: none;">||</button>
+                    </div>
                     <div id="avisos-list-container"></div>
-                    <div id="avisos-carousel-controls" style="display: none;"></div>
                 </div>`;
 
-            const alertasContainer = document.getElementById('alertas-list-container');
-            const avisosContainer = document.getElementById('avisos-list-container');
-            const avisosTitle = container.querySelector('#panel-avisos .dynamic-title');
-            const avisosControls = document.getElementById('avisos-carousel-controls');
-
-            renderAlertasList(alertasContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
-            setupAvisosCarousel(avisosContainer, avisosTitle, avisosControls, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
+            renderInfoPanels();
         }
     }
-    
     /**
      * Convierte un texto a voz utilizando la Web Speech API del navegador.
      * @param {string} texto - El texto a ser leído en voz alta.
