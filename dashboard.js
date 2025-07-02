@@ -823,20 +823,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Sistema de Carrusel de Avisos ---
     function setupAvisosCarousel(container, titleContainer, items, noItemsText) {
-        if (!container || !titleContainer) return 1;
-
-        // La función ahora busca su propio contenedor de controles. ¡Más seguro!
-        const controlsContainer = document.getElementById('avisos-carousel-controls');
-        if (!controlsContainer) {
-            console.error("No se encontró el contenedor de controles #avisos-carousel-controls");
-            return 1;
+        if (!container || !titleContainer) {
+            console.error("Contenedor o título de avisos no encontrado.");
+            return 0;
         }
-
+        
+        const pauseBtn = document.getElementById('aviso-pause-play-btn');
         clearInterval(avisosCarouselInterval);
+
         const groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
         if (items && items.length > 0) {
             items.forEach(item => {
-                const titleText = item.aviso_alerta_alarma.toLowerCase();
+                const titleText = (item.aviso_alerta_alarma || '').toLowerCase();
                 if (titleText.includes('marejada')) groups.marejadas.push(item);
                 else if (titleText.includes('alarma')) groups.alarmas.push(item);
                 else if (titleText.includes('alerta')) groups.alertas.push(item);
@@ -844,55 +842,52 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        Object.keys(groups).forEach(key => {
-            const span = titleContainer.querySelector(`span[data-title-key="${key}"]`);
-            if (span) {
-                const originalText = key.charAt(0).toUpperCase() + key.slice(1);
-                if (groups[key].length > 0) {
-                    span.innerHTML = `${originalText} (${groups[key].length})`;
-                } else {
-                    span.innerHTML = originalText;
-                }
+        avisoPages = Object.keys(groups)
+            .filter(key => groups[key].length > 0)
+            .map(key => ({ key, items: groups[key] }));
+
+        titleContainer.querySelectorAll('span').forEach(span => {
+            const key = span.dataset.titleKey;
+            const groupItems = groups[key] || [];
+            span.innerHTML = `${key.charAt(0).toUpperCase() + key.slice(1)}${groupItems.length > 0 ? ` (${groupItems.length})` : ''}`;
+            
+            if (groupItems.length > 0) {
+                span.style.cursor = "pointer";
+                span.onclick = () => {
+                    const pageIndex = avisoPages.findIndex(p => p.key === key);
+                    if (pageIndex !== -1) {
+                        currentAvisoPage = pageIndex;
+                        showAvisoPage(currentAvisoPage);
+                        resetAvisoInterval();
+                    }
+                };
+            } else {
+                span.style.cursor = "default";
+                span.onclick = null;
             }
         });
 
-        avisoPages = [];
-        Object.keys(groups).forEach(key => {
-            if (groups[key].length > 0) {
-                avisoPages.push({ key: key, items: groups[key] });
+        if (avisoPages.length > 0) {
+            container.innerHTML = avisoPages.map(page =>
+                `<div class="aviso-slide"><ul class="dashboard-list">${page.items.map(item =>
+                    `<li><strong>${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`
+                ).join('')}</ul></div>`
+            ).join('');
+            
+            if (pauseBtn) {
+                pauseBtn.style.display = avisoPages.length > 1 ? 'block' : 'none';
             }
-        });
-        
-        // Log de diagnóstico para ver cuántas páginas se generaron
-        console.log("Número de páginas de avisos:", avisoPages.length);
-
-        titleContainer.querySelectorAll('span').forEach(span => span.classList.remove('active-title'));
-
-        if (avisoPages.length > 1) {
-            console.log("Mostrando botones de navegación de avisos.");
-            controlsContainer.style.display = 'flex'; // Muestra los botones
-            let carouselHtml = '';
-            avisoPages.forEach((page, index) => {
-                const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
-                carouselHtml += `<div class="aviso-slide" data-page-index="${index}"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
-            });
-            container.innerHTML = carouselHtml;
-
+            
             currentAvisoPage = 0;
             showAvisoPage(currentAvisoPage);
-            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-        } else if (avisoPages.length === 1) {
-            console.log("Ocultando botones, solo hay una página de avisos.");
-            controlsContainer.style.display = 'none'; // Oculta los botones
-            const page = avisoPages[0];
-            const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
-            container.innerHTML = `<ul class="dashboard-list">${listItemsHtml}</ul>`;
-            titleContainer.querySelector(`span[data-title-key="${page.key}"]`).classList.add('active-title');
-            checkAndApplyVerticalScroll(container);
+            if (avisoPages.length > 1 && !isAvisoCarouselPaused) {
+                avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
+            }
         } else {
-            console.log("Ocultando botones, no hay avisos.");
-            controlsContainer.style.display = 'none'; // Oculta los botones
-            container.innerHTML = noItemsText;
+            container.innerHTML = noItemsText || '<p>No hay avisos meteorológicos.</p>';
+            if (pauseBtn) {
+                pauseBtn.style.display = 'none';
+            }
         }
         return avisoPages.length;
     }
