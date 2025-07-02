@@ -116,15 +116,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div id="alertas-list-container"></div>
                     </div>
                     <div id="panel-avisos" class="dashboard-panel">
-                        <h3 class="dynamic-title">
-                            <span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarmas</span> / <span data-title-key="marejadas">Marejadas</span>
-                        </h3>
-                        <div id="avisos-list-container"></div>
-                        <div id="avisos-carousel-controls" style="display: none;">
-                            <button id="aviso-prev-btn">&lt;</button>
-                            <button id="aviso-pause-play-btn">||</button>
-                            <button id="aviso-next-btn">&gt;</button>
+                        <div id="panel-avisos-header">
+                            <h3 class="dynamic-title">
+                                <span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarmas</span> / <span data-title-key="marejadas">Marejadas</span>
+                            </h3>
+                            <button id="aviso-pause-play-btn" style="display: none;">||</button>
                         </div>
+                        <div id="avisos-list-container"></div>
                     </div>
                 </div>`;
             slides.push(infoPanelsSlide);
@@ -152,22 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderAlertasList(alertasContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
             const numAvisoPages = setupAvisosCarousel(avisosContainer, avisosTitle, avisosControls, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
 
-            const newAvisoPrevBtn = document.getElementById('aviso-prev-btn');
             const newAvisoPausePlayBtn = document.getElementById('aviso-pause-play-btn');
-            const newAvisoNextBtn = document.getElementById('aviso-next-btn');
-
-            if (newAvisoPrevBtn) {
-                newAvisoPrevBtn.addEventListener('click', () => {
-                    prevAvisoPage();
-                    resetAvisoInterval();
-                });
-            }
-            if (newAvisoNextBtn) {
-                newAvisoNextBtn.addEventListener('click', () => {
-                    nextAvisoPage();
-                    resetAvisoInterval();
-                });
-            }
             if (newAvisoPausePlayBtn) {
                 newAvisoPausePlayBtn.addEventListener('click', toggleAvisoPausePlay);
             }
@@ -822,7 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Sistema de Carrusel de Avisos ---
-    function setupAvisosCarousel(container, titleContainer, controlsContainer, items, noItemsText) {
+    function setupAvisosCarousel(container, titleContainer, items, noItemsText) {
         if (!container || !titleContainer || !controlsContainer) return; // Verificación de seguridad
         
         clearInterval(avisosCarouselInterval);
@@ -849,6 +832,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        titleContainer.querySelectorAll('span').forEach(span => {
+            span.addEventListener('click', () => {
+                const keyToFind = span.dataset.titleKey;
+                const pageIndex = avisoPages.findIndex(p => p.key === keyToFind);
+                if (pageIndex !== -1) {
+                    currentAvisoPage = pageIndex;
+                    showAvisoPage(currentAvisoPage);
+                    resetAvisoInterval(); // Reinicia el temporizador al navegar manualmente
+                }
+            });
+        });
+
         avisoPages = [];
         Object.keys(groups).forEach(key => {
             if (groups[key].length > 0) {
@@ -867,7 +862,8 @@ document.addEventListener('DOMContentLoaded', () => {
             currentAvisoPage = 0;
             showAvisoPage(currentAvisoPage);
             avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-            controlsContainer.style.display = 'flex';
+            const pauseBtn = document.getElementById('aviso-pause-play-btn');
+            if (pauseBtn) pauseBtn.style.display = 'block';
         } else if (avisoPages.length === 1) {
             const page = avisoPages[0];
             const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
