@@ -768,17 +768,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         avisoPages = [];
-        const ITEMS_PER_PAGE = 5; // Máximo 5 items por página
+        const ITEMS_PER_PAGE = 5;
 
         Object.keys(groups).forEach(key => {
             const groupItems = groups[key];
             if (groupItems.length > 0) {
                 const totalPages = Math.ceil(groupItems.length / ITEMS_PER_PAGE);
                 for (let i = 0; i < totalPages; i++) {
-                    const pageItems = groupItems.slice(i * ITEMS_PER_PAGE, (i + 1) * ITEMS_PER_PAGE);
                     avisoPages.push({
                         key: key,
-                        items: pageItems,
+                        items: groupItems.slice(i * ITEMS_PER_PAGE, (i + 1) * ITEMS_PER_PAGE),
                         pageNum: i + 1,
                         totalPages: totalPages
                     });
@@ -786,27 +785,34 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Limpiamos los títulos, ya que se actualizarán dinámicamente
+        // Asignamos la navegación por clic a los títulos
         titleContainer.querySelectorAll('span').forEach(span => {
             const key = span.dataset.titleKey;
-            span.innerHTML = key.charAt(0).toUpperCase() + key.slice(1);
-            span.style.cursor = "default";
-            span.onclick = null;
+            if (groups[key] && groups[key].length > 0) {
+                span.style.cursor = "pointer";
+                span.onclick = () => {
+                    const firstPageIndex = avisoPages.findIndex(p => p.key === key);
+                    if (firstPageIndex !== -1) {
+                        currentAvisoPage = firstPageIndex;
+                        showAvisoPage(currentAvisoPage);
+                        resetAvisoInterval();
+                    }
+                };
+            } else {
+                span.style.cursor = "default";
+                span.onclick = null;
+            }
         });
 
         if (avisoPages.length > 0) {
-            const slidesHtml = avisoPages.map(page => {
+            container.innerHTML = avisoPages.map(page => {
                 const listItemsHtml = page.items.map(item => {
-                    const titulo = item.aviso_alerta_alarma || "Sin Título";
-                    const descripcion = item.descripcion || "Sin Descripción";
-                    const cobertura = item.cobertura || "N/A";
                     const claseCss = `aviso-${page.key}`;
-                    return `<li><strong class="${claseCss}">${titulo}:</strong> ${descripcion}; Cobertura: ${cobertura}</li>`;
+                    return `<li><strong class="${claseCss}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`;
                 }).join('');
                 return `<div class="aviso-slide"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
             }).join('');
-            container.innerHTML = slidesHtml;
-
+            
             if (pauseBtn) pauseBtn.style.display = avisoPages.length > 1 ? 'block' : 'none';
             
             currentAvisoPage = 0;
@@ -826,25 +832,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const slides = document.querySelectorAll('#avisos-list-container .aviso-slide');
         if (!titleContainer || slides.length === 0 || !avisoPages[index]) return;
 
+        // Mueve el slide a la posición correcta
         slides.forEach((slide, i) => {
             slide.style.transform = `translateX(${(i - index) * 100}%)`;
         });
 
         const activePage = avisoPages[index];
         
-        // Actualiza dinámicamente TODOS los títulos
+        // Actualiza dinámicamente el texto de TODOS los títulos en cada cambio
         titleContainer.querySelectorAll('span').forEach(span => {
             const key = span.dataset.titleKey;
             const originalText = key.charAt(0).toUpperCase() + key.slice(1);
+            let totalInCategory = 0;
             
+            // Buscamos la primera página de esta categoría para obtener el total de páginas
+            const firstPageOfCategory = avisoPages.find(p => p.key === key);
+            if (firstPageOfCategory) {
+                totalInCategory = firstPageOfCategory.totalPages;
+            }
+
             if (key === activePage.key) {
                 // Si es el título activo, muestra el conteo de páginas
                 const pageText = activePage.totalPages > 1 ? ` (${activePage.pageNum}/${activePage.totalPages})` : '';
                 span.innerHTML = `${originalText}${pageText}`;
                 span.classList.add('active-title');
             } else {
-                // Si no es activo, solo muestra el nombre
-                span.innerHTML = originalText;
+                // Si no es activo, muestra el conteo total de items si existe
+                const groupItems = (lastData.avisos_alertas_meteorologicas || []).filter(item => (item.aviso_alerta_alarma || '').toLowerCase().includes(key));
+                const countText = groupItems.length > 0 ? ` (${groupItems.length})` : '';
+                span.innerHTML = `${originalText}${countText}`;
                 span.classList.remove('active-title');
             }
         });
