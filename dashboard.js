@@ -78,6 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const centralSlideDuration = 15000; // 15 segundos por slide
     let imageCarouselInterval;
     let infoPanelTimeout;
+    let speechQueue = [];
+    let userHasInteracted = false;
     let memoriaNotificaciones = {
     calidadAire: {},
     precipitacion: {},
@@ -173,12 +175,19 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {string} texto - El texto a ser leído en voz alta.
      */
     function hablar(texto) {
+        if (!userHasInteracted) {
+            // Si el usuario aún no ha interactuado, guarda el mensaje en la fila de espera
+            speechQueue.push(texto);
+            console.log("Mensaje de voz encolado, esperando interacción del usuario.");
+            return;
+        }
+
         if (window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel(); // Si ya está hablando, cancela para dar paso al nuevo mensaje.
+            window.speechSynthesis.cancel();
         }
         const enunciado = new SpeechSynthesisUtterance(texto);
-        enunciado.lang = 'es-CL'; // Español de Chile para una mejor entonación.
-        enunciado.rate = 0.95; // Un poco más lento para mayor claridad.
+        enunciado.lang = 'es-CL';
+        enunciado.rate = 0.95;
         window.speechSynthesis.speak(enunciado);
     }
     
@@ -1213,6 +1222,25 @@ document.addEventListener('DOMContentLoaded', () => {
         updateClocks();
         initializeAirQualityMap();
         initializePrecipitationMap();
+        const unlockSpeech = () => {
+            if (userHasInteracted) return;
+            userHasInteracted = true;
+
+            // Si hay mensajes en la fila de espera, los lee ahora
+            if (speechQueue.length > 0) {
+                console.log("Usuario ha interactuado. Procesando fila de espera de voz...");
+                const textoCompleto = speechQueue.join(' ... ');
+                hablar(textoCompleto);
+                speechQueue = []; // Limpia la fila
+            }
+
+            // Removemos el listener para que no se ejecute más
+            document.removeEventListener('click', unlockSpeech);
+            document.removeEventListener('keydown', unlockSpeech);
+        };
+
+        document.addEventListener('click', unlockSpeech);
+        document.addEventListener('keydown', unlockSpeech);
 
         // 2. OBTENEMOS LOS DATOS PRINCIPALES Y ESPERAMOS A QUE TERMINEN.
         await fetchAndRenderMainData();
