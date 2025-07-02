@@ -116,13 +116,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div id="alertas-list-container"></div>
                     </div>
                     <div id="panel-avisos" class="dashboard-panel">
-                        <div id="panel-avisos-header">
-                            <h3 class="dynamic-title">
-                                <span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarmas</span> / <span data-title-key="marejadas">Marejadas</span>
-                            </h3>
-                            <button id="aviso-pause-play-btn" style="display: none;">||</button>
-                        </div>
+                        <h3 class="dynamic-title">
+                            <span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarmas</span> / <span data-title-key="marejadas">Marejadas</span>
+                        </h3>
                         <div id="avisos-list-container"></div>
+                        <div id="avisos-carousel-controls" style="display: none;">
+                            <button id="aviso-prev-btn">&lt;</button>
+                            <button id="aviso-pause-play-btn">||</button>
+                            <button id="aviso-next-btn">&gt;</button>
+                        </div>
                     </div>
                 </div>`;
             slides.push(infoPanelsSlide);
@@ -144,12 +146,28 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. Renderizar contenido dentro de los paneles
             const alertasContainer = document.getElementById('alertas-list-container');
             const avisosContainer = document.getElementById('avisos-list-container');
-            const avisosTitle = container.querySelector('#panel-avisos .dynamic-title');            
+            const avisosTitle = container.querySelector('#panel-avisos .dynamic-title');
+            const avisosControls = document.getElementById('avisos-carousel-controls');
             
             renderAlertasList(alertasContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
             const numAvisoPages = setupAvisosCarousel(avisosContainer, avisosTitle, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
 
+            const newAvisoPrevBtn = document.getElementById('aviso-prev-btn');
             const newAvisoPausePlayBtn = document.getElementById('aviso-pause-play-btn');
+            const newAvisoNextBtn = document.getElementById('aviso-next-btn');
+
+            if (newAvisoPrevBtn) {
+                newAvisoPrevBtn.addEventListener('click', () => {
+                    prevAvisoPage();
+                    resetAvisoInterval();
+                });
+            }
+            if (newAvisoNextBtn) {
+                newAvisoNextBtn.addEventListener('click', () => {
+                    nextAvisoPage();
+                    resetAvisoInterval();
+                });
+            }
             if (newAvisoPausePlayBtn) {
                 newAvisoPausePlayBtn.addEventListener('click', toggleAvisoPausePlay);
             }
@@ -805,19 +823,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Sistema de Carrusel de Avisos ---
     function setupAvisosCarousel(container, titleContainer, items, noItemsText) {
-        // 1. Asegurarnos de que los elementos básicos existen
-        if (!container || !titleContainer) {
-            console.error("Contenedor o título de avisos no encontrado.");
-            return;
-        }
-        const pauseBtn = document.getElementById('aviso-pause-play-btn');
-        clearInterval(avisosCarouselInterval);
+        if (!container || !titleContainer) return 1;
 
-        // 2. Agrupar los items por categoría
+        // La función ahora busca su propio contenedor de controles. ¡Más seguro!
+        const controlsContainer = document.getElementById('avisos-carousel-controls');
+        if (!controlsContainer) {
+            console.error("No se encontró el contenedor de controles #avisos-carousel-controls");
+            return 1;
+        }
+
+        clearInterval(avisosCarouselInterval);
         const groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
         if (items && items.length > 0) {
             items.forEach(item => {
-                const titleText = (item.aviso_alerta_alarma || '').toLowerCase();
+                const titleText = item.aviso_alerta_alarma.toLowerCase();
                 if (titleText.includes('marejada')) groups.marejadas.push(item);
                 else if (titleText.includes('alarma')) groups.alarmas.push(item);
                 else if (titleText.includes('alerta')) groups.alertas.push(item);
@@ -825,64 +844,57 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // 3. Crear las "páginas" del carrusel solo con las categorías que tienen contenido
-        avisoPages = Object.keys(groups)
-            .filter(key => groups[key].length > 0)
-            .map(key => ({ key, items: groups[key] }));
-
-        // 4. Actualizar los títulos con el conteo y añadirles la lógica de clic
-        titleContainer.querySelectorAll('span').forEach(span => {
-            const key = span.dataset.titleKey;
-            const groupItems = groups[key];
-            const originalText = key.charAt(0).toUpperCase() + key.slice(1);
-            
-            if (groupItems && groupItems.length > 0) {
-                span.innerHTML = `${originalText} (${groupItems.length})`;
-                span.style.cursor = "pointer"; // Hacerlo visualmente "cliqueable"
-                span.onclick = () => {
-                    const pageIndex = avisoPages.findIndex(p => p.key === key);
-                    if (pageIndex !== -1) {
-                        currentAvisoPage = pageIndex;
-                        showAvisoPage(currentAvisoPage);
-                        resetAvisoInterval();
-                    }
-                };
-            } else {
-                span.innerHTML = originalText;
-                span.style.cursor = "default";
-                span.onclick = null;
+        Object.keys(groups).forEach(key => {
+            const span = titleContainer.querySelector(`span[data-title-key="${key}"]`);
+            if (span) {
+                const originalText = key.charAt(0).toUpperCase() + key.slice(1);
+                if (groups[key].length > 0) {
+                    span.innerHTML = `${originalText} (${groups[key].length})`;
+                } else {
+                    span.innerHTML = originalText;
+                }
             }
         });
 
-        // 5. Renderizar el contenido según el número de páginas
-        if (avisoPages.length > 0) {
-            // Construir el HTML de los slides
-            const slidesHtml = avisoPages.map(page => {
-                const listItemsHtml = page.items.map(item => 
-                    `<li><strong>${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`
-                ).join('');
-                return `<div class="aviso-slide"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
-            }).join('');
-            container.innerHTML = slidesHtml;
-
-            // Mostrar el botón de pausa solo si hay más de una página
-            if (pauseBtn) {
-                pauseBtn.style.display = avisoPages.length > 1 ? 'block' : 'none';
+        avisoPages = [];
+        Object.keys(groups).forEach(key => {
+            if (groups[key].length > 0) {
+                avisoPages.push({ key: key, items: groups[key] });
             }
+        });
+        
+        // Log de diagnóstico para ver cuántas páginas se generaron
+        console.log("Número de páginas de avisos:", avisoPages.length);
 
-            // Iniciar el carrusel
+        titleContainer.querySelectorAll('span').forEach(span => span.classList.remove('active-title'));
+
+        if (avisoPages.length > 1) {
+            console.log("Mostrando botones de navegación de avisos.");
+            controlsContainer.style.display = 'flex'; // Muestra los botones
+            let carouselHtml = '';
+            avisoPages.forEach((page, index) => {
+                const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
+                carouselHtml += `<div class="aviso-slide" data-page-index="${index}"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
+            });
+            container.innerHTML = carouselHtml;
+
             currentAvisoPage = 0;
             showAvisoPage(currentAvisoPage);
-            if (avisoPages.length > 1) {
-                avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
-            }
+            avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
+        } else if (avisoPages.length === 1) {
+            console.log("Ocultando botones, solo hay una página de avisos.");
+            controlsContainer.style.display = 'none'; // Oculta los botones
+            const page = avisoPages[0];
+            const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
+            container.innerHTML = `<ul class="dashboard-list">${listItemsHtml}</ul>`;
+            titleContainer.querySelector(`span[data-title-key="${page.key}"]`).classList.add('active-title');
+            checkAndApplyVerticalScroll(container);
         } else {
-            // No hay avisos, mostrar mensaje por defecto y ocultar botón
-            container.innerHTML = noItemsText || '<p>No hay avisos meteorológicos.</p>';
-            if (pauseBtn) {
-                pauseBtn.style.display = 'none';
-            }
+            console.log("Ocultando botones, no hay avisos.");
+            controlsContainer.style.display = 'none'; // Oculta los botones
+            container.innerHTML = noItemsText;
         }
+        return avisoPages.length;
     }
 
     function showAvisoPage(index) {        
