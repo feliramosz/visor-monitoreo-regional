@@ -805,38 +805,83 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Sistema de Carrusel de Avisos ---
     function setupAvisosCarousel(container, titleContainer, items, noItemsText) {
-        console.log("Ejecutando setupAvisosCarousel en MODO SIMPLE DE DIAGNÓSTICO.");
-        
-        if (!container) {
-            console.error("El contenedor de avisos no existe. Abortando.");
+        // 1. Asegurarnos de que los elementos básicos existen
+        if (!container || !titleContainer) {
+            console.error("Contenedor o título de avisos no encontrado.");
             return;
         }
-
-        // Ocultamos los elementos de navegación que no usaremos
         const pauseBtn = document.getElementById('aviso-pause-play-btn');
-        if (pauseBtn) {
-            pauseBtn.style.display = 'none';
+        clearInterval(avisosCarouselInterval);
+
+        // 2. Agrupar los items por categoría
+        const groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
+        if (items && items.length > 0) {
+            items.forEach(item => {
+                const titleText = (item.aviso_alerta_alarma || '').toLowerCase();
+                if (titleText.includes('marejada')) groups.marejadas.push(item);
+                else if (titleText.includes('alarma')) groups.alarmas.push(item);
+                else if (titleText.includes('alerta')) groups.alertas.push(item);
+                else groups.avisos.push(item);
+            });
         }
 
-        if (items && items.length > 0) {
-            // Si hay datos, los mostramos como una lista simple
-            console.log(`Se encontraron ${items.length} avisos. Renderizando lista estática.`);
+        // 3. Crear las "páginas" del carrusel solo con las categorías que tienen contenido
+        avisoPages = Object.keys(groups)
+            .filter(key => groups[key].length > 0)
+            .map(key => ({ key, items: groups[key] }));
 
-            const listItemsHtml = items.map(item => {
-                // Aseguramos que las propiedades existan antes de usarlas
-                const titulo = item.aviso_alerta_alarma || "Sin Título";
-                const descripcion = item.descripcion || "Sin Descripción";
-                const cobertura = item.cobertura || "N/A";
-                
-                return `<li><strong>${titulo}:</strong> ${descripcion}; Cobertura: ${cobertura}</li>`;
+        // 4. Actualizar los títulos con el conteo y añadirles la lógica de clic
+        titleContainer.querySelectorAll('span').forEach(span => {
+            const key = span.dataset.titleKey;
+            const groupItems = groups[key];
+            const originalText = key.charAt(0).toUpperCase() + key.slice(1);
+            
+            if (groupItems && groupItems.length > 0) {
+                span.innerHTML = `${originalText} (${groupItems.length})`;
+                span.style.cursor = "pointer"; // Hacerlo visualmente "cliqueable"
+                span.onclick = () => {
+                    const pageIndex = avisoPages.findIndex(p => p.key === key);
+                    if (pageIndex !== -1) {
+                        currentAvisoPage = pageIndex;
+                        showAvisoPage(currentAvisoPage);
+                        resetAvisoInterval();
+                    }
+                };
+            } else {
+                span.innerHTML = originalText;
+                span.style.cursor = "default";
+                span.onclick = null;
+            }
+        });
+
+        // 5. Renderizar el contenido según el número de páginas
+        if (avisoPages.length > 0) {
+            // Construir el HTML de los slides
+            const slidesHtml = avisoPages.map(page => {
+                const listItemsHtml = page.items.map(item => 
+                    `<li><strong>${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`
+                ).join('');
+                return `<div class="aviso-slide"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
             }).join('');
+            container.innerHTML = slidesHtml;
 
-            container.innerHTML = `<ul class="dashboard-list">${listItemsHtml}</ul>`;
+            // Mostrar el botón de pausa solo si hay más de una página
+            if (pauseBtn) {
+                pauseBtn.style.display = avisoPages.length > 1 ? 'block' : 'none';
+            }
 
+            // Iniciar el carrusel
+            currentAvisoPage = 0;
+            showAvisoPage(currentAvisoPage);
+            if (avisoPages.length > 1) {
+                avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
+            }
         } else {
-            // Si no hay datos, mostramos el mensaje por defecto
-            console.log("No se encontraron avisos en los datos.");
+            // No hay avisos, mostrar mensaje por defecto y ocultar botón
             container.innerHTML = noItemsText || '<p>No hay avisos meteorológicos.</p>';
+            if (pauseBtn) {
+                pauseBtn.style.display = 'none';
+            }
         }
     }
 
