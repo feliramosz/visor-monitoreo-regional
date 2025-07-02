@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const avisosControls = document.getElementById('avisos-carousel-controls');
             
             renderAlertasList(alertasContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
-            const numAvisoPages = setupAvisosCarousel(avisosContainer, avisosTitle, avisosControls, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
+            const numAvisoPages = setupAvisosCarousel(avisosContainer, avisosTitle, data.avisos_alertas_meteorologicas, '<p>No hay avisos meteorológicos.</p>');
 
             const newAvisoPrevBtn = document.getElementById('aviso-prev-btn');
             const newAvisoPausePlayBtn = document.getElementById('aviso-pause-play-btn');
@@ -822,8 +822,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Sistema de Carrusel de Avisos ---
-    function setupAvisosCarousel(container, titleContainer, controlsContainer, items, noItemsText) {
-        if (!container || !titleContainer || !controlsContainer) return 1;
+    function setupAvisosCarousel(container, titleContainer, items, noItemsText) {
+        if (!container || !titleContainer) return 1;
+
+        // La función ahora busca su propio contenedor de controles. ¡Más seguro!
+        const controlsContainer = document.getElementById('avisos-carousel-controls');
+        if (!controlsContainer) {
+            console.error("No se encontró el contenedor de controles #avisos-carousel-controls");
+            return 1;
+        }
 
         clearInterval(avisosCarouselInterval);
         const groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
@@ -833,7 +840,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (titleText.includes('marejada')) groups.marejadas.push(item);
                 else if (titleText.includes('alarma')) groups.alarmas.push(item);
                 else if (titleText.includes('alerta')) groups.alertas.push(item);
-                else groups.avisos.push(item); // Aviso como default
+                else groups.avisos.push(item);
             });
         }
 
@@ -855,10 +862,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 avisoPages.push({ key: key, items: groups[key] });
             }
         });
+        
+        // Log de diagnóstico para ver cuántas páginas se generaron
+        console.log("Número de páginas de avisos:", avisoPages.length);
 
         titleContainer.querySelectorAll('span').forEach(span => span.classList.remove('active-title'));
 
         if (avisoPages.length > 1) {
+            console.log("Mostrando botones de navegación de avisos.");
             controlsContainer.style.display = 'flex'; // Muestra los botones
             let carouselHtml = '';
             avisoPages.forEach((page, index) => {
@@ -871,6 +882,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showAvisoPage(currentAvisoPage);
             avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
         } else if (avisoPages.length === 1) {
+            console.log("Ocultando botones, solo hay una página de avisos.");
             controlsContainer.style.display = 'none'; // Oculta los botones
             const page = avisoPages[0];
             const listItemsHtml = page.items.map(item => `<li><strong class="aviso-${page.key}">${item.aviso_alerta_alarma}:</strong> ${item.descripcion}; Cobertura: ${item.cobertura}</li>`).join('');
@@ -878,6 +890,7 @@ document.addEventListener('DOMContentLoaded', () => {
             titleContainer.querySelector(`span[data-title-key="${page.key}"]`).classList.add('active-title');
             checkAndApplyVerticalScroll(container);
         } else {
+            console.log("Ocultando botones, no hay avisos.");
             controlsContainer.style.display = 'none'; // Oculta los botones
             container.innerHTML = noItemsText;
         }
