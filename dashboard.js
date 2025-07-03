@@ -1359,7 +1359,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     nombre: estacion.nombre_estacion,
                     estado: estadoNuevo
                 });
-                memoriaNotificaciones.calidadAire[estacion.nombre_estacion].ultimaNotificacion = ahora;
+                memoriaNotificaciones.calidadAire[estacion.nombre_estacion] = { estado: estadoNuevo, ultimaNotificacion: ahora };
             }
         });
 
