@@ -127,7 +127,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
             # Encontramos el enlace al boletín de texto dentro del <summary>
             summary_html = BeautifulSoup(latest_entry.find('summary').text, 'html.parser')
-            bulletin_link_tag = summary_html.find('a', string="View bulletin")
+            bulletin_link_tag = summary_html.find('a')
 
             if not bulletin_link_tag or not bulletin_link_tag.has_attr('href'):
                 print("[TSUNAMI_CHECK] ERROR: No se encontró el enlace 'View bulletin' en el feed.")
