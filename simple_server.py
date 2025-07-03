@@ -92,48 +92,84 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         return SESSIONS.get(token)
     
     def _check_tsunami_bulletin(self):
-        print("[TSUNAMI_CHECK] Iniciando la verificación de boletín de tsunami desde el feed XML.")
-        ATOM_FEED_URL = "https://www.tsunami.gov/events/xml/PHEBAtom.xml"
+        print("[TSUNAMI_CHECK] Iniciando la verificación de boletín CAP.")
+        CAP_FEED_URL = "https://www.tsunami.gov/events/xml/PHEBCAP.xml"
+        LAST_BULLETIN_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_bulletin.txt')
+        LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_message.json')
 
         try:
-            # ... (código para leer last_processed_id y descargar el feed es igual) ...
-            headers = {'User-Agent': 'Senapred Valparaiso Monitoring Bot/1.0'}
-            response = requests.get(ATOM_FEED_URL, headers=headers, timeout=30)
-            soup = BeautifulSoup(response.content, 'xml')
-            latest_entry = soup.find('entry')
-            if not latest_entry: return None
+            # 1. Leer el ID del último boletín procesado
+            last_processed_id = ""
+            if os.path.exists(LAST_BULLETIN_FILE):
+                with open(LAST_BULLETIN_FILE, 'r') as f:
+                    last_processed_id = f.read().strip()
 
-            id_tag = latest_entry.find('id')
-            if not id_tag: return None
-            bulletin_id = id_tag.text.strip()
+            # 2. Descargar y parsear el feed CAP XML
+            headers = {'User-Agent': 'Senapred Valparaiso Monitoring Bot/1.1'}
+            response = requests.get(CAP_FEED_URL, headers=headers, timeout=30)
+            response.raise_for_status()
 
-            # ... (código para comparar con last_processed_id es igual) ...
+            # Usamos 'lxml-xml' para un parseo más robusto de XML
+            soup = BeautifulSoup(response.content, 'lxml-xml')
 
-            print(f"[TSUNAMI_CHECK] ¡Boletín nuevo detectado ('{bulletin_id}')! Procesando...")
+            # 3. Extraer el identificador único del boletín
+            identifier_tag = soup.find('identifier')
+            if not identifier_tag or not identifier_tag.text:
+                print("[TSUNAMI_CHECK] ERROR: No se encontró <identifier> en el feed CAP.")
+                return None
+            bulletin_id = identifier_tag.text.strip()
 
-            summary_tag = latest_entry.find('summary')
-            if not summary_tag:
-                print("[TSUNAMI_CHECK] ERROR: No se encontró la etiqueta <summary> en el feed.")
+            # 4. Comparar con el último ID procesado
+            if bulletin_id == last_processed_id:
+                return None # No es un boletín nuevo
+
+            print(f"[TSUNAMI_CHECK] ¡Boletín CAP nuevo detectado ('{bulletin_id}')! Procesando...")
+
+            # 5. Extraer la información relevante del bloque <info>
+            info_tag = soup.find('info')
+            if not info_tag:
+                print("[TSUNAMI_CHECK] ERROR: No se encontró el bloque <info>.")
                 return None
 
-            # --- LÍNEA DE DIAGNÓSTICO IMPORTANTE ---
-            print("----------------- CONTENIDO DEL SUMMARY TAG -----------------")
-            print(summary_tag.text)
-            print("-----------------------------------------------------------")
-            # --- FIN DIAGNÓSTICO ---
+            # Extraemos los datos principales
+            event_code_tag = info_tag.find('eventCode')
+            event_code_value = event_code_tag.find('value').text.strip() if event_code_tag else "Information"
 
-            summary_html = BeautifulSoup(summary_tag.text, 'html.parser')
-            bulletin_link_tag = summary_html.find('a')
+            description = info_tag.find('description').text.strip() if info_tag.find('description') else ""
+            instruction = info_tag.find('instruction').text.strip() if info_tag.find('instruction') else ""
 
-            if not bulletin_link_tag or not bulletin_link_tag.has_attr('href'):
-                print("[TSUNAMI_CHECK] ERROR: No se encontró un enlace <a> dentro del resumen del feed.")
-                return None
+            # Extraemos los parámetros del sismo
+            params = {p.find('valueName').text: p.find('value').text for p in info_tag.find_all('parameter')}
+            magnitude = params.get('EventPreliminaryMagnitude', 'N/A')
+            location = params.get('EventLocationName', 'ubicación no especificada')
 
-            # ... (El resto de la función para procesar y guardar sigue igual) ...
-            # ... (No es necesario pegar el resto aquí) ...
+            # 6. Construir el mensaje de voz en español según las reglas
+            mensaje_voz = f"Boletín de información de tsunami, emitido por el Pacific Tsunami Warning Center. "
+            mensaje_voz += f"Se ha registrado un sismo de magnitud {magnitude} en la región de {location}. "
+
+            sonido = "assets/notificacion_regular.mp3" # Sonido por defecto
+
+            if event_code_value in ["Advisory", "Watch", "Warning"]:
+                mensaje_voz += "¡Atención! El boletín contiene acciones recomendadas importantes. Por favor, revise el sitio web oficial del Pacific Tsunami Warning Center para obtener los detalles oficiales."
+                sonido = "assets/notificacion_alerta.mp3"
+            elif event_code_value == "Information":
+                mensaje_voz += "No se espera un impacto de tsunami. No se requiere tomar ninguna acción."
+            else: # Casos no reconocidos o cancelaciones
+                mensaje_voz += "¡Atención! Se ha recibido un boletín de tsunami con información relevante que requiere su atención. Revise el sitio web oficial del Pacific Tsunami Warning Center para obtener los detalles."
+                sonido = "assets/notificacion_alerta_maxima.mp3"
+
+            print(f"[TSUNAMI_CHECK] Mensaje de voz generado: '{mensaje_voz}'")
+
+            # 7. Guardar el estado para no repetir y para el botón de prueba
+            with open(LAST_BULLETIN_FILE, 'w') as f:
+                f.write(bulletin_id)
+            with open(LAST_MESSAGE_FILE, 'w') as f:
+                json.dump({"sonido": sonido, "mensaje": mensaje_voz}, f, ensure_ascii=False)
+
+            return {"sonido": sonido, "mensaje": mensaje_voz}
 
         except Exception as e:
-            print(f"[TSUNAMI_CHECK] ERROR FATAL en la función: {e}")
+            print(f"[TSUNAMI_CHECK] ERROR FATAL en la función _check_tsunami_bulletin: {e}")
             return None
 
     def _set_headers(self, status_code=200, content_type='text/html'):
