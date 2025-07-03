@@ -1318,6 +1318,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Llamamos a los gestores de cada tipo de notificación
         gestionarNotificacionesPrecipitacion(lastData.weather_data || []);
         gestionarNotificacionesPasoFronterizo(lastData.estado_pasos_fronterizos || []);
+        gestionarNotificacionTsunami();
     }
 
     function gestionarNotificacionesCalidadAire(estaciones) {
@@ -1461,6 +1462,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Pasamos directamente a la voz, sin esperar al sonido.
                 hablar(texto);
             });
+        }
+    }
+
+    async function gestionarNotificacionTsunami() {
+        try {
+            const response = await fetch('/api/tsunami_check');
+            // Si la respuesta es 204 No Content, no hay boletín nuevo, no hacemos nada.
+            if (response.status === 204) {
+                return;
+            }
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.sonido && data.mensaje) {
+                    lanzarNotificacion(data.sonido, data.mensaje);
+                }
+            }
+        } catch (error) {
+            console.error("Error al contactar el API de tsunami:", error);
         }
     }
 

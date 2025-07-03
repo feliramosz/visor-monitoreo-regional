@@ -800,4 +800,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    const testTsunamiBtn = document.getElementById('testTsunamiBtn');
+    if (testTsunamiBtn) {
+        testTsunamiBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/last_tsunami_message');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "No se pudo obtener el último boletín.");
+                }
+                const data = await response.json();
+                if (data && data.sonido && data.mensaje) {
+                    const audio = new Audio(data.sonido);
+                    audio.play();
+                    audio.onended = () => hablar(data.mensaje);
+                } else {
+                    alert("No hay un último boletín de tsunami para probar.");
+                }
+            } catch (error) {
+                console.error("Error al probar notificación de tsunami:", error);
+                alert(error.message);
+            }
+        });
+    }
 });
