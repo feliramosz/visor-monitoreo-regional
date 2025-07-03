@@ -262,34 +262,34 @@
             <div class="message" id="adminMessage"></div>
 
             <section id="informacion-general" class="admin-section active">
-                <h3>Información General del Reporte</h3>
-                <p>La hora del reporte y el tipo (AM/PM) se establecerán automáticamente al momento de guardar los cambios.</p>
-                <label for="adminFechaInforme">Fecha del Informe:</label>
+                <h3>Confg. Fecha y carrusel</h3>
+                <p>En el campo inferior se puede modificar la fecha a mostrar en pagina para exterior, la hora se actualiza automaticamente al presionar guardar.</p>
+                <label for="adminFechaInforme">Fecha proyectada en pantalla exterior:</label>
                 <input type="text" id="adminFechaInforme" placeholder="Ej: martes, 24 de junio de 2025">
 
                 <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
-                    <h4 style="margin-top:0;">Prueba del Boletín Informativo</h4>
+                    <h4 style="margin-top:0;">Botón de prueba para el Boletín Informativo</h4>
                     <p>
                         Presiona este botón para generar y escuchar una vista previa del boletín informativo por voz con los datos cargados actualmente en el panel.
                     </p>
                     <button type="button" id="testBoletinBtn" style="background-color: #17a2b8;">
-                        ▶️ Probar Boletín por Voz
+                        ▶️ Prueba del Boletín por Voz
                     </button>
                 </div>
 
                 <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
-                    <h4 style="margin-top:0;">Configuración del Dashboard</h4>
+                    <h4 style="margin-top:0;">Configuración de carrusel</h4>
                     <label for="adminEnableDashboardCarousel" style="display:flex; align-items:center; gap:10px;">
                         <input type="checkbox" id="adminEnableDashboardCarousel" style="width: auto; height: 18px; flex-shrink:0;">
-                        Habilitar carrusel central en Dashboard (reemplaza Alertas y Avisos por slides si hay imágenes).
+                        Habilitar para todos los usuarios el carrusel central en pantalla Dashboard (reemplaza Alertas y Avisos por slides con imagenes si estas están guardadas).
                     </label>
                     
                     <label for="adminEnableNovedadesCarousel" style="display:flex; align-items:center; gap:10px; margin-top: 10px;">
                         <input type="checkbox" id="adminEnableNovedadesCarousel" style="width: auto; height: 18px; flex-shrink:0;">
-                        Habilitar carrusel en panel derecho (alterna Novedades/Waze con Emergencias 24h).
+                        Habilitar para todos los usuarios el carrusel en panel derecho (alterna Novedades/Waze con Emergencias 24h).
                     </label>
                     <br>
-                    <label for="adminIntervaloSlide" style="font-weight: bold; color: #555;">Velocidad del Carrusel Principal:</label>
+                    <label for="adminIntervaloSlide" style="font-weight: bold; color: #555;">Velocidad del Carrusel en pantalla exterior:</label>
                     <select id="adminIntervaloSlide" style="width: 100%; max-width:250px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
                         <option value="5000">5 segundos</option>
                         <option value="10000" selected>10 segundos</option>
@@ -305,12 +305,12 @@
 
                     <label for="adminNotificacionesActivas" style="display:flex; align-items:center; gap:10px;">
                         <input type="checkbox" id="adminNotificacionesActivas" style="width: auto; height: 18px; flex-shrink:0;">
-                        Activar notificaciones de eventos (Global para todos los usuarios).
+                        Activar notificaciones de eventos por voz (Global para todos los usuarios).
                     </label>
 
                     <hr style="margin: 20px 0;">
 
-                    <p>Usa este botón para probar los diferentes sonidos y mensajes de alerta.</p>
+                    <p>Selecciona de la lista y usa el botón para probar los diferentes sonidos y mensajes de alerta.</p>
                     <select id="testNotificationType" style="margin-bottom: 10px; padding: 8px;">
                         <option value="regular">Prueba: Estado Regular</option>
                         <option value="alerta">Prueba: Estado Alerta</option>
@@ -332,12 +332,12 @@
                     <hr style="margin: 20px 0;">
 
                     <h4>Registro de Novedades</h4>
-                    <label for="adminNovedadInput">Texto de la nueva novedad:</label>
+                    <label for="adminNovedadInput">Texto de la nueva novedad: (no olvidar presionar "Guardar todos los cambios" luego de "Añadir novedad)</label>
                     <input type="text" id="adminNovedadInput" placeholder="Escriba aquí y presione 'Añadir'...">
                     <input type="hidden" id="adminNovedadEditIndex">
                     <button type="button" id="addNovedadBtn">Añadir Novedad</button>
 
-                    <h4>Historial de Novedades:</h4>
+                    <h4>Novedades guardadas y proyectadas a la pantalla:</h4>
                     <div id="novedadesListContainer">
                         <p>Cargando novedades...</p>
                     </div>
