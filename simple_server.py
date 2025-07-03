@@ -92,40 +92,45 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         return SESSIONS.get(token)
     
     def _check_tsunami_bulletin(self):
+        print("[TSUNAMI_CHECK] Iniciando la verificación de boletín de tsunami.")
         TSUNAMI_URL = "https://www.tsunami.gov/?page=productRetrieval"
         LAST_BULLETIN_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_bulletin.txt')
         LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_message.json')
-
+        
         try:
-            # 1. Leer el ID del último boletín que procesamos
             last_processed_id = ""
             if os.path.exists(LAST_BULLETIN_FILE):
                 with open(LAST_BULLETIN_FILE, 'r') as f:
                     last_processed_id = f.read().strip()
+            print(f"[TSUNAMI_CHECK] Último ID procesado: '{last_processed_id}'")
 
-            # 2. Obtener la página principal de boletines
-            headers = {'User-Agent': 'Senapred Valparaiso Monitoring Bot'}
-            response = requests.get(TSUNAMI_URL, headers=headers, timeout=20)
+            headers = {'User-Agent': 'Senapred Valparaiso Monitoring Bot/1.0'}
+            print(f"[TSUNAMI_CHECK] Descargando página principal: {TSUNAMI_URL}")
+            response = requests.get(TSUNAMI_URL, headers=headers, timeout=30)
             response.raise_for_status()
+            print("[TSUNAMI_CHECK] Página principal descargada con éxito.")
+            
             soup = BeautifulSoup(response.content, 'html.parser')
-
-            # 3. Encontrar el enlace al boletín más reciente
+            
             latest_link = soup.select_one('table.product-table a')
             if not latest_link or not latest_link.has_attr('href'):
-                return None # No se encontró ningún enlace
+                print("[TSUNAMI_CHECK] ERROR: No se encontró el enlace del boletín en la página.")
+                return None
 
-            latest_bulletin_url = "https://www.tsunami.gov" + latest_link['href']
-            bulletin_id = latest_link.text.strip() # Usamos el texto del enlace como ID único
+            bulletin_id = latest_link.text.strip()
+            print(f"[TSUNAMI_CHECK] Boletín más reciente encontrado en la página: '{bulletin_id}'")
 
-            # 4. Comparar con el último boletín procesado
             if bulletin_id == last_processed_id:
-                return None # No es un boletín nuevo, no hacemos nada
+                print("[TSUNAMI_CHECK] No hay boletines nuevos. Terminando.")
+                return None
 
-            # 5. ¡Es un boletín nuevo! Lo descargamos y procesamos
-            bulletin_response = requests.get(latest_bulletin_url, headers=headers, timeout=20)
+            print(f"[TSUNAMI_CHECK] ¡Boletín nuevo detectado! Procesando...")
+            latest_bulletin_url = "https://www.tsunami.gov" + latest_link['href']
+            
+            bulletin_response = requests.get(latest_bulletin_url, headers=headers, timeout=30)
             bulletin_text = bulletin_response.text
+            print("[TSUNAMI_CHECK] Contenido del boletín descargado.")
 
-            # 6. Extraer y "traducir" la información clave
             mensaje_voz = "Boletín de información de tsunami, número " + bulletin_id.split()[-1] + ". "
             evaluacion = ""
             acciones = "No se requiere tomar ninguna acción."
@@ -134,39 +139,44 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             if "EVALUATION" in bulletin_text:
                 eval_section = bulletin_text.split("EVALUATION")[1].split("$$")[0]
                 if "AN EARTHQUAKE WITH A PRELIMINARY MAGNITUDE" in eval_section:
-                    parts = eval_section.split()
                     try:
+                        parts = eval_section.split()
                         mag_index = parts.index("MAGNITUDE") + 2
-                        loc_index = parts.index("IN") + 1
-                        location = " ".join(parts[loc_index:loc_index+3]).replace("AT", "").strip()
+                        loc_parts = []
+                        for i in range(parts.index("IN") + 1, len(parts)):
+                            if parts[i] == "AT": break
+                            loc_parts.append(parts[i])
+                        location = " ".join(loc_parts)
                         evaluacion = f"Evaluación: Se ha registrado un sismo con una magnitud preliminar de {parts[mag_index]} en {location}. "
-                    except (ValueError, IndexError):
+                    except Exception as e:
+                        print(f"[TSUNAMI_CHECK] Error al parsear sección EVALUATION: {e}")
                         evaluacion = "Se ha registrado un sismo. "
-
+            
             if "RECOMMENDED ACTIONS" in bulletin_text:
                 action_section = bulletin_text.split("RECOMMENDED ACTIONS")[1].split("$$")[0]
                 action_text_lower = action_section.lower()
-
                 if "evacuate" in action_text_lower or "evacuation" in action_text_lower:
                     acciones = "¡Atención! El boletín contiene acciones recomendadas importantes. Por favor, revise el sitio web oficial del Pacific Tsunami Warning Center para obtener los detalles oficiales."
                     sonido = "assets/notificacion_alerta.mp3"
                 elif "no action is required" not in action_text_lower:
-                    # Si no dice "no action" pero tampoco dice "evacuate", es un caso no estándar
                     acciones = "¡Atención! Se ha recibido un boletín de tsunami con información relevante que requiere su atención. Revise el sitio web oficial del Pacific Tsunami Warning Center para obtener los detalles."
                     sonido = "assets/notificacion_alerta_maxima.mp3"
 
             mensaje_voz += evaluacion + acciones
+            print(f"[TSUNAMI_CHECK] Mensaje de voz generado: '{mensaje_voz}'")
 
-            # 7. Guardar el ID de este boletín para no repetirlo
             with open(LAST_BULLETIN_FILE, 'w') as f:
                 f.write(bulletin_id)
+            print(f"[TSUNAMI_CHECK] ID del nuevo boletín guardado en {LAST_BULLETIN_FILE}")
 
-            # 8. Guardar el mensaje completo para el botón de prueba
             with open(LAST_MESSAGE_FILE, 'w') as f:
                 json.dump({"sonido": sonido, "mensaje": mensaje_voz}, f)
+            print(f"[TSUNAMI_CHECK] Mensaje de voz guardado en {LAST_MESSAGE_FILE}")
+            
             return {"sonido": sonido, "mensaje": mensaje_voz}
+
         except Exception as e:
-            print(f"Error al verificar boletín de tsunami: {e}")
+            print(f"[TSUNAMI_CHECK] ERROR FATAL en la función: {e}")
             return None
 
     def _set_headers(self, status_code=200, content_type='text/html'):
