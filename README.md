@@ -1,6 +1,6 @@
 # Sistema de Monitoreo Regional - SENAPRED Valparaíso
 
-_Última actualización: 2 de julio de 2025_
+_Última actualización: 3 de julio de 2025_
 
 ![Estado](https://img.shields.io/badge/estado-en_producción-green)
 ![Python](https://img.shields.io/badge/python-3.x-blue.svg)
@@ -53,11 +53,12 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
     -   El contenido es **generado dinámicamente** a partir de los datos más recientes.
     -   Incluye un **botón de prueba** en el panel de administración para ejecutar el boletín manualmente en cualquier momento.
 -   **[NUEVO] Sistema de Notificaciones de Eventos por Voz**:
-    -   **Alertas Inteligentes**: El sistema notifica por voz únicamente cuando detecta **cambios de estado** en variables críticas, como la calidad del aire o el estado de pasos fronterizos.
+    -   **Alertas Inteligentes**: El sistema notifica por voz únicamente cuando detecta **cambios de estado** en variables críticas, como la calidad del aire, el estado de pasos fronterizos y **alertas de tsunami**.
+    -   **[NUEVO] Monitoreo de Tsunamis (PTWC)**: El sistema vigila el feed oficial de Alerta Común (CAP) del PTWC, interpreta los boletines y notifica eventos nuevos, distinguiendo entre niveles de amenaza para entregar un mensaje de voz claro, seguro y en español.
     -   **Priorización de Sonidos**: Si ocurren múltiples eventos simultáneamente, el sistema reproduce un **único sonido correspondiente al evento de mayor severidad** y luego detalla todos los cambios en un solo mensaje de voz.
     -   **Recordatorios Configurables**: Emite recordatorios de voz para situaciones anómalas que se mantienen en el tiempo, con una frecuencia variable según la criticidad (ej: cada 1 hora para emergencias, cada 3 horas para estados regulares).
     -   **Controles de Activación**: Incluye un **control global** en el panel de administración para activar/desactivar las notificaciones para todos, y un **control local** en el dashboard para que cada operador pueda silenciar las alertas en su propia sesión.
-    -   **Módulo de Prueba**: El panel de administración cuenta con un botón para probar los diferentes sonidos y mensajes de notificación.
+    -   **Módulo de Prueba**: El panel de administración cuenta con botones para probar los diferentes sonidos y mensajes de notificación.
 -   **Panel de Administración Centralizado**: Una interfaz (`admin.html`) que permite a los operadores autorizados editar datos, gestionar el panel de "Novedades", subir imágenes para slides dinámicas y controlar la configuración global de visualización del dashboard.
 -   **Visualización de Turnos en Tiempo Real**: El dashboard muestra automáticamente al **Profesional a llamado** y a los **Operadores de Turno** según la hora y fecha actual, gestionado a través de un archivo `turnos.json` centralizado.
 -   **Visualización Avanzada de Datos**:
@@ -83,6 +84,7 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 -   **Añadida Visualización de Personal de Turno en Tiempo Real**, basado en un calendario configurable.
 -   **Implementado Sistema de Boletines Informativos por Voz**, con activaciones programadas y contenido dinámico.
 -   **[NUEVO] Implementado Sistema de Notificaciones de Eventos por Voz**, con alertas priorizadas, recordatorios inteligentes y controles de activación global y local.
+    -   **Añadido monitoreo de boletines de tsunami del PTWC** con análisis de datos CAP y plantillas de voz en español.
 
 ## 📝 Próximos Pasos y Tareas Pendientes
 
