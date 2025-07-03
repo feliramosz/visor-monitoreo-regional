@@ -92,11 +92,11 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         return SESSIONS.get(token)
     
     def _check_tsunami_bulletin(self):
-        print("[TSUNAMI_CHECK] Iniciando la verificación de boletín de tsunami.")
-        TSUNAMI_URL = "https://www.tsunami.gov/?page=productRetrieval"
+        print("[TSUNAMI_CHECK] Iniciando la verificación de boletín de tsunami desde el feed XML.")
+        ATOM_FEED_URL = "https://www.tsunami.gov/events/xml/PHEBAtom.xml"
         LAST_BULLETIN_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_bulletin.txt')
         LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_message.json')
-        
+
         try:
             last_processed_id = ""
             if os.path.exists(LAST_BULLETIN_FILE):
@@ -105,33 +105,42 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             print(f"[TSUNAMI_CHECK] Último ID procesado: '{last_processed_id}'")
 
             headers = {'User-Agent': 'Senapred Valparaiso Monitoring Bot/1.0'}
-            print(f"[TSUNAMI_CHECK] Descargando página principal: {TSUNAMI_URL}")
-            response = requests.get(TSUNAMI_URL, headers=headers, timeout=30)
+            response = requests.get(ATOM_FEED_URL, headers=headers, timeout=30)
             response.raise_for_status()
-            print("[TSUNAMI_CHECK] Página principal descargada con éxito.")
-            
-            soup = BeautifulSoup(response.content, 'html.parser')
-            
-            latest_link = soup.select_one('table.product-table a')
-            if not latest_link or not latest_link.has_attr('href'):
-                print("[TSUNAMI_CHECK] ERROR: No se encontró el enlace del boletín en la página.")
+            print("[TSUNAMI_CHECK] Feed XML descargado con éxito.")
+
+            soup = BeautifulSoup(response.content, 'xml') # Usamos el parser de XML
+
+            latest_entry = soup.find('entry') # El primer <entry> es siempre el más reciente
+            if not latest_entry:
+                print("[TSUNAMI_CHECK] ERROR: No se encontró ninguna <entry> en el feed XML.")
                 return None
 
-            bulletin_id = latest_link.text.strip()
-            print(f"[TSUNAMI_CHECK] Boletín más reciente encontrado en la página: '{bulletin_id}'")
+            bulletin_id = latest_entry.find('id').text.strip()
+            print(f"[TSUNAMI_CHECK] Boletín más reciente encontrado en el feed: '{bulletin_id}'")
 
             if bulletin_id == last_processed_id:
                 print("[TSUNAMI_CHECK] No hay boletines nuevos. Terminando.")
                 return None
 
             print(f"[TSUNAMI_CHECK] ¡Boletín nuevo detectado! Procesando...")
-            latest_bulletin_url = "https://www.tsunami.gov" + latest_link['href']
-            
+
+            # Encontramos el enlace al boletín de texto dentro del <summary>
+            summary_html = BeautifulSoup(latest_entry.find('summary').text, 'html.parser')
+            bulletin_link_tag = summary_html.find('a', string="View bulletin")
+
+            if not bulletin_link_tag or not bulletin_link_tag.has_attr('href'):
+                print("[TSUNAMI_CHECK] ERROR: No se encontró el enlace 'View bulletin' en el feed.")
+                return None
+
+            latest_bulletin_url = bulletin_link_tag['href']
+
             bulletin_response = requests.get(latest_bulletin_url, headers=headers, timeout=30)
             bulletin_text = bulletin_response.text
-            print("[TSUNAMI_CHECK] Contenido del boletín descargado.")
+            print("[TSUNAMI_CHECK] Contenido del boletín de texto descargado.")
 
-            mensaje_voz = "Boletín de información de tsunami, número " + bulletin_id.split()[-1] + ". "
+            # --- El resto de la lógica para generar el mensaje es la misma ---
+            mensaje_voz = "Boletín de información de tsunami. "
             evaluacion = ""
             acciones = "No se requiere tomar ninguna acción."
             sonido = "assets/notificacion_regular.mp3"
@@ -149,12 +158,10 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         location = " ".join(loc_parts)
                         evaluacion = f"Evaluación: Se ha registrado un sismo con una magnitud preliminar de {parts[mag_index]} en {location}. "
                     except Exception as e:
-                        print(f"[TSUNAMI_CHECK] Error al parsear sección EVALUATION: {e}")
                         evaluacion = "Se ha registrado un sismo. "
-            
+
             if "RECOMMENDED ACTIONS" in bulletin_text:
-                action_section = bulletin_text.split("RECOMMENDED ACTIONS")[1].split("$$")[0]
-                action_text_lower = action_section.lower()
+                action_text_lower = bulletin_text.split("RECOMMENDED ACTIONS")[1].split("$$")[0].lower()
                 if "evacuate" in action_text_lower or "evacuation" in action_text_lower:
                     acciones = "¡Atención! El boletín contiene acciones recomendadas importantes. Por favor, revise el sitio web oficial del Pacific Tsunami Warning Center para obtener los detalles oficiales."
                     sonido = "assets/notificacion_alerta.mp3"
@@ -163,16 +170,15 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     sonido = "assets/notificacion_alerta_maxima.mp3"
 
             mensaje_voz += evaluacion + acciones
-            print(f"[TSUNAMI_CHECK] Mensaje de voz generado: '{mensaje_voz}'")
 
             with open(LAST_BULLETIN_FILE, 'w') as f:
                 f.write(bulletin_id)
-            print(f"[TSUNAMI_CHECK] ID del nuevo boletín guardado en {LAST_BULLETIN_FILE}")
+            print(f"[TSUNAMI_CHECK] ID del nuevo boletín guardado: {bulletin_id}")
 
             with open(LAST_MESSAGE_FILE, 'w') as f:
                 json.dump({"sonido": sonido, "mensaje": mensaje_voz}, f)
             print(f"[TSUNAMI_CHECK] Mensaje de voz guardado en {LAST_MESSAGE_FILE}")
-            
+
             return {"sonido": sonido, "mensaje": mensaje_voz}
 
         except Exception as e:
