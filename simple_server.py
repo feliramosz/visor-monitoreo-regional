@@ -94,41 +94,33 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
     def _check_tsunami_bulletin(self):
         print("[TSUNAMI_CHECK] Iniciando la verificación de boletín de tsunami desde el feed XML.")
         ATOM_FEED_URL = "https://www.tsunami.gov/events/xml/PHEBAtom.xml"
-        LAST_BULLETIN_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_bulletin.txt')
-        LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_message.json')
 
         try:
-            last_processed_id = ""
-            if os.path.exists(LAST_BULLETIN_FILE):
-                with open(LAST_BULLETIN_FILE, 'r') as f:
-                    last_processed_id = f.read().strip()
-
+            # ... (código para leer last_processed_id y descargar el feed es igual) ...
             headers = {'User-Agent': 'Senapred Valparaiso Monitoring Bot/1.0'}
             response = requests.get(ATOM_FEED_URL, headers=headers, timeout=30)
-            response.raise_for_status()
-            print("[TSUNAMI_CHECK] Feed XML descargado con éxito.")
-
             soup = BeautifulSoup(response.content, 'xml')
             latest_entry = soup.find('entry')
-            if not latest_entry:
-                print("[TSUNAMI_CHECK] No se encontró ninguna <entry> en el feed XML.")
-                return None
+            if not latest_entry: return None
 
             id_tag = latest_entry.find('id')
-            if not id_tag or not id_tag.text:
-                print("[TSUNAMI_CHECK] La entrada del feed no contiene una etiqueta <id> válida.")
-                return None
+            if not id_tag: return None
             bulletin_id = id_tag.text.strip()
 
-            if bulletin_id == last_processed_id:
-                return None
+            # ... (código para comparar con last_processed_id es igual) ...
 
             print(f"[TSUNAMI_CHECK] ¡Boletín nuevo detectado ('{bulletin_id}')! Procesando...")
 
             summary_tag = latest_entry.find('summary')
-            if not summary_tag or not summary_tag.text:
-                print("[TSUNAMI_CHECK] ERROR: La entrada del feed no contiene una etiqueta <summary> válida.")
+            if not summary_tag:
+                print("[TSUNAMI_CHECK] ERROR: No se encontró la etiqueta <summary> en el feed.")
                 return None
+
+            # --- LÍNEA DE DIAGNÓSTICO IMPORTANTE ---
+            print("----------------- CONTENIDO DEL SUMMARY TAG -----------------")
+            print(summary_tag.text)
+            print("-----------------------------------------------------------")
+            # --- FIN DIAGNÓSTICO ---
 
             summary_html = BeautifulSoup(summary_tag.text, 'html.parser')
             bulletin_link_tag = summary_html.find('a')
@@ -137,52 +129,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 print("[TSUNAMI_CHECK] ERROR: No se encontró un enlace <a> dentro del resumen del feed.")
                 return None
 
-            latest_bulletin_url = bulletin_link_tag['href']
-
-            bulletin_response = requests.get(latest_bulletin_url, headers=headers, timeout=30)
-            bulletin_text = bulletin_response.text
-            print("[TSUNAMI_CHECK] Contenido del boletín de texto descargado.")
-
-            # --- El resto de la lógica para generar el mensaje es la misma ---
-            mensaje_voz = "Boletín de información de tsunami. "
-            evaluacion = ""
-            acciones = "No se requiere tomar ninguna acción."
-            sonido = "assets/notificacion_regular.mp3"
-
-            if "EVALUATION" in bulletin_text:
-                eval_section = bulletin_text.split("EVALUATION")[1].split("$$")[0]
-                if "AN EARTHQUAKE WITH A PRELIMINARY MAGNITUDE" in eval_section:
-                    try:
-                        parts = eval_section.split()
-                        mag_index = parts.index("MAGNITUDE") + 2
-                        loc_parts = []
-                        for i in range(parts.index("IN") + 1, len(parts)):
-                            if parts[i] == "AT": break
-                            loc_parts.append(parts[i])
-                        location = " ".join(loc_parts)
-                        evaluacion = f"Evaluación: Se ha registrado un sismo con una magnitud preliminar de {parts[mag_index]} en {location}. "
-                    except Exception as e:
-                        print(f"[TSUNAMI_CHECK] Advertencia: No se pudo parsear sección EVALUATION: {e}")
-                        evaluacion = "Se ha registrado un sismo. "
-
-            if "RECOMMENDED ACTIONS" in bulletin_text:
-                action_text_lower = bulletin_text.split("RECOMMENDED ACTIONS")[1].split("$$")[0].lower()
-                if "evacuate" in action_text_lower or "evacuation" in action_text_lower:
-                    acciones = "¡Atención! El boletín contiene acciones recomendadas importantes. Por favor, revise el sitio web oficial del Pacific Tsunami Warning Center para obtener los detalles oficiales."
-                    sonido = "assets/notificacion_alerta.mp3"
-                elif "no action is required" not in action_text_lower:
-                    acciones = "¡Atención! Se ha recibido un boletín de tsunami con información relevante que requiere su atención. Revise el sitio web oficial del Pacific Tsunami Warning Center para obtener los detalles."
-                    sonido = "assets/notificacion_alerta_maxima.mp3"
-
-            mensaje_voz += evaluacion + acciones
-
-            with open(LAST_BULLETIN_FILE, 'w') as f:
-                f.write(bulletin_id)
-            with open(LAST_MESSAGE_FILE, 'w') as f:
-                json.dump({"sonido": sonido, "mensaje": mensaje_voz}, f, ensure_ascii=False)
-
-            print("[TSUNAMI_CHECK] Proceso completado. Notificación generada.")
-            return {"sonido": sonido, "mensaje": mensaje_voz}
+            # ... (El resto de la función para procesar y guardar sigue igual) ...
+            # ... (No es necesario pegar el resto aquí) ...
 
         except Exception as e:
             print(f"[TSUNAMI_CHECK] ERROR FATAL en la función: {e}")
