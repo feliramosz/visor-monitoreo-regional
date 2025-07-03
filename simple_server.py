@@ -106,14 +106,17 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             headers = {'User-Agent': 'Senapred Valparaiso Monitoring Bot/1.0'}
             response = requests.get(ATOM_FEED_URL, headers=headers, timeout=30)
             response.raise_for_status()
+            print("[TSUNAMI_CHECK] Feed XML descargado con éxito.")
 
             soup = BeautifulSoup(response.content, 'xml')
             latest_entry = soup.find('entry')
             if not latest_entry:
+                print("[TSUNAMI_CHECK] No se encontró ninguna <entry> en el feed XML.")
                 return None
 
             id_tag = latest_entry.find('id')
-            if not id_tag:
+            if not id_tag or not id_tag.text:
+                print("[TSUNAMI_CHECK] La entrada del feed no contiene una etiqueta <id> válida.")
                 return None
             bulletin_id = id_tag.text.strip()
 
@@ -122,15 +125,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
             print(f"[TSUNAMI_CHECK] ¡Boletín nuevo detectado ('{bulletin_id}')! Procesando...")
 
-            # --- MÉTODO CORREGIDO Y DEFINITIVO PARA ENCONTRAR EL ENLACE ---
             summary_tag = latest_entry.find('summary')
-            if not summary_tag:
-                print("[TSUNAMI_CHECK] ERROR: No se encontró la etiqueta <summary> en el feed.")
+            if not summary_tag or not summary_tag.text:
+                print("[TSUNAMI_CHECK] ERROR: La entrada del feed no contiene una etiqueta <summary> válida.")
                 return None
 
-            # Parseamos el contenido del resumen como si fuera una página HTML
             summary_html = BeautifulSoup(summary_tag.text, 'html.parser')
-            # Buscamos la primera etiqueta <a> que encontremos. ¡Más robusto!
             bulletin_link_tag = summary_html.find('a')
 
             if not bulletin_link_tag or not bulletin_link_tag.has_attr('href'):
@@ -161,7 +161,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             loc_parts.append(parts[i])
                         location = " ".join(loc_parts)
                         evaluacion = f"Evaluación: Se ha registrado un sismo con una magnitud preliminar de {parts[mag_index]} en {location}. "
-                    except Exception:
+                    except Exception as e:
+                        print(f"[TSUNAMI_CHECK] Advertencia: No se pudo parsear sección EVALUATION: {e}")
                         evaluacion = "Se ha registrado un sismo. "
 
             if "RECOMMENDED ACTIONS" in bulletin_text:
