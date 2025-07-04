@@ -113,6 +113,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const sidebarLinks = document.querySelectorAll('.admin-sidebar nav ul li a');
     const adminSections = document.querySelectorAll('.admin-section');
+
+    // --- MANEJADOR DE CLICS DEL MENÚ LATERAL ---
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            sidebarLinks.forEach(l => l.classList.remove('active'));
+            adminSections.forEach(s => s.classList.remove('active'));
+
+            this.classList.add('active');
+            const sectionId = this.dataset.section;
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Llama a la función de inicialización correcta según la sección
+            if (sectionId === 'gestion-usuarios') {
+                loadUsers();
+            } else if (sectionId === 'log-actividad') {
+                loadActivityLog();
+            } else if (sectionId === 'gestion-turnos') {
+                inicializarGestionTurnos();
+            } else if (sectionId === 'mis-turnos') {
+                inicializarMisTurnos();
+            } else if (sectionId === 'mi-perfil') {
+                // Esta sección no necesita una función especial al cargar
+            }
+        });
+    });
     
     function showMessage(message, type) {
         adminMessage.textContent = message;
@@ -1210,33 +1237,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         calendarioHtml += '</div>';
         misTurnosCalendarioContainer.innerHTML = calendarioHtml;
     }
-
-    // --- MANEJADOR DE CLICS DEL MENÚ LATERAL ---
-    sidebarLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            sidebarLinks.forEach(l => l.classList.remove('active'));
-            adminSections.forEach(s => s.classList.remove('active'));
-
-            this.classList.add('active');
-            const sectionId = this.dataset.section;
-            document.getElementById(sectionId).classList.add('active');
-            
-            // Ejecutar la función correspondiente para la sección seleccionada
-            if (sectionId === 'gestion-usuarios') {
-                loadUsers();
-            } else if (sectionId === 'log-actividad') {
-                loadActivityLog();
-            } else if (sectionId === 'gestion-turnos') {
-                inicializarGestionTurnos();
-            } else if (sectionId === 'mis-turnos') {
-                inicializarMisTurnos();
-            } else if (sectionId === 'mi-perfil') {
-                // No necesita una función de inicialización especial por ahora
-            }
-        });
-    });
 
     // --- Lógica para el botón de Cambiar Contraseña ---
     const changePasswordBtn = document.getElementById('changePasswordBtn');
