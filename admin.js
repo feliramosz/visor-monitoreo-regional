@@ -1074,7 +1074,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const user = await response.json();
                 
                 const mapaUsuarioAIniciales = {
-                    "framos": "FRZ", "lcifuentes": "LCC", "smiranda": "SMM", "aaltamirano": "AAG", 
+                    "felipe": "FRZ", "lcifuentes": "LCC", "smiranda": "SMM", "aaltamirano": "AAG", 
                     "vmaturana": "VMV", "fsaavedra": "FSO", "paceituno": "PAM", "epino": "EPA", "mzamora": "MZH",
                     "fsalas": "FSP", "fsoto": "FSA", "brahmer": "BRL", "gmuzio": "GMH", "paraneda": "PAR", "festay": "FED"
                 };
@@ -1124,10 +1124,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             misTurnosCalendarioContainer.innerHTML = `<p style="color: red;">${error.message}</p>`;
         }
     }
-
-    // Dibuja la grilla del calendario (ahora más robusta)
+    
+    // Dibuja la grilla del calendario personal, filtrando o resaltando según el checkbox
     function renderizarMiCalendario() {
-        // CORRECCIÓN 2: Si los datos aún no están listos, no intenta dibujar
+        // Si los datos aún no están listos, no intenta dibujar
         if (!datosTurnosParaVistaPersonal) {
             misTurnosCalendarioContainer.innerHTML = '<p>Cargando datos...</p>';
             return;
@@ -1192,7 +1192,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             let llamadoHtml;
             if (verCompleto) {
                 const esMiLlamado = llamado === inicialesUsuarioLogueado;
-                llamadoHtml = `<div class="grid-llamado" style="${esMiLiamado ? 'background-color: #004085; color: white; border-color: #c3e6cb;' : ''}">${llamado}</div>`;
+                // --- CORRECCIÓN DEL TYPO AQUÍ ---
+                // Cambié 'esMiLiamado' por 'esMiLlamado'
+                llamadoHtml = `<div class="grid-llamado" style="${esMiLlamado ? 'background-color: #004085; color: white; border-color: #c3e6cb;' : ''}">${llamado}</div>`;
             } else {
                 llamadoHtml = `<div class="grid-llamado">${llamado === inicialesUsuarioLogueado ? llamado : ''}</div>`;
             }
