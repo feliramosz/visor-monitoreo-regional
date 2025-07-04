@@ -1056,15 +1056,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const misTurnosMesSelect = document.getElementById('select-mes-mis-turnos');
     const misTurnosAnioSelect = document.getElementById('select-anio-mis-turnos');
     const misTurnosCalendarioContainer = document.getElementById('mis-turnos-calendario-container');
-    const verCalendarioCompletoCheckbox = document.getElementById('verCalendarioCompletoCheckbox');
-
+    
     // Variables de estado para esta sección
     let inicialesUsuarioLogueado = '';
     let datosTurnosParaVistaPersonal = null; // Inicia como null para saber que aún no se han cargado
 
     // Función principal que se llama al hacer clic en la pestaña "Mis Turnos"
-    async function inicializarMisTurnos() {
-        // Si ya tenemos los datos, solo redibujamos el calendario. Si no, los cargamos.
+    async function inicializarMisTurnos() {        
         if (datosTurnosParaVistaPersonal) {
             renderizarMiCalendario();
         } else {
@@ -1078,7 +1076,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     "vmaturana": "VMV", "fsaavedra": "FSO", "paceituno": "PAM", "epino": "EPA", "mzamora": "MZH",
                     "fsalas": "FSP", "fsoto": "FSA", "brahmer": "BRL", "gmuzio": "GMH", "paraneda": "PAR", "festay": "FED"
                 };
-                
+
                 inicialesUsuarioLogueado = mapaUsuarioAIniciales[user.username.toLowerCase()] || '';
 
             } catch (error) {
@@ -1091,7 +1089,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             poblarSelectoresFechaMisTurnos();
             misTurnosMesSelect.addEventListener('change', renderizarMiCalendario);
             misTurnosAnioSelect.addEventListener('change', renderizarMiCalendario);
-            verCalendarioCompletoCheckbox.addEventListener('change', renderizarMiCalendario);
+            
+            // CORRECCIÓN: Se busca el elemento aquí, directamente
+            document.getElementById('verCalendarioCompletoCheckbox').addEventListener('change', renderizarMiCalendario);
             
             // 3. Cargar los datos de turnos por primera vez
             await cargarYRenderizarMiCalendario();
@@ -1127,13 +1127,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Dibuja la grilla del calendario personal, filtrando o resaltando según el checkbox
     function renderizarMiCalendario() {
-        // Si los datos aún no están listos, no intenta dibujar
         if (!datosTurnosParaVistaPersonal) {
             misTurnosCalendarioContainer.innerHTML = '<p>Cargando datos...</p>';
             return;
         }
 
-        const verCompleto = verCalendarioCompletoCheckbox.checked;
+        // CORRECCIÓN: Se busca el elemento checkbox aquí, justo cuando se necesita
+        const verCompleto = document.getElementById('verCalendarioCompletoCheckbox').checked;
+        
         const mes = parseInt(misTurnosMesSelect.value);
         const anio = parseInt(misTurnosAnioSelect.value);
         const mesStr = misTurnosMesSelect.options[misTurnosMesSelect.selectedIndex].text;
@@ -1192,8 +1193,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             let llamadoHtml;
             if (verCompleto) {
                 const esMiLlamado = llamado === inicialesUsuarioLogueado;
-                // --- CORRECCIÓN DEL TYPO AQUÍ ---
-                // Cambié 'esMiLiamado' por 'esMiLlamado'
                 llamadoHtml = `<div class="grid-llamado" style="${esMiLlamado ? 'background-color: #004085; color: white; border-color: #c3e6cb;' : ''}">${llamado}</div>`;
             } else {
                 llamadoHtml = `<div class="grid-llamado">${llamado === inicialesUsuarioLogueado ? llamado : ''}</div>`;
