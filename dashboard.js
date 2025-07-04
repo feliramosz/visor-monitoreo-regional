@@ -80,10 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let infoPanelTimeout;
     let speechQueue = [];
     let userHasInteracted = false;
+    // Objeto para memorizar estados y evitar notificaciones repetidas
     let memoriaNotificaciones = {
-    calidadAire: {},
-    precipitacion: {},
-    pasoFronterizo: {}
+        calidadAire: {},
+        precipitacion: {}, // <-- NUEVO: Añadido para precipitaciones
+        pasoFronterizo: {}
     };
         
     function setupCentralContent(data) {
@@ -338,9 +339,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(WEATHER_API_URL);
             if (!response.ok) throw new Error('Error de red al obtener clima');
             const weatherData = await response.json();
+            
+            // *** NUEVO: Guardar datos del clima para notificaciones ***
+            if (lastData) {
+                lastData.weather_data = weatherData;
+            }
 
             weatherContainer.innerHTML = weatherData.map(station => {
-                // ... (el código interno de esta función para crear las tarjetas del clima no cambia)
                 let passStatusText = '';
                 let passStatusWord = '';
                 let statusClass = 'status-no-informado';
@@ -1014,7 +1019,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const stationsWithNews = stations.filter(s => s.estado !== 'bueno' && s.estado !== 'no_disponible');
             if (stationsWithNews.length > 0) {
                 stationsWithNews.sort((a, b) => Object.keys(stateToColor).indexOf(a.estado) - Object.keys(stateToColor).indexOf(b.estado));
-                const alertText = stationsWithNews.map(s => `<strong>${s.nombre_estacion}:</strong> ${s.estado.replace('_', ' ')}`).join(' &nbsp; | &nbsp; ');
+                const alertText = stationsWithNews.map(s => `<strong>${s.nombre_estacion}:</strong> ${s.estado.replace('_', ' ')}`).join('   |   ');
                 airQualityAlertPanel.innerHTML = `<div class="marquee-container"><p class="marquee-text">${alertText}</p></div>`;
             } else {
                 airQualityAlertPanel.innerHTML = '<div class="marquee-container"><p style="text-align:center; width:100%;">Reporte de estado: Bueno.</p></div>';
@@ -1434,7 +1439,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const dosHoras = 2 * 3600 * 1000;
 
             if (tiempoDesdeUltimaNotificacion > dosHoras) {
-                const mensajeVoz = `Recordatorio: El Complejo Fronterizo Los Libertadores se mantiene ${estadoNuevo}.`;
+                const mensajeVoz = `El Complejo Fronterizo Los Libertadores se encuentra ${estadoNuevo}.`;
                 lanzarNotificacion('assets/notificacion_regular.mp3', mensajeVoz);
 
                 // Aquí está la corrección clave: actualizamos el objeto completo
@@ -1443,8 +1448,51 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    /**
+     * --- NUEVA FUNCIÓN ---
+     * Revisa los datos de las estaciones meteorológicas y dispara una notificación
+     * si alguna comienza a registrar precipitaciones.
+     * @param {Array} estaciones - La lista de estaciones desde la API del clima.
+     */
     function gestionarNotificacionesPrecipitacion(estaciones) {
-        // Implementación futura siguiendo la misma lógica de agrupar y notificar
+        if (!estaciones || estaciones.length === 0) {
+            return; // No hay datos para procesar
+        }
+
+        let estacionesConPrecipitacionNueva = [];
+
+        estaciones.forEach(estacion => {
+            const nombreEstacion = estacion.nombre;
+            const precipActual = parseFloat(estacion.precipitacion_24h) || 0;
+
+            // Obtiene el valor anterior de la memoria. Si no existe, se asume 0.
+            const precipAnterior = memoriaNotificaciones.precipitacion[nombreEstacion] || 0;
+
+            // --- CONDICIÓN DE NOTIFICACIÓN ---
+            // Se notifica solo si antes no llovía (valor era 0) y ahora sí (valor > 0).
+            if (precipAnterior === 0 && precipActual > 0) {
+                estacionesConPrecipitacionNueva.push(nombreEstacion);
+            }
+
+            // Actualiza la memoria con el valor actual para el próximo ciclo.
+            memoriaNotificaciones.precipitacion[nombreEstacion] = precipActual;
+        });
+
+        // Si se detectaron una o más estaciones con nueva precipitación, se genera una notificación agrupada.
+        if (estacionesConPrecipitacionNueva.length > 0) {
+            let mensajeVoz = "Atención, se registran precipitaciones en ";
+            if (estacionesConPrecipitacionNueva.length === 1) {
+                mensajeVoz += `la estación de ${estacionesConPrecipitacionNueva[0]}.`;
+            } else {
+                // Concatena los nombres para un mensaje más natural.
+                // Ej: "estaciones de A, B y C."
+                const ultimo = estacionesConPrecipitacionNueva.pop();
+                mensajeVoz += `las estaciones de ${estacionesConPrecipitacionNueva.join(', ')} y ${ultimo}.`;
+            }
+
+            // Lanza la notificación con el sonido específico y el mensaje generado.
+            lanzarNotificacion('assets/notificacion_precipitacion.mp3', mensajeVoz);
+        }
     }
 
     // Función genérica para lanzar sonido y voz
