@@ -1051,22 +1051,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- INICIO: Lógica para la sección "Mis Turnos" ---
-    // Referencias a elementos del DOM
-    const misTurnosMesSelect = document.getElementById('select-mes-mis-turnos');
-    const misTurnosAnioSelect = document.getElementById('select-anio-mis-turnos');
-    const misTurnosCalendarioContainer = document.getElementById('mis-turnos-calendario-container');
-    
+    // --- INICIO: Lógica para la sección "Mis Turnos" ---            
     // Variables de estado para esta sección
     let inicialesUsuarioLogueado = '';
     let datosTurnosParaVistaPersonal = null; // Inicia como null para saber que aún no se han cargado
 
     // Función principal que se llama al hacer clic en la pestaña "Mis Turnos"
-    async function inicializarMisTurnos() {        
+    async function inicializarMisTurnos() {
         if (datosTurnosParaVistaPersonal) {
             renderizarMiCalendario();
         } else {
-            // 1. Obtener las iniciales del usuario actual
             try {
                 const response = await fetch('/api/me', { headers: { 'Authorization': `Bearer ${token}` } });
                 const user = await response.json();
@@ -1078,38 +1072,39 @@ document.addEventListener('DOMContentLoaded', async () => {
                 };
 
                 inicialesUsuarioLogueado = mapaUsuarioAIniciales[user.username.toLowerCase()] || '';
-
             } catch (error) {
                 console.error('Error al obtener datos del usuario:', error);
                 showMessage('No se pudieron obtener tus datos de usuario.', 'error');
                 return;
             }
 
-            // 2. Poblar los selectores y añadir listeners
             poblarSelectoresFechaMisTurnos();
-            misTurnosMesSelect.addEventListener('change', renderizarMiCalendario);
-            misTurnosAnioSelect.addEventListener('change', renderizarMiCalendario);
             
-            // CORRECCIÓN: Se busca el elemento aquí, directamente
+            // CORRECCIÓN: Se buscan los elementos aquí para añadir los listeners
+            document.getElementById('select-mes-mis-turnos').addEventListener('change', renderizarMiCalendario);
+            document.getElementById('select-anio-mis-turnos').addEventListener('change', renderizarMiCalendario);
             document.getElementById('verCalendarioCompletoCheckbox').addEventListener('change', renderizarMiCalendario);
             
-            // 3. Cargar los datos de turnos por primera vez
             await cargarYRenderizarMiCalendario();
         }
     }
 
     // Rellena los menús desplegables de mes y año
     function poblarSelectoresFechaMisTurnos() {
-        if (misTurnosMesSelect.options.length > 0) return; // Poblar solo una vez
+        const mesSelect = document.getElementById('select-mes-mis-turnos');
+        const anioSelect = document.getElementById('select-anio-mis-turnos');
+
+        if (!mesSelect || mesSelect.options.length > 0) return; // Si no existe o ya está poblado, no hacer nada
+
         const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
         const anioActual = new Date().getFullYear();
-        misTurnosMesSelect.innerHTML = meses.map((mes, index) => `<option value="${index}">${mes}</option>`).join('');
-        misTurnosAnioSelect.innerHTML = '';
+        mesSelect.innerHTML = meses.map((mes, index) => `<option value="${index}">${mes}</option>`).join('');
+        anioSelect.innerHTML = '';
         for (let i = anioActual - 1; i <= anioActual + 2; i++) {
-            misTurnosAnioSelect.innerHTML += `<option value="${i}">${i}</option>`;
+            anioSelect.innerHTML += `<option value="${i}">${i}</option>`;
         }
-        misTurnosMesSelect.value = new Date().getMonth();
-        misTurnosAnioSelect.value = anioActual;
+        mesSelect.value = new Date().getMonth();
+        anioSelect.value = anioActual;
     }
 
     // Carga el archivo turnos.json y luego llama a la función que dibuja el calendario
@@ -1126,18 +1121,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     // Dibuja la grilla del calendario personal, filtrando o resaltando según el checkbox
-    function renderizarMiCalendario() {
+    function renderizarMiCalendario() {        
+        const calendarioContainer = document.getElementById('mis-turnos-calendario-container');
+        const mesSelect = document.getElementById('select-mes-mis-turnos');
+        const anioSelect = document.getElementById('select-anio-mis-turnos');
+        const checkbox = document.getElementById('verCalendarioCompletoCheckbox');
+
         if (!datosTurnosParaVistaPersonal) {
-            misTurnosCalendarioContainer.innerHTML = '<p>Cargando datos...</p>';
+            calendarioContainer.innerHTML = '<p>Cargando datos...</p>';
             return;
         }
 
-        // CORRECCIÓN: Se busca el elemento checkbox aquí, justo cuando se necesita
-        const verCompleto = document.getElementById('verCalendarioCompletoCheckbox').checked;
-        
-        const mes = parseInt(misTurnosMesSelect.value);
-        const anio = parseInt(misTurnosAnioSelect.value);
-        const mesStr = misTurnosMesSelect.options[misTurnosMesSelect.selectedIndex].text;
+        const verCompleto = checkbox.checked;
+        const mes = parseInt(mesSelect.value);
+        const anio = parseInt(anioSelect.value);
+        const mesStr = mesSelect.options[mesSelect.selectedIndex].text;
         const datosMes = datosTurnosParaVistaPersonal[mesStr] || { dias: [] };
         const primerDia = new Date(anio, mes, 1).getDay();
         const diasEnMes = new Date(anio, mes + 1, 0).getDate();
@@ -1200,7 +1198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             calendarioHtml += llamadoHtml;
         }
         calendarioHtml += '</div>';
-        misTurnosCalendarioContainer.innerHTML = calendarioHtml;
+        calendarioContainer.innerHTML = calendarioHtml;
     }
 
     // --- FIN: Lógica para la sección "Mis Turnos" (Versión Corregida) ---
