@@ -759,6 +759,94 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self._set_headers(404, 'application/json')
                     self.wfile.write(json.dumps({"error": "No hay un último mensaje de tsunami guardado."}).encode('utf-8'))
                 return
+
+            # --- INICIO ENDPOINT GET PARA EXPORTAR TURNOS A EXCEL ---
+            elif requested_path == '/api/turnos/export':
+                query_params = dict(urllib.parse.parse_qsl(parsed_path.query))
+                
+                # Autenticación vía token en la URL
+                token_from_url = query_params.get('token')
+                username = SESSIONS.get(token_from_url)
+                if not username:
+                    self._set_headers(401, 'application/json')
+                    self.wfile.write(json.dumps({'error': 'No autorizado o sesión inválida.'}).encode('utf-8'))
+                    return
+
+                mes = query_params.get('mes')
+                anio = query_params.get('anio')
+
+                if not mes or not anio:
+                    self._set_headers(400, 'application/json')
+                    self.wfile.write(json.dumps({'error': 'Faltan parámetros de mes y año.'}).encode('utf-8'))
+                    return
+                
+                try:
+                    with open(TURNOS_FILE, 'r', encoding='utf-8') as f:
+                        todos_los_turnos = json.load(f)
+                    
+                    datos_mes = todos_los_turnos.get(mes)
+                    if not datos_mes:
+                        self._set_headers(404, 'application/json')
+                        self.wfile.write(json.dumps({'error': f'No se encontraron datos para {mes} {anio}.'}).encode('utf-8'))
+                        return
+                    
+                    # --- Lógica para transformar JSON a formato de tabla ---
+                    dias_semana = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"]
+                    filas_excel = []
+                    
+                    primer_dia_mes = datetime(int(anio), list(todos_los_turnos.keys()).index(mes) + 1, 1).weekday() # Lunes=0, Domingo=6
+                    dias_en_mes = (datetime(int(anio), list(todos_los_turnos.keys()).index(mes) + 2, 1) - timedelta(days=1)).day if mes != "Diciembre" else 31
+
+                    dia_actual = 1
+                    for semana_idx in range(6):
+                        if dia_actual > dias_en_mes: break
+                        
+                        fila_dia = {dia: "" for dia in dias_semana}
+                        fila_noche = {dia: "" for dia in dias_semana}
+                        prof_llamado = ""
+
+                        for dia_semana_idx in range(7):
+                            if (semana_idx == 0 and dia_semana_idx < primer_dia_mes) or dia_actual > dias_en_mes:
+                                continue
+                            
+                            nombre_dia = dias_semana[dia_semana_idx]
+                            datos_dia_obj = next((d for d in datos_mes.get('dias', []) if d['dia'] == dia_actual), None)
+                            
+                            if datos_dia_obj:
+                                fila_dia[nombre_dia] = f"{datos_dia_obj.get('turno_dia', {}).get('op1', '')} / {datos_dia_obj.get('turno_dia', {}).get('op2', '')}"
+                                fila_noche[nombre_dia] = f"{datos_dia_obj.get('turno_noche', {}).get('op1', '')} / {datos_dia_obj.get('turno_noche', {}).get('op2', '')}"
+                                if dia_semana_idx == 0: # Tomar el llamado del primer día de la semana
+                                    prof_llamado = datos_dia_obj.get('turno_dia', {}).get('llamado', '')
+                            
+                            dia_actual += 1
+
+                        filas_excel.append({**{"Turno": f"Semana {semana_idx+1} / 09-21h"}, **fila_dia})
+                        filas_excel.append({**{"Turno": "21-09h"}, **fila_noche})
+                        filas_excel.append({**{"Turno": "Profesional a Llamado"}, **{d: prof_llamado for d in dias_semana}})
+                        filas_excel.append({d: "" for d in ["Turno"] + dias_semana}) # Fila vacía de separación
+
+                    # --- Crear el archivo Excel en memoria ---
+                    df = pd.DataFrame(filas_excel)
+                    df = df[["Turno"] + dias_semana] # Reordenar columnas
+                    
+                    output = io.BytesIO()
+                    df.to_excel(output, index=False, sheet_name=f'Turnos_{mes}_{anio}')
+                    output.seek(0)
+                    
+                    # --- Enviar el archivo al navegador ---
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                    self.send_header('Content-Disposition', f'attachment; filename="Planificacion_Turnos_{mes}_{anio}.xlsx"')
+                    self.end_headers()
+                    self.wfile.write(output.read())
+
+                except Exception as e:
+                    print(f"Error al exportar a Excel: {e}")
+                    self._set_headers(500, 'application/json')
+                    self.wfile.write(json.dumps({'error': f'Error interno del servidor al generar Excel: {e}'}).encode('utf-8'))
+                return
+            # --- FIN ENDPOINT GET PARA EXPORTAR TURNOS A EXCEL ---
+                
             file_to_serve = os.path.join(SERVER_ROOT, requested_path.lstrip('/'))
             file_to_serve = os.path.normpath(file_to_serve)
 

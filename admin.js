@@ -521,7 +521,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         mesSelect.addEventListener('change', renderizarCalendario);
         anioSelect.addEventListener('change', renderizarCalendario);
 
-        // --- LÓGICA DEL BOTÓN GUARDAR ---
+        // Listener para el botón de GUARDAR
         btnGuardarTurnos.addEventListener('click', async () => {
             btnGuardarTurnos.disabled = true;
             btnGuardarTurnos.textContent = 'Guardando...';
@@ -553,8 +553,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
+        // --- LÓGICA DEL BOTÓN EXPORTAR ---
         btnExportarExcel.addEventListener('click', () => {
-            alert('Funcionalidad "Exportar a Excel" pendiente de implementación.');
+            const mes = mesSelect.options[mesSelect.selectedIndex].text;
+            const anio = anioSelect.value;
+            
+            // Construimos la URL para la descarga. Pasamos el token como parámetro para la autenticación.
+            const exportUrl = `/api/turnos/export?mes=${encodeURIComponent(mes)}&anio=${anio}&token=${token}`;
+            
+            // Abrimos la URL en una nueva pestaña, lo que iniciará la descarga del archivo.
+            window.open(exportUrl, '_blank');
         });
     }
 
