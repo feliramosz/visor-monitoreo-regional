@@ -3,35 +3,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Bloque de protección con redirección inteligente ---
     if (!token) {
-        // Si no hay token, redirige al login, pasando la página actual para poder volver.
         window.location.href = `/login.html?redirect_to=${window.location.pathname}`;
         return; 
     }
     
-    // --- Función para gestionar la UI según el rol del usuario ---
     async function setupUIForUserRole() {
-        if (!token) return; // Si no hay token, no hacer nada (ya será redirigido)
+        if (!token) return;
         
         try {
             const response = await fetch('/api/me', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (!response.ok) return;
+            if (!response.ok) {
+                // Si el token es inválido, desloguear
+                localStorage.removeItem('session_token');
+                window.location.href = '/login.html';
+                return;
+            }
 
             const user = await response.json();
             
-            // Si el usuario no es administrador, oculta los menús sensibles
             if (user.role !== 'administrador') {
-                document.querySelector('a[data-section="gestion-usuarios"]').parentElement.style.display = 'none';
-                document.querySelector('a[data-section="log-actividad"]').parentElement.style.display = 'none';
-                const separator = document.querySelector('.admin-sidebar nav li.separator');
-                if(separator) separator.style.display = 'none';
+                // Ocultar todos los elementos solo para admin
+                document.querySelectorAll('.admin-only').forEach(el => {
+                    el.style.display = 'none';
+                });
             }
         } catch (error) {
             console.error('Error al obtener el rol del usuario:', error);
         }
     }
     
+    // ... (El resto del código existente hasta la función saveDataBtn.addEventListener) ...
     const testBoletinBtn = document.getElementById('testBoletinBtn');
     if (testBoletinBtn) {
         testBoletinBtn.addEventListener('click', async () => {
@@ -39,7 +42,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             testBoletinBtn.textContent = 'Generando boletín...';
 
             try {
-                // Esta nueva función llamará a la lógica centralizada
                 await ejecutarBoletinDePruebaAdmin();
             } catch (error) {
                 console.error("Error al generar el boletín de prueba:", error);
@@ -53,30 +55,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     
-    // Llamamos a la función para que se ejecute al cargar la página
-    setupUIForUserRole();
-
     const DATA_API_URL = '/api/data';
     const NOVEDADES_API_URL = '/api/novedades'; 
     const UPLOAD_IMAGE_API_URL = '/api/upload_image';
     const DELETE_IMAGE_API_URL = '/api/delete_image';
     const TRIGGER_DOWNLOAD_API_URL = '/api/trigger-download';
 
-    //Referencias para descarga manual
     const runScriptBtn = document.getElementById('runScriptBtn');
     const scriptOutput = document.getElementById('scriptOutput');
-
-    // Elementos de información general
     const adminFechaInforme = document.getElementById('adminFechaInforme');
-
-    // --- Elementos del Panel de Novedades ---
     const adminNumeroInforme = document.getElementById('adminNumeroInforme');
     const novedadesListContainer = document.getElementById('novedadesListContainer');
     const addNovedadBtn = document.getElementById('addNovedadBtn');
     const adminNovedadInput = document.getElementById('adminNovedadInput');
     const adminNovedadEditIndex = document.getElementById('adminNovedadEditIndex');
 
-    // Contenedores y botones
     const alertasContainer = document.getElementById('alertasContainer');
     const addAlertaBtn = document.getElementById('addAlertaBtn');
     const avisosMetContainer = document.getElementById('avisosMetContainer');
@@ -103,25 +96,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const saveDataBtn = document.getElementById('saveDataBtn');
     const adminMessage = document.getElementById('adminMessage');
 
-    let currentData = {}; // Para ultimo_informe.json
-    let novedadesData = {}; // Para novedades.json
+    let currentData = {};
+    let novedadesData = {};
 
     function formatLogTimestamp(dateString) {
         const date = new Date(dateString);
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
-
         let hours = date.getHours();
         const minutes = String(date.getMinutes()).padStart(2, '0');
         const ampm = hours >= 12 ? 'p. m.' : 'a. m.';
-
         hours = hours % 12;
-        hours = hours ? hours : 12; // La hora 0 debe ser 12
-
+        hours = hours ? hours : 12;
         return `${day}/${month} ${hours}:${minutes} ${ampm}`;
     }
 
-    // --- Lógica de Navegación del Sidebar ---
     const sidebarLinks = document.querySelectorAll('.admin-sidebar nav ul li a');
     const adminSections = document.querySelectorAll('.admin-section');
     sidebarLinks.forEach(link => {
@@ -137,11 +126,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 loadUsers();
             } else if (sectionId === 'log-actividad') {
                 loadActivityLog();
+            } else if (sectionId === 'gestion-turnos') {
+                inicializarGestionTurnos();
             }
         });
     });
 
-    // --- Funciones de Utilidad ---
     function showMessage(message, type) {
         adminMessage.textContent = message;
         adminMessage.className = `message ${type}`;
@@ -149,23 +139,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(() => { adminMessage.style.display = 'none'; }, 5000);
     }
 
-    // --- Carga de Datos (GET) ---
     async function loadDataForAdmin() {
         try {
             const [dataResponse, novedadesResponse] = await Promise.all([
                 fetch(DATA_API_URL),
                 fetch(NOVEDADES_API_URL)
             ]);
-
             if (!dataResponse.ok) throw new Error(`Error al cargar informe: ${dataResponse.statusText}`);
             if (!novedadesResponse.ok) throw new Error(`Error al cargar novedades: ${novedadesResponse.statusText}`);
-
             currentData = await dataResponse.json();
             novedadesData = await novedadesResponse.json();
-            
-            console.log("Datos de informe cargados:", currentData);
-            console.log("Datos de novedades cargados:", novedadesData);
-
             renderAdminForms(currentData, novedadesData);
         } catch (error) {
             console.error("Error al cargar datos para administración:", error);
@@ -173,16 +156,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- Renderizado de Formularios ---
     function renderAdminForms(data, novedades) {
-        // Información General
         adminFechaInforme.value = data.fecha_informe || '';
-
-        // Panel de Novedades
         adminNumeroInforme.value = novedades.numero_informe_manual || '';
         renderNovedadesList(novedades.entradas || []);
-
-        // Renderizar el resto de las secciones...
         renderSectionItems(alertasContainer, data.alertas_vigentes, createAlertaFormItem, 'No hay alertas para editar.');
         renderSectionItems(avisosMetContainer, data.avisos_alertas_meteorologicas, createAvisoMetFormItem, 'No hay avisos meteorológicos para editar.');
         renderSectionItems(emergenciasContainer, data.emergencias_ultimas_24_horas, createEmergenciaFormItem, 'No hay emergencias para editar.');
@@ -216,14 +193,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- Lógica para el Panel de Novedades ---
     function renderNovedadesList(entradas = []) {
         novedadesListContainer.innerHTML = '';
         if (entradas.length === 0) {
             novedadesListContainer.innerHTML = '<p>No hay novedades registradas.</p>';
             return;
         }
-
         entradas.forEach((item, index) => {
             const div = document.createElement('div');
             div.className = 'novedad-item';
@@ -239,7 +214,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
             novedadesListContainer.appendChild(div);
         });
-        
         document.querySelectorAll('.edit-novedad-btn').forEach(btn => btn.addEventListener('click', handleEditNovedad));
         document.querySelectorAll('.remove-novedad-btn').forEach(btn => btn.addEventListener('click', handleDeleteNovedad));
     }
@@ -250,9 +224,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             showMessage('El texto de la novedad no puede estar vacío.', 'error');
             return;
         }
-
         const editIndex = adminNovedadEditIndex.value;
-
         if (editIndex) {
             novedadesData.entradas[editIndex].texto = texto;
         } else {
@@ -260,10 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const timestamp = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             novedadesData.entradas.push({ timestamp, texto });
         }
-
         renderNovedadesList(novedadesData.entradas);
-        
-        // Limpiar formulario
         adminNovedadInput.value = '';
         adminNovedadEditIndex.value = '';
         addNovedadBtn.textContent = 'Añadir Novedad';
@@ -287,7 +256,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     addNovedadBtn.addEventListener('click', handleAddOrUpdateNovedad);
 
-    // --- Funciones para Crear Ítems Editables ---    
     function createAlertaFormItem(alerta = {}, index) {
         const div = document.createElement('div');
         div.className = 'alert-item';
@@ -371,7 +339,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function createHidroFormItem(item = {}, index) {
         const div = document.createElement('div');
-        div.className = 'form-item-grid'; // Usaremos una clase genérica para estilo
+        div.className = 'form-item-grid';
         div.innerHTML = `
             <label>Nombre Estación:</label><input type="text" class="hidro-nombre" value="${item.nombre_estacion || ''}">
             <label>Nivel (m):</label><input type="number" step="0.01" class="hidro-nivel" value="${item.nivel_m || ''}">
@@ -397,7 +365,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return div;
     }
 
-    // --- Event Listeners para Añadir Nuevos Ítems ---
     addAlertaBtn.addEventListener('click', () => alertasContainer.appendChild(createAlertaFormItem()));
     addAvisoMetBtn.addEventListener('click', () => avisosMetContainer.appendChild(createAvisoMetFormItem()));
     addEmergenciaBtn.addEventListener('click', () => emergenciasContainer.appendChild(createEmergenciaFormItem()));
@@ -406,7 +373,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     addPuertoBtn.addEventListener('click', () => puertosContainer.appendChild(createPuertoFormItem()));
     addHidroBtn.addEventListener('click', () => hidroContainer.appendChild(createHidroFormItem()));
 
-    // --- Lógica de Descarga Manual ---
     runScriptBtn.addEventListener('click', async () => {
         runScriptBtn.disabled = true;
         runScriptBtn.textContent = 'Ejecutando...';
@@ -414,9 +380,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const response = await fetch(TRIGGER_DOWNLOAD_API_URL, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             const result = await response.json();
             let formattedOutput = `--- ESTADO: ${response.ok ? 'ÉXITO' : 'FALLO'} ---\nMENSAJE: ${result.message}\n\n`;
@@ -438,7 +402,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // --- Lógica de Subida y Borrado de Imágenes ---
     uploadImageBtn.addEventListener('click', async () => {
         const file = imageFile.files[0];
         if (!file) {
@@ -452,9 +415,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const response = await fetch(UPLOAD_IMAGE_API_URL, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}` 
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             body: formData
             })
             if (!response.ok) throw new Error((await response.json()).error);
@@ -469,7 +430,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     async function handleDeleteSlide(slide) {
         if (!confirm("¿Estás seguro de que quieres eliminar esta slide e imagen?")) return;
-        const token = localStorage.getItem('session_token');
         try {
             const response = await fetch(DELETE_IMAGE_API_URL, {
                 method: 'DELETE',
@@ -488,20 +448,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // --- Guardar Todos los Datos (POST) ---
     saveDataBtn.addEventListener('click', async () => {
-        // --- 1. Guardar datos del informe principal ---
         const updatedInformeData = { ...currentData };
-
-        // Auto-generar hora y tipo de informe
         const now = new Date();
         const hours = now.getHours();
         const minutes = String(now.getMinutes()).padStart(2, '0');
         updatedInformeData.hora_informe = `${hours}:${minutes} h.`;
         updatedInformeData.tipo_informe = (hours < 12) ? 'AM' : 'PM';
         updatedInformeData.fecha_informe = adminFechaInforme.value;
-
-        // Recoger todas las secciones del formulario
         updatedInformeData.alertas_vigentes = Array.from(alertasContainer.querySelectorAll('.alert-item')).map(item => ({ nivel_alerta: item.querySelector('.alerta-nivel').value, evento: item.querySelector('.alerta-evento').value, cobertura: item.querySelector('.alerta-cobertura').value, amplitud: item.querySelector('.alerta-amplitud').value }));
         updatedInformeData.avisos_alertas_meteorologicas = Array.from(avisosMetContainer.querySelectorAll('.avisos-item')).map(item => ({ aviso_alerta_alarma: item.querySelector('.avisos-aviso').value, fecha_hora_emision: item.querySelector('.avisos-fecha-hora').value, descripcion: item.querySelector('.avisos-descripcion').value, cobertura: item.querySelector('.avisos-cobertura').value }));
         updatedInformeData.radiacion_uv = { observado_ayer_label: adminUVObservadoLabel.value, observado_ayer_value: adminUVObservadoValue.value, pronosticado_hoy_label: adminUVPronosticadoLabel.value, pronosticado_hoy_value: adminUVPronosticadoValue.value };
@@ -515,7 +469,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         updatedInformeData.novedades_carousel_enabled = document.getElementById('adminEnableNovedadesCarousel').checked;
         updatedInformeData.notificaciones_activadas = document.getElementById('adminNotificacionesActivas').checked;
         
-        // --- 2. Guardar datos de novedades ---
         const updatedNovedadesData = { ...novedadesData };
         updatedNovedadesData.numero_informe_manual = adminNumeroInforme.value;        
 
@@ -523,39 +476,268 @@ document.addEventListener('DOMContentLoaded', async () => {
             const [informeResponse, novedadesResponse] = await Promise.all([
                 fetch(DATA_API_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` 
-                    },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify(updatedInformeData)
                 }),
                 fetch(NOVEDADES_API_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` 
-                    },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify(updatedNovedadesData)
                 })
             ]);
-
             if (!informeResponse.ok || !novedadesResponse.ok) {
                 throw new Error('Falló al guardar uno o ambos archivos de datos.');
             }
             showMessage('Todos los cambios han sido guardados correctamente.', 'success');
             localStorage.setItem('data_updated', Date.now());
-
         } catch (error) {
             console.error("Error al guardar datos:", error);
             showMessage(`Error al guardar: ${error.message}`, 'error');
         }
     });
 
+    // --- INICIO: Lógica para Gestión de Turnos ---
+
+    // Referencias a elementos del DOM para la gestión de turnos
+    const turnosContainer = document.getElementById('gestion-turnos');
+    const mesSelect = document.getElementById('select-mes-turnos');
+    const anioSelect = document.getElementById('select-anio-turnos');
+    const calendarioContainer = document.getElementById('turnos-calendario-container');
+    const operadoresListContainer = document.getElementById('operadores-list-container');
+    const llamadoListContainer = document.getElementById('llamado-list-container');
+    const btnGuardarTurnos = document.getElementById('btnGuardarTurnos');
+    const btnExportarExcel = document.getElementById('btnExportarExcel');
+    
+    // Variables de estado para la gestión de turnos
+    let datosTurnos = {};
+    let seleccionActual = { iniciales: null, tipo: null }; // { iniciales: 'FRZ', tipo: 'operador' }
+
+    // Función principal que se llama al hacer clic en la pestaña "Gestión de Turnos"
+    async function inicializarGestionTurnos() {
+        poblarSelectoresFecha();
+        await cargarDatosYRenderizarCalendario();
+
+        // Añadir listeners a los selectores para que recarguen el calendario al cambiar
+        mesSelect.addEventListener('change', renderizarCalendario);
+        anioSelect.addEventListener('change', renderizarCalendario);
+
+        // Listeners para los botones (por ahora con funcionalidad de placeholder)
+        btnGuardarTurnos.addEventListener('click', () => {
+            alert('Funcionalidad "Guardar Cambios" pendiente de implementación en el backend.');
+            console.log("Datos de turnos para guardar:", datosTurnos);
+        });
+
+        btnExportarExcel.addEventListener('click', () => {
+            alert('Funcionalidad "Exportar a Excel" pendiente de implementación en el backend.');
+        });
+    }
+
+    // Carga el archivo turnos.json y dispara el renderizado inicial
+    async function cargarDatosYRenderizarCalendario() {
+        try {
+            const response = await fetch('/api/turnos');
+            if (!response.ok) throw new Error('No se pudo cargar el archivo de turnos.');
+            datosTurnos = await response.json();
+            
+            renderizarPanelesPersonal();
+            renderizarCalendario();
+
+        } catch (error) {
+            console.error(error);
+            showMessage(error.message, 'error');
+            calendarioContainer.innerHTML = `<p style="color: red;">${error.message}</p>`;
+        }
+    }
+
+    // Rellena los menús desplegables de mes y año
+    function poblarSelectoresFecha() {
+        const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        const anioActual = new Date().getFullYear();
+        
+        mesSelect.innerHTML = meses.map((mes, index) => `<option value="${index}">${mes}</option>`).join('');
+        
+        anioSelect.innerHTML = '';
+        for (let i = anioActual - 1; i <= anioActual + 2; i++) {
+            anioSelect.innerHTML += `<option value="${i}">${i}</option>`;
+        }
+
+        mesSelect.value = new Date().getMonth();
+        anioSelect.value = anioActual;
+    }
+
+    // Renderiza las listas de personal (Operadores y A llamado) en la barra lateral
+    function renderizarPanelesPersonal() {
+        const mesSeleccionadoStr = mesSelect.options[mesSelect.selectedIndex].text;
+        const personalDelMes = datosTurnos[mesSeleccionadoStr]?.personal || {};
+
+        const crearItems = (lista, tipo) => Object.keys(lista).map(iniciales => 
+            `<span class="${tipo}-item" data-iniciales="${iniciales}" data-tipo="${tipo}">${iniciales}</span>`
+        ).join('');
+
+        operadoresListContainer.innerHTML = `<h4>Operadores de Turno</h4>${crearItems(personalDelMes, 'operador')}`;
+        llamadoListContainer.innerHTML = `<h4>Profesional a Llamado</h4>${crearItems(personalDelMes, 'llamado')}`;
+
+        // Añadir listeners para la selección de personal
+        document.querySelectorAll('.operador-item, .llamado-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                // Deseleccionar el item anterior
+                document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+                
+                // Seleccionar el nuevo
+                e.target.classList.add('selected');
+                seleccionActual.iniciales = e.target.dataset.iniciales;
+                seleccionActual.tipo = e.target.dataset.tipo;
+            });
+        });
+    }
+
+    // Dibuja la tabla del calendario para el mes y año seleccionados
+    function renderizarCalendario() {
+        const mes = parseInt(mesSelect.value);
+        const anio = parseInt(anioSelect.value);
+        const mesStr = mesSelect.options[mesSelect.selectedIndex].text;
+
+        // Asegurarse que hay datos para el mes, si no, crear una estructura vacía
+        if (!datosTurnos[mesStr]) {
+            datosTurnos[mesStr] = { personal: {}, dias: [], llamado_semanal: {} };
+        }
+        
+        const primerDia = new Date(anio, mes, 1).getDay(); // Domingo: 0, Lunes: 1...
+        const diasEnMes = new Date(anio, mes + 1, 0).getDate();
+        
+        let calendarioHtml = `
+            <table>
+                <thead>
+                    <tr><th>Lunes</th><th>Martes</th><th>Miércoles</th><th>Jueves</th><th>Viernes</th><th>Sábado</th><th>Domingo</th></tr>
+                </thead>
+                <tbody>
+        `;
+
+        let dia = 1;
+        // El getDay() de JS devuelve 0 para Domingo, lo ajustamos a 7 para nuestro cálculo
+        let diaSemana = primerDia === 0 ? 7 : primerDia;
+
+        for (let i = 0; i < 6; i++) { // 6 semanas para cubrir todos los casos
+            if (dia > diasEnMes) break;
+
+            calendarioHtml += '<tr>';
+            let celdasSemana = '';
+            for (let j = 1; j <= 7; j++) {
+                if (i === 0 && j < diaSemana) {
+                    celdasSemana += '<td class="celda-vacia"></td>';
+                } else if (dia > diasEnMes) {
+                    celdasSemana += '<td class="celda-vacia"></td>';
+                } else {
+                    const datosDia = datosTurnos[mesStr].dias?.find(d => d.dia === dia) || {};
+                    const turnoDia = datosDia.turno_dia || {};
+                    const turnoNoche = datosDia.turno_noche || {};
+
+                    celdasSemana += `
+                        <td>
+                            <div class="dia-header">
+                                <span class="nombre-dia">${['L', 'M', 'M', 'J', 'V', 'S', 'D'][j-1]}</span>
+                                <span class="numero-dia">${dia}</span>
+                            </div>
+                            <div class="dia-body">
+                                <div class="turno-slot">
+                                    <span class="turno-horario">09-21h</span>
+                                    <div class="operador-slot" data-dia="${dia}" data-turno="dia" data-op="1">${turnoDia.op1 || ''}</div>
+                                    <div class="operador-slot" data-dia="${dia}" data-turno="dia" data-op="2">${turnoDia.op2 || ''}</div>
+                                </div>
+                                <div class="turno-slot">
+                                    <span class="turno-horario">21-09h</span>
+                                    <div class="operador-slot" data-dia="${dia}" data-turno="noche" data-op="1">${turnoNoche.op1 || ''}</div>
+                                    <div class="operador-slot" data-dia="${dia}" data-turno="noche" data-op="2">${turnoNoche.op2 || ''}</div>
+                                </div>
+                            </div>
+                        </td>
+                    `;
+                    dia++;
+                }
+            }
+            calendarioHtml += celdasSemana + '</tr>';
+
+            // Fila para el profesional a llamado de la semana
+            const llamado = datosTurnos[mesStr].llamado_semanal?.[i] || '';
+            calendarioHtml += `
+                <tr>
+                    <td colspan="7" class="llamado-semanal-slot" data-semana="${i}">${llamado}</td>
+                </tr>
+            `;
+        }
+
+        calendarioHtml += '</tbody></table>';
+        calendarioContainer.innerHTML = calendarioHtml;
+
+        // Añadir listeners a las nuevas casillas generadas
+        asignarListenersSlots();
+    }
+
+    // Asigna los eventos de click a todas las casillas del calendario
+    function asignarListenersSlots() {
+        document.querySelectorAll('.operador-slot, .llamado-semanal-slot').forEach(slot => {
+            slot.addEventListener('click', (e) => {
+                const target = e.currentTarget;
+                const tipoSlot = target.classList.contains('operador-slot') ? 'operador' : 'llamado';
+
+                // Si no hay nada seleccionado o el tipo no coincide, no hacer nada
+                if (!seleccionActual.iniciales || seleccionActual.tipo !== tipoSlot) {
+                     // Permitir limpiar la casilla si se hace clic sin selección
+                    if (target.textContent !== '') {
+                        target.textContent = '';
+                        actualizarDatosTurnoDesdeSlot(target, '');
+                    }
+                    return;
+                }
+                
+                // Asignar o limpiar la casilla
+                if (target.textContent === seleccionActual.iniciales) {
+                    target.textContent = '';
+                    actualizarDatosTurnoDesdeSlot(target, '');
+                } else {
+                    target.textContent = seleccionActual.iniciales;
+                    actualizarDatosTurnoDesdeSlot(target, seleccionActual.iniciales);
+                }
+            });
+        });
+    }
+
+    // Actualiza el objeto de datos local 'datosTurnos' cuando se modifica una casilla
+    function actualizarDatosTurnoDesdeSlot(slot, valor) {
+        const mesStr = mesSelect.options[mesSelect.selectedIndex].text;
+
+        if (slot.classList.contains('operador-slot')) {
+            const dia = parseInt(slot.dataset.dia);
+            const turno = slot.dataset.turno;
+            const op = `op${slot.dataset.op}`;
+
+            // Buscar o crear el día en el objeto de datos
+            let diaObj = datosTurnos[mesStr].dias.find(d => d.dia === dia);
+            if (!diaObj) {
+                diaObj = { dia: dia, turno_dia: {}, turno_noche: {} };
+                datosTurnos[mesStr].dias.push(diaObj);
+            }
+
+            // Actualizar el operador específico
+            if (turno === 'dia') {
+                diaObj.turno_dia[op] = valor;
+            } else {
+                diaObj.turno_noche[op] = valor;
+            }
+        } else if (slot.classList.contains('llamado-semanal-slot')) {
+            const semana = parseInt(slot.dataset.semana);
+            if (!datosTurnos[mesStr].llamado_semanal) {
+                datosTurnos[mesStr].llamado_semanal = {};
+            }
+            datosTurnos[mesStr].llamado_semanal[semana] = valor;
+        }
+    }
+    // --- FIN: Lógica para Gestión de Turnos ---
+
+
     // --- Para Gestión de Usuarios y Logs ---
     const usersTableBody = document.querySelector('#usersTable tbody');
     const logTableBody = document.querySelector('#logTable tbody');
-
-    // Referencias al formulario de usuario
     const saveUserBtn = document.getElementById('saveUserBtn');
     const adminUserId = document.getElementById('adminUserId');
     const adminUsername = document.getElementById('adminUsername');
@@ -563,7 +745,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const adminRole = document.getElementById('adminRole');
     const cancelEditBtn = document.getElementById('cancelEditBtn');
 
-    // Función para limpiar el formulario de usuario
     function resetUserForm() {
         adminUserId.value = '';
         adminUsername.value = '';
@@ -573,7 +754,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         cancelEditBtn.style.display = 'none';
     }
 
-    // Función para cargar la lista de usuarios
     async function loadUsers() {
         try {
             const response = await fetch('/api/users', {
@@ -584,7 +764,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 throw new Error(err.error || 'Error al cargar usuarios.');
             }
             const users = await response.json();
-            usersTableBody.innerHTML = ''; // Limpiar tabla
+            usersTableBody.innerHTML = '';
             users.forEach(user => {
                 const row = usersTableBody.insertRow();
                 row.innerHTML = `
@@ -597,7 +777,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </td>
                 `;
             });
-             // Añadir listeners a los nuevos botones
             usersTableBody.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', handleEditUser));
             usersTableBody.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', handleDeleteUser));
         } catch (error) {
@@ -606,7 +785,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Función para cargar el log de actividad
     async function loadActivityLog() {
         try {
             const response = await fetch('/api/activity_log', {
@@ -617,7 +795,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 throw new Error(err.error || 'Error al cargar el log.');
             }
             const logs = await response.json();
-            logTableBody.innerHTML = ''; // Limpiar tabla
+            logTableBody.innerHTML = '';
             logs.forEach(log => {
                 const row = logTableBody.insertRow();
                 row.innerHTML = `
@@ -634,37 +812,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Cargar datos cuando se hace clic en las nuevas pestañas
     document.querySelector('a[data-section="gestion-usuarios"]').addEventListener('click', loadUsers);
     document.querySelector('a[data-section="log-actividad"]').addEventListener('click', loadActivityLog);
 
-    // Event listener para el botón de guardar/actualizar usuario
     saveUserBtn.addEventListener('click', async () => {
         const id = adminUserId.value;
         const username = adminUsername.value.trim();
         const password = adminPassword.value;
         const role = adminRole.value;
-
         if (!username) {
             showMessage('El nombre de usuario no puede estar vacío.', 'error');
             return;
         }
-
         const endpoint = id ? `/api/users/update` : `/api/users/add`;
         const payload = { id, username, password, role };
-        
-        // No enviar el campo de contraseña si está vacío durante una actualización
         if (id && !password) {
             delete payload.password;
         }
-
         try {
             const response = await fetch(endpoint, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(payload)
             });
             const result = await response.json();
@@ -673,7 +841,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             showMessage(result.message, 'success');
             resetUserForm();
-            loadUsers(); // Recargar la lista de usuarios
+            loadUsers();
         } catch (error) {
             showMessage(error.message, 'error');
         }
@@ -684,8 +852,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const hora = ahora.getHours();
         const minuto = ahora.getMinutes();
         const horaFormato = `${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}`;
-        
-        // Usamos las funciones de boletin-logic.js, pasando la variable 'currentData' de admin.js
         let boletinCompleto = [
             `Boletín de prueba, son las ${horaFormato} horas. El Servicio Nacional de Prevención y Respuesta ante desastres informa que se mantiene vigente para la Región de Valparaíso:`,
             generarTextoAlertas(currentData),
@@ -696,15 +862,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             generarTextoHidrometria(currentData),
             await generarTextoTurnos()
         ];
-        
         let saludoFinal;
         if (hora < 12) saludoFinal = "buenos días.";
         else if (hora < 21) saludoFinal = "buenas tardes.";
         else saludoFinal = "buenas noches.";
         boletinCompleto.push(`Finaliza el boletín informativo de las ${horaFormato} horas, ${saludoFinal}`);
-        
         const textoFinal = boletinCompleto.filter(Boolean).join(" ... ");
-        
         const sonidoNotificacion = new Audio('assets/notificacion_boletin.mp3');
         sonidoNotificacion.play();
         sonidoNotificacion.onended = () => {
@@ -712,7 +875,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     }
     
-    // Event listener para los botones de la tabla (editar y eliminar)
     function handleEditUser(e) {
         const target = e.target;
         adminUserId.value = target.dataset.id;
@@ -726,43 +888,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function handleDeleteUser(e) {
         const id = e.target.dataset.id;
         if (!confirm(`¿Estás seguro de que quieres eliminar al usuario con ID ${id}?`)) return;
-
         try {
             const response = await fetch('/api/users/delete', { 
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ id: id })
             });
             const result = await response.json();
             if (!response.ok) throw new Error(result.error);
             showMessage(result.message, 'success');
-            loadUsers(); // Recargar la lista
+            loadUsers();
         } catch (error) {
             showMessage(error.message, 'error');
         }
     }
 
-    // Event listener para cancelar edición
     cancelEditBtn.addEventListener('click', resetUserForm);
 
-    // --- Inicio: Cargar todos los datos al iniciar la página ---
-    loadDataForAdmin(); 
+    // --- Carga inicial de la aplicación ---
+    setupUIForUserRole(); // Configura la UI según el rol
+    loadDataForAdmin(); // Carga los datos de los paneles principales
 
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
             const token = localStorage.getItem('session_token');
             localStorage.removeItem('session_token');
-            
-            // Notifica al servidor que el token se está invalidando
             fetch('/api/logout', { 
                 method: 'POST', 
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-
             window.location.href = '/login.html';
         });
     }
@@ -772,7 +927,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         testNotificationBtn.addEventListener('click', () => {
             const type = document.getElementById('testNotificationType').value;
             let sonido, mensaje;
-
             switch(type) {
                 case 'regular':
                     sonido = 'assets/notificacion_regular.mp3';
@@ -791,7 +945,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     mensaje = 'Prueba de notificación. A esta hora se registran precipitaciones.';
                     break;
             }
-
             if(sonido && mensaje) {
                 const audio = new Audio(sonido);
                 audio.play();
