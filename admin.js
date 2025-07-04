@@ -113,25 +113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const sidebarLinks = document.querySelectorAll('.admin-sidebar nav ul li a');
     const adminSections = document.querySelectorAll('.admin-section');
-    sidebarLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            sidebarLinks.forEach(l => l.classList.remove('active'));
-            adminSections.forEach(s => s.classList.remove('active'));
-            this.classList.add('active');
-            const sectionId = this.dataset.section;
-            document.getElementById(sectionId).classList.add('active');
-            
-            if (sectionId === 'gestion-usuarios') {
-                loadUsers();
-            } else if (sectionId === 'log-actividad') {
-                loadActivityLog();
-            } else if (sectionId === 'gestion-turnos') {
-                inicializarGestionTurnos();
-            }
-        });
-    });
-
+    
     function showMessage(message, type) {
         adminMessage.textContent = message;
         adminMessage.className = `message ${type}`;
@@ -1183,19 +1165,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     sidebarLinks.forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
+            
+            // Ocultar todas las secciones y quitar la clase activa de todos los enlaces
             sidebarLinks.forEach(l => l.classList.remove('active'));
             adminSections.forEach(s => s.classList.remove('active'));
+
+            // Activar el enlace y la sección seleccionados
             this.classList.add('active');
             const sectionId = this.dataset.section;
             document.getElementById(sectionId).classList.add('active');
             
+            // Ejecutar la función correspondiente para la sección seleccionada
             if (sectionId === 'gestion-usuarios') {
                 loadUsers();
             } else if (sectionId === 'log-actividad') {
                 loadActivityLog();
             } else if (sectionId === 'gestion-turnos') {
                 inicializarGestionTurnos();
-            } else if (sectionId === 'mis-turnos') { // <-- AÑADIR ESTA CONDICIÓN
+            } else if (sectionId === 'mis-turnos') { // Condición que faltaba en el lugar correcto
                 inicializarMisTurnos();
             }
         });
