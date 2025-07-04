@@ -229,6 +229,7 @@
         }
         .turnos-main {
             flex-grow: 1;
+            min-width: 0; /* Corrección para flexbox */
         }
         .operadores-list, .llamado-list {
             border: 1px solid #ccc;
@@ -286,33 +287,41 @@
         #btnGuardarTurnos { background-color: #28a745; }
         #btnExportarExcel { background-color: #17a2b8; }
 
-        .turnos-calendario table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
+        /* Contenedor principal del Grid del Calendario */
+        .turnos-calendario-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr); /* 7 columnas de igual ancho */
+            border-left: 1px solid #ccc;
+            border-top: 1px solid #ccc;
         }
-        .turnos-calendario th, .turnos-calendario td {
-            border: 1px solid #ccc;
-            text-align: center;
-            vertical-align: top;
-            padding: 0;
+
+        /* Estilo para TODAS las celdas del grid */
+        .turnos-calendario-grid > div {
+            border-right: 1px solid #ccc;
+            border-bottom: 1px solid #ccc;
         }
-        .turnos-calendario th {
+
+        /* Celda de encabezado (LUNES 1, MARTES 2, etc.) */
+        .grid-header {
             background-color: #e9ecef;
             padding: 8px;
+            font-weight: bold;
+            text-align: center;
         }
-        .dia-header {
-            background-color: #f8f9fa;
+
+        /* Celda de un día normal del mes */
+        .grid-day {
             padding: 5px;
-            font-weight: bold;
+            min-height: 100px; /* Asegura una altura mínima */
         }
-        .dia-header {
-            background-color: #f8f9fa;
-            padding: 8px 5px; 
-            font-weight: bold;
-            font-size: 1.2em; 
+
+        /* Celda vacía (días del mes anterior/siguiente) */
+        .grid-empty {
+            background-color: #f5f5f5;
+            min-height: 100px;
         }
-        .dia-body { padding: 5px; }
+
+        /* Contenedor para los turnos dentro de un día */
         .turno-slot {
             display: grid;
             grid-template-columns: 40px 1fr 1fr;
@@ -327,6 +336,7 @@
             writing-mode: vertical-rl;
             transform: rotate(180deg);
             padding: 5px 0;
+            text-align: center;
         }
         .operador-slot {
             height: 35px;
@@ -344,7 +354,10 @@
             background-color: #e0f7ff;
             border-color: #007bff;
         }
-        .llamado-semanal-slot {
+
+        /* Celda para el profesional a llamado (abarca las 7 columnas) */
+        .grid-llamado {
+            grid-column: 1 / -1; /* ¡La magia del Grid! Abarca de la primera a la última columna */
             height: 40px;
             background-color: #343a40;
             cursor: pointer;
@@ -357,11 +370,10 @@
             font-size: 1.1em;
             color: white;
         }
-        .llamado-semanal-slot:hover {
+        .grid-llamado:hover {
             background-color: #495057;
             border-color: #fff;
         }
-        .celda-vacia { background-color: #f5f5f5; }
         /* --- FIN: Estilos para Gestión de Turnos --- */
 
     </style>

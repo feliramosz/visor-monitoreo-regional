@@ -591,8 +591,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Dibuja la tabla del calendario para el mes y año seleccionados
-    // Dibuja la tabla del calendario para el mes y año seleccionados
+    // Dibuja la grilla del calendario para el mes y año seleccionados
     function renderizarCalendario() {
         const mes = parseInt(mesSelect.value);
         const anio = parseInt(anioSelect.value);
@@ -606,36 +605,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         const diasEnMes = new Date(anio, mes + 1, 0).getDate();
         const nombresDias = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
         
-        let calendarioHtml = `
-            <table>
-                <thead>
-                    <tr>${nombresDias.map(n => `<th>${n}</th>`).join('')}</tr>
-                </thead>
-                <tbody>
-        `;
+        // Contenedor principal del grid
+        let calendarioHtml = '<div class="turnos-calendario-grid">';
+
+        // 1. Generar la fila de encabezados (LUNES 1, MARTES 2, etc.)
+        // Esta parte es más compleja porque los números cambian, así que la generamos junto con los días.
 
         let dia = 1;
-        let diaSemana = primerDia === 0 ? 6 : primerDia - 1; // Ajuste para que Lunes sea 0
+        let diaSemana = primerDia === 0 ? 6 : primerDia - 1; // Lunes = 0
 
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 6; i++) { // 6 semanas para cubrir todos los casos
             if (dia > diasEnMes) break;
 
-            let celdasSemanaHtml = '';
+            // Fila de días
             for (let j = 0; j < 7; j++) {
                 if (i === 0 && j < diaSemana) {
-                    celdasSemanaHtml += '<td class="celda-vacia"></td>';
+                    calendarioHtml += '<div class="grid-empty"></div>'; // Celda vacía antes del día 1
                 } else if (dia > diasEnMes) {
-                    celdasSemanaHtml += '<td class="celda-vacia"></td>';
+                    calendarioHtml += '<div class="grid-empty"></div>'; // Celda vacía después del último día
                 } else {
                     const datosDia = datosTurnos[mesStr].dias?.find(d => d.dia === dia) || {};
                     const turnoDia = datosDia.turno_dia || {};
                     const turnoNoche = datosDia.turno_noche || {};
 
-                    // --- AJUSTE #1: El encabezado ahora solo muestra el número del día ---
-                    celdasSemanaHtml += `
-                        <td>
-                            <div class="dia-header">${dia}</div>
-                            <div class="dia-body">
+                    calendarioHtml += `
+                        <div class="grid-cell">
+                            <div class="grid-header">${nombresDias[j]} ${dia}</div>
+                            <div class="grid-day">
                                 <div class="turno-slot">
                                     <span class="turno-horario">09-21h</span>
                                     <div class="operador-slot" data-dia="${dia}" data-turno="dia" data-op="1">${turnoDia.op1 || ''}</div>
@@ -647,26 +643,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <div class="operador-slot" data-dia="${dia}" data-turno="noche" data-op="2">${turnoNoche.op2 || ''}</div>
                                 </div>
                             </div>
-                        </td>
+                        </div>
                     `;
                     dia++;
                 }
             }
-            
-            // --- AJUSTE #2: Se construye la fila de días y la de llamado de forma más robusta ---
-            // Se añade la fila de los días de la semana
-            calendarioHtml += `<tr>${celdasSemanaHtml}</tr>`;
 
-            // Se añade la fila del profesional a llamado para esa semana
+            // Fila del profesional a llamado para esa semana
             const llamado = datosTurnos[mesStr].llamado_semanal?.[i] || '';
-            calendarioHtml += `
-                <tr>
-                    <td colspan="7" class="llamado-semanal-slot" data-semana="${i}">${llamado}</td>
-                </tr>
-            `;
+            calendarioHtml += `<div class="grid-llamado" data-semana="${i}">${llamado}</div>`;
         }
 
-        calendarioHtml += '</tbody></table>';
+        calendarioHtml += '</div>'; // Cierre del contenedor principal del grid
         calendarioContainer.innerHTML = calendarioHtml;
 
         asignarListenersSlots();
