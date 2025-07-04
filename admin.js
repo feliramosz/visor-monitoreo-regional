@@ -1041,7 +1041,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const user = await response.json();
                 
                 const mapaUsuarioAIniciales = {
-                    "framos": "FRZ", "lcifuentes": "LCC", "smiranda": "SMM", "aaltamirano": "AAG", 
+                    "felipe": "FRZ", "lcifuentes": "LCC", "smiranda": "SMM", "aaltamirano": "AAG", 
                     "vmaturana": "VMV", "fsaavedra": "FSO", "paceituno": "PAM", "epino": "EPA", "mzamora": "MZH",
                     "fsalas": "FSP", "fsoto": "FSA", "brahmer": "BRL", "gmuzio": "GMH", "paraneda": "PAR", "festay": "FED"
                 };
