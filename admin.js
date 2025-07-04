@@ -1033,6 +1033,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Variable para guardar las iniciales del usuario logueado
     let inicialesUsuarioLogueado = '';
 
+    let datosTurnosParaVistaPersonal = {};
+
     // Función principal que se llama al hacer clic en la pestaña "Mis Turnos"
     async function inicializarMisTurnos() {
         // 1. Obtener las iniciales del usuario actual
@@ -1041,7 +1043,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const user = await response.json();
-            // Asumimos que el username son las iniciales (ej. 'FRZ')
             inicialesUsuarioLogueado = user.username.toUpperCase();
         } catch (error) {
             console.error('Error al obtener datos del usuario:', error);
@@ -1053,10 +1054,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         poblarSelectoresFechaMisTurnos();
         await cargarDatosYRenderizarMiCalendario();
 
-        // 3. Añadir listeners para que se actualice al cambiar mes/año
+        // 3. Añadir listeners para que se actualice al cambiar mes, año o el checkbox
         misTurnosMesSelect.addEventListener('change', cargarDatosYRenderizarMiCalendario);
         misTurnosAnioSelect.addEventListener('change', cargarDatosYRenderizarMiCalendario);
+        
+        const verCalendarioCompletoCheckbox = document.getElementById('verCalendarioCompletoCheckbox');
+        verCalendarioCompletoCheckbox.addEventListener('change', () => {
+            // Simplemente vuelve a renderizar el calendario con la nueva opción del checkbox
+            renderizarMiCalendario(datosTurnosParaVistaPersonal);
+        });
     }
+
 
     // Rellena los menús desplegables de mes y año para la sección "Mis Turnos"
     function poblarSelectoresFechaMisTurnos() {
@@ -1079,8 +1087,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const response = await fetch('/api/turnos');
             if (!response.ok) throw new Error('No se pudo cargar el archivo de turnos.');
-            const datosTurnosCompletos = await response.json();
-            renderizarMiCalendario(datosTurnosCompletos);
+            datosTurnosParaVistaPersonal = await response.json(); // Guardamos los datos en la variable global
+            renderizarMiCalendario(datosTurnosParaVistaPersonal);
         } catch (error) {
             console.error(error);
             showMessage(error.message, 'error');
@@ -1090,6 +1098,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Dibuja la grilla del calendario personal, resaltando los turnos del usuario
     function renderizarMiCalendario(datosTurnosCompletos) {
+        const verCompleto = document.getElementById('verCalendarioCompletoCheckbox').checked;
         const mes = parseInt(misTurnosMesSelect.value);
         const anio = parseInt(misTurnosAnioSelect.value);
         const mesStr = misTurnosMesSelect.options[misTurnosMesSelect.selectedIndex].text;
@@ -1123,8 +1132,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const turnoDia = datosDia.turno_dia || {};
                     const turnoNoche = datosDia.turno_noche || {};
 
-                    // --- Lógica para resaltar turnos ---
-                    const esMiTurno = (op) => op === inicialesUsuarioLogueado ? 'style="background-color: #d4edda;"' : '';
+                    // --- Lógica para mostrar/resaltar turnos ---
+                    const procesarTurno = (iniciales) => {
+                        if (verCompleto) {
+                            // Muestra todos y resalta el del usuario
+                            const esMio = iniciales === inicialesUsuarioLogueado;
+                            return `<div class="operador-slot" style="${esMio ? 'background-color: #d4edda; font-weight: bold;' : ''}">${iniciales || ''}</div>`;
+                        } else {
+                            // Muestra solo el del usuario, el resto vacío
+                            return `<div class="operador-slot">${iniciales === inicialesUsuarioLogueado ? iniciales : ''}</div>`;
+                        }
+                    };
 
                     celdasSemanaHtml += `
                         <div class="grid-cell">
@@ -1132,13 +1150,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div class="grid-day">
                                 <div class="turno-slot">
                                     <span class="turno-horario">09-21h</span>
-                                    <div class="operador-slot" ${esMiTurno(turnoDia.op1)}>${turnoDia.op1 || ''}</div>
-                                    <div class="operador-slot" ${esMiTurno(turnoDia.op2)}>${turnoDia.op2 || ''}</div>
+                                    ${procesarTurno(turnoDia.op1)}
+                                    ${procesarTurno(turnoDia.op2)}
                                 </div>
                                 <div class="turno-slot">
                                     <span class="turno-horario">21-09h</span>
-                                    <div class="operador-slot" ${esMiTurno(turnoNoche.op1)}>${turnoNoche.op1 || ''}</div>
-                                    <div class="operador-slot" ${esMiTurno(turnoNoche.op2)}>${turnoNoche.op2 || ''}</div>
+                                    ${procesarTurno(turnoNoche.op1)}
+                                    ${procesarTurno(turnoNoche.op2)}
                                 </div>
                             </div>
                         </div>
@@ -1151,9 +1169,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const datosPrimerDiaSemana = datosMes.dias?.find(d => d.dia === primerDiaDeLaSemana);
             const llamado = datosPrimerDiaSemana?.turno_dia?.llamado || '';
-            const esMiLlamado = llamado === inicialesUsuarioLogueado ? 'style="background-color: #004085; color: white;"' : '';
+            
+            let llamadoHtml;
+            if (verCompleto) {
+                const esMiLlamado = llamado === inicialesUsuarioLogueado;
+                llamadoHtml = `<div class="grid-llamado" style="${esMiLlamado ? 'background-color: #004085; color: white; border-color: #c3e6cb;' : ''}">${llamado}</div>`;
+            } else {
+                llamadoHtml = `<div class="grid-llamado">${llamado === inicialesUsuarioLogueado ? llamado : ''}</div>`;
+            }
 
-            calendarioHtml += `<div class="grid-llamado" ${esMiLlamado}>${llamado}</div>`;
+            calendarioHtml += llamadoHtml;
         }
 
         calendarioHtml += '</div>';
