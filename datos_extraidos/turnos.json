@@ -2,7 +2,7 @@
   "Junio": {
     "ano": 2025,
     "personal": {
-        "FSP": "Francisco Salas", "FRZ": "Felipe Ramos", "PAM": "Paulina Aceituno", "LCC": "Lorena Cifuentes", "MZH": "Marina Zamora", "SMM": "Sebastián Miranda", "EPA": "Eric Pino", "AAG": "Alonso Altamirano", "BRL": "Brian Rahmer", "PAR": "Patricio Araneda", "FSA": "Fernando Soto", "FED": "Felipe Estay", "GMH": "Gianni Muzio", "VMV": "Vladimir Maturana"
+        "FSP": "Francisco Salas", "FSO": "Francisco Saavedra", "FRZ": "Felipe Ramos", "PAM": "Paulina Aceituno", "LCC": "Lorena Cifuentes", "MZH": "Marina Zamora", "SMM": "Sebastián Miranda", "EPA": "Eric Pino", "AAG": "Alonso Altamirano", "BRL": "Brian Rahmer", "PAR": "Patricio Araneda", "FSA": "Fernando Soto", "FED": "Felipe Estay", "GMH": "Gianni Muzio", "VMV": "Vladimir Maturana"
     },
     "dias": [
       { "dia": 27, "turno_dia": {"op1": "AAG", "op2": "SMM", "llamado": "GMH"}, "turno_noche": {"op1": "LCC", "op2": "FRZ", "llamado": "GMH"} },
@@ -15,7 +15,7 @@
     "mes": "Julio",
     "ano": 2025,
     "personal": {
-      "FSP": "Francisco Salas", "FRZ": "Felipe Ramos", "PAM": "Paulina Aceituno", "LCC": "Lorena Cifuentes", "MZH": "Marina Zamora", "SMM": "Sebastián Miranda", "EPA": "Eric Pino", "AAG": "Alonso Altamirano", "BRL": "Brian Rahmer", "PAR": "Patricio Araneda", "FSA": "Fernando Soto", "FED": "Felipe Estay", "GMH": "Gianni Muzio", "VMV": "Vladimir Maturana"
+      "FSP": "Francisco Salas", "FSO": "Francisco Saavedra", "FRZ": "Felipe Ramos", "PAM": "Paulina Aceituno", "LCC": "Lorena Cifuentes", "MZH": "Marina Zamora", "SMM": "Sebastián Miranda", "EPA": "Eric Pino", "AAG": "Alonso Altamirano", "BRL": "Brian Rahmer", "PAR": "Patricio Araneda", "FSA": "Fernando Soto", "FED": "Felipe Estay", "GMH": "Gianni Muzio", "VMV": "Vladimir Maturana"
     },
     "dias": [
       { "dia": 1, "turno_dia": {"op1": "FSP", "op2": "MZH", "llamado": "BRL"}, "turno_noche": {"op1": "FRZ", "op2": "PAM", "llamado": "BRL"} },

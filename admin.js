@@ -565,17 +565,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         anioSelect.value = anioActual;
     }
 
-    // Renderiza las listas de personal (Operadores y A llamado) en la barra lateral
+    // Renderiza el panel de personal unificado
     function renderizarPanelesPersonal() {
+        const personalContainer = document.getElementById('personal-list-container');
         const mesSeleccionadoStr = mesSelect.options[mesSelect.selectedIndex].text;
         const personalDelMes = datosTurnos[mesSeleccionadoStr]?.personal || {};
 
-        const crearItems = (lista, tipo) => Object.keys(lista).map(iniciales => 
-            `<span class="${tipo}-item" data-iniciales="${iniciales}" data-tipo="${tipo}">${iniciales}</span>`
-        ).join('');
+        // Listas definidas de iniciales para cada rol
+        const inicialesOperadores = ["FRZ", "LCC", "SMM", "AAG", "VMV", "FSO", "PAM", "EPA", "MZH"];
+        const inicialesLlamado = ["FSP", "FSA", "BRL", "GMH", "PAR", "FED"];
 
-        operadoresListContainer.innerHTML = `<h4>Operadores de Turno</h4>${crearItems(personalDelMes, 'operador')}`;
-        llamadoListContainer.innerHTML = `<h4>Profesional a Llamado</h4>${crearItems(personalDelMes, 'llamado')}`;
+        // Función para crear los items, filtrando y ordenando
+        const crearItems = (listaIniciales, tipo) => {
+            return listaIniciales
+                .filter(inicial => personalDelMes.hasOwnProperty(inicial)) // Solo incluir si existe en el JSON
+                .sort() // Ordenar alfabéticamente
+                .map(iniciales => `<span class="${tipo}-item" data-iniciales="${iniciales}" data-tipo="${tipo}">${iniciales}</span>`)
+                .join('');
+        };
+
+        // Construir el HTML final
+        personalContainer.innerHTML = `
+            <h4>Operadores de Turno</h4>
+            <div>${crearItems(inicialesOperadores, 'operador')}</div>
+            <hr>
+            <h4>Profesional a Llamado</h4>
+            <div>${crearItems(inicialesLlamado, 'llamado')}</div>
+        `;
 
         // Añadir listeners para la selección de personal
         document.querySelectorAll('.operador-item, .llamado-item').forEach(item => {
@@ -590,7 +606,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
     }
-
+    
     // Dibuja la grilla del calendario para el mes y año seleccionados
     function renderizarCalendario() {
         const mes = parseInt(mesSelect.value);
@@ -605,30 +621,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         const diasEnMes = new Date(anio, mes + 1, 0).getDate();
         const nombresDias = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
         
-        // Contenedor principal del grid
         let calendarioHtml = '<div class="turnos-calendario-grid">';
 
-        // 1. Generar la fila de encabezados (LUNES 1, MARTES 2, etc.)
-        // Esta parte es más compleja porque los números cambian, así que la generamos junto con los días.
-
         let dia = 1;
-        let diaSemana = primerDia === 0 ? 6 : primerDia - 1; // Lunes = 0
+        let diaSemana = primerDia === 0 ? 6 : primerDia - 1;
 
-        for (let i = 0; i < 6; i++) { // 6 semanas para cubrir todos los casos
+        for (let i = 0; i < 6; i++) {
             if (dia > diasEnMes) break;
 
-            // Fila de días
+            let celdasSemanaHtml = '';
+            let primerDiaDeLaSemana = 0;
+
             for (let j = 0; j < 7; j++) {
                 if (i === 0 && j < diaSemana) {
-                    calendarioHtml += '<div class="grid-empty"></div>'; // Celda vacía antes del día 1
+                    celdasSemanaHtml += '<div class="grid-empty"></div>';
                 } else if (dia > diasEnMes) {
-                    calendarioHtml += '<div class="grid-empty"></div>'; // Celda vacía después del último día
+                    celdasSemanaHtml += '<div class="grid-empty"></div>';
                 } else {
+                    if (primerDiaDeLaSemana === 0) primerDiaDeLaSemana = dia; // Captura el primer día válido de la semana
+
                     const datosDia = datosTurnos[mesStr].dias?.find(d => d.dia === dia) || {};
                     const turnoDia = datosDia.turno_dia || {};
                     const turnoNoche = datosDia.turno_noche || {};
 
-                    calendarioHtml += `
+                    celdasSemanaHtml += `
                         <div class="grid-cell">
                             <div class="grid-header">${nombresDias[j]} ${dia}</div>
                             <div class="grid-day">
@@ -648,13 +664,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     dia++;
                 }
             }
+            
+            calendarioHtml += celdasSemanaHtml;
 
-            // Fila del profesional a llamado para esa semana
-            const llamado = datosTurnos[mesStr].llamado_semanal?.[i] || '';
-            calendarioHtml += `<div class="grid-llamado" data-semana="${i}">${llamado}</div>`;
+            // CORRECCIÓN: Lee el 'llamado' del primer día de la semana como representante de la semana completa
+            const datosPrimerDiaSemana = datosTurnos[mesStr].dias?.find(d => d.dia === primerDiaDeLaSemana);
+            const llamado = datosPrimerDiaSemana?.turno_dia?.llamado || '';
+
+            calendarioHtml += `<div class="grid-llamado" data-semana="${i}" data-primer-dia="${primerDiaDeLaSemana}" data-ultimo-dia="${dia - 1}">${llamado}</div>`;
         }
 
-        calendarioHtml += '</div>'; // Cierre del contenedor principal del grid
+        calendarioHtml += '</div>';
         calendarioContainer.innerHTML = calendarioHtml;
 
         asignarListenersSlots();
@@ -662,14 +682,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Asigna los eventos de click a todas las casillas del calendario
     function asignarListenersSlots() {
-        document.querySelectorAll('.operador-slot, .llamado-semanal-slot').forEach(slot => {
+        // CORRECCIÓN: Se cambió '.llamado-semanal-slot' por '.grid-llamado' para que coincida con el HTML generado
+        document.querySelectorAll('.operador-slot, .grid-llamado').forEach(slot => {
             slot.addEventListener('click', (e) => {
                 const target = e.currentTarget;
+                // CORRECCIÓN: Se simplificó la detección del tipo de slot
                 const tipoSlot = target.classList.contains('operador-slot') ? 'operador' : 'llamado';
 
-                // Si no hay nada seleccionado o el tipo no coincide, no hacer nada
+                // Si no hay nada seleccionado o el tipo no coincide, permitir limpiar la casilla
                 if (!seleccionActual.iniciales || seleccionActual.tipo !== tipoSlot) {
-                     // Permitir limpiar la casilla si se hace clic sin selección
                     if (target.textContent !== '') {
                         target.textContent = '';
                         actualizarDatosTurnoDesdeSlot(target, '');
@@ -698,25 +719,43 @@ document.addEventListener('DOMContentLoaded', async () => {
             const turno = slot.dataset.turno;
             const op = `op${slot.dataset.op}`;
 
-            // Buscar o crear el día en el objeto de datos
             let diaObj = datosTurnos[mesStr].dias.find(d => d.dia === dia);
             if (!diaObj) {
                 diaObj = { dia: dia, turno_dia: {}, turno_noche: {} };
                 datosTurnos[mesStr].dias.push(diaObj);
+                // Ordenar por si se crea un día nuevo
+                datosTurnos[mesStr].dias.sort((a, b) => a.dia - b.dia);
             }
 
-            // Actualizar el operador específico
             if (turno === 'dia') {
+                if (!diaObj.turno_dia) diaObj.turno_dia = {};
                 diaObj.turno_dia[op] = valor;
             } else {
+                if (!diaObj.turno_noche) diaObj.turno_noche = {};
                 diaObj.turno_noche[op] = valor;
             }
-        } else if (slot.classList.contains('llamado-semanal-slot')) {
-            const semana = parseInt(slot.dataset.semana);
-            if (!datosTurnos[mesStr].llamado_semanal) {
-                datosTurnos[mesStr].llamado_semanal = {};
+        } else if (slot.classList.contains('grid-llamado')) {
+            // CORRECCIÓN: Lógica para actualizar el 'llamado' en todos los días de la semana
+            const primerDia = parseInt(slot.dataset.primerDia);
+            const ultimoDia = parseInt(slot.dataset.ultimoDia);
+
+            for (let diaNum = primerDia; diaNum <= ultimoDia; diaNum++) {
+                let diaObj = datosTurnos[mesStr].dias.find(d => d.dia === diaNum);
+                // Si el día no existe en los datos (ej. un día de fin de semana sin turnos asignados), lo creamos
+                if (!diaObj) {
+                    diaObj = { dia: diaNum, turno_dia: {}, turno_noche: {} };
+                    datosTurnos[mesStr].dias.push(diaObj);
+                }
+                // Aseguramos que los objetos de turno existan
+                if (!diaObj.turno_dia) diaObj.turno_dia = {};
+                if (!diaObj.turno_noche) diaObj.turno_noche = {};
+
+                // Asignamos el profesional a llamado a ambos turnos de ese día
+                diaObj.turno_dia.llamado = valor;
+                diaObj.turno_noche.llamado = valor;
             }
-            datosTurnos[mesStr].llamado_semanal[semana] = valor;
+            // Re-ordenamos el array de días por si se crearon nuevos
+            datosTurnos[mesStr].dias.sort((a, b) => a.dia - b.dia);
         }
     }
     // --- FIN: Lógica para Gestión de Turnos ---
