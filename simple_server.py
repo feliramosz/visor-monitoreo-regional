@@ -24,23 +24,28 @@ from werkzeug.security import check_password_hash, generate_password_hash
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8000
 load_dotenv(dotenv_path=os.path.join(os.path.expanduser('~'), 'senapred-monitor.env'))
-#DATA_FOLDER_PATH = os.path.join(os.getenv('PROGRAMDATA'), 'SistemaMonitoreoSENAPRED', 'datos_extraidos')
+
+# --- Definición de Rutas del Proyecto ---
+# Define la raíz del proyecto (donde se encuentra simple_server.py)
+SERVER_ROOT = os.path.dirname(os.path.abspath(__file__))
+
+# Define la carpeta de datos relativa a la raíz del proyecto
 DATA_FOLDER_PATH = os.path.join(SERVER_ROOT, 'datos_extraidos')
+
+# Define las rutas a los archivos de datos específicos
 DATA_FILE = os.path.join(DATA_FOLDER_PATH, 'ultimo_informe.json')
 NOVEDADES_FILE = os.path.join(DATA_FOLDER_PATH, 'novedades.json')
 TURNOS_FILE = os.path.join(DATA_FOLDER_PATH, 'turnos.json')
-SERVER_ROOT = os.path.dirname(os.path.abspath(__file__))
-DYNAMIC_SLIDES_FOLDER = os.path.join(SERVER_ROOT, 'assets', 'dynamic_slides')
-SESSIONS = {} # Un diccionario para guardar las sesiones activas: { 'token': 'username' }
-DATABASE_FILE = 'database.db' # La ruta a nuestra base de datos
+DATABASE_FILE = os.path.join(SERVER_ROOT, 'database.db')
 
-# --- CONFIGURACIÓN DE REDIMENSIONAMIENTO DE IMÁGENES ---
+# Define la carpeta para las imágenes dinámicas
+DYNAMIC_SLIDES_FOLDER = os.path.join(SERVER_ROOT, 'assets', 'dynamic_slides')
+
+# --- Variables de Sesión y Configuración ---
+SESSIONS = {} # Almacenamiento temporal de sesiones activas: { 'token': 'username' }
 MAX_IMAGE_WIDTH = 1200
 MAX_IMAGE_HEIGHT = 800
-
-# --- SERVIDOR NTP DEL SHOA ---
 NTP_SERVER = 'ntp.shoa.cl'
-
   
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
     # --- Función para registrar logs ---
