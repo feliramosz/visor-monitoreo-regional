@@ -124,6 +124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             this.classList.add('active');
             const sectionId = this.dataset.section;
+            console.log("Intentando activar la sección con ID:", sectionId);
             document.getElementById(sectionId).classList.add('active');
             
             // Llama a la función de inicialización correcta según la sección
