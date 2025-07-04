@@ -681,24 +681,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Asigna los eventos de click a todas las casillas del calendario
-    function asignarListenersSlots() {
-        // CORRECCIÓN: Se cambió '.llamado-semanal-slot' por '.grid-llamado' para que coincida con el HTML generado
+    function asignarListenersSlots() {        
         document.querySelectorAll('.operador-slot, .grid-llamado').forEach(slot => {
             slot.addEventListener('click', (e) => {
                 const target = e.currentTarget;
-                // CORRECCIÓN: Se simplificó la detección del tipo de slot
                 const tipoSlot = target.classList.contains('operador-slot') ? 'operador' : 'llamado';
 
-                // Si no hay nada seleccionado o el tipo no coincide, permitir limpiar la casilla
-                if (!seleccionActual.iniciales || seleccionActual.tipo !== tipoSlot) {
+                // Si no hay nadie seleccionado, la única acción posible es limpiar la casilla
+                if (!seleccionActual.iniciales) {
                     if (target.textContent !== '') {
                         target.textContent = '';
                         actualizarDatosTurnoDesdeSlot(target, '');
                     }
                     return;
                 }
-                
-                // Asignar o limpiar la casilla
+
+                // --- LÓGICA DE VALIDACIÓN MODIFICADA ---
+                // Solo se bloquea la acción si se intenta poner un 'operador' en el slot de 'llamado'
+                if (seleccionActual.tipo === 'operador' && tipoSlot === 'llamado') {
+                    showMessage('Un Operador de Turno no puede ser asignado como Profesional a Llamado.', 'error');
+                    return; // Se detiene la acción
+                }
+
+                // Si la validación pasa, se asigna o se limpia la casilla
                 if (target.textContent === seleccionActual.iniciales) {
                     target.textContent = '';
                     actualizarDatosTurnoDesdeSlot(target, '');
