@@ -1385,7 +1385,49 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self._set_headers(500, 'application/json')
                 self.wfile.write(json.dumps({'error': f"Error de servidor: {e}"}).encode('utf-8'))
             return
-        
+
+            # --- INICIO ENDPOINT PARA CAMBIAR CONTRASEÑA ---
+        elif self.path == '/api/users/change_password':
+            username = self._get_user_from_token()
+            if not username:
+                self._set_headers(401, 'application/json')
+                self.wfile.write(json.dumps({'error': 'No autorizado.'}).encode('utf-8'))
+                return
+
+            try:
+                content_length = int(self.headers['Content-Length'])
+                post_data = json.loads(self.rfile.read(content_length))
+                current_password = post_data.get('currentPassword')
+                new_password = post_data.get('newPassword')
+
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+
+                # 1. Verificar la contraseña actual
+                cursor.execute("SELECT password_hash FROM users WHERE username = ?", (username,))
+                result = cursor.fetchone()
+                if not result or not check_password_hash(result[0], current_password):
+                    self._set_headers(403, 'application/json')
+                    self.wfile.write(json.dumps({'error': 'La contraseña actual es incorrecta.'}).encode('utf-8'))
+                    conn.close()
+                    return
+
+                # 2. Actualizar con la nueva contraseña
+                new_password_hash = generate_password_hash(new_password)
+                cursor.execute("UPDATE users SET password_hash = ? WHERE username = ?", (new_password_hash, username))
+                conn.commit()
+                conn.close()
+
+                self._log_activity(username, "Contraseña Actualizada")
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps({'message': 'Contraseña actualizada exitosamente.'}).encode('utf-8'))
+
+            except Exception as e:
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({"error": f"Error de servidor: {e}"}).encode('utf-8'))
+            return
+        # --- FIN ENDPOINT PARA CAMBIAR CONTRASEÑA ---
+                
         else:
             self._set_headers(404, 'text/plain')
             self.wfile.write(b"Ruta POST no encontrada")    

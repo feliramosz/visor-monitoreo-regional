@@ -407,6 +407,7 @@
                     <li><a href="#" data-section="dynamic-slides">Agregar imagenes</a></li>
                     <li><a href="#" data-section="accion-manual">Descargar Informe Manual</a></li>
                     <li><a href="#" data-section="mis-turnos">Mis Turnos</a></li>
+                    <li><a href="#" data-section="mi-perfil">Mi Perfil</a></li>
                     <li class="admin-only"><a href="#" data-section="gestion-turnos">Gestión de Turnos</a></li>
                     <li class="separator admin-only"></li>
                     <li class="admin-only"><a href="#" data-section="gestion-usuarios">Gestión de Usuarios</a></li>
@@ -604,22 +605,20 @@
                 </div>
             </section>
             
-            <section id="mis-turnos" class="admin-section">
-                <h3>Mi Calendario de Turnos</h3>
-                <div class="turnos-main">
-                    <div class="turnos-controls">
-                        <label for="select-mes-mis-turnos">Mes:</label>
-                        <select id="select-mes-mis-turnos"></select>
-                        <label for="select-anio-mis-turnos">Año:</label>
-                        <select id="select-anio-mis-turnos"></select>
-                        
-                        <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="verCalendarioCompletoCheckbox" style="width: 18px; height: 18px;">
-                            <label for="verCalendarioCompletoCheckbox" style="font-weight: normal; cursor: pointer;">Ver calendario completo</label>
-                        </div>
-                    </div>
-                    <div class="turnos-calendario" id="mis-turnos-calendario-container">
-                        </div>
+            <section id="mi-perfil" class="admin-section">
+                <h3>Mi Perfil</h3>
+                <div class="form-group">
+                    <h4>Cambiar mi Contraseña</h4>
+                    <label for="current-password">Contraseña Actual:</label>
+                    <input type="password" id="current-password" placeholder="Ingresa tu contraseña actual" required>
+
+                    <label for="new-password">Nueva Contraseña:</label>
+                    <input type="password" id="new-password" placeholder="Ingresa la nueva contraseña" required>
+
+                    <label for="confirm-password">Confirmar Nueva Contraseña:</label>
+                    <input type="password" id="confirm-password" placeholder="Vuelve a ingresar la nueva contraseña" required>
+
+                    <button type="button" id="changePasswordBtn" class="save-button">Cambiar Contraseña</button>
                 </div>
             </section>
 

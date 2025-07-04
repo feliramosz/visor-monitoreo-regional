@@ -1216,11 +1216,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             
-            // Ocultar todas las secciones y quitar la clase activa de todos los enlaces
             sidebarLinks.forEach(l => l.classList.remove('active'));
             adminSections.forEach(s => s.classList.remove('active'));
 
-            // Activar el enlace y la sección seleccionados
             this.classList.add('active');
             const sectionId = this.dataset.section;
             document.getElementById(sectionId).classList.add('active');
@@ -1232,10 +1230,67 @@ document.addEventListener('DOMContentLoaded', async () => {
                 loadActivityLog();
             } else if (sectionId === 'gestion-turnos') {
                 inicializarGestionTurnos();
-            } else if (sectionId === 'mis-turnos') { // Se asegura que la lógica para "Mis Turnos" se ejecute
+            } else if (sectionId === 'mis-turnos') {
                 inicializarMisTurnos();
+            } else if (sectionId === 'mi-perfil') {
+                // No necesita una función de inicialización especial por ahora
             }
         });
     });
+
+    // --- Lógica para el botón de Cambiar Contraseña ---
+    const changePasswordBtn = document.getElementById('changePasswordBtn');
+    if (changePasswordBtn) {
+        changePasswordBtn.addEventListener('click', async () => {
+            const currentPasswordInput = document.getElementById('current-password');
+            const newPasswordInput = document.getElementById('new-password');
+            const confirmPasswordInput = document.getElementById('confirm-password');
+
+            const currentPassword = currentPasswordInput.value;
+            const newPassword = newPasswordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            // Validaciones del lado del cliente
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                showMessage('Todos los campos son obligatorios.', 'error');
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                showMessage('La nueva contraseña y su confirmación no coinciden.', 'error');
+                return;
+            }
+
+            changePasswordBtn.disabled = true;
+            changePasswordBtn.textContent = 'Cambiando...';
+
+            try {
+                const response = await fetch('/api/users/change_password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ currentPassword, newPassword })
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.error || 'Error desconocido.');
+                }
+
+                showMessage(result.message, 'success');
+                // Limpiar los campos después del éxito
+                currentPasswordInput.value = '';
+                newPasswordInput.value = '';
+                confirmPasswordInput.value = '';
+
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            } finally {
+                changePasswordBtn.disabled = false;
+                changePasswordBtn.textContent = 'Cambiar Contraseña';
+            }
+        });
+    }
 
 });
