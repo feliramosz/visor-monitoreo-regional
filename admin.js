@@ -1041,4 +1041,166 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
+    // Referencias a elementos del DOM para "Mis Turnos"
+    const misTurnosContainer = document.getElementById('mis-turnos');
+    const misTurnosMesSelect = document.getElementById('select-mes-mis-turnos');
+    const misTurnosAnioSelect = document.getElementById('select-anio-mis-turnos');
+    const misTurnosCalendarioContainer = document.getElementById('mis-turnos-calendario-container');
+
+    // Variable para guardar las iniciales del usuario logueado
+    let inicialesUsuarioLogueado = '';
+
+    // Función principal que se llama al hacer clic en la pestaña "Mis Turnos"
+    async function inicializarMisTurnos() {
+        // 1. Obtener las iniciales del usuario actual
+        try {
+            const response = await fetch('/api/me', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const user = await response.json();
+            // Asumimos que el username son las iniciales (ej. 'FRZ')
+            inicialesUsuarioLogueado = user.username.toUpperCase();
+        } catch (error) {
+            console.error('Error al obtener datos del usuario:', error);
+            showMessage('No se pudieron obtener tus datos de usuario.', 'error');
+            return;
+        }
+
+        // 2. Poblar los selectores de fecha y cargar los datos
+        poblarSelectoresFechaMisTurnos();
+        await cargarDatosYRenderizarMiCalendario();
+
+        // 3. Añadir listeners para que se actualice al cambiar mes/año
+        misTurnosMesSelect.addEventListener('change', cargarDatosYRenderizarMiCalendario);
+        misTurnosAnioSelect.addEventListener('change', cargarDatosYRenderizarMiCalendario);
+    }
+
+    // Rellena los menús desplegables de mes y año para la sección "Mis Turnos"
+    function poblarSelectoresFechaMisTurnos() {
+        const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        const anioActual = new Date().getFullYear();
+        
+        misTurnosMesSelect.innerHTML = meses.map((mes, index) => `<option value="${index}">${mes}</option>`).join('');
+        
+        misTurnosAnioSelect.innerHTML = '';
+        for (let i = anioActual - 1; i <= anioActual + 2; i++) {
+            misTurnosAnioSelect.innerHTML += `<option value="${i}">${i}</option>`;
+        }
+
+        misTurnosMesSelect.value = new Date().getMonth();
+        misTurnosAnioSelect.value = anioActual;
+    }
+
+    // Carga el archivo turnos.json y dispara el renderizado del calendario personal
+    async function cargarDatosYRenderizarMiCalendario() {
+        try {
+            const response = await fetch('/api/turnos');
+            if (!response.ok) throw new Error('No se pudo cargar el archivo de turnos.');
+            const datosTurnosCompletos = await response.json();
+            renderizarMiCalendario(datosTurnosCompletos);
+        } catch (error) {
+            console.error(error);
+            showMessage(error.message, 'error');
+            misTurnosCalendarioContainer.innerHTML = `<p style="color: red;">${error.message}</p>`;
+        }
+    }
+
+    // Dibuja la grilla del calendario personal, resaltando los turnos del usuario
+    function renderizarMiCalendario(datosTurnosCompletos) {
+        const mes = parseInt(misTurnosMesSelect.value);
+        const anio = parseInt(misTurnosAnioSelect.value);
+        const mesStr = misTurnosMesSelect.options[misTurnosMesSelect.selectedIndex].text;
+
+        const datosMes = datosTurnosCompletos[mesStr] || { dias: [] };
+        
+        const primerDia = new Date(anio, mes, 1).getDay();
+        const diasEnMes = new Date(anio, mes + 1, 0).getDate();
+        const nombresDias = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
+        
+        let calendarioHtml = '<div class="turnos-calendario-grid">';
+
+        let dia = 1;
+        let diaSemana = primerDia === 0 ? 6 : primerDia - 1;
+
+        for (let i = 0; i < 6; i++) {
+            if (dia > diasEnMes) break;
+
+            let celdasSemanaHtml = '';
+            let primerDiaDeLaSemana = 0;
+
+            for (let j = 0; j < 7; j++) {
+                if (i === 0 && j < diaSemana) {
+                    celdasSemanaHtml += '<div class="grid-empty"></div>';
+                } else if (dia > diasEnMes) {
+                    celdasSemanaHtml += '<div class="grid-empty"></div>';
+                } else {
+                    if (primerDiaDeLaSemana === 0) primerDiaDeLaSemana = dia;
+
+                    const datosDia = datosMes.dias?.find(d => d.dia === dia) || {};
+                    const turnoDia = datosDia.turno_dia || {};
+                    const turnoNoche = datosDia.turno_noche || {};
+
+                    // --- Lógica para resaltar turnos ---
+                    const esMiTurno = (op) => op === inicialesUsuarioLogueado ? 'style="background-color: #d4edda;"' : '';
+
+                    celdasSemanaHtml += `
+                        <div class="grid-cell">
+                            <div class="grid-header">${nombresDias[j]} ${dia}</div>
+                            <div class="grid-day">
+                                <div class="turno-slot">
+                                    <span class="turno-horario">09-21h</span>
+                                    <div class="operador-slot" ${esMiTurno(turnoDia.op1)}>${turnoDia.op1 || ''}</div>
+                                    <div class="operador-slot" ${esMiTurno(turnoDia.op2)}>${turnoDia.op2 || ''}</div>
+                                </div>
+                                <div class="turno-slot">
+                                    <span class="turno-horario">21-09h</span>
+                                    <div class="operador-slot" ${esMiTurno(turnoNoche.op1)}>${turnoNoche.op1 || ''}</div>
+                                    <div class="operador-slot" ${esMiTurno(turnoNoche.op2)}>${turnoNoche.op2 || ''}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    dia++;
+                }
+            }
+            
+            calendarioHtml += celdasSemanaHtml;
+
+            const datosPrimerDiaSemana = datosMes.dias?.find(d => d.dia === primerDiaDeLaSemana);
+            const llamado = datosPrimerDiaSemana?.turno_dia?.llamado || '';
+            const esMiLlamado = llamado === inicialesUsuarioLogueado ? 'style="background-color: #004085; color: white;"' : '';
+
+            calendarioHtml += `<div class="grid-llamado" ${esMiLlamado}>${llamado}</div>`;
+        }
+
+        calendarioHtml += '</div>';
+        misTurnosCalendarioContainer.innerHTML = calendarioHtml;
+    }
+
+    // Finalmente, necesitamos conectar la nueva función al click del menú.
+    // Busca el bloque de código que maneja los clicks del menú lateral
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            sidebarLinks.forEach(l => l.classList.remove('active'));
+            adminSections.forEach(s => s.classList.remove('active'));
+            this.classList.add('active');
+            const sectionId = this.dataset.section;
+            document.getElementById(sectionId).classList.add('active');
+            
+            if (sectionId === 'gestion-usuarios') {
+                loadUsers();
+            } else if (sectionId === 'log-actividad') {
+                loadActivityLog();
+            } else if (sectionId === 'gestion-turnos') {
+                inicializarGestionTurnos();
+            } else if (sectionId === 'mis-turnos') { // <-- AÑADIR ESTA CONDICIÓN
+                inicializarMisTurnos();
+            }
+        });
+    });
+
+    // --- FIN: Lógica para la sección "Mis Turnos" ---
+
 });
