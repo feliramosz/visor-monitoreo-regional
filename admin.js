@@ -1051,128 +1051,104 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Referencias a elementos del DOM para "Mis Turnos"
-    const misTurnosContainer = document.getElementById('mis-turnos');
+    // --- INICIO: Lógica para la sección "Mis Turnos" ---
+    // Referencias a elementos del DOM
     const misTurnosMesSelect = document.getElementById('select-mes-mis-turnos');
     const misTurnosAnioSelect = document.getElementById('select-anio-mis-turnos');
     const misTurnosCalendarioContainer = document.getElementById('mis-turnos-calendario-container');
+    const verCalendarioCompletoCheckbox = document.getElementById('verCalendarioCompletoCheckbox');
 
-    // Variable para guardar las iniciales del usuario logueado
+    // Variables de estado para esta sección
     let inicialesUsuarioLogueado = '';
-
-    let datosTurnosParaVistaPersonal = {};
+    let datosTurnosParaVistaPersonal = null; // Inicia como null para saber que aún no se han cargado
 
     // Función principal que se llama al hacer clic en la pestaña "Mis Turnos"
     async function inicializarMisTurnos() {
-        // 1. Obtener las iniciales del usuario actual
-        try {
-            // Mapa para traducir el nombre de usuario del login a las iniciales de los turnos
-            const mapaUsuarioAIniciales = {
-                "felipe": "FRZ",
-                "lcifuentes": "LCC",
-                "smiranda": "SMM",
-                "aaltamirano": "AAG",
-                "vmaturana": "VMV",
-                "fsaavedra": "FSO",
-                "paceituno": "PAM",
-                "epino": "EPA",
-                "mzamora": "MZH",
-                "fsalas": "FSP",
-                "fsoto": "FSA",
-                "brahmer": "BRL",
-                "gmuzio": "GMH",
-                "paraneda": "PAR",
-                "festay": "FED"
-            };
+        // Si ya tenemos los datos, solo redibujamos el calendario. Si no, los cargamos.
+        if (datosTurnosParaVistaPersonal) {
+            renderizarMiCalendario();
+        } else {
+            // 1. Obtener las iniciales del usuario actual
+            try {
+                const response = await fetch('/api/me', { headers: { 'Authorization': `Bearer ${token}` } });
+                const user = await response.json();
+                
+                const mapaUsuarioAIniciales = {
+                    "framos": "FRZ", "lcifuentes": "LCC", "smiranda": "SMM", "aaltamirano": "AAG", 
+                    "vmaturana": "VMV", "fsaavedra": "FSO", "paceituno": "PAM", "epino": "EPA", "mzamora": "MZH",
+                    "fsalas": "FSP", "fsoto": "FSA", "brahmer": "BRL", "gmuzio": "GMH", "paraneda": "PAR", "festay": "FED"
+                };
+                
+                inicialesUsuarioLogueado = mapaUsuarioAIniciales[user.username.toLowerCase()] || '';
 
-            const response = await fetch('/api/me', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const user = await response.json();
-            
-            // CORRECCIÓN: Usamos el mapa para obtener las iniciales correctas
-            inicialesUsuarioLogueado = mapaUsuarioAIniciales[user.username] || '';
-
-            if (!inicialesUsuarioLogueado) {
-                console.warn(`El usuario '${user.username}' no tiene iniciales definidas en el mapa.`);
+            } catch (error) {
+                console.error('Error al obtener datos del usuario:', error);
+                showMessage('No se pudieron obtener tus datos de usuario.', 'error');
+                return;
             }
 
-        } catch (error) {
-            console.error('Error al obtener datos del usuario:', error);
-            showMessage('No se pudieron obtener tus datos de usuario.', 'error');
-            return;
+            // 2. Poblar los selectores y añadir listeners
+            poblarSelectoresFechaMisTurnos();
+            misTurnosMesSelect.addEventListener('change', renderizarMiCalendario);
+            misTurnosAnioSelect.addEventListener('change', renderizarMiCalendario);
+            verCalendarioCompletoCheckbox.addEventListener('change', renderizarMiCalendario);
+            
+            // 3. Cargar los datos de turnos por primera vez
+            await cargarYRenderizarMiCalendario();
         }
-
-        // 2. Poblar los selectores de fecha y cargar los datos
-        poblarSelectoresFechaMisTurnos();
-        await cargarDatosYRenderizarMiCalendario();
-
-        // 3. Añadir listeners para que se actualice al cambiar mes, año o el checkbox
-        misTurnosMesSelect.addEventListener('change', cargarDatosYRenderizarMiCalendario);
-        misTurnosAnioSelect.addEventListener('change', cargarDatosYRenderizarMiCalendario);
-        
-        const verCalendarioCompletoCheckbox = document.getElementById('verCalendarioCompletoCheckbox');
-        verCalendarioCompletoCheckbox.addEventListener('change', () => {
-            // Simplemente vuelve a renderizar el calendario con la nueva opción del checkbox
-            renderizarMiCalendario(datosTurnosParaVistaPersonal);
-        });
     }
 
-
-    // Rellena los menús desplegables de mes y año para la sección "Mis Turnos"
+    // Rellena los menús desplegables de mes y año
     function poblarSelectoresFechaMisTurnos() {
+        if (misTurnosMesSelect.options.length > 0) return; // Poblar solo una vez
         const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
         const anioActual = new Date().getFullYear();
-        
         misTurnosMesSelect.innerHTML = meses.map((mes, index) => `<option value="${index}">${mes}</option>`).join('');
-        
         misTurnosAnioSelect.innerHTML = '';
         for (let i = anioActual - 1; i <= anioActual + 2; i++) {
             misTurnosAnioSelect.innerHTML += `<option value="${i}">${i}</option>`;
         }
-
         misTurnosMesSelect.value = new Date().getMonth();
         misTurnosAnioSelect.value = anioActual;
     }
 
-    // Carga el archivo turnos.json y dispara el renderizado del calendario personal
-    async function cargarDatosYRenderizarMiCalendario() {
+    // Carga el archivo turnos.json y luego llama a la función que dibuja el calendario
+    async function cargarYRenderizarMiCalendario() {
         try {
             const response = await fetch('/api/turnos');
             if (!response.ok) throw new Error('No se pudo cargar el archivo de turnos.');
-            datosTurnosParaVistaPersonal = await response.json(); // Guardamos los datos en la variable global
-            renderizarMiCalendario(datosTurnosParaVistaPersonal);
+            datosTurnosParaVistaPersonal = await response.json(); // Guarda los datos en la variable global
+            renderizarMiCalendario(); // Dibuja el calendario por primera vez con los datos ya cargados
         } catch (error) {
             console.error(error);
-            showMessage(error.message, 'error');
             misTurnosCalendarioContainer.innerHTML = `<p style="color: red;">${error.message}</p>`;
         }
     }
 
-    // Dibuja la grilla del calendario personal, resaltando los turnos del usuario
-    function renderizarMiCalendario(datosTurnosCompletos) {
-        const verCompleto = document.getElementById('verCalendarioCompletoCheckbox').checked;
+    // Dibuja la grilla del calendario (ahora más robusta)
+    function renderizarMiCalendario() {
+        // CORRECCIÓN 2: Si los datos aún no están listos, no intenta dibujar
+        if (!datosTurnosParaVistaPersonal) {
+            misTurnosCalendarioContainer.innerHTML = '<p>Cargando datos...</p>';
+            return;
+        }
+
+        const verCompleto = verCalendarioCompletoCheckbox.checked;
         const mes = parseInt(misTurnosMesSelect.value);
         const anio = parseInt(misTurnosAnioSelect.value);
         const mesStr = misTurnosMesSelect.options[misTurnosMesSelect.selectedIndex].text;
-
-        const datosMes = datosTurnosCompletos[mesStr] || { dias: [] };
-        
+        const datosMes = datosTurnosParaVistaPersonal[mesStr] || { dias: [] };
         const primerDia = new Date(anio, mes, 1).getDay();
         const diasEnMes = new Date(anio, mes + 1, 0).getDate();
         const nombresDias = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
-        
         let calendarioHtml = '<div class="turnos-calendario-grid">';
-
         let dia = 1;
         let diaSemana = primerDia === 0 ? 6 : primerDia - 1;
 
         for (let i = 0; i < 6; i++) {
             if (dia > diasEnMes) break;
-
             let celdasSemanaHtml = '';
             let primerDiaDeLaSemana = 0;
-
             for (let j = 0; j < 7; j++) {
                 if (i === 0 && j < diaSemana) {
                     celdasSemanaHtml += '<div class="grid-empty"></div>';
@@ -1180,23 +1156,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     celdasSemanaHtml += '<div class="grid-empty"></div>';
                 } else {
                     if (primerDiaDeLaSemana === 0) primerDiaDeLaSemana = dia;
-
                     const datosDia = datosMes.dias?.find(d => d.dia === dia) || {};
                     const turnoDia = datosDia.turno_dia || {};
                     const turnoNoche = datosDia.turno_noche || {};
-
-                    // --- Lógica para mostrar/resaltar turnos ---
                     const procesarTurno = (iniciales) => {
                         if (verCompleto) {
-                            // Muestra todos y resalta el del usuario
                             const esMio = iniciales === inicialesUsuarioLogueado;
                             return `<div class="operador-slot" style="${esMio ? 'background-color: #d4edda; font-weight: bold;' : ''}">${iniciales || ''}</div>`;
                         } else {
-                            // Muestra solo el del usuario, el resto vacío
                             return `<div class="operador-slot">${iniciales === inicialesUsuarioLogueado ? iniciales : ''}</div>`;
                         }
                     };
-
                     celdasSemanaHtml += `
                         <div class="grid-cell">
                             <div class="grid-header">${nombresDias[j]} ${dia}</div>
@@ -1212,31 +1182,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     ${procesarTurno(turnoNoche.op2)}
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        </div>`;
                     dia++;
                 }
             }
-            
             calendarioHtml += celdasSemanaHtml;
-
             const datosPrimerDiaSemana = datosMes.dias?.find(d => d.dia === primerDiaDeLaSemana);
             const llamado = datosPrimerDiaSemana?.turno_dia?.llamado || '';
-            
             let llamadoHtml;
             if (verCompleto) {
                 const esMiLlamado = llamado === inicialesUsuarioLogueado;
-                llamadoHtml = `<div class="grid-llamado" style="${esMiLlamado ? 'background-color: #004085; color: white; border-color: #c3e6cb;' : ''}">${llamado}</div>`;
+                llamadoHtml = `<div class="grid-llamado" style="${esMiLiamado ? 'background-color: #004085; color: white; border-color: #c3e6cb;' : ''}">${llamado}</div>`;
             } else {
                 llamadoHtml = `<div class="grid-llamado">${llamado === inicialesUsuarioLogueado ? llamado : ''}</div>`;
             }
-
             calendarioHtml += llamadoHtml;
         }
-
         calendarioHtml += '</div>';
         misTurnosCalendarioContainer.innerHTML = calendarioHtml;
     }
+
+    // --- FIN: Lógica para la sección "Mis Turnos" (Versión Corregida) ---
 
     // --- Lógica para el botón de Cambiar Contraseña ---
     const changePasswordBtn = document.getElementById('changePasswordBtn');
