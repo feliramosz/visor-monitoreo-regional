@@ -1160,8 +1160,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         misTurnosCalendarioContainer.innerHTML = calendarioHtml;
     }
 
-    // Finalmente, necesitamos conectar la nueva función al click del menú.
-    // Busca el bloque de código que maneja los clicks del menú lateral
+    // --- MANEJADOR DE CLICS DEL MENÚ LATERAL ---
     sidebarLinks.forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
@@ -1182,12 +1181,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 loadActivityLog();
             } else if (sectionId === 'gestion-turnos') {
                 inicializarGestionTurnos();
-            } else if (sectionId === 'mis-turnos') { // Condición que faltaba en el lugar correcto
+            } else if (sectionId === 'mis-turnos') { // Se asegura que la lógica para "Mis Turnos" se ejecute
                 inicializarMisTurnos();
             }
         });
     });
-
-    // --- FIN: Lógica para la sección "Mis Turnos" ---
 
 });
