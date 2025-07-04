@@ -1039,11 +1039,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function inicializarMisTurnos() {
         // 1. Obtener las iniciales del usuario actual
         try {
+            // Mapa para traducir el nombre de usuario del login a las iniciales de los turnos
+            const mapaUsuarioAIniciales = {
+                "felipe": "FRZ",
+                "lcifuentes": "LCC",
+                "smiranda": "SMM",
+                "aaltamirano": "AAG",
+                "vmaturana": "VMV",
+                "fsaavedra": "FSO",
+                "paceituno": "PAM",
+                "epino": "EPA",
+                "mzamora": "MZH",
+                "fsalas": "FSP",
+                "fsoto": "FSA",
+                "brahmer": "BRL",
+                "gmuzio": "GMH",
+                "paraneda": "PAR",
+                "festay": "FED"
+            };
+
             const response = await fetch('/api/me', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const user = await response.json();
-            inicialesUsuarioLogueado = user.username.toUpperCase();
+            
+            // CORRECCIÓN: Usamos el mapa para obtener las iniciales correctas
+            inicialesUsuarioLogueado = mapaUsuarioAIniciales[user.username] || '';
+
+            if (!inicialesUsuarioLogueado) {
+                console.warn(`El usuario '${user.username}' no tiene iniciales definidas en el mapa.`);
+            }
+
         } catch (error) {
             console.error('Error al obtener datos del usuario:', error);
             showMessage('No se pudieron obtener tus datos de usuario.', 'error');
