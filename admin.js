@@ -592,6 +592,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Dibuja la tabla del calendario para el mes y año seleccionados
+    // Dibuja la tabla del calendario para el mes y año seleccionados
     function renderizarCalendario() {
         const mes = parseInt(mesSelect.value);
         const anio = parseInt(anioSelect.value);
@@ -616,27 +617,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         let dia = 1;
         let diaSemana = primerDia === 0 ? 6 : primerDia - 1; // Ajuste para que Lunes sea 0
 
-        for (let i = 0; i < 6; i++) { // 6 semanas para cubrir todos los casos
+        for (let i = 0; i < 6; i++) {
             if (dia > diasEnMes) break;
 
-            let celdasSemana = '';
+            let celdasSemanaHtml = '';
             for (let j = 0; j < 7; j++) {
                 if (i === 0 && j < diaSemana) {
-                    celdasSemana += '<td class="celda-vacia"></td>';
+                    celdasSemanaHtml += '<td class="celda-vacia"></td>';
                 } else if (dia > diasEnMes) {
-                    celdasSemana += '<td class="celda-vacia"></td>';
+                    celdasSemanaHtml += '<td class="celda-vacia"></td>';
                 } else {
                     const datosDia = datosTurnos[mesStr].dias?.find(d => d.dia === dia) || {};
                     const turnoDia = datosDia.turno_dia || {};
                     const turnoNoche = datosDia.turno_noche || {};
 
-                    // --- ÚNICA MODIFICACIÓN AQUÍ ---
-                    // Se ha cambiado el contenido de .dia-header para que muestre "DÍA NÚMERO"
-                    celdasSemana += `
+                    // --- AJUSTE #1: El encabezado ahora solo muestra el número del día ---
+                    celdasSemanaHtml += `
                         <td>
-                            <div class="dia-header">
-                                ${nombresDias[j]} ${dia}
-                            </div>
+                            <div class="dia-header">${dia}</div>
                             <div class="dia-body">
                                 <div class="turno-slot">
                                     <span class="turno-horario">09-21h</span>
@@ -654,9 +652,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     dia++;
                 }
             }
-            calendarioHtml += `<tr>${celdasSemana}</tr>`;
+            
+            // --- AJUSTE #2: Se construye la fila de días y la de llamado de forma más robusta ---
+            // Se añade la fila de los días de la semana
+            calendarioHtml += `<tr>${celdasSemanaHtml}</tr>`;
 
-            // La fila para el llamado semanal ya está correcta, abarcando las 7 columnas.
+            // Se añade la fila del profesional a llamado para esa semana
             const llamado = datosTurnos[mesStr].llamado_semanal?.[i] || '';
             calendarioHtml += `
                 <tr>
