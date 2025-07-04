@@ -511,7 +511,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Variables de estado para la gestión de turnos
     let datosTurnos = {};
     let seleccionActual = { iniciales: null, tipo: null }; // { iniciales: 'FRZ', tipo: 'operador' }
-
+    
     // Función principal que se llama al hacer clic en la pestaña "Gestión de Turnos"
     async function inicializarGestionTurnos() {
         poblarSelectoresFecha();
@@ -521,14 +521,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         mesSelect.addEventListener('change', renderizarCalendario);
         anioSelect.addEventListener('change', renderizarCalendario);
 
-        // Listeners para los botones (por ahora con funcionalidad de placeholder)
-        btnGuardarTurnos.addEventListener('click', () => {
-            alert('Funcionalidad "Guardar Cambios" pendiente de implementación en el backend.');
-            console.log("Datos de turnos para guardar:", datosTurnos);
+        // --- LÓGICA DEL BOTÓN GUARDAR ---
+        btnGuardarTurnos.addEventListener('click', async () => {
+            btnGuardarTurnos.disabled = true;
+            btnGuardarTurnos.textContent = 'Guardando...';
+
+            try {
+                const response = await fetch('/api/turnos/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(datosTurnos)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Ocurrió un error en el servidor.');
+                }
+                
+                showMessage(result.message, 'success');
+
+            } catch (error) {
+                console.error('Error al guardar turnos:', error);
+                showMessage(`Error al guardar: ${error.message}`, 'error');
+            } finally {
+                btnGuardarTurnos.disabled = false;
+                btnGuardarTurnos.textContent = 'Guardar Cambios';
+            }
         });
 
         btnExportarExcel.addEventListener('click', () => {
-            alert('Funcionalidad "Exportar a Excel" pendiente de implementación en el backend.');
+            alert('Funcionalidad "Exportar a Excel" pendiente de implementación.');
         });
     }
 

@@ -899,6 +899,41 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             return
         # --- FIN ENDPOINT POST NOVEDADES ---
 
+        # --- INICIO ENDPOINT POST PARA GUARDAR TURNOS ---
+        elif self.path == '/api/turnos/save':
+            username = self._get_user_from_token()
+            if not username:
+                self._set_headers(401, 'application/json')
+                self.wfile.write(json.dumps({'error': 'No autorizado. Se requiere iniciar sesión.'}).encode('utf-8'))
+                return
+            
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            
+            try:
+                # Cargar los nuevos datos de turnos desde el request
+                nuevos_datos_turnos = json.loads(post_data.decode('utf-8'))
+                
+                # Escribir los datos actualizados al archivo turnos.json
+                with open(TURNOS_FILE, 'w', encoding='utf-8') as f:
+                    json.dump(nuevos_datos_turnos, f, ensure_ascii=False, indent=2)
+                
+                # Registrar la actividad en el log
+                self._log_activity(username, "Planificación de Turnos Actualizada")
+                
+                # Enviar respuesta de éxito
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps({"message": "Planificación de turnos guardada correctamente."}, ensure_ascii=False).encode('utf-8'))
+
+            except json.JSONDecodeError:
+                self._set_headers(400, 'application/json')
+                self.wfile.write(json.dumps({"error": "JSON de turnos inválido."}).encode('utf-8'))
+            except Exception as e:
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({"error": f"Error al guardar el archivo de turnos: {e}"}).encode('utf-8'))
+            return
+        # --- FIN ENDPOINT POST PARA GUARDAR TURNOS ---
+
         # --- Endpoint para descargar informe manual ---
         elif self.path == '/api/trigger-download':
                     username = self._get_user_from_token()
