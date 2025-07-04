@@ -70,6 +70,17 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 -   **Integración de APIs Externas**: Consume y muestra datos en tiempo real de la DMC, SINCA, CSN, SHOA y Waze for Cities.
 -   **Múltiples Vistas de Despliegue**: `index.html` para visualización general, `dashboard.html` como panel de operaciones avanzado, y `admin.html`/`login.html` para gestión.
 -   **Mejoras de Experiencia de Usuario (UX)**: Controles de visualización locales, paginación automática de novedades y priorización de alertas.
+-.  [NUEVO] **Gestión de Turnos:**
+    -   Panel para la planificación visual de turnos mensuales en una vista de calendario.
+    -   Sistema de asignación "click-to-assign" para operadores y profesionales a llamado.
+    -   Funcionalidad para **guardar** la planificación en el servidor.
+    -   Funcionalidad para **exportar** la planificación del mes a un archivo **Excel** con formato.
+-   [NUEVO] **Gestión de Usuarios:**
+    -   Creación, edición y eliminación de usuarios.
+    -   Asignación de roles de Administrador u Operador.
+    -   **"Mis Turnos":** Vista personal para que cada usuario vea su propio calendario de turnos.
+    -   **"Mi Perfil":** Función para que cada usuario pueda **cambiar su propia contraseña**.
+-   **Se completó la lógica de notificación por voz para precipitaciones**: Implementada la notificación por aumento de valor para las estaciones meteorológicas.
 
 ---
 
@@ -87,9 +98,9 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
     -   **Añadido monitoreo de boletines de tsunami del PTWC** con análisis de datos CAP y plantillas de voz en español.
 
 ## 📝 Próximos Pasos y Tareas Pendientes
-
--   **Completar la lógica de notificación para precipitaciones**: Implementar la notificación por aumento de valor para las estaciones meteorológicas.
--   **Función 'Cambiar Mi Contraseña' para Usuarios:** Permitir que los usuarios cambien su propia contraseña.
 -   **Sistema de Notificaciones del Sistema:** Implementar alertas si el `cron job` de descarga de informes falla.
 -   **Paginación en Vistas de Administración:** Añadir paginación para el log de actividad y la lista de usuarios.
 -   **Exportación de Datos:** Añadir botones para exportar ciertas tablas a formatos como CSV o PDF.
+-   **Optimizar la carga:** Se debe optimizar la carga de datos en el dashboard para reducir el parpadeo.
+-   **Se debe crear manual de usuario para panel de administración**
+-   **Finalizado el proceso de implementación de funcionalidades se debe refactorizar el codigo en js para modularizar componentes repetidos**
