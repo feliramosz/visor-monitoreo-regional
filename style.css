@@ -2335,3 +2335,25 @@ footer {
 #aviso-pause-play-btn.paused {
     background-color: #d4edda;
 }
+
+/*Contenedor para ultimo informe en dashborad*/
+#turno-info-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px; /* Espacio entre el panel de llamado y el de la hora */
+    flex: 1;
+    max-width: 280px;
+}
+
+#ultimo-informe-hora-container h4 {
+    margin-bottom: 15px; /* Más espacio para centrar el texto */
+}
+
+.hora-informe-display {
+    font-size: 1.8em !important; /* Letra grande para la hora */
+    font-weight: bold;
+    color: #004d99;
+    font-family: 'DS-Digital', sans-serif; /* Usamos la misma fuente del reloj */
+    text-shadow: 0 0 4px rgba(0, 77, 153, 0.4);
+}

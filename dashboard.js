@@ -293,6 +293,19 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Error al sincronizar reloj:", error); }
     }
 
+    function renderHoraUltimoInforme(data) {
+        const container = document.getElementById('ultimo-informe-hora-container');
+        if (!container) return;
+
+        // El dato viene de ultimo_informe.json a través de la API
+        const horaInforme = data.hora_informe || 'No disponible';
+
+        container.innerHTML = `
+            <h4>Último Informe AM/PM</h4>
+            <p class="hora-informe-display">${horaInforme}</p>
+        `;
+    }
+
     /**
      * Orquesta el carrusel del banner superior, alternando entre slides.
      * @param {object} data - El objeto de datos principal.
@@ -318,7 +331,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const weatherSlideHTML = '<div id="weather-slide" class="top-banner-slide"></div>';
         const hydroAndTurnosSlideHTML = `
             <div id="hydro-slide" class="top-banner-slide">
-                <div id="turno-llamado-container" class="turno-container"></div>
+                <div id="turno-info-container">
+                    <div id="turno-llamado-container" class="turno-container"></div>
+                    <div id="ultimo-informe-hora-container" class="turno-container"></div>
+                </div>
                 <div id="hydro-stations-wrapper"></div>
                 <div id="turno-operadores-container" class="turno-container"></div>
             </div>`;
@@ -329,6 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderStaticHydroSlide(data);
        
         fetchAndDisplayTurnos();
+        renderHoraUltimoInforme(data);
 
         const slideToActivate = document.getElementById(activeSlideId);
         if (slideToActivate) {
