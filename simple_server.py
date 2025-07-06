@@ -257,7 +257,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 return
             
             # --- ENDPOINTS DE API (GET) ---
-            if requested_path == '/api/users':
+            elif requested_path == '/api/users':
                 username = self._get_user_from_token()
                 if self._get_user_role(username) != 'administrador':
                     self._set_headers(403, 'application/json')
@@ -308,7 +308,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({'username': username, 'role': role}).encode('utf-8'))
                 return    
 
-            if requested_path == '/api/data':
+            elif requested_path == '/api/data':
                 if os.path.exists(DATA_FILE):
                     with open(DATA_FILE, 'r', encoding='utf-8') as f:
                         data = json.load(f)
@@ -807,6 +807,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self._set_headers(204, 'application/json') # 204 No Content
                     self.wfile.write(b'')
                 return
+
             elif requested_path == '/api/last_tsunami_message':
                 LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_message.json')
                 if os.path.exists(LAST_MESSAGE_FILE):
@@ -996,7 +997,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             self._set_headers(500, 'text/plain')
             self.wfile.write(f"Error interno del servidor: {e}".encode('utf-8'))
         print(f"[{PID}] --- FIN do_GET para: {self.path} ---")
-        
+
     def do_POST(self):
         # --- Endpoint de Login ---
         if self.path == '/api/login':
