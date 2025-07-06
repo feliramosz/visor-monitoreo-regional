@@ -109,3 +109,52 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 -   **Optimizar la carga:** Se debe optimizar la carga de datos en el dashboard para reducir el parpadeo.
 -   **Se debe crear manual de usuario para panel de administración**
 -   **Finalizado el proceso de implementación de funcionalidades se debe refactorizar el codigo en js para modularizar componentes repetidos**
+
+### Resumen de Tiempos de Actualización y Origen de Datos
+
+Este es un listado de cómo y cuándo se actualiza la información en el sistema. Se divide en la actualización de la fuente principal de datos, el caché del servidor para APIs externas y el sondeo que realiza el frontend.
+
+#### 1. Fuente Principal de Datos (Informes `.docx`)
+
+* **Origen:** Extracción de datos desde archivos `.docx` recibidos por correo.
+* **Mecanismo:** Script `descargar_informe.py`.
+* **Actualización Automática (Cron Job):** El script se ejecuta en el servidor en horarios fijos, típicamente a las **11:00** y **20:00** para procesar los informes AM y PM.
+* **Actualización Manual:** Un administrador puede forzar la ejecución de este script en cualquier momento desde el panel de administración (`Acción Manual -> Iniciar Descarga Manual`).
+
+#### 2. Caché del Servidor (APIs Externas)
+
+Para evitar sobrecargar los servicios externos y mejorar el rendimiento, el servidor `simple_server.py` guarda una copia local de los datos de estas APIs por un tiempo determinado. El servidor solo contactará a la API externa cuando el caché haya expirado.
+
+* **Clima (DMC - `/api/weather`, `/api/estaciones_meteo_mapa`):**
+    * **Duración del Caché:** **90 segundos**.
+* **Calidad del Aire (SINCA - `/api/calidad_aire`):**
+    * **Duración del Caché:** **90 segundos**.
+* **Sismos (Gael.cloud - `/api/sismos`):**
+    * **Duración del Caché:** **5 minutos**.
+* **Tráfico (Waze - `/api/waze`):**
+    * **Duración del Caché:** **2 minutos**.
+* **Hora Oficial (SHOA - `/api/shoa_times`):**
+    * **Duración del Caché:** **30 segundos**.
+
+#### 3. Sondeo del Frontend (Peticiones del Navegador al Servidor)
+
+El frontend consulta periódicamente al servidor para mantener la interfaz actualizada.
+
+* **Detección de Cambios Generales (`/api/last_update_timestamp`):**
+    * **Página:** `dashboard.html`.
+    * **Frecuencia:** Cada **20 segundos**. Si detecta un cambio, dispara una actualización completa de los datos del informe (`/api/data`, `/api/novedades`, etc.).
+* **Notificaciones de Tsunami y Geofon (`/api/tsunami_check`, `/api/geofon_check`):**
+    * **Página:** `dashboard.html`.
+    * **Frecuencia de Verificación:** Cada **60 segundos**. (Nota: El servidor solo procesa la alerta si el ID del boletín es nuevo).
+* **Datos de Waze (en Dashboard):**
+    * **Página:** `dashboard.html`.
+    * **Frecuencia:** Cada **2 minutos**.
+* **Personal de Turno (en Dashboard):**
+    * **Página:** `dashboard.html`.
+    * **Frecuencia:** Cada **5 minutos**.
+* **Sismos (en `index.html`):**
+    * **Página:** `index.html`.
+    * **Frecuencia:** Cada **5 minutos**.
+* **Calidad del Aire (en `index.html`):**
+    * **Página:** `index.html`.
+    * **Frecuencia:** Cada **5 minutos**.
