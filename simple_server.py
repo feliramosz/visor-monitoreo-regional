@@ -1,6 +1,7 @@
 from io import StringIO
 import pandas as pd
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
 import json
 import os
 import urllib.parse
@@ -1586,9 +1587,15 @@ os.makedirs(os.path.dirname(NOVEDADES_FILE), exist_ok=True)
 os.makedirs(DYNAMIC_SLIDES_FOLDER, exist_ok=True)
 
 
+class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+    """Maneja cada petición en un hilo separado."""
+    pass
+
 if __name__ == "__main__":
-    httpd = HTTPServer((HOST_NAME, PORT_NUMBER), SimpleHttpRequestHandler)
-    print(f"Servidor iniciado en http://{HOST_NAME}:{PORT_NUMBER}")
+    # Ahora usamos nuestro nuevo servidor multihilo en lugar del básico
+    httpd = ThreadingHTTPServer((HOST_NAME, PORT_NUMBER), SimpleHttpRequestHandler)
+
+    print(f"Servidor MULTIHILO iniciado en http://{HOST_NAME}:{PORT_NUMBER}")
     print("Presiona Ctrl+C para detener el servidor.")
     try:
         httpd.serve_forever()
