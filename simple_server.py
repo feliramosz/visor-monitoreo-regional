@@ -1,4 +1,3 @@
-# VERSIÓN REVISADA Y CORREGIDA - 06 DE JULIO (Int2)
 from io import StringIO
 import pandas as pd
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -25,6 +24,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8000
 load_dotenv(dotenv_path=os.path.join(os.path.expanduser('~'), 'senapred-monitor.env'))
+PID = os.getpid()
 
 # --- Definición de Rutas del Proyecto ---
 # Define la raíz del proyecto (donde se encuentra simple_server.py)
@@ -98,7 +98,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         return SESSIONS.get(token)
     
     def _check_tsunami_bulletin(self):
-        print("[TSUNAMI_CHECK] Iniciando la verificación de boletín CAP.")
+        print(f"[{PID}][TSUNAMI_CHECK] Iniciando la verificación de boletín CAP.")
         CAP_FEED_URL = "https://www.tsunami.gov/events/xml/PHEBCAP.xml"
         LAST_BULLETIN_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_bulletin.txt')
         LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_message.json')
@@ -179,7 +179,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             return None
 
     def _check_geofon_bulletin(self):
-        print("[GEOFON_CHECK] Iniciando la verificación de evento sísmico significativo.")
+        print(f"[{PID}][GEOFON_CHECK] Iniciando la verificación de evento sísmico significativo.")
         GEOFON_API_URL = "https://geofon.gfz-potsdam.de/fdsnws/event/1/query?limit=1&orderby=time&minmagnitude=5.0&maxdepth=300&format=xml"
         LAST_EVENT_FILE = os.path.join(DATA_FOLDER_PATH, 'last_geofon_event.txt')
         LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_geofon_message.json')
@@ -245,6 +245,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         self._set_headers(200)
 
     def do_GET(self):
+        print(f"[{PID}] --- INICIO do_GET para: {self.path} ---")
         try:
             parsed_path = urllib.parse.urlparse(self.path)
             requested_path = urllib.parse.unquote(parsed_path.path)
@@ -991,9 +992,10 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(b"Archivo no encontrado en el servidor.")
 
         except Exception as e:
-            print(f"Error en do_GET al servir archivo: {e}")
+            print(f"[{PID}] Error en do_GET al servir archivo: {e}")
             self._set_headers(500, 'text/plain')
             self.wfile.write(f"Error interno del servidor: {e}".encode('utf-8'))
+        print(f"[{PID}] --- FIN do_GET para: {self.path} ---")
         
     def do_POST(self):
         # --- Endpoint de Login ---
