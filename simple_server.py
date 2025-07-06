@@ -179,54 +179,48 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _check_geofon_bulletin(self):
         print("[GEOFON_CHECK] Iniciando la verificación de evento sísmico significativo.")
-        # Parámetros para buscar sismos potencialmente tsunamigénicos
-        GEOFON_API_URL = "https://geofon.gfz-potsdam.de/fdsnws/event/1/query?limit=1&orderby=time&minmagnitude=7.0&maxdepth=100&format=geojson"
+        GEOFON_API_URL = "https://geofon.gfz-potsdam.de/fdsnws/event/1/query?limit=1&orderby=time&minmagnitude=5.0&maxdepth=300&format=xml"
         LAST_EVENT_FILE = os.path.join(DATA_FOLDER_PATH, 'last_geofon_event.txt')
         LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_geofon_message.json')
 
         try:
-            # 1. Leer el ID del último evento procesado
             last_processed_id = ""
             if os.path.exists(LAST_EVENT_FILE):
                 with open(LAST_EVENT_FILE, 'r') as f:
                     last_processed_id = f.read().strip()
 
-            # 2. Descargar y parsear el evento más reciente
             headers = {'User-Agent': 'SenapredValparaisoMonitoring/1.1'}
             response = requests.get(GEOFON_API_URL, headers=headers, timeout=20)
             response.raise_for_status()
-            event_data = response.json()
-
-            if not event_data.get('features'):
+            
+            soup = BeautifulSoup(response.content, 'lxml-xml')
+            event = soup.find('event')
+            if not event:
                 print("[GEOFON_CHECK] No se encontraron eventos que cumplan los criterios.")
                 return None
-
-            latest_event = event_data['features'][0]
-            event_id = latest_event.get('id')
             
-            # 3. Comparar con el último ID procesado
-            if event_id == last_processed_id:
-                return None # No es un evento nuevo
+            event_id = event.get('publicID')
+            if not event_id or event_id == last_processed_id:
+                return None
 
             print(f"[GEOFON_CHECK] ¡Evento sísmico nuevo y significativo detectado ('{event_id}')! Procesando...")
 
-            # 4. Extraer la información relevante
-            properties = latest_event.get('properties', {})
-            magnitude = properties.get('mag', 'N/A')
-            place = properties.get('place', 'ubicación no especificada')
-            depth = int(properties.get('depth', 0) / 1000) # Convertir de metros a km
+            magnitude = soup.find('magnitude').find('mag').find('value').text if soup.find('magnitude') else 'N/A'
+            place = soup.find('description').find('text').text if soup.find('description') else 'ubicación no especificada'
+            depth_meters = soup.find('origin').find('depth').find('value').text if soup.find('origin') else '0'
+            depth = int(float(depth_meters) / 1000)
 
-            # 5. Construir el mensaje de voz en español
-            mensaje_voz = (f"¡Atención! Se ha detectado un sismo significativo. "
-                           f"GEOFON reporta un evento de magnitud {magnitude} a {depth} kilómetros de profundidad, "
-                           f"localizado en {place}. Existe la posibilidad de que este evento genere un tsunami. "
-                           f"Se recomienda estar atento a los informes oficiales del SHOA.")
+            # --- MENSAJE CORREGIDO Y PRUDENTE ---
+            mensaje_voz = (f"Atención, boletín informativo de sismo significativo. "
+                           f"GEOFON reporta un evento de magnitud {magnitude}, a {depth} kilómetros de profundidad, "
+                           f"localizado en {place}. Por las características de este sismo, se recomienda "
+                           f"mantenerse informado a través de los canales oficiales del SHOA para obtener la "
+                           f"evaluación y las indicaciones correspondientes.")
             
             sonido = "assets/notificacion_alerta_maxima.mp3"
 
             print(f"[GEOFON_CHECK] Mensaje de voz generado: '{mensaje_voz}'")
 
-            # 6. Guardar el estado para no repetir
             with open(LAST_EVENT_FILE, 'w') as f:
                 f.write(event_id)
             with open(LAST_MESSAGE_FILE, 'w') as f:
