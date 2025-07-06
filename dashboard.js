@@ -298,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container) return;
 
         const horaInforme = data.hora_informe || 'No disp.';
-        container.textContent = `Últ. Informe AM/PM: ${horaInforme} H`;
+        container.textContent = `Últ. AM/PM: ${horaInforme}`;
     }
 
     /**
