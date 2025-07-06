@@ -474,14 +474,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 tipoTurno = 'Día';
                 if (infoHoy) {
                     turnoActivo = infoHoy.turno_dia;
-                    proximoTurno = infoHoy.turno_noche; // El próximo turno es el de la noche de hoy
+                    proximoTurno = infoHoy.turno_noche;
                 }
-            } else {
+            } else { // Turno de Noche (21:00 a 08:59)
                 tipoTurno = 'Noche';
                 let infoTurnoNoche;
-                if (horaActual >= 21) {
-                    infoTurnoNoche = infoHoy; // El turno de noche que comenzó hoy
-                } else { // Antes de las 9am
+
+                if (horaActual >= 21) { // --- PARA 21:00 - 23:59 ---
+                    infoTurnoNoche = infoHoy; // El turno activo es el de la noche de HOY.
+
+                    if (infoTurnoNoche) {
+                        turnoActivo = infoTurnoNoche.turno_noche;
+
+                        // BUSCAMOS EL TURNO DE MAÑANA
+                        const diaSiguiente = new Date(ahora);
+                        diaSiguiente.setDate(ahora.getDate() + 1);
+                        
+                        const mesSiguienteCapitalizado = (diaSiguiente.toLocaleString('es-CL', { month: 'long' })).replace(/^\w/, c => c.toUpperCase());
+                        const numeroDiaSiguiente = diaSiguiente.getDate();
+
+                        // Verificamos si el mes siguiente está en los datos, si no, usamos el actual
+                        const datosMesSiguiente = turnosData[mesSiguienteCapitalizado] || datosMesActual;
+
+                        if (datosMesSiguiente) {
+                            const infoDiaSiguiente = datosMesSiguiente.dias.find(d => d.dia === numeroDiaSiguiente);
+                            if (infoDiaSiguiente) {
+                                proximoTurno = infoDiaSiguiente.turno_dia;
+                            }
+                        }
+                    }
+                } else { // --- Lógica existente para 00:00 - 08:59 ---
                     const diaAyer = new Date(ahora); diaAyer.setDate(ahora.getDate() - 1);
                     const mesAyerCapitalizado = (diaAyer.toLocaleString('es-CL', { month: 'long' })).replace(/^\w/, c => c.toUpperCase());
                     const datosMesAyer = turnosData[mesAyerCapitalizado];
@@ -489,11 +511,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         infoTurnoNoche = datosMesAyer.dias.find(d => d.dia === diaAyer.getDate());
                         personal = datosMesAyer.personal;
                     }
-                }
-                if (infoTurnoNoche) {
-                    turnoActivo = infoTurnoNoche.turno_noche;
-                    // El próximo turno es el de día de mañana (que es el día actual para esta franja horaria)
-                    if (infoHoy) proximoTurno = infoHoy.turno_dia;
+
+                    if (infoTurnoNoche) {
+                        turnoActivo = infoTurnoNoche.turno_noche;
+                        // El próximo turno es el de día de hoy
+                        if (infoHoy) proximoTurno = infoHoy.turno_dia;
+                    }
                 }
             }
 

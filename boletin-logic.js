@@ -137,34 +137,83 @@ function generarTextoHidrometria(datos) {
     return anomalias.join(" ... ");
 }
 
-async function generarTextoTurnos() {
+async function generarTextoTurnos(datos, hora, minuto) {
     try {
         const response = await fetch('/api/turnos');
+        if (!response.ok) return "No fue posible obtener los datos de los turnos.";
+        
         const turnosData = await response.json();
         const ahora = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Santiago" }));
         const mesActual = ahora.toLocaleString('es-CL', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
         const datosMes = turnosData[mesActual];
-        if (!datosMes) return "";
-        const horaActual = ahora.getHours();
-        const infoDia = datosMes.dias.find(d => d.dia === ahora.getDate());
-        let turnoActivo;
-        if (horaActual >= 9 && horaActual < 21) turnoActivo = infoDia?.turno_dia;
-        else {
-            if (horaActual >= 21) turnoActivo = infoDia?.turno_noche;
-            else {
-                const ayer = new Date(ahora); ayer.setDate(ahora.getDate() - 1);
-                const mesAyer = ayer.toLocaleString('es-CL', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
-                turnoActivo = turnosData[mesAyer]?.dias.find(d => d.dia === ayer.getDate())?.turno_noche;
+
+        if (!datosMes || !datosMes.dias) return "No se encontró planificación de turnos para el mes actual.";
+
+        const infoHoy = datosMes.dias.find(d => d.dia === ahora.getDate());
+        if (!infoHoy) return "No hay turnos planificados para el día de hoy.";
+        
+        const personal = datosMes.personal || {};
+
+        // --- LÓGICA DE DECISIÓN CENTRAL ---        
+        const anunciarTurnoEntrante = (hora === 8 && minuto === 55) || (hora === 20 && minuto === 55);
+
+        if (anunciarTurnoEntrante) {
+            // --- LÓGICA PARA ANUNCIAR EL TURNO ENTRANTE (08:55 y 20:55) ---
+            let turnoAAnunciar;
+            let tipoTurno;
+
+            if (hora < 12) { // Boletín de las 08:55
+                turnoAAnunciar = infoHoy.turno_dia;
+                tipoTurno = 'Día';
+            } else { // Boletín de las 20:55
+                turnoAAnunciar = infoHoy.turno_noche;
+                tipoTurno = 'Noche';
+            }
+            
+            if (turnoAAnunciar) {
+                const profesional = personal[turnoAAnunciar.llamado] || 'No definido';
+                const op1 = personal[turnoAAnunciar.op1] || 'No definido';
+                const op2 = personal[turnoAAnunciar.op2] || 'No definido';
+                return `Para el próximo turno de ${tipoTurno}, se informa el ingreso de los operadores ${op1} y ${op2}. El profesional a llamado corresponde a ${profesional}.`;
+            }
+
+        } else {
+            // --- LÓGICA PARA ANUNCIAR Boletín de las 12:00 ---
+            let turnoActivo;
+            let tipoTurno;
+            // Se usa la hora real para determinar el turno activo en este momento.
+            const horaActual = ahora.getHours(); 
+
+            if (horaActual >= 9 && horaActual < 21) {
+                turnoActivo = infoHoy.turno_dia;
+                tipoTurno = 'Día';
+            } else {
+                // Esta lógica compleja es para el caso de que el boletín se ejecute entre las 00:00 y 08:59
+                if (horaActual >= 21) {
+                    turnoActivo = infoHoy.turno_noche;
+                } else {
+                    const ayer = new Date(ahora); ayer.setDate(ahora.getDate() - 1);
+                    const mesAyer = ayer.toLocaleString('es-CL', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
+                    const datosMesAyer = turnosData[mesAyer];
+                    if (datosMesAyer) {
+                        turnoActivo = datosMesAyer.dias.find(d => d.dia === ayer.getDate())?.turno_noche;
+                    }
+                }
+                tipoTurno = 'Noche';
+            }
+
+            if (turnoActivo) {
+                const profesional = personal[turnoActivo.llamado] || 'No definido';
+                const op1 = personal[turnoActivo.op1] || 'No definido';
+                const op2 = personal[turnoActivo.op2] || 'No definido';
+                return `En el turno de ${tipoTurno}, se encuentran los operadores ${op1} y ${op2}. Y el profesional a llamado ante emergencias corresponde a ${profesional}.`;
             }
         }
-        if (turnoActivo) {
-            const profesional = datosMes.personal[turnoActivo.llamado] || 'No definido';
-            const op1 = datosMes.personal[turnoActivo.op1] || 'No definido';
-            const op2 = datosMes.personal[turnoActivo.op2] || 'No definido';
-            return `El Profesional que se encuentra a llamado ante emergencias corresponde a ${profesional}. Y los Operadores de turno en la unidad de alerta temprana corresponden a ${op1} y ${op2}.`;
-        }
-        return "";
+        
+        return "No hay información de turnos para este boletín.";
+
     } catch (error) {
+        console.error("Error en generarTextoTurnos:", error);
         return "No fue posible obtener la información del personal de turno.";
     }
 }
