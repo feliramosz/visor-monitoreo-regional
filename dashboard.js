@@ -336,8 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderWeatherSlide(data);
         renderStaticHydroSlide(data);
        
-        fetchAndDisplayTurnos();
-        renderHoraUltimoInforme(data);
+        fetchAndDisplayTurnos();        
 
         const slideToActivate = document.getElementById(activeSlideId);
         if (slideToActivate) {
@@ -574,6 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     ${proximoTurnoHtml}
                 `;
+                renderHoraUltimoInforme(lastData); 
             } else if (llamadoContainer && operadoresContainer) {
                 llamadoContainer.innerHTML = '<h4>Profesional de Llamada</h4><p>No definido</p>';
                 operadoresContainer.innerHTML = '<h4>Op. Turno</h4><p>No definido</p>';
