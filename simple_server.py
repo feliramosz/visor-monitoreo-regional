@@ -963,35 +963,36 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 return
             # --- FIN ENDPOINT GET PARA EXPORTAR TURNOS A EXCEL ---
 
-            file_to_serve = os.path.join(SERVER_ROOT, requested_path.lstrip('/'))
-            file_to_serve = os.path.normpath(file_to_serve)
+            else:                
+                file_to_serve = os.path.join(SERVER_ROOT, requested_path.lstrip('/'))
+                file_to_serve = os.path.normpath(file_to_serve)
 
-            if requested_path == '/':
-                file_to_serve = os.path.join(SERVER_ROOT, 'index.html')
-            elif requested_path == '/admin':
-                file_to_serve = os.path.join(SERVER_ROOT, 'admin.html')
-            elif requested_path == '/dashboard':
-                file_to_serve = os.path.join(SERVER_ROOT, 'dashboard.html')    
-            elif os.path.isdir(file_to_serve):
-                pass
+                if requested_path == '/':
+                    file_to_serve = os.path.join(SERVER_ROOT, 'index.html')
+                elif requested_path == '/admin':
+                    file_to_serve = os.path.join(SERVER_ROOT, 'admin.html')
+                elif requested_path == '/dashboard':
+                    file_to_serve = os.path.join(SERVER_ROOT, 'dashboard.html')    
+                elif os.path.isdir(file_to_serve):
+                    pass
 
-            if '..' in file_to_serve or not file_to_serve.startswith(SERVER_ROOT):
-                self._set_headers(403, 'text/plain')
-                self.wfile.write(b"Acceso denegado: Ruta fuera de la raiz del servidor.")
-                return
+                if '..' in file_to_serve or not file_to_serve.startswith(SERVER_ROOT):
+                    self._set_headers(403, 'text/plain')
+                    self.wfile.write(b"Acceso denegado: Ruta fuera de la raiz del servidor.")
+                    return
 
-            if os.path.exists(file_to_serve) and os.path.isfile(file_to_serve):
-                content_type, _ = mimetypes.guess_type(file_to_serve)
-                if content_type is None:
-                    content_type = 'application/octet-stream'
+                if os.path.exists(file_to_serve) and os.path.isfile(file_to_serve):
+                    content_type, _ = mimetypes.guess_type(file_to_serve)
+                    if content_type is None:
+                        content_type = 'application/octet-stream'
 
-                with open(file_to_serve, 'rb') as file:
-                    self._set_headers(200, content_type)
-                    self.wfile.write(file.read())
-            else:
-                print(f"Archivo no encontrado en el servidor: {file_to_serve}")
-                self._set_headers(404, 'text/plain')
-                self.wfile.write(b"Archivo no encontrado en el servidor.")
+                    with open(file_to_serve, 'rb') as file:
+                        self._set_headers(200, content_type)
+                        self.wfile.write(file.read())
+                else:
+                    print(f"Archivo no encontrado en el servidor: {file_to_serve}")
+                    self._set_headers(404, 'text/plain')
+                    self.wfile.write(b"Archivo no encontrado en el servidor.")
 
         except Exception as e:
             print(f"[{PID}] Error en do_GET al servir archivo: {e}")
