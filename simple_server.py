@@ -246,7 +246,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         self._set_headers(200)
 
     def do_GET(self):
-        print(f"[{PID}] --- INICIO do_GET para: {self.path} ---")
+        if self.path != '/api/last_update_timestamp':
+            print(f"[{PID}] --- INICIO do_GET para: {self.path} ---")
         try:
             parsed_path = urllib.parse.urlparse(self.path)
             requested_path = urllib.parse.unquote(parsed_path.path)
@@ -1079,7 +1080,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             print(f"[{PID}] Error en do_GET al servir archivo: {e}")
             self._set_headers(500, 'text/plain')
             self.wfile.write(f"Error interno del servidor: {e}".encode('utf-8'))
-        print(f"[{PID}] --- FIN do_GET para: {self.path} ---")
+        if self.path != '/api/last_update_timestamp':
+            print(f"[{PID}] --- FIN do_GET para: {self.path} ---")
 
     def do_POST(self):
         # --- Endpoint de Login ---
@@ -1663,6 +1665,15 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             self._set_headers(404, 'text/plain')
             self.wfile.write(b"Ruta DELETE no encontrada")
 
+    # --- MÉTODO PARA CONTROLAR LOS LOGS ---
+    def log_message(self, format, *args):
+        # El primer argumento en 'args' contiene la línea de la petición, ej: "GET /api/last_update_timestamp HTTP/1.0"
+        if args and '/api/last_update_timestamp' in args[0]:
+            # Si la ruta que queremos ignorar está en la petición, simplemente no hacemos nada.
+            return
+        
+        # Para todas las demás peticiones, usamos el comportamiento de registro normal.
+        super().log_message(format, *args)
 
 os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
 os.makedirs(os.path.dirname(NOVEDADES_FILE), exist_ok=True)
