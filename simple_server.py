@@ -405,6 +405,19 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             
             # --- RUTA PARA ESTACIONES METEOROLOGICAS (BANNER SUPERIOR) ---
             elif requested_path == '/api/weather':
+                # --- Lógica de Caché de 90 segundos ---
+                cache_key = 'weather'
+                current_time = datetime.now().timestamp()
+                
+                if cache_key in self.server.cache and self.server.cache[cache_key]['expires'] > current_time:
+                    print(f"[{PID}] Sirviendo /api/weather DESDE CACHÉ.")
+                    cached_data = self.server.cache[cache_key]['data']
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(cached_data, ensure_ascii=False).encode('utf-8'))
+                    return
+                
+                print(f"[{PID}] Sirviendo /api/weather DESDE API EXTERNA (actualizando caché).")
+                # --- Fin Lógica de Caché ---
                 
                 # --- IMPORTACIONES PARA CONVERSIONES ---                 
                 import pytz 
@@ -507,6 +520,13 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             })
                     
                     print(f"Visor configurado para {len(weather_data)} estaciones.")
+                    
+                    # --- Lógica de Caché: Guardar el resultado ---
+                    self.server.cache[cache_key] = {
+                        'data': weather_data,
+                        'expires': current_time + 90 # Expira en 90 segundos
+                    }
+
                     self._set_headers(200, 'application/json')
                     self.wfile.write(json.dumps(weather_data, ensure_ascii=False).encode('utf-8'))
 
@@ -520,6 +540,19 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
             # --- ENDPOINT PARA MAPA DE ESTACIONES METEOROLÓGICAS ---           
             elif requested_path == '/api/estaciones_meteo_mapa':
+                # --- Lógica de Caché de 90 segundos ---
+                cache_key = 'estaciones_meteo_mapa'
+                current_time = datetime.now().timestamp()
+                
+                if cache_key in self.server.cache and self.server.cache[cache_key]['expires'] > current_time:
+                    print(f"[{PID}] Sirviendo /api/estaciones_meteo_mapa DESDE CACHÉ.")
+                    cached_data = self.server.cache[cache_key]['data']
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(cached_data, ensure_ascii=False).encode('utf-8'))
+                    return
+                print(f"[{PID}] Sirviendo /api/calidad_aire DESDE API EXTERNA (actualizando caché).")
+                # --- Fin Lógica de Caché ---
+
                 try:
                     # La importación de datetime y timedelta está al principio del archivo.
                     
@@ -587,6 +620,13 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         data_reciente['precipitacion_anterior'] = datos_ayer.get(codigo, '0')
                         map_data_final.append(data_reciente)
 
+                    # --- Lógica de Caché: Guardar el resultado ---
+                    self.server.cache[cache_key] = {
+                        'data': map_data_final,
+                        'expires': current_time + 90 # Expira en 90 segundos
+                    }
+                    # --- Fin Lógica de Caché ---
+
                     self._set_headers(200, 'application/json')
                     self.wfile.write(json.dumps(map_data_final, ensure_ascii=False).encode('utf-8'))
 
@@ -600,6 +640,20 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             
             # --- ENDPOINT PARA DATOS DE SISMOS ---
             elif requested_path == '/api/sismos':
+                # --- Lógica de Caché de 5 minutos ---
+                cache_key = 'sismos'
+                current_time = datetime.now().timestamp()
+                
+                if cache_key in self.server.cache and self.server.cache[cache_key]['expires'] > current_time:
+                    print(f"[{PID}] Sirviendo /api/sismos DESDE CACHÉ.")
+                    cached_data = self.server.cache[cache_key]['data']
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(cached_data, ensure_ascii=False).encode('utf-8'))
+                    return
+                
+                print(f"[{PID}] Sirviendo /api/sismos DESDE API EXTERNA (actualizando caché).")
+                # --- Fin Lógica de Caché ---
+
                 try:
                     API_URL = "https://api.gael.cloud/general/public/sismos"
                     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
@@ -607,6 +661,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     response.raise_for_status()
                     sismos_data = response.json()
                     if isinstance(sismos_data, list):
+                        # --- Lógica de Caché: Guardar el resultado ---
+                        self.server.cache[cache_key] = {
+                            'data': sismos_data,
+                            'expires': current_time + (5 * 60) # Expira en 5 minutos
+                        }
+                        # --- Fin Lógica de Caché ---
                         self._set_headers(200, 'application/json')
                         self.wfile.write(json.dumps(sismos_data, ensure_ascii=False).encode('utf-8'))
                     else:
@@ -624,6 +684,20 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             
             # --- ENDPOINT PARA DATOS DE CALIDAD DEL AIRE ---
             elif requested_path == '/api/calidad_aire':
+                # --- Lógica de Caché de 90 segundos ---
+                cache_key = 'calidad_aire'
+                current_time = datetime.now().timestamp()
+                
+                if cache_key in self.server.cache and self.server.cache[cache_key]['expires'] > current_time:
+                    print(f"[{PID}] Sirviendo /api/calidad_aire DESDE CACHÉ.")
+                    cached_data = self.server.cache[cache_key]['data']
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(cached_data, ensure_ascii=False).encode('utf-8'))
+                    return
+                
+                print(f"[{PID}] Sirviendo /api/calidad_aire DESDE API EXTERNA (actualizando caché).")
+                # --- Fin Lógica de Caché ---
+
                 try:
                     from html import unescape
 
@@ -676,6 +750,13 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                                 "parametros": parametros_data
                             })
                     
+                    # --- Lógica de Caché: Guardar el resultado ---
+                    self.server.cache[cache_key] = {
+                        'data': processed_stations,
+                        'expires': current_time + 90 # Expira en 90 segundos
+                    }
+                    # --- Fin Lógica de Caché ---
+
                     self._set_headers(200, 'application/json')
                     self.wfile.write(json.dumps(processed_stations, ensure_ascii=False).encode('utf-8'))
 
@@ -1590,7 +1671,7 @@ os.makedirs(DYNAMIC_SLIDES_FOLDER, exist_ok=True)
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     """Maneja cada petición en un hilo separado."""
-    pass
+    cache = {}
 
 if __name__ == "__main__":
     # Ahora usamos nuestro nuevo servidor multihilo en lugar del básico
