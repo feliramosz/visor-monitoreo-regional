@@ -1667,12 +1667,11 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     # --- MÉTODO PARA CONTROLAR LOS LOGS ---
     def log_message(self, format, *args):
-        # El primer argumento en 'args' contiene la línea de la petición, ej: "GET /api/last_update_timestamp HTTP/1.0"
-        if args and '/api/last_update_timestamp' in args[0]:
-            # Si la ruta que queremos ignorar está en la petición, simplemente no hacemos nada.
+        if args and isinstance(args[0], str) and '/api/last_update_timestamp' in args[0]:
+            # Si es la ruta que queremos ignorar, no hacemos nada.
             return
         
-        # Para todas las demás peticiones, usamos el comportamiento de registro normal.
+        # Para todas las demás peticiones (incluidos los errores internos), usamos el comportamiento de registro normal.
         super().log_message(format, *args)
 
 os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
