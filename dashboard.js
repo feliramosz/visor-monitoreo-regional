@@ -294,16 +294,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderHoraUltimoInforme(data) {
-        const container = document.getElementById('ultimo-informe-hora-container');
+        const container = document.getElementById('hora-informe-inline');
         if (!container) return;
 
-        // El dato viene de ultimo_informe.json a través de la API
-        const horaInforme = data.hora_informe || 'No disponible';
-
-        container.innerHTML = `
-            <h4>Último Informe AM/PM</h4>
-            <p class="hora-informe-display">${horaInforme}</p>
-        `;
+        const horaInforme = data.hora_informe || 'No disp.';
+        container.textContent = `Últ. Informe AM/PM: ${horaInforme} H`;
     }
 
     /**
@@ -331,10 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const weatherSlideHTML = '<div id="weather-slide" class="top-banner-slide"></div>';
         const hydroAndTurnosSlideHTML = `
             <div id="hydro-slide" class="top-banner-slide">
-                <div id="turno-info-container">
-                    <div id="turno-llamado-container" class="turno-container"></div>
-                    <div id="ultimo-informe-hora-container" class="turno-container"></div>
-                </div>
+                <div id="turno-llamado-container" class="turno-container"></div>
                 <div id="hydro-stations-wrapper"></div>
                 <div id="turno-operadores-container" class="turno-container"></div>
             </div>`;
@@ -562,7 +554,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (turnoActivo && llamadoContainer && operadoresContainer) {
                 // Panel Izquierdo: Profesional a llamado
-                llamadoContainer.innerHTML = `<h4>Profesional a llamado </h4><p class="turno-op-nombre">${personal[turnoActivo.llamado] || 'N/A'}</p>`;
+                llamadoContainer.innerHTML = `
+                    <h4>Profesional a llamado</h4>
+                    <p class="turno-op-nombre">${personal[turnoActivo.llamado] || 'N/A'}</p>
+                    <div id="hora-informe-inline"></div>
+                `;
 
                 // Panel Derecho: Operadores de Turno
                 let proximoTurnoHtml = '<p class="proximo-turno">Próximo turno: <strong>No definido</strong></p>';

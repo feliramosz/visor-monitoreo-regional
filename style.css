@@ -2336,24 +2336,21 @@ footer {
     background-color: #d4edda;
 }
 
-/*Contenedor para ultimo informe en dashborad*/
-#turno-info-container {
+/* Hace que el panel de "Llamado" organice su contenido verticalmente */
+#turno-llamado-container {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 10px; /* Espacio entre el panel de llamado y el de la hora */
-    flex: 1;
-    max-width: 280px;
 }
 
-#ultimo-informe-hora-container h4 {
-    margin-bottom: 15px; /* Más espacio para centrar el texto */
-}
-
-.hora-informe-display {
-    font-size: 1.8em !important; /* Letra grande para la hora */
+/* Estilo para la nueva línea de texto de la hora del informe */
+#hora-informe-inline {
+    font-size: 0.8em;
     font-weight: bold;
-    color: #004d99;
-    font-family: 'DS-Digital', sans-serif; /* Usamos la misma fuente del reloj */
-    text-shadow: 0 0 4px rgba(0, 77, 153, 0.4);
+    color: #888;
+    margin-top: 10px; /* Espacio sobre la línea */
+    padding-top: 6px; /* Espacio bajo la línea */
+    border-top: 1px solid #f0f0f0; /* Línea separadora sutil */
+    width: 80%; /* Ancho de la línea separadora */
+    align-self: center; /* Centra la línea */
 }
