@@ -81,6 +81,8 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
     -   **"Mis Turnos":** Vista personal para que cada usuario vea su propio calendario de turnos.
     -   **"Mi Perfil":** Función para que cada usuario pueda **cambiar su propia contraseña**.
 -   **Se completó la lógica de notificación por voz para precipitaciones**: Implementada la notificación por aumento de valor para las estaciones meteorológicas.
+**[NUEVO] Servidor Robusto y Multihilo**: Se ha reemplazado el servidor web base por una implementación multihilo (`ThreadingHTTPServer`) para garantizar la estabilidad y capacidad de respuesta del sistema bajo alta carga de peticiones concurrentes.
+-   **[NUEVO] Monitoreo de Sismos (GEOFON)**: Dentro del sistema de notificaciones, se integra una segunda fuente de monitoreo sísmico global (GEOFON) como sistema de redundancia. El sistema notifica por voz sismos significativos que podrían tener potencial tsunamigénico.
 
 ---
 
@@ -96,8 +98,11 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 -   **Implementado Sistema de Boletines Informativos por Voz**, con activaciones programadas y contenido dinámico.
 -   **[NUEVO] Implementado Sistema de Notificaciones de Eventos por Voz**, con alertas priorizadas, recordatorios inteligentes y controles de activación global y local.
     -   **Añadido monitoreo de boletines de tsunami del PTWC** con análisis de datos CAP y plantillas de voz en español.
+    **[NUEVO] Añadido monitoreo sísmico redundante de GEOFON** para alertas tempranas.
+-   **[NUEVO] Solucionado problema de inestabilidad del servidor** mediante la implementación de un servidor multihilo, corrigiendo bloqueos y reinicios inesperados.
 
 ## 📝 Próximos Pasos y Tareas Pendientes
+-   **[PRIORIDAD ALTA] Implementar sistema de caché en el servidor** para las APIs de Sismos, Clima y Calidad del Aire. Esta tarea es **crítica y no debe posponerse** para evitar bloqueos por parte de los proveedores de datos externos y asegurar la escalabilidad del sistema.
 -   **Sistema de Notificaciones del Sistema:** Implementar alertas si el `cron job` de descarga de informes falla.
 -   **Paginación en Vistas de Administración:** Añadir paginación para el log de actividad y la lista de usuarios.
 -   **Exportación de Datos:** Añadir botones para exportar ciertas tablas a formatos como CSV o PDF.
