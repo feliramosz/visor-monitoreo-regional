@@ -1,3 +1,4 @@
+# VERSIÓN REVISADA Y CORREGIDA - 06 DE JULIO (Int2)
 from io import StringIO
 import pandas as pd
 from http.server import BaseHTTPRequestHandler, HTTPServer
