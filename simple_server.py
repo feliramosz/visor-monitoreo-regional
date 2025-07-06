@@ -177,6 +177,67 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             print(f"[TSUNAMI_CHECK] ERROR FATAL en la función _check_tsunami_bulletin: {e}")
             return None
 
+    def _check_geofon_bulletin(self):
+        print("[GEOFON_CHECK] Iniciando la verificación de evento sísmico significativo.")
+        # Parámetros para buscar sismos potencialmente tsunamigénicos
+        GEOFON_API_URL = "https://geofon.gfz-potsdam.de/fdsnws/event/1/query?limit=1&orderby=time&minmagnitude=7.0&maxdepth=100&format=geojson"
+        LAST_EVENT_FILE = os.path.join(DATA_FOLDER_PATH, 'last_geofon_event.txt')
+        LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_geofon_message.json')
+
+        try:
+            # 1. Leer el ID del último evento procesado
+            last_processed_id = ""
+            if os.path.exists(LAST_EVENT_FILE):
+                with open(LAST_EVENT_FILE, 'r') as f:
+                    last_processed_id = f.read().strip()
+
+            # 2. Descargar y parsear el evento más reciente
+            headers = {'User-Agent': 'SenapredValparaisoMonitoring/1.1'}
+            response = requests.get(GEOFON_API_URL, headers=headers, timeout=20)
+            response.raise_for_status()
+            event_data = response.json()
+
+            if not event_data.get('features'):
+                print("[GEOFON_CHECK] No se encontraron eventos que cumplan los criterios.")
+                return None
+
+            latest_event = event_data['features'][0]
+            event_id = latest_event.get('id')
+            
+            # 3. Comparar con el último ID procesado
+            if event_id == last_processed_id:
+                return None # No es un evento nuevo
+
+            print(f"[GEOFON_CHECK] ¡Evento sísmico nuevo y significativo detectado ('{event_id}')! Procesando...")
+
+            # 4. Extraer la información relevante
+            properties = latest_event.get('properties', {})
+            magnitude = properties.get('mag', 'N/A')
+            place = properties.get('place', 'ubicación no especificada')
+            depth = int(properties.get('depth', 0) / 1000) # Convertir de metros a km
+
+            # 5. Construir el mensaje de voz en español
+            mensaje_voz = (f"¡Atención! Se ha detectado un sismo significativo. "
+                           f"GEOFON reporta un evento de magnitud {magnitude} a {depth} kilómetros de profundidad, "
+                           f"localizado en {place}. Existe la posibilidad de que este evento genere un tsunami. "
+                           f"Se recomienda estar atento a los informes oficiales del SHOA.")
+            
+            sonido = "assets/notificacion_alerta_maxima.mp3"
+
+            print(f"[GEOFON_CHECK] Mensaje de voz generado: '{mensaje_voz}'")
+
+            # 6. Guardar el estado para no repetir
+            with open(LAST_EVENT_FILE, 'w') as f:
+                f.write(event_id)
+            with open(LAST_MESSAGE_FILE, 'w') as f:
+                json.dump({"sonido": sonido, "mensaje": mensaje_voz}, f, ensure_ascii=False)
+
+            return {"sonido": sonido, "mensaje": mensaje_voz}
+
+        except Exception as e:
+            print(f"[GEOFON_CHECK] ERROR FATAL en la función _check_geofon_bulletin: {e}")
+            return None        
+
     def _set_headers(self, status_code=200, content_type='text/html'):
         self.send_response(status_code)
         self.send_header('Content-type', content_type)
@@ -740,6 +801,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 return
             # --- FIN ENDPOINT WAZE ---
 
+            # --- ENDPOINT PARA DATOS DE TSUNAMI ---
             elif requested_path == '/api/tsunami_check':
                 bulletin_data = self._check_tsunami_bulletin()
                 if bulletin_data:
@@ -759,6 +821,28 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self._set_headers(404, 'application/json')
                     self.wfile.write(json.dumps({"error": "No hay un último mensaje de tsunami guardado."}).encode('utf-8'))
                 return
+
+            # --- ENDPOINT PARA DATOS GEOFON ---
+            elif requested_path == '/api/geofon_check':
+                bulletin_data = self._check_geofon_bulletin()
+                if bulletin_data:
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(bulletin_data).encode('utf-8'))
+                else:
+                    self._set_headers(204, 'application/json') # 204 No Content
+                    self.wfile.write(b'')
+                return
+
+            elif requested_path == '/api/last_geofon_message':
+                LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_geofon_message.json')
+                if os.path.exists(LAST_MESSAGE_FILE):
+                    self._set_headers(200, 'application/json')
+                    with open(LAST_MESSAGE_FILE, 'r') as f:
+                        self.wfile.write(f.read().encode('utf-8'))
+                else:
+                    self._set_headers(404, 'application/json')
+                    self.wfile.write(json.dumps({"error": "Aún no se ha registrado un boletín de GEOFON para probar."}).encode('utf-8'))
+                return    
 
             # --- INICIO ENDPOINT GET PARA EXPORTAR TURNOS A EXCEL ---
             elif requested_path == '/api/turnos/export':

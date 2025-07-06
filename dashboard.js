@@ -227,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
         boletinCompleto.push(await generarTextoCalidadAire());
         boletinCompleto.push(generarTextoPasoFronterizo(lastData));
         boletinCompleto.push(generarTextoHidrometria(lastData));
-        boletinCompleto.push(await generarTextoTurnos());
+        boletinCompleto.push(await generarTextoTurnos(lastData, hora, minuto));
         
         let saludoFinal;
         if (hora < 12) saludoFinal = "buenos días.";
@@ -250,6 +250,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 hablar(textoFinal);
             }
         };
+    }
+
+    // Lógica de Notificaciones GEOFON
+    async function gestionarNotificacionGeofon() {
+        try {
+            const response = await fetch('/api/geofon_check');
+            // Si la respuesta es 204 No Content, no hay boletín nuevo, no hacemos nada.
+            if (response.status === 204) {
+                return;
+            }
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.sonido && data.mensaje) {
+                    lanzarNotificacion(data.sonido, data.mensaje);
+                }
+            }
+        } catch (error) {
+            console.error("Error al contactar el API de GEOFON:", error);
+        }
     }
 
     // Lógica de Relojes
@@ -1347,6 +1366,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gestionarNotificacionesPrecipitacion(lastData.weather_data || []);
         gestionarNotificacionesPasoFronterizo(lastData.estado_pasos_fronterizos || []);
         gestionarNotificacionTsunami();
+        gestionarNotificacionGeofon();
     }
 
     function gestionarNotificacionesCalidadAire(estaciones) {

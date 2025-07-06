@@ -564,7 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
         boletinCompleto.push(await generarTextoCalidadAire());
         boletinCompleto.push(generarTextoPasoFronterizo(lastData));
         boletinCompleto.push(generarTextoHidrometria(lastData));
-        boletinCompleto.push(await generarTextoTurnos());
+        boletinCompleto.push(await generarTextoTurnos(lastData, hora, minuto));
         
         let saludoFinal;
         if (hora < 12) saludoFinal = "buenos días.";

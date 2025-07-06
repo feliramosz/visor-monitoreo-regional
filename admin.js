@@ -1000,6 +1000,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // Botón para probar notificación de tsunami
     const testTsunamiBtn = document.getElementById('testTsunamiBtn');
     if (testTsunamiBtn) {
         testTsunamiBtn.addEventListener('click', async () => {
@@ -1019,6 +1020,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } catch (error) {
                 console.error("Error al probar notificación de tsunami:", error);
+                alert(error.message);
+            }
+        });
+    }
+
+    // Botón para probar notificación de GEOFON
+    const testGeofonBtn = document.getElementById('testGeofonBtn');
+    if (testGeofonBtn) {
+        testGeofonBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/last_geofon_message');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "No se pudo obtener el último boletín de GEOFON.");
+                }
+                const data = await response.json();
+                if (data && data.sonido && data.mensaje) {
+                    const audio = new Audio(data.sonido);
+                    audio.play();
+                    audio.onended = () => hablar(data.mensaje);
+                } else {
+                    alert("No hay un último boletín de GEOFON para probar.");
+                }
+            } catch (error) {
+                console.error("Error al probar notificación de GEOFON:", error);
                 alert(error.message);
             }
         });
