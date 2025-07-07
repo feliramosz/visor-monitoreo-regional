@@ -76,6 +76,28 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         conn.commit()
         conn.close()
 
+    # --- Función para verificar el rol de un usuario ---
+    def _get_user_role(self, username):
+        """Obtiene el rol de un usuario desde la base de datos."""
+        if not username:
+            return None
+        conn = sqlite3.connect(DATABASE_FILE)
+        cursor = conn.cursor()
+        cursor.execute("SELECT role FROM users WHERE username = ?", (username,))
+        result = cursor.fetchone()
+        conn.close()
+        return result[0] if result else None
+    
+    def _get_user_from_token(self):
+        """Valida el token de la cabecera y devuelve el nombre de usuario."""
+        auth_header = self.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return None
+        
+        token = auth_header.split(' ')[1]
+        # Comprueba si el token está en las sesiones activas y devuelve el usuario asociado
+        return SESSIONS.get(token)
+
     def _get_directemar_port_status(self):
         """
         Consulta la API de restricciones de Directemar y la filtra usando una lista conocida de IDs de bahía.
@@ -178,29 +200,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         except Exception as e:
             print(f"ERROR: Fallo al generar mensaje de prueba para puertos. Causa: {e}")
             return None
-
-    # --- Función para verificar el rol de un usuario ---
-    def _get_user_role(self, username):
-        """Obtiene el rol de un usuario desde la base de datos."""
-        if not username:
-            return None
-        conn = sqlite3.connect(DATABASE_FILE)
-        cursor = conn.cursor()
-        cursor.execute("SELECT role FROM users WHERE username = ?", (username,))
-        result = cursor.fetchone()
-        conn.close()
-        return result[0] if result else None
-    
-    def _get_user_from_token(self):
-        """Valida el token de la cabecera y devuelve el nombre de usuario."""
-        auth_header = self.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return None
-        
-        token = auth_header.split(' ')[1]
-        # Comprueba si el token está en las sesiones activas y devuelve el usuario asociado
-        return SESSIONS.get(token)
-    
+      
     def _check_tsunami_bulletin(self):
         print(f"[{PID}][TSUNAMI_CHECK] Iniciando la verificación de boletín CAP.")
         CAP_FEED_URL = "https://www.tsunami.gov/events/xml/PHEBCAP.xml"
@@ -337,6 +337,75 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             print(f"[GEOFON_CHECK] ERROR FATAL en la función _check_geofon_bulletin: {e}")
             return None        
 
+    def _get_sec_power_outages(self):
+        """
+        Consulta la API de la SEC y procesa los datos de clientes sin suministro 
+        por comuna, provincia y total regional para Valparaíso.
+        """
+        try:
+            # --- DATOS ESTÁTICOS PARA LOS CÁLCULOS ---
+            # Total de clientes eléctricos de referencia para la Región de Valparaíso (Fuente: SEC/CNE)
+            TOTAL_CLIENTES_REGION = 830000 
+
+            # Mapeo de comunas a su respectiva provincia, construido a partir de las imágenes que enviaste.
+            PROVINCIA_MAP = {
+                'Valparaíso': 'Valparaíso', 'Viña del Mar': 'Valparaíso', 'Quintero': 'Valparaíso', 'Puchuncaví': 'Valparaíso', 'Casablanca': 'Valparaíso', 'Concón': 'Valparaíso', 'Juan Fernández': 'Valparaíso',
+                'Isla de Pascua': 'Isla de Pascua',
+                'Los Andes': 'Los Andes', 'San Esteban': 'Los Andes', 'Calle Larga': 'Los Andes', 'Rinconada': 'Los Andes',
+                'La Ligua': 'Petorca', 'Petorca': 'Petorca', 'Cabildo': 'Petorca', 'Zapallar': 'Petorca', 'Papudo': 'Petorca',
+                'Quillota': 'Quillota', 'La Calera': 'Quillota', 'Nogales': 'Quillota', 'Hijuelas': 'Quillota', 'La Cruz': 'Quillota',
+                'San Antonio': 'San Antonio', 'Algarrobo': 'San Antonio', 'El Quisco': 'San Antonio', 'El Tabo': 'San Antonio', 'Cartagena': 'San Antonio', 'Santo Domingo': 'San Antonio',
+                'San Felipe': 'San Felipe', 'Llaillay': 'San Felipe', 'Putaendo': 'San Felipe', 'Santa María': 'San Felipe', 'Catemu': 'San Felipe', 'Panquehue': 'San Felipe',
+                'Quilpué': 'Marga Marga', 'Limache': 'Marga Marga', 'Olmué': 'Marga Marga', 'Villa Alemana': 'Marga Marga'
+            }
+
+            # --- OBTENCIÓN Y PROCESAMIENTO DE DATOS ---
+            SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
+            headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
+            response = requests.get(SEC_API_URL, headers=headers, timeout=20)
+            response.raise_for_status()
+            all_outages = response.json()
+
+            outages_by_commune = {}
+            # Inicializamos el desglose por provincia con todas las provincias de la región
+            outages_by_province = {
+                'San Antonio': 0, 'Valparaíso': 0, 'Quillota': 0, 'San Felipe': 0,
+                'Los Andes': 0, 'Petorca': 0, 'Marga Marga': 0, 'Isla de Pascua': 0
+            }
+            total_affected_region = 0
+
+            for outage in all_outages:
+                if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
+                    # Usamos .title() para estandarizar el nombre de la comuna (ej. "Viña Del Mar" -> "Viña Del Mar")
+                    commune = outage.get('COMUNA', 'Desconocida').strip().title()
+                    affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
+                    
+                    outages_by_commune[commune] = outages_by_commune.get(commune, 0) + affected_clients
+                    
+                    province = PROVINCIA_MAP.get(commune)
+                    if province:
+                        outages_by_province[province] += affected_clients
+                    
+                    total_affected_region += affected_clients
+            
+            percentage_affected = 0
+            if TOTAL_CLIENTES_REGION > 0 and total_affected_region > 0:
+                percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION) * 100
+            
+            # Ordenamos las comunas por cantidad de afectados para mostrarlas de mayor a menor
+            sorted_communes = sorted(outages_by_commune.items(), key=lambda item: item[1], reverse=True)
+
+            return {
+                "total_afectados_region": total_affected_region,
+                "porcentaje_afectado": round(percentage_affected, 2),
+                "desglose_provincias": outages_by_province,
+                "desglose_comunas": dict(sorted_communes)
+            }
+
+        except Exception as e:
+            print(f"ERROR: Fallo inesperado al procesar datos de la SEC. Causa: {e}")
+            return {"error": str(e)}
+
     def _set_headers(self, status_code=200, content_type='text/html'):
         self.send_response(status_code)
         self.send_header('Content-type', content_type)
@@ -446,6 +515,31 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps({'username': username, 'role': role}).encode('utf-8'))
                 return    
+
+            # --- ENDPOINT PARA CLIENTES SIN SUMINISTRO (SEC) ---
+            elif requested_path == '/api/clientes_afectados':
+                cache_key = 'clientes_afectados'
+                current_time = datetime.now().timestamp()
+                
+                if cache_key in self.server.cache and self.server.cache[cache_key]['expires'] > current_time:
+                    print(f"[{PID}] Sirviendo /api/clientes_afectados DESDE CACHÉ.")
+                    cached_data = self.server.cache[cache_key]['data']
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(cached_data, ensure_ascii=False).encode('utf-8'))
+                    return
+
+                print(f"[{PID}] Sirviendo /api/clientes_afectados DESDE API EXTERNA (actualizando caché).")
+                
+                power_outage_data = self._get_sec_power_outages()
+                
+                self.server.cache[cache_key] = {
+                    'data': power_outage_data,
+                    'expires': current_time + (5 * 60) # Expira en 5 minutos
+                }
+                
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps(power_outage_data, ensure_ascii=False).encode('utf-8'))
+                return
 
             elif requested_path == '/api/data':
                 if os.path.exists(DATA_FILE):

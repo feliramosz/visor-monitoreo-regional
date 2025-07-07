@@ -92,85 +92,62 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('central-carousel-container');
         if (!container) return;
 
-        // Limpia todos los intervalos para evitar duplicados
-        clearTimeout(infoPanelTimeout);
-        clearInterval(imageCarouselInterval);
+        // Limpiar el carrusel y los intervalos anteriores para evitar errores
+        if (window.centralCarouselInterval) clearInterval(window.centralCarouselInterval);
+        container.innerHTML = ''; // Limpiamos el contenido anterior
 
-        const localPref = localStorage.getItem('centralCarouselEnabled');
-        const useCarousel = (localPref !== null) ? (localPref === 'true') : (data.dashboard_carousel_enabled || false);
-        toggleCentralCarouselCheck.checked = useCarousel;
-
-        const finalUseCarousel = useCarousel && data.dynamic_slides && data.dynamic_slides.length > 0;
-
-        // Lógica unificada para renderizar los paneles de Alertas y Avisos
-        const renderInfoPanels = () => {
-            renderAlertasList(document.getElementById('alertas-list-container'), data.alertas_vigentes);
-            setupAvisosCarousel(document.getElementById('avisos-list-container'), container.querySelector('#panel-avisos .dynamic-title'), data.avisos_alertas_meteorologicas);
-            const newAvisoPausePlayBtn = document.getElementById('aviso-pause-play-btn');
-            if (newAvisoPausePlayBtn) {
-                newAvisoPausePlayBtn.addEventListener('click', toggleAvisoPausePlay);
-            }
-        };
-
-        if (finalUseCarousel) {
-            container.className = ''; // Quita el modo estático si aplica
-            const slides = [];
-            // Slide 1: Paneles de información
-            slides.push(`
-                <div class="central-slide active-central-slide">
-                    <div id="panel-alertas" class="dashboard-panel"><h3>Alertas Vigentes</h3><div id="alertas-list-container"></div></div>
-                    <div id="panel-avisos" class="dashboard-panel">
-                        <div id="panel-avisos-header">
-                            <h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarma</span> / <span data-title-key="marejadas">Marejadas</span></h3>
-                            <button id="aviso-pause-play-btn" style="display: none;">||</button>
-                        </div>
-                        <div id="avisos-list-container"></div>
-                    </div>
-                </div>`);
-
-            // Slides siguientes: Imágenes dinámicas
-            data.dynamic_slides.forEach(slideInfo => {
-                slides.push(`<div class="central-slide dynamic-image-slide"><div class="image-slide-content"><h2>${slideInfo.title || 'Visor de Monitoreo'}</h2><img src="${slideInfo.image_url}" alt="${slideInfo.title || ''}" class="responsive-image">${slideInfo.description ? `<p>${slideInfo.description}</p>` : ''}</div></div>`);
-            });
-            container.innerHTML = slides.join('');
-
-            const numAvisoPages = renderInfoPanels();
-
-            const allSlides = container.querySelectorAll('.central-slide');
-            let currentCentralSlide = 0;
-            const startImageCarousel = () => {
-                clearInterval(avisosCarouselInterval);
-                allSlides[0].classList.remove('active-central-slide');
-                currentCentralSlide = 1;
-                if (currentCentralSlide >= allSlides.length) { setupCentralContent(data); return; }
-                allSlides[currentCentralSlide].classList.add('active-central-slide');
-
-                imageCarouselInterval = setInterval(() => {
-                    allSlides[currentCentralSlide].classList.remove('active-central-slide');
-                    currentCentralSlide++;
-                    if (currentCentralSlide >= allSlides.length) { clearInterval(imageCarouselInterval); setupCentralContent(data); return; }
-                    allSlides[currentCentralSlide].classList.add('active-central-slide');
-                }, centralSlideDuration);
-            };
-
-            const infoPanelDuration = (numAvisoPages > 1) ? (numAvisoPages * avisoPageDuration) : centralSlideDuration;
-            infoPanelTimeout = setTimeout(startImageCarousel, infoPanelDuration);
-
-        } else {
-            // Modo Estático (Sin carrusel de imágenes)
-            container.className = 'static-mode';
-            container.innerHTML = `
-                <div id="panel-alertas" class="dashboard-panel"><h3>Alertas Vigentes</h3><div id="alertas-list-container"></div></div>
+        // --- HTML de las Slides ---
+        const slideAlertasHTML = `
+            <div class="central-slide">
+                <div id="panel-alertas" class="dashboard-panel">
+                    <h3>Alertas Vigentes</h3>
+                    <div id="alertas-list-container"></div>
+                </div>
                 <div id="panel-avisos" class="dashboard-panel">
                     <div id="panel-avisos-header">
                         <h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarmas</span> / <span data-title-key="marejadas">Marejadas</span></h3>
                         <button id="aviso-pause-play-btn" style="display: none;">||</button>
                     </div>
                     <div id="avisos-list-container"></div>
-                </div>`;
+                </div>
+            </div>`;
+        
+        const slideSecHTML = `
+            <div id="slide-sec" class="central-slide">
+                <div id="panel-sec-full" class="dashboard-panel">
+                    <h3>Clientes con Alteración de Suministro Eléctrico (SEC)</h3>
+                    <div id="sec-data-container">
+                        <p><i>Cargando datos de la SEC...</i></p>
+                    </div>
+                </div>
+            </div>`;
 
-            renderInfoPanels();
-        }
+        // Inyectamos las slides en el contenedor
+        container.innerHTML = slideAlertasHTML + slideSecHTML;
+
+        // Llenamos los datos de cada slide
+        renderAlertasList(document.getElementById('alertas-list-container'), data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
+        setupAvisosCarousel(document.getElementById('avisos-list-container'), container.querySelector('#panel-avisos .dynamic-title'), data.avisos_alertas_meteorologicas, '<p>No hay avisos.</p>');
+        fetchAndRenderSecSlide();
+
+        // --- Lógica de Rotación ---
+        const slides = container.querySelectorAll('.central-slide');
+        if (slides.length <= 1) return;
+
+        let currentSlideIndex = 0;
+        
+        const showCentralSlide = (index) => {
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active-central-slide', i === index);
+            });
+        };
+
+        showCentralSlide(currentSlideIndex);
+        
+        window.centralCarouselInterval = setInterval(() => {
+            currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+            showCentralSlide(currentSlideIndex);
+        }, 10000); // Rota cada 10 segundos
     }
     /**
      * Convierte un texto a voz utilizando la Web Speech API del navegador.
@@ -301,6 +278,62 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    async function fetchAndRenderSecSlide() {
+        const container = document.getElementById('sec-data-container');
+        if (!container) return;
+
+        try {
+            const response = await fetch('/api/clientes_afectados');
+            const data = await response.json();
+
+            if (data.error) throw new Error(data.error);
+
+            const comunasConAfectados = Object.entries(data.desglose_comunas).filter(([comuna, cantidad]) => cantidad > 0);
+
+            let tableHtml = `
+                <table class="sec-table">
+                    <tbody>
+                        <tr>
+                            <td><strong>Porcentaje de la población afectada</strong></td>
+                            <td>${data.porcentaje_afectado}%</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cantidad de clientes afectados en la Región</strong></td>
+                            <td>${data.total_afectados_region.toLocaleString('es-CL')}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <h4 class="sec-subtitle">Clientes afectados por provincia:</h4>
+                <table class="sec-table">
+                    <tbody>
+                        ${Object.entries(data.desglose_provincias).map(([provincia, cantidad]) => `
+                            <tr>
+                                <td>Provincia de ${provincia}</td>
+                                <td>${cantidad.toLocaleString('es-CL')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <h4 class="sec-subtitle">Clientes afectados por comuna:</h4>
+                <table class="sec-table">
+                    <tbody>
+                        ${comunasConAfectados.length > 0 ? comunasConAfectados.map(([comuna, cantidad]) => `
+                            <tr>
+                                <td>${comuna}</td>
+                                <td>${cantidad.toLocaleString('es-CL')}</td>
+                            </tr>
+                        `).join('') : `<tr><td colspan="2" style="text-align:center;">No hay clientes afectados por comuna.</td></tr>`}
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = tableHtml;
+
+        } catch (error) {
+            console.error("Error al cargar datos de la SEC:", error);
+            container.innerHTML = '<p style="color:red; text-align:center;">No se pudieron cargar los datos de la SEC.</p>';
+        }
+    }
 
     // Lógica de Relojes
     async function updateClocks() {
@@ -1353,6 +1386,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setInterval(fetchAndDisplayTurnos, 5 * 60 * 1000);
         //setInterval(fetchAndRenderMainData, 60 * 1000); // Actualiza datos principales cada 1 min
         setInterval(fetchAndRenderWazeData, 2 * 60 * 1000); // Actualiza Waze cada 2 min
+        setInterval(fetchAndRenderSecSlide, 5 * 60 * 1000);
         setInterval(checkForUpdates, 10000);
         setInterval(verificarNotificaciones, 60000);
     }
