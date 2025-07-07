@@ -368,11 +368,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             
             # Obtenemos la fecha y hora actual.
             now = datetime.now()
+            one_hour_ago = now - timedelta(hours=1)
             payload = {
-                "anho": now.year,
-                "mes": now.month,
-                "dia": now.day,
-                "hora": now.hour
+                "anho": one_hour_ago.year,
+                "mes": one_hour_ago.month,
+                "dia": one_hour_ago.day,
+                "hora": one_hour_ago.hour
             }
             
             # Ahora enviamos la petición POST con el payload correcto.
