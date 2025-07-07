@@ -352,7 +352,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     addEmergenciaBtn.addEventListener('click', () => emergenciasContainer.appendChild(createEmergenciaFormItem()));
     addCarreteraBtn.addEventListener('click', () => carreterasContainer.appendChild(createCarreteraFormItem()));
     addPasoFronterizoBtn.addEventListener('click', () => pasosFronterizosContainer.appendChild(createPasoFronterizoFormItem()));
-    addPuertoBtn.addEventListener('click', () => puertosContainer.appendChild(createPuertoFormItem()));
+    //addPuertoBtn.addEventListener('click', () => puertosContainer.appendChild(createPuertoFormItem()));
     addHidroBtn.addEventListener('click', () => hidroContainer.appendChild(createHidroFormItem()));
 
     runScriptBtn.addEventListener('click', async () => {
