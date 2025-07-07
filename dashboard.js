@@ -110,7 +110,15 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="central-slide">
                 <div id="panel-alertas" class="dashboard-panel"><h3>Alertas Vigentes</h3><div id="alertas-list-container"></div></div>
                 <div id="panel-avisos" class="dashboard-panel">
-                    <div id="panel-avisos-header"><h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span> / <span>Alertas</span> / <span>Alarmas</span> / <span>Marejadas</span></h3><button id="aviso-pause-play-btn" style="display: none;">||</button></div>
+                    <div id="panel-avisos-header">
+                        <h3 class="dynamic-title">
+                            <span data-title-key="avisos">Avisos</span> / 
+                            <span data-title-key="alertas">Alertas</span> / 
+                            <span data-title-key="alarmas">Alarmas</span> / 
+                            <span data-title-key="marejadas">Marejadas</span>
+                        </h3>
+                        <button id="aviso-pause-play-btn" style="display: none;">||</button>
+                    </div>
                     <div id="avisos-list-container"></div>
                 </div>
             </div>`);
