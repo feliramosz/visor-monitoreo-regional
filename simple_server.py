@@ -123,6 +123,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         motivo = restriccion.get('MotivoRestriccion', 'N/A').strip()
                         nueva_condicion = f"[{tipo}] para [{nave}] - [{motivo}]"
 
+                        condicion_actual = processed_ports[nombre_puerto]['condicion']
+
                         # Si ya tenía una condición, añadimos la nueva. Si no, la creamos.
                         if condicion_actual == 'Sin Novedad':
                             processed_ports[nombre_puerto]['condicion'] = nueva_condicion
