@@ -294,6 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Lógica de la SEC
     async function fetchAndRenderSecSlide() {
         const container = document.getElementById('sec-data-container');
         if (!container) return;
@@ -303,8 +304,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.error) throw new Error(data.error);
-
-            // Ya no necesitamos la lógica de 'comunasConAfectados'
 
             let tableHtml = `
                 <table class="sec-table">

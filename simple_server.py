@@ -340,11 +340,10 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_sec_power_outages(self):
         """
-        Consulta la API de la SEC, buscando hacia atrás en el tiempo
-        hasta encontrar el último reporte con datos de interrupciones.
+        Consulta y procesa los datos de la SEC asegurando una normalización de texto consistente.
         """
         try:
-            # --- FUNCIÓN DE AYUDA Y DATOS ESTÁTICOS ---
+            # --- FUNCIÓN DE AYUDA PARA NORMALIZAR TEXTO ---
             def _normalize_str(s):
                 return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
 
@@ -361,7 +360,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
-            # --- LÓGICA DE BÚSQUEDA HACIA ATRÁS ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
             headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
             all_outages = []
@@ -370,7 +368,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             for i in range(24):
                 target_time = now - timedelta(hours=i + 1)
                 payload = {"anho": target_time.year, "mes": target_time.month, "dia": target_time.day, "hora": target_time.hour}
-                
                 response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=20)
                 if response.status_code == 200:
                     data = response.json()
@@ -378,13 +375,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         all_outages = data
                         break
             
-            # --- PROCESAMIENTO DE DATOS ---
             outages_by_province = {prov: 0 for prov in set(PROVINCIA_MAP.values())}
             total_affected_region = 0
 
             for outage in all_outages:
                 if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
-                    commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
+                    commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')                    
                     normalized_commune = _normalize_str(commune_from_api)
                     affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
                     
@@ -402,17 +398,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
 
         except Exception as e:
-            # Solo registramos el error en el log del servidor
             import traceback
             print(f"ERROR: Fallo inesperado al procesar datos de la SEC. Causa: {e}")
             traceback.print_exc()
-            return {"error": "Fallo en el servidor al procesar datos de la SEC"}
-
-        except Exception as e:
-            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-            print(f"!!!!!! ERROR CRÍTICO DENTRO DE _get_sec_power_outages !!!!!!")
-            traceback.print_exc()
-            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             return {"error": "Fallo en el servidor al procesar datos de la SEC"}
 
     def _set_headers(self, status_code=200, content_type='text/html'):
