@@ -629,6 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchShoaTimes();
     fetchAndRenderWeather();
     fetchAndRenderSismos();
+    fetchAndRenderLivePorts();
     initializeAirQualityMap();
     await fetchAndRenderAirQuality();
     setInterval(updateClockDisplays, 1000);
