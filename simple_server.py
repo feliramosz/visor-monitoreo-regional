@@ -108,12 +108,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
             # 4. Cruzamos la información para los puertos que nos interesan
             PUERTOS_REQUERIDOS = {
-                72,   # Valparaíso
-                78,   # Quintero
-                91,   # San Antonio
-                86,   # Juan Fernández
-                447,  # Algarrobo
-                38    # Hanga Roa (Isla de Pascua)
+                92,   # Valparaíso
+                91,   # Quintero
+                93,   # San Antonio
+                90,   # Juan Fernández
+                94,  # Algarrobo
+                89    # Hanga Roa (Isla de Pascua)
             }
             
             processed_ports = []
