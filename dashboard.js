@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleCentralCarouselCheck = document.getElementById('toggleCentralCarousel');
     const toggleRightColumnCheck = document.getElementById('toggleRightColumn');
     let lastData = {}; // Para guardar la última data cargada
+    let lastNovedades = {}; 
 
     // --- Controles del carrusel de MAPAS ---
     const mapPanelTitle = document.getElementById('map-panel-title');
@@ -92,63 +93,70 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('central-carousel-container');
         if (!container) return;
 
-        // Limpiar el carrusel y los intervalos anteriores para evitar errores
         if (window.centralCarouselInterval) clearInterval(window.centralCarouselInterval);
-        container.innerHTML = ''; // Limpiamos el contenido anterior
+        container.innerHTML = ''; // Limpiamos el carrusel para reconstruirlo
 
-        // --- HTML de las Slides ---
-        const slideAlertasHTML = `
+        // --- Lógica para decidir qué slides mostrar ---
+        const showSecSlide = localStorage.getItem('secSlideEnabled') !== 'false';
+        const localPref = localStorage.getItem('centralCarouselEnabled');
+        const useImageCarousel = (localPref !== null) ? (localPref === 'true') : (data.dashboard_carousel_enabled || false);
+        const finalUseImageCarousel = useImageCarousel && data.dynamic_slides && data.dynamic_slides.length > 0;
+
+        // --- Construcción dinámica de las slides ---
+        let slidesHTML = [];
+
+        // Slide 1: Alertas y Avisos (siempre se añade)
+        slidesHTML.push(`
             <div class="central-slide">
-                <div id="panel-alertas" class="dashboard-panel">
-                    <h3>Alertas Vigentes</h3>
-                    <div id="alertas-list-container"></div>
-                </div>
+                <div id="panel-alertas" class="dashboard-panel"><h3>Alertas Vigentes</h3><div id="alertas-list-container"></div></div>
                 <div id="panel-avisos" class="dashboard-panel">
-                    <div id="panel-avisos-header">
-                        <h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span> / <span data-title-key="alertas">Alertas</span> / <span data-title-key="alarmas">Alarmas</span> / <span data-title-key="marejadas">Marejadas</span></h3>
-                        <button id="aviso-pause-play-btn" style="display: none;">||</button>
-                    </div>
+                    <div id="panel-avisos-header"><h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span> / <span>Alertas</span> / <span>Alarmas</span> / <span>Marejadas</span></h3><button id="aviso-pause-play-btn" style="display: none;">||</button></div>
                     <div id="avisos-list-container"></div>
                 </div>
-            </div>`;
-        
-        const slideSecHTML = `
-            <div id="slide-sec" class="central-slide">
-                <div id="panel-sec-full" class="dashboard-panel">
-                    <h3>Clientes con Alteración de Suministro Eléctrico (SEC)</h3>
-                    <div id="sec-data-container">
-                        <p><i>Cargando datos de la SEC...</i></p>
-                    </div>
-                </div>
-            </div>`;
+            </div>`);
 
-        // Inyectamos las slides en el contenedor
-        container.innerHTML = slideAlertasHTML + slideSecHTML;
+        // Slide 2: SEC (se añade si está habilitada)
+        if (showSecSlide) {
+            slidesHTML.push(`
+                <div id="slide-sec" class="central-slide">
+                    <div id="panel-sec-full" class="dashboard-panel"><h3>Clientes con Alteración de Suministro Eléctrico (SEC)</h3><div id="sec-data-container"><p><i>Cargando...</i></p></div></div>
+                </div>`);
+        }
 
-        // Llenamos los datos de cada slide
+        // Slides 3+: Imágenes Dinámicas (se añaden si están habilitadas)
+        if (finalUseImageCarousel) {
+            data.dynamic_slides.forEach(slideInfo => {
+                slidesHTML.push(`<div class="central-slide dynamic-image-slide"><div class="image-slide-content"><h2>${slideInfo.title || 'Visor de Monitoreo'}</h2><img src="${slideInfo.image_url}" alt="${slideInfo.title || ''}" class="responsive-image">${slideInfo.description ? `<p>${slideInfo.description}</p>` : ''}</div></div>`);
+            });
+        }
+
+        container.innerHTML = slidesHTML.join('');
+
+        // --- Renderizar el contenido de los paneles ---
         renderAlertasList(document.getElementById('alertas-list-container'), data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
         setupAvisosCarousel(document.getElementById('avisos-list-container'), container.querySelector('#panel-avisos .dynamic-title'), data.avisos_alertas_meteorologicas, '<p>No hay avisos.</p>');
-        fetchAndRenderSecSlide();
-
+        if (showSecSlide) {
+            fetchAndRenderSecSlide();
+        }
+        
         // --- Lógica de Rotación ---
         const slides = container.querySelectorAll('.central-slide');
-        if (slides.length <= 1) return;
-
-        let currentSlideIndex = 0;
-        
-        const showCentralSlide = (index) => {
-            slides.forEach((slide, i) => {
-                slide.classList.toggle('active-central-slide', i === index);
-            });
-        };
-
-        showCentralSlide(currentSlideIndex);
-        
-        window.centralCarouselInterval = setInterval(() => {
-            currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+        if (slides.length > 1) {
+            let currentSlideIndex = 0;
+            const showCentralSlide = (index) => {
+                slides.forEach((slide, i) => slide.classList.toggle('active-central-slide', i === index));
+            };
             showCentralSlide(currentSlideIndex);
-        }, 10000); // Rota cada 10 segundos
+            
+            window.centralCarouselInterval = setInterval(() => {
+                currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+                showCentralSlide(currentSlideIndex);
+            }, 10000); //timer de la slide
+        } else if (slides.length === 1) {
+            slides[0].classList.add('active-central-slide');
+        }
     }
+
     /**
      * Convierte un texto a voz utilizando la Web Speech API del navegador.
      * @param {string} texto - El texto a ser leído en voz alta.
@@ -721,6 +729,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const novedades = await novedadesResponse.json();
             
             lastData = data;
+            lastNovedades = novedades;
 
             numeroInformeDisplay.textContent = novedades.numero_informe_manual || 'N/A';
             setupNovedadesCarousel(novedades);            
@@ -1413,7 +1422,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     toggleRightColumnCheck.addEventListener('change', (e) => {
         localStorage.setItem('rightColumnCarouselEnabled', e.target.checked);
-        setupRightColumnCarousel(lastData); // Re-ejecuta la configuración del carrusel
+        setupRightColumnCarousel(lastData, lastNovedades); // Re-ejecuta la configuración del carrusel
     });
 
     //Listener para boton de notificaciones
@@ -1425,6 +1434,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // Al cambiar, guarda la preferencia
         toggleNotificationsCheck.addEventListener('change', (e) => {
             localStorage.setItem('notificacionesLocalesActivas', e.target.checked);
+        });
+    }
+
+    const toggleSecSlideCheck = document.getElementById('toggleSecSlide');
+    if (toggleSecSlideCheck) {
+        // Al cargar, establece el estado del checkbox según lo guardado
+        toggleSecSlideCheck.checked = localStorage.getItem('secSlideEnabled') !== 'false';
+
+        // Al cambiar, guarda la preferencia y reconstruye el dashboard
+        toggleSecSlideCheck.addEventListener('change', (e) => {
+            localStorage.setItem('secSlideEnabled', e.target.checked);
+            fetchAndRenderMainData(); // Forzamos una reconstrucción completa
         });
     }
 

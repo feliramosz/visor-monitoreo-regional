@@ -362,7 +362,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             # --- OBTENCIÓN Y PROCESAMIENTO DE DATOS ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
             headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
-            response = requests.get(SEC_API_URL, headers=headers, timeout=20)
+            response = requests.post(SEC_API_URL, headers=headers, json={}, timeout=20)
             response.raise_for_status()
             all_outages = response.json()
 
