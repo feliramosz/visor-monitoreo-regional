@@ -124,9 +124,10 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         nueva_condicion = f"[{tipo}] para [{nave}] - [{motivo}]"
 
                         # Si ya tenía una condición, añadimos la nueva. Si no, la creamos.
-                        if processed_ports[nombre_puerto]['condicion'] == 'Sin Novedad':
+                        if condicion_actual == 'Sin Novedad':
                             processed_ports[nombre_puerto]['condicion'] = nueva_condicion
-                        else:
+                        # Si no, solo añadimos la nueva condición si esta NO está ya presente en el texto.
+                        elif nueva_condicion not in condicion_actual:
                             processed_ports[nombre_puerto]['condicion'] += f" ; {nueva_condicion}"
 
                 except (ValueError, TypeError):
