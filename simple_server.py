@@ -403,7 +403,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             import traceback
             print(f"ERROR: Fallo inesperado al procesar datos de la SEC. Causa: {e}")
             traceback.print_exc()
-            return {"error": "Fallo en el servidor al procesar datos de la SEC"
+            return {"error": "Fallo en el servidor al procesar datos de la SEC"}
 
     def _set_headers(self, status_code=200, content_type='text/html'):
         self.send_response(status_code)
