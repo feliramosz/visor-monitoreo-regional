@@ -76,6 +76,57 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         conn.commit()
         conn.close()
 
+    def _get_directemar_port_status(self):
+        """
+        Consulta la API de Directemar para obtener el estado de los puertos de la región.
+        """
+        try:
+            DIRECTEMAR_API_URL = "https://orion.directemar.cl/sitport/back/users/consultaCapuertoRestriccion"
+            
+            # Los códigos de los puertos que necesitas, basados en el estándar de Directemar.
+            # Estos códigos se pueden encontrar inspeccionando las peticiones de la página oficial.
+            PUERTOS_REQUERIDOS = {
+                5,  # Valparaíso
+                6,  # Quintero
+                7,  # San Antonio
+                8,  # Juan Fernández
+                2,  # Pichidangui
+                25  # Hanga Roa (Isla de Pascua)
+            }
+
+            # La API de Directemar espera una petición POST con un cuerpo vacío.
+            headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
+            response = requests.post(DIRECTEMAR_API_URL, headers=headers, json={}, timeout=15)
+            response.raise_for_status() # Lanza un error si la petición falla
+            
+            all_ports_data = response.json()
+            processed_ports = []
+
+            for port in all_ports_data:
+                # El campo 'id' parece ser el código del puerto
+                if port.get('id') in PUERTOS_REQUERIDOS:
+                    
+                    # Determinamos el estado y la condición basados en las restricciones
+                    has_restriction = port.get('tieneRestriccion', 0) == 1
+                    estado_del_puerto = "Cerrado" if has_restriction else "Abierto"
+                    condicion = port.get('nombreRestriccion', 'Sin Novedad')
+                    
+                    processed_ports.append({
+                        'puerto': port.get('nombre'),
+                        'estado_del_puerto': estado_del_puerto,
+                        'condicion': condicion
+                    })
+            
+            return processed_ports
+
+        except requests.exceptions.RequestException as e:
+            print(f"ERROR: No se pudo conectar con la API de Directemar. Causa: {e}")
+            # En caso de error, devolvemos una lista vacía para no romper el frontend.
+            return []
+        except Exception as e:
+            print(f"ERROR: Fallo inesperado al procesar datos de puertos de Directemar. Causa: {e}")
+            return []
+
     # --- Función para verificar el rol de un usuario ---
     def _get_user_role(self, username):
         """Obtiene el rol de un usuario desde la base de datos."""
@@ -295,7 +346,30 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(logs).encode('utf-8'))
                 return
             
+            # --- ENDPOINT PARA ESTADO DE PUERTOS EN VIVO (DIRECTEMAR) ---
+            elif requested_path == '/api/estado_puertos_live':
+                cache_key = 'estado_puertos_live'
+                current_time = datetime.now().timestamp()
+                
+                if cache_key in self.server.cache and self.server.cache[cache_key]['expires'] > current_time:
+                    print(f"[{PID}] Sirviendo /api/estado_puertos_live DESDE CACHÉ.")
+                    cached_data = self.server.cache[cache_key]['data']
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(cached_data, ensure_ascii=False).encode('utf-8'))
+                    return
 
+                print(f"[{PID}] Sirviendo /api/estado_puertos_live DESDE API EXTERNA (actualizando caché).")
+                
+                port_data = self._get_directemar_port_status()
+                
+                self.server.cache[cache_key] = {
+                    'data': port_data,
+                    'expires': current_time + 90 # Expira en 90 segundos
+                }
+                
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps(port_data, ensure_ascii=False).encode('utf-8'))
+                return
 
             # --- ENDPOINT PARA DATOS DEL USUARIO ACTUAL ---
             elif requested_path == '/api/me':

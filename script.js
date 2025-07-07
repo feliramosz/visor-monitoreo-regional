@@ -323,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
         emergenciasSlide.style.display = (!data.emergencias_ultimas_24_horas || data.emergencias_ultimas_24_horas.length === 0) ? 'none' : 'flex';
     }
     renderStaticTable(tableCarreterasBody, data.estado_carreteras, i => `<tr><td class="v-align-middle">${i.carretera}</td><td class="text-justify">${i.estado}</td><td class="v-align-middle">${i.condicion}</td></tr>`, 3, "No hay info de carreteras.");
-    renderStaticTable(tablePuertosBody, data.estado_puertos, i => `<tr><td>${i.puerto}</td><td>${i.estado_del_puerto}</td><td>${i.condicion}</td></tr>`, 3, "No hay info de puertos.");
+    //renderStaticTable(tablePuertosBody, data.estado_puertos, i => `<tr><td>${i.puerto}</td><td>${i.estado_del_puerto}</td><td>${i.condicion}</td></tr>`, 3, "No hay info de puertos.");
     renderStaticTable(tablePasosFronterizosBody, data.estado_pasos_fronterizos, i => `<tr><td class="v-align-middle">${i.nombre_paso}</td><td class="v-align-middle">${i.condicion}</td><td class="text-justify">${i.observaciones}</td></tr>`, 3, "No hay info de pasos fronterizos.");
 
     // Renderizar UV
@@ -385,6 +385,34 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error("Error al procesar datos de sismos:", error);
             tableSismosBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">Error de conexión desde el servidor de sismología.</td></tr>`;
+        }
+    }
+
+    async function fetchAndRenderLivePorts() {
+        try {
+            const response = await fetch('/api/estado_puertos_live');
+            if (!response.ok) throw new Error(`Error Puertos: ${response.statusText}`);
+            const portsData = await response.json();
+
+            const tablePuertosBody = document.querySelector('#table-puertos tbody');
+            tablePuertosBody.innerHTML = ''; // Limpiar la tabla
+
+            if (portsData && portsData.length > 0) {
+                portsData.forEach(port => {
+                    const row = tablePuertosBody.insertRow();
+                    row.insertCell().textContent = port.puerto || 'N/A';
+                    row.insertCell().textContent = port.estado_del_puerto || 'N/A';
+                    row.insertCell().textContent = port.condicion || 'N/A';
+                });
+            } else {
+                tablePuertosBody.innerHTML = '<tr><td colspan="3" class="no-data-cell">No hay información de puertos disponible en este momento.</td></tr>';
+            }
+        } catch (error) {
+            console.error("Error al procesar datos de puertos en vivo:", error);
+            const tablePuertosBody = document.querySelector('#table-puertos tbody');
+            if (tablePuertosBody) {
+                tablePuertosBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:red;">Error de conexión con el servicio de puertos.</td></tr>`;
+            }
         }
     }
 
@@ -607,6 +635,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(fetchShoaTimes, 30 * 1000);
     setInterval(fetchAndRenderWeather, 10 * 60 * 1000);
     setInterval(fetchAndRenderSismos, 5 * 60 * 1000);
+    setInterval(fetchAndRenderLivePorts, 2 * 60 * 1000);
     setInterval(fetchAndRenderAirQuality, 5 * 60 * 1000);
     }
 
