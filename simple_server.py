@@ -385,8 +385,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 # Si llegamos aquí, la respuesta estaba vacía o hubo un error, probamos la hora anterior.
                 print("   -> No se encontraron datos para esta hora, intentando la hora anterior...")
 
-            # --- PROCESAMIENTO DE DATOS (sin cambios) ---
-            outages_by_commune = {}
+            # --- PROCESAMIENTO DE DATOS  ---            
             outages_by_province = {prov: 0 for prov in set(PROVINCIA_MAP.values())}
             total_affected_region = 0
 
@@ -397,20 +396,16 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
                     
                     province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
-                    if province:
-                        display_commune = commune_from_api.strip().title()
-                        outages_by_commune[display_commune] = outages_by_commune.get(display_commune, 0) + affected_clients
+                    if province:                        
                         outages_by_province[province] += affected_clients
                         total_affected_region += affected_clients
             
-            percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
-            sorted_communes = sorted(outages_by_commune.items(), key=lambda item: item[1], reverse=True)
+            percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0            
 
             return {
                 "total_afectados_region": total_affected_region,
                 "porcentaje_afectado": round(percentage_affected, 2),
-                "desglose_provincias": outages_by_province,
-                "desglose_comunas": dict(sorted_communes)
+                "desglose_provincias": outages_by_province           
             }
 
         except Exception as e:

@@ -330,17 +330,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         `).join('')}
                     </tbody>
                 </table>
-                <h4 class="sec-subtitle">Clientes afectados por comuna:</h4>
-                <table class="sec-table">
-                    <tbody>
-                        ${comunasConAfectados.length > 0 ? comunasConAfectados.map(([comuna, cantidad]) => `
-                            <tr>
-                                <td>${comuna}</td>
-                                <td>${cantidad.toLocaleString('es-CL')}</td>
-                            </tr>
-                        `).join('') : `<tr><td colspan="2" style="text-align:center;">No hay clientes afectados por comuna.</td></tr>`}
-                    </tbody>
-                </table>
             `;
 
             container.innerHTML = tableHtml;
