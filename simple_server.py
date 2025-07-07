@@ -78,7 +78,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_directemar_port_status(self):
         """
-        Consulta dos APIs de Directemar para obtener el estado y las restricciones de los puertos de la región.
+        Consulta dos APIs de Directemar y filtra por NOMBRE para obtener el estado de los puertos de la región.
         """
         try:
             CAPUERTO_URL = "https://orion.directemar.cl/sitport/back/users/consultaCapuertoRestriccion"
@@ -96,24 +96,28 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
             restrictions_by_bay_id = {}
             for r in all_restrictions_list:
-                try:                    
+                try:
                     bay_id = int(r.get('bahia'))
                     if bay_id not in restrictions_by_bay_id:
                         restrictions_by_bay_id[bay_id] = []
                     restrictions_by_bay_id[bay_id].append(r)
-                except (ValueError, TypeError):                    
+                except (ValueError, TypeError):
                     continue
 
-            PUERTOS_REQUERIDOS = { 72, 78, 91, 86, 447, 38 }
+            # CORRECCIÓN CLAVE: Ahora filtramos por una lista de nombres conocidos.
+            NOMBRES_PUERTOS_REQUERIDOS = {
+                "Valparaíso", "Quintero", "San antonio", 
+                "Juan fernández", "Algarrobo", "Hanga roa"
+            }
             
             processed_ports = []
             for port in all_ports_list:
-                if port.get('Cdreparticion') in PUERTOS_REQUERIDOS:
-                    
-                    nombre_limpio = port.get('NMBahia', 'Puerto Desconocido').replace('CAPITANÍA DE PUERTO', '').strip()
-                    nombre_final = nombre_limpio.capitalize()
-
-                    port_bay_id = port.get('idBahia')                    
+                nombre_puerto_api = port.get('NMBahia', '').replace('CAPITANÍA DE PUERTO', '').strip()
+                
+                # Comparamos el nombre en minúsculas para evitar errores de mayúsculas/minúsculas
+                if nombre_puerto_api.lower() in NOMBRES_PUERTOS_REQUERIDOS:
+                    nombre_final = nombre_puerto_api.capitalize()
+                    port_bay_id = port.get('idBahia')
                     
                     if port_bay_id and port_bay_id in restrictions_by_bay_id:
                         estado_del_puerto = "Cerrado"
