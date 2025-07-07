@@ -340,16 +340,14 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_sec_power_outages(self):
         """
-        [VERSIÓN DE DEPURACIÓN] Consulta la API de la SEC y registra cada paso del proceso.
+        [VERSIÓN FINAL Y ROBUSTA] Consulta la API de la SEC, buscando hacia atrás en el tiempo
+        hasta encontrar el último reporte con datos de interrupciones.
         """
-        import traceback
-        print("\n--- [DEBUG SEC] INICIANDO OBTENCIÓN DE DATOS DE LA SEC ---")
         try:
-            # --- FUNCIÓN DE AYUDA PARA NORMALIZAR TEXTO ---
+            # --- FUNCIÓN DE AYUDA Y DATOS ESTÁTICOS (sin cambios) ---
             def _normalize_str(s):
                 return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
 
-            print("[DEBUG SEC] 1. Definiendo constantes y mapas...")
             TOTAL_CLIENTES_REGION = 830000 
             PROVINCIA_MAP = {
                 'Valparaíso': 'Valparaíso', 'Viña del Mar': 'Valparaíso', 'Quintero': 'Valparaíso', 'Puchuncaví': 'Valparaíso', 'Casablanca': 'Valparaíso', 'Concón': 'Valparaíso', 'Juan Fernández': 'Valparaíso',
@@ -362,69 +360,62 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 'Quilpué': 'Marga Marga', 'Limache': 'Marga Marga', 'Olmué': 'Marga Marga', 'Villa Alemana': 'Marga Marga'
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
-            print(f"   -> Mapa de provincias normalizado con {len(PROVINCIA_MAP_NORMALIZED)} entradas.")
 
-            # --- OBTENCIÓN Y PROCESAMIENTO ---
+            # --- NUEVA LÓGICA DE BÚSQUEDA HACIA ATRÁS ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
             headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
-            
+            all_outages = []
             now = datetime.now()
-            one_hour_ago = now - timedelta(hours=1)
-            payload = { "anho": one_hour_ago.year, "mes": one_hour_ago.month, "dia": one_hour_ago.day, "hora": one_hour_ago.hour }
-            print(f"[DEBUG SEC] 2. Enviando petición a la API de la SEC con payload: {payload}")
-            
-            response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=20)
-            print(f"   -> Respuesta recibida de la SEC con código de estado: {response.status_code}")
-            response.raise_for_status()
-            
-            all_outages = response.json()
-            print(f"[DEBUG SEC] 3. JSON decodificado. Número total de interrupciones recibidas a nivel nacional: {len(all_outages)}")
 
+            # Intentaremos buscar hasta 24 horas hacia atrás
+            for i in range(24):
+                target_time = now - timedelta(hours=i + 1)
+                payload = {"anho": target_time.year, "mes": target_time.month, "dia": target_time.day, "hora": target_time.hour}
+                
+                print(f"[SEC] Intentando obtener datos para la hora: {target_time.strftime('%Y-%m-%d %H:00')}")
+                
+                response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=20)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data: # Si la respuesta no está vacía, encontramos datos
+                        print(f"   -> ¡Éxito! Se encontraron {len(data)} registros de interrupción.")
+                        all_outages = data
+                        break # Salimos del bucle
+                
+                # Si llegamos aquí, la respuesta estaba vacía o hubo un error, probamos la hora anterior.
+                print("   -> No se encontraron datos para esta hora, intentando la hora anterior...")
+
+            # --- PROCESAMIENTO DE DATOS (sin cambios) ---
             outages_by_commune = {}
             outages_by_province = {prov: 0 for prov in set(PROVINCIA_MAP.values())}
             total_affected_region = 0
-            
-            print("[DEBUG SEC] 4. Iniciando bucle para filtrar por región de Valparaíso...")
+
             for outage in all_outages:
-                region_from_api = outage.get('NOMBRE_REGION', '').lower()
-                if 'valparaiso' in region_from_api:
+                if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
                     commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
                     normalized_commune = _normalize_str(commune_from_api)
                     affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
                     
                     province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
-                    
-                    # Esta línea nos dirá si está encontrando y asignando provincias correctamente
-                    print(f"   -> Interrupción encontrada en Valparaíso: Comuna='{commune_from_api}', Normalizada='{normalized_commune}', Provincia Asignada='{province}', Afectados={affected_clients}")
-
                     if province:
                         display_commune = commune_from_api.strip().title()
                         outages_by_commune[display_commune] = outages_by_commune.get(display_commune, 0) + affected_clients
                         outages_by_province[province] += affected_clients
                         total_affected_region += affected_clients
             
-            print(f"[DEBUG SEC] 5. Bucle terminado. Total de clientes afectados calculados para la región: {total_affected_region}")
-            
             percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
             sorted_communes = sorted(outages_by_commune.items(), key=lambda item: item[1], reverse=True)
 
-            final_result = {
+            return {
                 "total_afectados_region": total_affected_region,
                 "porcentaje_afectado": round(percentage_affected, 2),
                 "desglose_provincias": outages_by_province,
                 "desglose_comunas": dict(sorted_communes)
             }
-            print(f"[DEBUG SEC] 6. Función completada. Resultado a devolver: {final_result}")
-            return final_result
 
         except Exception as e:
-            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-            print(f"!!!!!! ERROR CRÍTICO DENTRO DE _get_sec_power_outages !!!!!!")
-            print(f"!!!!!! Causa: {e}")
-            print("!!!!!! Traceback completo del error:")
-            traceback.print_exc()
-            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-            return {"error": "Fallo en el servidor al procesar datos de la SEC"}
+            print(f"ERROR: Fallo inesperado al procesar datos de la SEC. Causa: {e}")
+            return {"error": str(e)}
 
     def _set_headers(self, status_code=200, content_type='text/html'):
         self.send_response(status_code)
