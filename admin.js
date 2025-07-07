@@ -1050,8 +1050,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- Lógica para la sección "Mis Turnos" ---
+    // --- Botón para probar notificación de cambio en puertos ---
+    const testPortBtn = document.getElementById('testPortBtn');
+    if (testPortBtn) {
+        testPortBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/last_port_change_message');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "No se pudo obtener el mensaje de prueba.");
+                }
+                const data = await response.json();
+                if (data && data.sonido && data.mensaje) {
+                    const audio = new Audio(data.sonido);
+                    audio.play();
+                    audio.onended = () => hablar(data.mensaje);
+                } else {
+                    alert("No hay un mensaje de prueba de puerto para probar.");
+                }
+            } catch (error) {
+                console.error("Error al probar notificación de puerto:", error);
+                alert(error.message);
+            }
+        });
+    }
 
+    // --- Lógica para la sección "Mis Turnos" ---
     // Variables de estado para esta sección
     let inicialesUsuarioLogueado = '';
     let datosTurnosParaVistaPersonal = null; // Inicia como null para saber que aún no se han cargado

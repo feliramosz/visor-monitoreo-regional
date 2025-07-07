@@ -84,7 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let memoriaNotificaciones = {
         calidadAire: {},
         precipitacion: {}, // <-- NUEVO: Añadido para precipitaciones
-        pasoFronterizo: {}
+        pasoFronterizo: {},
+        puertos: {}
     };
         
     function setupCentralContent(data) {
@@ -270,6 +271,36 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Error al contactar el API de GEOFON:", error);
         }
     }
+
+    function gestionarNotificacionesPuertos(puertos) {
+        if (!puertos || puertos.length === 0) return;
+
+        puertos.forEach(puerto => {
+            const nombrePuerto = puerto.puerto;
+            const estadoNuevo = puerto.estado_del_puerto;
+            const condicionNueva = puerto.condicion;
+
+            // Obtiene el estado anterior de la memoria. Si no existe, lo inicializa.
+            const memoriaPuerto = memoriaNotificaciones.puertos[nombrePuerto] || { estado: 'Abierto', condicion: 'Sin Novedad' };
+            const estadoAnterior = memoriaPuerto.estado;
+            const condicionAnterior = memoriaPuerto.condicion;
+
+            // Comprueba si hubo un cambio en el estado o en la condición
+            if (estadoNuevo !== estadoAnterior || condicionNueva !== condicionAnterior) {
+                console.log(`CAMBIO DETECTADO para el puerto ${nombrePuerto}: De '${estadoAnterior}' a '${estadoNuevo}'`);
+
+                // Construye el mensaje de voz con el formato solicitado
+                const mensajeVoz = `El puerto ${nombrePuerto} ahora se encuentra ${estadoNuevo} y su condicion es ${condicionNueva}.`;
+
+                // Lanza la notificación con un sonido de alerta
+                lanzarNotificacion('assets/notificacion_alerta.mp3', mensajeVoz);
+
+                // Actualiza la memoria con el nuevo estado para no volver a notificar
+                memoriaNotificaciones.puertos[nombrePuerto] = { estado: estadoNuevo, condicion: condicionNueva };
+            }
+        });
+    }
+
 
     // Lógica de Relojes
     async function updateClocks() {
@@ -1363,9 +1394,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- SISTEMA DE NOTIFICACIONES POR VOZ ---
-    // Función principal que se ejecuta cada minuto
-    function verificarNotificaciones() {
+    // --- SISTEMA DE NOTIFICACIONES POR VOZ ---    
+    async function verificarNotificaciones() {
         // Guardas para los controles global y local
         if (!lastData.notificaciones_activadas) {
             return; // El admin desactivó las notificaciones globalmente
@@ -1378,6 +1408,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // Llamamos a los gestores de cada tipo de notificación
         gestionarNotificacionesPrecipitacion(lastData.weather_data || []);
         gestionarNotificacionesPasoFronterizo(lastData.estado_pasos_fronterizos || []);
+        
+        // --- NUEVA LÓGICA ASÍNCRONA PARA PUERTOS ---
+        try {
+            const response = await fetch('/api/estado_puertos_live');
+            if (response.ok) {
+                const puertosData = await response.json();
+                gestionarNotificacionesPuertos(puertosData);
+            }
+        } catch (error) {
+            console.error("Error al verificar estado de puertos para notificaciones:", error);
+        }
+        
         gestionarNotificacionTsunami();
         gestionarNotificacionGeofon();
     }

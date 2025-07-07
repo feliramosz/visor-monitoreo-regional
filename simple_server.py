@@ -157,6 +157,28 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             print(f"ERROR: Fallo inesperado al procesar datos de puertos de Directemar. Causa: {e}")
             return []
 
+    def _get_last_port_change_message(self):
+        """
+        Genera un mensaje de voz de ejemplo para probar la notificación de cambio de estado de puerto.
+        """
+        try:
+            # Simulamos un cambio en el puerto de Valparaíso
+            puerto = "Valparaíso"
+            estado = "Cerrado"
+            condicion = "Marejadas anómalas y fuertes vientos"
+            
+            # Formateamos el mensaje de voz tal como lo solicitaste
+            mensaje_voz = f"El puerto {puerto} ahora se encuentra {estado} y su condicion es {condicion}."
+            
+            # Usaremos el sonido de alerta general para esta notificación
+            sonido = "assets/notificacion_alerta.mp3"
+
+            return {"sonido": sonido, "mensaje": mensaje_voz}
+
+        except Exception as e:
+            print(f"ERROR: Fallo al generar mensaje de prueba para puertos. Causa: {e}")
+            return None
+
     # --- Función para verificar el rol de un usuario ---
     def _get_user_role(self, username):
         """Obtiene el rol de un usuario desde la base de datos."""
@@ -399,6 +421,17 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps(port_data, ensure_ascii=False).encode('utf-8'))
+                return
+
+            # --- ENDPOINT PARA MENSAJE DE PRUEBA DE CAMBIO DE PUERTO ---
+            elif requested_path == '/api/last_port_change_message':
+                message_data = self._get_last_port_change_message()
+                if message_data:
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(message_data).encode('utf-8'))
+                else:
+                    self._set_headers(500, 'application/json')
+                    self.wfile.write(json.dumps({"error": "No se pudo generar el mensaje de prueba."}).encode('utf-8'))
                 return
 
             # --- ENDPOINT PARA DATOS DEL USUARIO ACTUAL ---
