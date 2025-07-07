@@ -86,45 +86,34 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             
             headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
 
-            # 1. Obtenemos la lista de todos los puertos y sus IDs
             response_puertos = requests.post(CAPUERTO_URL, headers=headers, json={}, timeout=15)
             response_puertos.raise_for_status()
             all_ports_list = response_puertos.json().get('recordset', [])
 
-            # 2. Obtenemos la lista de todas las restricciones activas
             response_restricciones = requests.post(RESTRICCIONES_URL, headers=headers, json={}, timeout=15)
             response_restricciones.raise_for_status()
             all_restrictions_list = response_restricciones.json().get('recordset', [])
 
-            # 3. Procesamos las restricciones en un diccionario para una búsqueda más rápida
             restrictions_by_bay_id = {}
             for r in all_restrictions_list:
-                bay_id = r.get('bahia') # Aquí se usa 'bahia'
-                if bay_id:
+                try:                    
+                    bay_id = int(r.get('bahia'))
                     if bay_id not in restrictions_by_bay_id:
                         restrictions_by_bay_id[bay_id] = []
                     restrictions_by_bay_id[bay_id].append(r)
+                except (ValueError, TypeError):                    
+                    continue
 
-            # 4. Cruzamos la información usando los IDs CORRECTOS
-            #    Esta lista DEBE contener los 'Cdreparticion' para el filtro inicial.
-            PUERTOS_REQUERIDOS = {
-                72,   # Cdreparticion para Valparaíso
-                78,   # Cdreparticion para Quintero
-                91,   # Cdreparticion para San Antonio
-                86,   # Cdreparticion para Juan Fernández
-                447,  # Cdreparticion para Algarrobo
-                38    # Cdreparticion para Hanga Roa
-            }
+            PUERTOS_REQUERIDOS = { 72, 78, 91, 86, 447, 38 }
             
             processed_ports = []
-            for port in all_ports_list:                
+            for port in all_ports_list:
                 if port.get('Cdreparticion') in PUERTOS_REQUERIDOS:
                     
                     nombre_limpio = port.get('NMBahia', 'Puerto Desconocido').replace('CAPITANÍA DE PUERTO', '').strip()
                     nombre_final = nombre_limpio.capitalize()
 
-                    # Una vez encontrado, usamos su 'idBahia' para buscar restricciones
-                    port_bay_id = port.get('idBahia') 
+                    port_bay_id = port.get('idBahia')                    
                     
                     if port_bay_id and port_bay_id in restrictions_by_bay_id:
                         estado_del_puerto = "Cerrado"
