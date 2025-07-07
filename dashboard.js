@@ -304,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (data.error) throw new Error(data.error);
 
-            const comunasConAfectados = Object.entries(data.desglose_comunas).filter(([comuna, cantidad]) => cantidad > 0);
+            // Ya no necesitamos la lógica de 'comunasConAfectados'
 
             let tableHtml = `
                 <table class="sec-table">
