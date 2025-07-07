@@ -94,56 +94,50 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container) return;
 
         if (window.centralCarouselInterval) clearInterval(window.centralCarouselInterval);
-        container.innerHTML = ''; // Limpiamos el carrusel para reconstruirlo
+        container.innerHTML = ''; // Limpiamos para reconstruir
 
         // --- Lógica para decidir qué slides mostrar ---
         const showSecSlide = localStorage.getItem('secSlideEnabled') !== 'false';
-        const localPref = localStorage.getItem('centralCarouselEnabled');
-        const useImageCarousel = (localPref !== null) ? (localPref === 'true') : (data.dashboard_carousel_enabled || false);
-        const finalUseImageCarousel = useImageCarousel && data.dynamic_slides && data.dynamic_slides.length > 0;
+        const useImageCarousel = localStorage.getItem('centralCarouselEnabled') === 'true';
+        const hasDynamicSlides = data.dynamic_slides && data.dynamic_slides.length > 0;
 
-        // --- Construcción dinámica de las slides ---
         let slidesHTML = [];
 
-        // Slide 1: Alertas y Avisos (siempre se añade)
-        slidesHTML.push(`
-            <div class="central-slide">
-                <div id="panel-alertas" class="dashboard-panel"><h3>Alertas Vigentes</h3><div id="alertas-list-container"></div></div>
-                <div id="panel-avisos" class="dashboard-panel">
-                    <div id="panel-avisos-header">
-                        <h3 class="dynamic-title">
-                            <span data-title-key="avisos">Avisos</span> / 
-                            <span data-title-key="alertas">Alertas</span> / 
-                            <span data-title-key="alarmas">Alarmas</span> / 
-                            <span data-title-key="marejadas">Marejadas</span>
-                        </h3>
-                        <button id="aviso-pause-play-btn" style="display: none;">||</button>
-                    </div>
-                    <div id="avisos-list-container"></div>
-                </div>
-            </div>`);
-
-        // Slide 2: SEC (se añade si está habilitada)
-        if (showSecSlide) {
-            slidesHTML.push(`
-                <div id="slide-sec" class="central-slide">
-                    <div id="panel-sec-full" class="dashboard-panel"><h3>Clientes con Alteración de Suministro Eléctrico (SEC)</h3><div id="sec-data-container"><p><i>Cargando...</i></p></div></div>
-                </div>`);
-        }
-
-        // Slides 3+: Imágenes Dinámicas (se añaden si están habilitadas)
-        if (finalUseImageCarousel) {
+        // Prioridad: Si el carrusel de imágenes está activado, solo mostramos esas.
+        if (useImageCarousel && hasDynamicSlides) {
             data.dynamic_slides.forEach(slideInfo => {
                 slidesHTML.push(`<div class="central-slide dynamic-image-slide"><div class="image-slide-content"><h2>${slideInfo.title || 'Visor de Monitoreo'}</h2><img src="${slideInfo.image_url}" alt="${slideInfo.title || ''}" class="responsive-image">${slideInfo.description ? `<p>${slideInfo.description}</p>` : ''}</div></div>`);
             });
+        } else {
+            // Si no, mostramos las slides de información (Alertas y SEC)
+            // Slide 1: Alertas y Avisos (siempre se añade en este modo)
+            slidesHTML.push(`
+                <div class="central-slide">
+                    <div id="panel-alertas" class="dashboard-panel"><h3>Alertas Vigentes</h3><div id="alertas-list-container"></div></div>
+                    <div id="panel-avisos" class="dashboard-panel">
+                        <div id="panel-avisos-header"><h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span>/<span data-title-key="alertas">Alertas</span>/<span data-title-key="alarmas">Alarmas</span>/<span data-title-key="marejadas">Marejadas</span></h3><button id="aviso-pause-play-btn" style="display: none;">||</button></div>
+                        <div id="avisos-list-container"></div>
+                    </div>
+                </div>`);
+
+            // Slide 2: SEC (se añade si está habilitada)
+            if (showSecSlide) {
+                slidesHTML.push(`
+                    <div id="slide-sec" class="central-slide">
+                        <div id="panel-sec-full" class="dashboard-panel"><h3>Clientes con Alteración de Suministro Eléctrico (SEC)</h3><div id="sec-data-container"><p><i>Cargando...</i></p></div></div>
+                    </div>`);
+            }
         }
 
         container.innerHTML = slidesHTML.join('');
 
-        // --- Renderizar el contenido de los paneles ---
-        renderAlertasList(document.getElementById('alertas-list-container'), data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
-        setupAvisosCarousel(document.getElementById('avisos-list-container'), container.querySelector('#panel-avisos .dynamic-title'), data.avisos_alertas_meteorologicas, '<p>No hay avisos.</p>');
-        if (showSecSlide) {
+        // --- Renderizar el contenido solo si los contenedores existen ---
+        const alertasContainer = document.getElementById('alertas-list-container');
+        if (alertasContainer) {
+            renderAlertasList(alertasContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
+            setupAvisosCarousel(document.getElementById('avisos-list-container'), container.querySelector('#panel-avisos .dynamic-title'), data.avisos_alertas_meteorologicas, '<p>No hay avisos.</p>');
+        }
+        if (showSecSlide && document.getElementById('sec-data-container')) {
             fetchAndRenderSecSlide();
         }
         
@@ -151,15 +145,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const slides = container.querySelectorAll('.central-slide');
         if (slides.length > 1) {
             let currentSlideIndex = 0;
-            const showCentralSlide = (index) => {
-                slides.forEach((slide, i) => slide.classList.toggle('active-central-slide', i === index));
-            };
+            const showCentralSlide = (index) => slides.forEach((slide, i) => slide.classList.toggle('active-central-slide', i === index));
             showCentralSlide(currentSlideIndex);
-            
             window.centralCarouselInterval = setInterval(() => {
                 currentSlideIndex = (currentSlideIndex + 1) % slides.length;
                 showCentralSlide(currentSlideIndex);
-            }, 10000); //timer de la slide
+            }, 10000);
         } else if (slides.length === 1) {
             slides[0].classList.add('active-central-slide');
         }

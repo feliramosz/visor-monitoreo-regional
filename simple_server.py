@@ -371,11 +371,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 payload = {"anho": target_time.year, "mes": target_time.month, "dia": target_time.day, "hora": target_time.hour}
                 response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=20)
                 if response.status_code == 200:
-                    data = response.json()                    
-                    if data and data.get('interrupciones'):
-                        all_outages_data = data['interrupciones']
+                    data = response.json()
+                    if data and isinstance(data, list) and len(data) > 0:
+                        all_outages_data = data
                         break
             
+            # CORRECCIÓN: Aseguramos que todas las provincias de nuestro mapa se inicialicen
             outages_by_province = {prov: 0 for prov in set(PROVINCIA_MAP.values())}
             total_affected_region = 0
 
@@ -386,7 +387,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
                     
                     province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
-                    if province:
+                    if province and province in outages_by_province:
                         outages_by_province[province] += affected_clients
                         total_affected_region += affected_clients
             
@@ -402,7 +403,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             import traceback
             print(f"ERROR: Fallo inesperado al procesar datos de la SEC. Causa: {e}")
             traceback.print_exc()
-            return {"error": "Fallo en el servidor al procesar datos de la SEC"}
+            return {"error": "Fallo en el servidor al procesar datos de la SEC"
 
     def _set_headers(self, status_code=200, content_type='text/html'):
         self.send_response(status_code)
