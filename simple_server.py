@@ -78,71 +78,71 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_directemar_port_status(self):
         """
-        Consulta dos APIs de Directemar y filtra por NOMBRE para obtener el estado de los puertos de la región.
+        Consulta la API de restricciones de Directemar y la filtra usando una lista conocida de IDs de bahía.
         """
         try:
-            CAPUERTO_URL = "https://orion.directemar.cl/sitport/back/users/consultaCapuertoRestriccion"
             RESTRICCIONES_URL = "https://orion.directemar.cl/sitport/back/users/consultaRestricciones"
-            
             headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
 
-            response_puertos = requests.post(CAPUERTO_URL, headers=headers, json={}, timeout=15)
-            response_puertos.raise_for_status()
-            all_ports_list = response_puertos.json().get('recordset', [])
+            # 1. Definimos nuestros puertos de interés con su ID de Bahía y el nombre que queremos mostrar.
+            #    Esta es nuestra única "fuente de verdad".
+            BAHIAS_REQUERIDAS = {
+                92: "Valparaíso",
+                91: "Quintero",
+                93: "San Antonio",
+                90: "Juan Fernández",
+                94: "Algarrobo",
+                89: "Hanga Roa"
+            }
 
+            # 2. Creamos un resultado inicial con todos nuestros puertos como "Abierto".
+            #    Esto asegura que siempre aparezcan todos en la tabla.
+            processed_ports = {
+                nombre: {'estado_del_puerto': 'Abierto', 'condicion': 'Sin Novedad'} 
+                for nombre in BAHIAS_REQUERIDAS.values()
+            }
+
+            # 3. Obtenemos la lista de TODAS las restricciones activas.
             response_restricciones = requests.post(RESTRICCIONES_URL, headers=headers, json={}, timeout=15)
             response_restricciones.raise_for_status()
             all_restrictions_list = response_restricciones.json().get('recordset', [])
 
-            restrictions_by_bay_id = {}
-            for r in all_restrictions_list:
+            # 4. Recorremos las restricciones y actualizamos nuestros puertos si encontramos una coincidencia.
+            for restriccion in all_restrictions_list:
                 try:
-                    bay_id = int(r.get('bahia'))
-                    if bay_id not in restrictions_by_bay_id:
-                        restrictions_by_bay_id[bay_id] = []
-                    restrictions_by_bay_id[bay_id].append(r)
+                    bay_id = int(restriccion.get('bahia'))
+                    # Si la restricción pertenece a una de nuestras bahías...
+                    if bay_id in BAHIAS_REQUERIDAS:
+                        nombre_puerto = BAHIAS_REQUERIDAS[bay_id]
+                        
+                        # Actualizamos el estado y la condición de ese puerto.
+                        processed_ports[nombre_puerto]['estado_del_puerto'] = "Cerrado"
+                        
+                        tipo = restriccion.get('tiporestriccion', 'N/A').strip()
+                        nave = restriccion.get('NaveRecibe', 'N/A').replace('(&GT;=100 AB)', '').strip()
+                        motivo = restriccion.get('MotivoRestriccion', 'N/A').strip()
+                        nueva_condicion = f"[{tipo}] para [{nave}] - [{motivo}]"
+
+                        # Si ya tenía una condición, añadimos la nueva. Si no, la creamos.
+                        if processed_ports[nombre_puerto]['condicion'] == 'Sin Novedad':
+                            processed_ports[nombre_puerto]['condicion'] = nueva_condicion
+                        else:
+                            processed_ports[nombre_puerto]['condicion'] += f" ; {nueva_condicion}"
+
                 except (ValueError, TypeError):
                     continue
-
-            # CORRECCIÓN CLAVE: Ahora filtramos por una lista de nombres conocidos.
-            NOMBRES_PUERTOS_REQUERIDOS = {
-                "Valparaíso", "Quintero", "San antonio", 
-                "Juan fernández", "Algarrobo", "Hanga roa"
-            }
             
-            processed_ports = []
-            for port in all_ports_list:
-                nombre_puerto_api = port.get('NMBahia', '').replace('CAPITANÍA DE PUERTO', '').strip()
-                
-                # Comparamos el nombre en minúsculas para evitar errores de mayúsculas/minúsculas
-                if nombre_puerto_api.lower() in NOMBRES_PUERTOS_REQUERIDOS:
-                    nombre_final = nombre_puerto_api.capitalize()
-                    port_bay_id = port.get('idBahia')
-                    
-                    if port_bay_id and port_bay_id in restrictions_by_bay_id:
-                        estado_del_puerto = "Cerrado"
-                        condiciones = []
-                        for restriccion in restrictions_by_bay_id[port_bay_id]:
-                            tipo = restriccion.get('tiporestriccion', 'N/A').strip()
-                            nave = restriccion.get('NaveRecibe', 'N/A').replace('(&GT;=100 AB)', '').strip()
-                            motivo = restriccion.get('MotivoRestriccion', 'N/A').strip()
-                            condiciones.append(f"[{tipo}] para [{nave}] - [{motivo}]")
-                        condicion = " ; ".join(condiciones)
-                    else:
-                        estado_del_puerto = "Abierto"
-                        condicion = "Sin Novedad"
+            # 5. Convertimos nuestro diccionario de resultados al formato de lista que espera el frontend.
+            final_list = []
+            for nombre, data in processed_ports.items():
+                final_list.append({
+                    'puerto': nombre,
+                    'estado_del_puerto': data['estado_del_puerto'],
+                    'condicion': data['condicion']
+                })
 
-                    processed_ports.append({
-                        'puerto': nombre_final,
-                        'estado_del_puerto': estado_del_puerto,
-                        'condicion': condicion
-                    })
-            
-            return processed_ports
+            return final_list
 
-        except requests.exceptions.RequestException as e:
-            print(f"ERROR: No se pudo conectar con la API de Directemar. Causa: {e}")
-            return []
         except Exception as e:
             print(f"ERROR: Fallo inesperado al procesar datos de puertos de Directemar. Causa: {e}")
             return []
