@@ -97,50 +97,45 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             all_restrictions_list = response_restricciones.json().get('recordset', [])
 
             # 3. Procesamos las restricciones en un diccionario para una búsqueda más rápida
-            #    La clave será el ID de la bahía y el valor será una lista de sus restricciones.
             restrictions_by_bay_id = {}
             for r in all_restrictions_list:
-                bay_id = r.get('bahia')
+                bay_id = r.get('bahia') # Aquí se usa 'bahia'
                 if bay_id:
                     if bay_id not in restrictions_by_bay_id:
                         restrictions_by_bay_id[bay_id] = []
                     restrictions_by_bay_id[bay_id].append(r)
 
-            # 4. Cruzamos la información para los puertos que nos interesan
+            # 4. Cruzamos la información usando los IDs CORRECTOS
+            #    Esta lista DEBE contener los 'Cdreparticion' para el filtro inicial.
             PUERTOS_REQUERIDOS = {
-                92,   # Valparaíso
-                91,   # Quintero
-                93,   # San Antonio
-                90,   # Juan Fernández
-                94,  # Algarrobo
-                89    # Hanga Roa (Isla de Pascua)
+                72,   # Cdreparticion para Valparaíso
+                78,   # Cdreparticion para Quintero
+                91,   # Cdreparticion para San Antonio
+                86,   # Cdreparticion para Juan Fernández
+                447,  # Cdreparticion para Algarrobo
+                38    # Cdreparticion para Hanga Roa
             }
             
             processed_ports = []
-            for port in all_ports_list:
+            for port in all_ports_list:                
                 if port.get('Cdreparticion') in PUERTOS_REQUERIDOS:
                     
-                    # Limpiamos el nombre del puerto
                     nombre_limpio = port.get('NMBahia', 'Puerto Desconocido').replace('CAPITANÍA DE PUERTO', '').strip()
                     nombre_final = nombre_limpio.capitalize()
 
-                    # Buscamos si el puerto actual tiene restricciones activas usando su 'idBahia'
-                    port_bay_id = port.get('idBahia')
+                    # Una vez encontrado, usamos su 'idBahia' para buscar restricciones
+                    port_bay_id = port.get('idBahia') 
                     
                     if port_bay_id and port_bay_id in restrictions_by_bay_id:
-                        # Si encontramos restricciones, las formateamos
                         estado_del_puerto = "Cerrado"
-                        
                         condiciones = []
                         for restriccion in restrictions_by_bay_id[port_bay_id]:
                             tipo = restriccion.get('tiporestriccion', 'N/A').strip()
                             nave = restriccion.get('NaveRecibe', 'N/A').replace('(&GT;=100 AB)', '').strip()
                             motivo = restriccion.get('MotivoRestriccion', 'N/A').strip()
                             condiciones.append(f"[{tipo}] para [{nave}] - [{motivo}]")
-                        
                         condicion = " ; ".join(condiciones)
                     else:
-                        # Si no hay restricciones, el puerto está abierto
                         estado_del_puerto = "Abierto"
                         condicion = "Sin Novedad"
 
