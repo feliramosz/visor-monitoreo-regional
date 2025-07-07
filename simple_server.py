@@ -86,12 +86,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             # Los códigos de los puertos que necesitas, basados en el estándar de Directemar.
             # Estos códigos se pueden encontrar inspeccionando las peticiones de la página oficial.
             PUERTOS_REQUERIDOS = {
-                5,  # Valparaíso
-                6,  # Quintero
-                7,  # San Antonio
-                8,  # Juan Fernández
-                2,  # Pichidangui
-                25  # Hanga Roa (Isla de Pascua)
+                72,  # Valparaíso
+                78,  # Quintero
+                91,  # San Antonio
+                86,  # Juan Fernández
+                447,  # Algarrobo
+                38  # Hanga Roa (Isla de Pascua)
             }
 
             # La API de Directemar espera una petición POST con un cuerpo vacío.
