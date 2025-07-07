@@ -340,8 +340,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_sec_power_outages(self):
         """
-        Consulta la API de la SEC y procesa los datos de clientes sin suministro,
-        normalizando los nombres para asegurar la coincidencia.
+        Consulta la API de la SEC enviando la fecha y hora actual, 
+        y procesa los datos para la Región de Valparaíso.
         """
         try:
             # --- FUNCIÓN DE AYUDA PARA NORMALIZAR TEXTO ---
@@ -360,29 +360,38 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 'San Felipe': 'San Felipe', 'Llaillay': 'San Felipe', 'Putaendo': 'San Felipe', 'Santa María': 'San Felipe', 'Catemu': 'San Felipe', 'Panquehue': 'San Felipe',
                 'Quilpué': 'Marga Marga', 'Limache': 'Marga Marga', 'Olmué': 'Marga Marga', 'Villa Alemana': 'Marga Marga'
             }
-            # Creamos un mapa normalizado para la búsqueda
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
             # --- OBTENCIÓN Y PROCESAMIENTO ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
             headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
-            response = requests.post(SEC_API_URL, headers=headers, json={}, timeout=20)
+            
+            # Obtenemos la fecha y hora actual.
+            now = datetime.now()
+            payload = {
+                "anho": now.year,
+                "mes": now.month,
+                "dia": now.day,
+                "hora": now.hour
+            }
+            
+            # Ahora enviamos la petición POST con el payload correcto.
+            response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=20)
             response.raise_for_status()
             all_outages = response.json()
 
             outages_by_commune = {}
             outages_by_province = {prov: 0 for prov in set(PROVINCIA_MAP.values())}
             total_affected_region = 0
-
+            
             for outage in all_outages:
                 if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
-                    commune_from_api = outage.get('COMUNA', 'Desconocida')
+                    commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
                     normalized_commune = _normalize_str(commune_from_api)
                     affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
                     
                     province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
                     if province:
-                        # Usamos el nombre original de la comuna para mostrarlo
                         display_commune = commune_from_api.strip().title()
                         outages_by_commune[display_commune] = outages_by_commune.get(display_commune, 0) + affected_clients
                         outages_by_province[province] += affected_clients
