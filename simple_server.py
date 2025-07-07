@@ -18,6 +18,7 @@ import subprocess
 import sys
 from dotenv import load_dotenv
 import sqlite3
+import unicodedata
 import uuid
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -339,15 +340,16 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_sec_power_outages(self):
         """
-        Consulta la API de la SEC y procesa los datos de clientes sin suministro 
-        por comuna, provincia y total regional para Valparaíso.
+        Consulta la API de la SEC y procesa los datos de clientes sin suministro,
+        normalizando los nombres para asegurar la coincidencia.
         """
         try:
-            # --- DATOS ESTÁTICOS PARA LOS CÁLCULOS ---
-            # Total de clientes eléctricos de referencia para la Región de Valparaíso (Fuente: SEC/CNE)
-            TOTAL_CLIENTES_REGION = 830000 
+            # --- FUNCIÓN DE AYUDA PARA NORMALIZAR TEXTO ---
+            def _normalize_str(s):
+                return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
 
-            # Mapeo de comunas a su respectiva provincia, construido a partir de las imágenes que enviaste.
+            # --- DATOS ESTÁTICOS ---
+            TOTAL_CLIENTES_REGION = 830000 
             PROVINCIA_MAP = {
                 'Valparaíso': 'Valparaíso', 'Viña del Mar': 'Valparaíso', 'Quintero': 'Valparaíso', 'Puchuncaví': 'Valparaíso', 'Casablanca': 'Valparaíso', 'Concón': 'Valparaíso', 'Juan Fernández': 'Valparaíso',
                 'Isla de Pascua': 'Isla de Pascua',
@@ -358,8 +360,10 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 'San Felipe': 'San Felipe', 'Llaillay': 'San Felipe', 'Putaendo': 'San Felipe', 'Santa María': 'San Felipe', 'Catemu': 'San Felipe', 'Panquehue': 'San Felipe',
                 'Quilpué': 'Marga Marga', 'Limache': 'Marga Marga', 'Olmué': 'Marga Marga', 'Villa Alemana': 'Marga Marga'
             }
+            # Creamos un mapa normalizado para la búsqueda
+            PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
-            # --- OBTENCIÓN Y PROCESAMIENTO DE DATOS ---
+            # --- OBTENCIÓN Y PROCESAMIENTO ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
             headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
             response = requests.post(SEC_API_URL, headers=headers, json={}, timeout=20)
@@ -367,32 +371,24 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             all_outages = response.json()
 
             outages_by_commune = {}
-            # Inicializamos el desglose por provincia con todas las provincias de la región
-            outages_by_province = {
-                'San Antonio': 0, 'Valparaíso': 0, 'Quillota': 0, 'San Felipe': 0,
-                'Los Andes': 0, 'Petorca': 0, 'Marga Marga': 0, 'Isla de Pascua': 0
-            }
+            outages_by_province = {prov: 0 for prov in set(PROVINCIA_MAP.values())}
             total_affected_region = 0
 
             for outage in all_outages:
                 if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
-                    # Usamos .title() para estandarizar el nombre de la comuna (ej. "Viña Del Mar" -> "Viña Del Mar")
-                    commune = outage.get('COMUNA', 'Desconocida').strip().title()
+                    commune_from_api = outage.get('COMUNA', 'Desconocida')
+                    normalized_commune = _normalize_str(commune_from_api)
                     affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
                     
-                    outages_by_commune[commune] = outages_by_commune.get(commune, 0) + affected_clients
-                    
-                    province = PROVINCIA_MAP.get(commune)
+                    province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
                     if province:
+                        # Usamos el nombre original de la comuna para mostrarlo
+                        display_commune = commune_from_api.strip().title()
+                        outages_by_commune[display_commune] = outages_by_commune.get(display_commune, 0) + affected_clients
                         outages_by_province[province] += affected_clients
-                    
-                    total_affected_region += affected_clients
+                        total_affected_region += affected_clients
             
-            percentage_affected = 0
-            if TOTAL_CLIENTES_REGION > 0 and total_affected_region > 0:
-                percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION) * 100
-            
-            # Ordenamos las comunas por cantidad de afectados para mostrarlas de mayor a menor
+            percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
             sorted_communes = sorted(outages_by_commune.items(), key=lambda item: item[1], reverse=True)
 
             return {
