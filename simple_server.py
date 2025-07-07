@@ -400,7 +400,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
             for i in range(24):
                 target_time = now - timedelta(hours=i + 1)
-                payload = {"anho": target_time.year, "mes": target_time.month, "dia": target_time.day, "hora": target_time.hour}
+                payload = {"ANHO": target_time.year, "MES": target_time.month, "DIA": target_time.day, "HORA": target_time.hour}
                 response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=20)
                 if response.status_code == 200:
                     data = response.json()
@@ -413,7 +413,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             total_affected_region = 0
 
             for outage in all_outages_data:
-                if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
+                if 'Valparaiso' in outage.get('NOMBRE_REGION', '').lower():
                     commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
                     normalized_commune = _normalize_str(commune_from_api)
                     affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
