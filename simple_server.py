@@ -78,43 +78,71 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_directemar_port_status(self):
         """
-        Consulta la API de Directemar para obtener el estado de los puertos de la región.
+        Consulta dos APIs de Directemar para obtener el estado y las restricciones de los puertos de la región.
         """
         try:
-            DIRECTEMAR_API_URL = "https://orion.directemar.cl/sitport/back/users/consultaCapuertoRestriccion"
+            CAPUERTO_URL = "https://orion.directemar.cl/sitport/back/users/consultaCapuertoRestriccion"
+            RESTRICCIONES_URL = "https://orion.directemar.cl/sitport/back/users/consultaRestricciones"
             
-            # Los códigos de los puertos que necesitas, basados en el estándar de Directemar.
-            # Estos códigos se pueden encontrar inspeccionando las peticiones de la página oficial.
-            PUERTOS_REQUERIDOS = {
-                72,  # Valparaíso
-                78,  # Quintero
-                91,  # San Antonio
-                86,  # Juan Fernández
-                447,  # Algarrobo
-                38  # Hanga Roa (Isla de Pascua)
-            }
-
-            # La API de Directemar espera una petición POST con un cuerpo vacío.
             headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
-            response = requests.post(DIRECTEMAR_API_URL, headers=headers, json={}, timeout=15)
-            response.raise_for_status() # Lanza un error si la petición falla
-            
-            all_ports_data = response.json().get('recordset', [])
-            processed_ports = []
 
-            for port in all_ports_data:
-                # CORRECCIÓN CLAVE: Usamos el nombre de campo correcto 'Cdreparticion'
+            # 1. Obtenemos la lista de todos los puertos y sus IDs
+            response_puertos = requests.post(CAPUERTO_URL, headers=headers, json={}, timeout=15)
+            response_puertos.raise_for_status()
+            all_ports_list = response_puertos.json().get('recordset', [])
+
+            # 2. Obtenemos la lista de todas las restricciones activas
+            response_restricciones = requests.post(RESTRICCIONES_URL, headers=headers, json={}, timeout=15)
+            response_restricciones.raise_for_status()
+            all_restrictions_list = response_restricciones.json().get('recordset', [])
+
+            # 3. Procesamos las restricciones en un diccionario para una búsqueda más rápida
+            #    La clave será el ID de la bahía y el valor será una lista de sus restricciones.
+            restrictions_by_bay_id = {}
+            for r in all_restrictions_list:
+                bay_id = r.get('bahia')
+                if bay_id:
+                    if bay_id not in restrictions_by_bay_id:
+                        restrictions_by_bay_id[bay_id] = []
+                    restrictions_by_bay_id[bay_id].append(r)
+
+            # 4. Cruzamos la información para los puertos que nos interesan
+            PUERTOS_REQUERIDOS = {
+                72,   # Valparaíso
+                78,   # Quintero
+                91,   # San Antonio
+                86,   # Juan Fernández
+                447,  # Algarrobo
+                38    # Hanga Roa (Isla de Pascua)
+            }
+            
+            processed_ports = []
+            for port in all_ports_list:
                 if port.get('Cdreparticion') in PUERTOS_REQUERIDOS:
                     
-                    # Determinamos el estado y la condición basados en las restricciones
-                    has_restriction = port.get('tieneRestriccion', 0) == 1
-                    estado_del_puerto = "Cerrado" if has_restriction else "Abierto"
-                    
-                    # Usamos el nombre de la restricción si existe, si no, "Sin Novedad".
-                    condicion = port.get('nombreRestriccion') if has_restriction else "Sin Novedad"
-                    
-                    nombre_limpio = port.get('NMBahia', 'Puerto Desconocido').replace('CAPITANÍA DE PUERTO', '').strip()                    
+                    # Limpiamos el nombre del puerto
+                    nombre_limpio = port.get('NMBahia', 'Puerto Desconocido').replace('CAPITANÍA DE PUERTO', '').strip()
                     nombre_final = nombre_limpio.capitalize()
+
+                    # Buscamos si el puerto actual tiene restricciones activas usando su 'idBahia'
+                    port_bay_id = port.get('idBahia')
+                    
+                    if port_bay_id and port_bay_id in restrictions_by_bay_id:
+                        # Si encontramos restricciones, las formateamos
+                        estado_del_puerto = "Cerrado"
+                        
+                        condiciones = []
+                        for restriccion in restrictions_by_bay_id[port_bay_id]:
+                            tipo = restriccion.get('tiporestriccion', 'N/A').strip()
+                            nave = restriccion.get('NaveRecibe', 'N/A').replace('(&GT;=100 AB)', '').strip()
+                            motivo = restriccion.get('MotivoRestriccion', 'N/A').strip()
+                            condiciones.append(f"[{tipo}] para [{nave}] - [{motivo}]")
+                        
+                        condicion = " ; ".join(condiciones)
+                    else:
+                        # Si no hay restricciones, el puerto está abierto
+                        estado_del_puerto = "Abierto"
+                        condicion = "Sin Novedad"
 
                     processed_ports.append({
                         'puerto': nombre_final,
@@ -126,7 +154,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
         except requests.exceptions.RequestException as e:
             print(f"ERROR: No se pudo conectar con la API de Directemar. Causa: {e}")
-            # En caso de error, devolvemos una lista vacía para no romper el frontend.
             return []
         except Exception as e:
             print(f"ERROR: Fallo inesperado al procesar datos de puertos de Directemar. Causa: {e}")
