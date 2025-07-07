@@ -103,13 +103,15 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             processed_ports = []
 
             for port in all_ports_data:
-                # El campo 'id' parece ser el código del puerto
-                if port.get('id') in PUERTOS_REQUERIDOS:
+                # CORRECCIÓN CLAVE: Usamos el nombre de campo correcto 'Cdreparticion'
+                if port.get('Cdreparticion') in PUERTOS_REQUERIDOS:
                     
                     # Determinamos el estado y la condición basados en las restricciones
                     has_restriction = port.get('tieneRestriccion', 0) == 1
                     estado_del_puerto = "Cerrado" if has_restriction else "Abierto"
-                    condicion = port.get('nombreRestriccion', 'Sin Novedad')
+                    
+                    # Usamos el nombre de la restricción si existe, si no, "Sin Novedad".
+                    condicion = port.get('nombreRestriccion') if has_restriction else "Sin Novedad"
                     
                     processed_ports.append({
                         'puerto': port.get('nombre'),
