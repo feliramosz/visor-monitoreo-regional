@@ -99,7 +99,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             response = requests.post(DIRECTEMAR_API_URL, headers=headers, json={}, timeout=15)
             response.raise_for_status() # Lanza un error si la petición falla
             
-            all_ports_data = response.json()
+            all_ports_data = response.json().get('recordset', [])
             processed_ports = []
 
             for port in all_ports_data:
