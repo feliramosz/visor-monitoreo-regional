@@ -340,60 +340,55 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_sec_power_outages(self):
         """
-        Consulta la API de la SEC enviando la fecha y hora actual, 
-        y procesa los datos para la Región de Valparaíso.
+        [VERSIÓN FINAL] Consulta la API de la SEC y procesa los datos usando los nombres de campo y valores exactos de la API.
         """
         try:
-            # --- FUNCIÓN DE AYUDA PARA NORMALIZAR TEXTO ---
-            def _normalize_str(s):
-                return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
-
             # --- DATOS ESTÁTICOS ---
             TOTAL_CLIENTES_REGION = 830000 
+            # Usamos los nombres de provincia tal como los queremos mostrar al final
+            PROVINCIAS_FINALES = [
+                'San Antonio', 'Valparaíso', 'Quillota', 'San Felipe',
+                'Los Andes', 'Petorca', 'Marga Marga', 'Isla de Pascua'
+            ]
+            # El mapa ahora usa los nombres SIN tildes
             PROVINCIA_MAP = {
-                'Valparaíso': 'Valparaíso', 'Viña del Mar': 'Valparaíso', 'Quintero': 'Valparaíso', 'Puchuncaví': 'Valparaíso', 'Casablanca': 'Valparaíso', 'Concón': 'Valparaíso', 'Juan Fernández': 'Valparaíso',
-                'Isla de Pascua': 'Isla de Pascua',
-                'Los Andes': 'Los Andes', 'San Esteban': 'Los Andes', 'Calle Larga': 'Los Andes', 'Rinconada': 'Los Andes',
-                'La Ligua': 'Petorca', 'Petorca': 'Petorca', 'Cabildo': 'Petorca', 'Zapallar': 'Petorca', 'Papudo': 'Petorca',
-                'Quillota': 'Quillota', 'La Calera': 'Quillota', 'Nogales': 'Quillota', 'Hijuelas': 'Quillota', 'La Cruz': 'Quillota',
-                'San Antonio': 'San Antonio', 'Algarrobo': 'San Antonio', 'El Quisco': 'San Antonio', 'El Tabo': 'San Antonio', 'Cartagena': 'San Antonio', 'Santo Domingo': 'San Antonio',
-                'San Felipe': 'San Felipe', 'Llaillay': 'San Felipe', 'Putaendo': 'San Felipe', 'Santa María': 'San Felipe', 'Catemu': 'San Felipe', 'Panquehue': 'San Felipe',
-                'Quilpué': 'Marga Marga', 'Limache': 'Marga Marga', 'Olmué': 'Marga Marga', 'Villa Alemana': 'Marga Marga'
+                'valparaiso': 'Valparaíso', 'vina del mar': 'Valparaíso', 'quintero': 'Valparaíso', 
+                'puchuncavi': 'Valparaíso', 'casablanca': 'Valparaíso', 'concon': 'Valparaíso', 'juan fernandez': 'Valparaíso',
+                'isla de pascua': 'Isla de Pascua',
+                'los andes': 'Los Andes', 'san esteban': 'Los Andes', 'calle larga': 'Los Andes', 'rinconada': 'Los Andes',
+                'la ligua': 'Petorca', 'petorca': 'Petorca', 'cabildo': 'Petorca', 'zapallar': 'Petorca', 'papudo': 'Petorca',
+                'quillota': 'Quillota', 'la calera': 'Quillota', 'nogales': 'Quillota', 'hijuelas': 'Quillota', 'la cruz': 'Quillota',
+                'san antonio': 'San Antonio', 'algarrobo': 'San Antonio', 'el quisco': 'San Antonio', 
+                'el tabo': 'San Antonio', 'cartagena': 'San Antonio', 'santo domingo': 'San Antonio',
+                'san felipe': 'San Felipe', 'llaillay': 'San Felipe', 'putaendo': 'San Felipe', 
+                'santa maria': 'San Felipe', 'catemu': 'San Felipe', 'panquehue': 'San Felipe',
+                'quilpue': 'Marga Marga', 'limache': 'Marga Marga', 'olmue': 'Marga Marga', 'villa alemana': 'Marga Marga'
             }
-            PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
             # --- OBTENCIÓN Y PROCESAMIENTO ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
             headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
             
-            # Obtenemos la fecha y hora actual.
             now = datetime.now()
             one_hour_ago = now - timedelta(hours=1)
-            payload = {
-                "anho": one_hour_ago.year,
-                "mes": one_hour_ago.month,
-                "dia": one_hour_ago.day,
-                "hora": one_hour_ago.hour
-            }
+            payload = { "anho": one_hour_ago.year, "mes": one_hour_ago.month, "dia": one_hour_ago.day, "hora": one_hour_ago.hour }
             
-            # Ahora enviamos la petición POST con el payload correcto.
             response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=20)
             response.raise_for_status()
             all_outages = response.json()
 
             outages_by_commune = {}
-            outages_by_province = {prov: 0 for prov in set(PROVINCIA_MAP.values())}
+            outages_by_province = {prov: 0 for prov in PROVINCIAS_FINALES}
             total_affected_region = 0
-            
-            for outage in all_outages:
+
+            for outage in all_outages:                
                 if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
-                    commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
-                    normalized_commune = _normalize_str(commune_from_api)
+                    commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida').lower().strip()
                     affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
                     
-                    province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
+                    province = PROVINCIA_MAP.get(commune_from_api)
                     if province:
-                        display_commune = commune_from_api.strip().title()
+                        display_commune = commune_from_api.title()
                         outages_by_commune[display_commune] = outages_by_commune.get(display_commune, 0) + affected_clients
                         outages_by_province[province] += affected_clients
                         total_affected_region += affected_clients
