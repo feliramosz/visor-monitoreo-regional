@@ -115,22 +115,29 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     if bay_id in BAHIAS_REQUERIDAS:
                         nombre_puerto = BAHIAS_REQUERIDAS[bay_id]
                         
-                        # Actualizamos el estado y la condición de ese puerto.
-                        processed_ports[nombre_puerto]['estado_del_puerto'] = "Cerrado"
-                        
-                        tipo = restriccion.get('tiporestriccion', 'N/A').strip()
-                        nave = restriccion.get('NaveRecibe', 'N/A').replace('(&GT;=100 AB)', '').strip()
-                        motivo = restriccion.get('MotivoRestriccion', 'N/A').strip()
-                        nueva_condicion = f"[{tipo}] para [{nave}] - [{motivo}]"
+                        # Formateamos los textos para que sean más legibles
+                        tipo = restriccion.get('tiporestriccion', '').strip().capitalize()
+                        nave = restriccion.get('NaveRecibe', '').replace('(&GT;=100 AB)', '').strip().lower()
+                        motivo = restriccion.get('MotivoRestriccion', '').strip().capitalize()
 
+                        # Construimos las cadenas para cada columna
+                        nuevo_estado = f"{tipo} para {nave}"
+                        nueva_condicion = motivo
+
+                        # Obtenemos los valores actuales para poder añadir información si hay múltiples restricciones
+                        estado_actual = processed_ports[nombre_puerto]['estado_del_puerto']
                         condicion_actual = processed_ports[nombre_puerto]['condicion']
 
-                        # Si ya tenía una condición, añadimos la nueva. Si no, la creamos.
-                        if condicion_actual == 'Sin Novedad':
+                        # Si es la primera restricción que encontramos, establecemos los valores.
+                        if estado_actual == 'Abierto':
+                            processed_ports[nombre_puerto]['estado_del_puerto'] = nuevo_estado
                             processed_ports[nombre_puerto]['condicion'] = nueva_condicion
-                        # Si no, solo añadimos la nueva condición si esta NO está ya presente en el texto.
-                        elif nueva_condicion not in condicion_actual:
-                            processed_ports[nombre_puerto]['condicion'] += f" ; {nueva_condicion}"
+                        # Si ya había una, añadimos la nueva solo si no es un duplicado.
+                        else:
+                            if nuevo_estado not in estado_actual:
+                                processed_ports[nombre_puerto]['estado_del_puerto'] += f" ; {nuevo_estado}"
+                            if nueva_condicion not in condicion_actual:
+                                processed_ports[nombre_puerto]['condicion'] += f" ; {nueva_condicion}"
 
                 except (ValueError, TypeError):
                     continue
