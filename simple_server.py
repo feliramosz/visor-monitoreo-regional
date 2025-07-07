@@ -338,6 +338,38 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             print(f"[GEOFON_CHECK] ERROR FATAL en la función _check_geofon_bulletin: {e}")
             return None        
 
+    def _get_sec_raw_data_for_debug(self):
+    """
+    [FUNCIÓN DE DEPURACIÓN] Llama a la API de la SEC y devuelve los datos crudos, sin procesar.
+    Busca hacia atrás en el tiempo hasta encontrar datos.
+    """
+    try:
+        SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
+        headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
+        now = datetime.now()
+
+        for i in range(24): # Busca hasta 24 horas hacia atrás
+            target_time = now - timedelta(hours=i + 1)
+            payload = {"anho": target_time.year, "mes": target_time.month, "dia": target_time.day, "hora": target_time.hour}
+
+            print(f"[RAW DEBUG] Intentando con payload: {payload}")
+
+            response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=20)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    print(f"[RAW DEBUG] ¡Datos encontrados para la hora {target_time.strftime('%H:00')}! Devolviendo {len(data)} registros.")
+                    return data # Devuelve los datos crudos en cuanto los encuentra
+
+        print("[RAW DEBUG] No se encontraron datos en las últimas 24 horas.")
+        return [] # Si no encuentra nada en 24 horas, devuelve una lista vacía
+
+    except Exception as e:
+        import traceback
+        print("[RAW DEBUG] ERROR FATAL al obtener datos crudos:")
+        traceback.print_exc()
+        return {"error": str(e)}
+
     def _get_sec_power_outages(self):
         """
         Consulta y procesa los datos de la SEC asegurando una normalización de texto consistente.
@@ -464,6 +496,13 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(logs).encode('utf-8'))
                 return
             
+            # --- ENDPOINT DE DEPURACIÓN PARA DATOS CRUDOS DE LA SEC ---
+            elif requested_path == '/api/sec_debug':
+                raw_data = self._get_sec_raw_data_for_debug()
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps(raw_data, ensure_ascii=False, indent=2).encode('utf-8'))
+                return
+
             # --- ENDPOINT PARA ESTADO DE PUERTOS EN VIVO (DIRECTEMAR) ---
             elif requested_path == '/api/estado_puertos_live':
                 cache_key = 'estado_puertos_live'
