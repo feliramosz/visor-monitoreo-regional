@@ -84,8 +84,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addCarreteraBtn = document.getElementById('addCarreteraBtn');
     const pasosFronterizosContainer = document.getElementById('pasosFronterizosContainer');
     const addPasoFronterizoBtn = document.getElementById('addPasoFronterizoBtn');
-    const puertosContainer = document.getElementById('puertosContainer');
-    const addPuertoBtn = document.getElementById('addPuertoBtn');
+    //const puertosContainer = document.getElementById('puertosContainer'); 
+    //const addPuertoBtn = document.getElementById('addPuertoBtn');
     const hidroContainer = document.getElementById('hidroContainer');
     const addHidroBtn = document.getElementById('addHidroBtn');
     const imageFile = document.getElementById('imageFile');
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderSectionItems(emergenciasContainer, data.emergencias_ultimas_24_horas, createEmergenciaFormItem, 'No hay emergencias para editar.');
         renderSectionItems(carreterasContainer, data.estado_carreteras, createCarreteraFormItem, 'No hay carreteras para editar.');
         renderSectionItems(pasosFronterizosContainer, data.estado_pasos_fronterizos, createPasoFronterizoFormItem, 'No hay pasos fronterizos para editar.');
-        renderSectionItems(puertosContainer, data.estado_puertos, createPuertoFormItem, 'No hay puertos para editar.');
+        //renderSectionItems(puertosContainer, data.estado_puertos, createPuertoFormItem, 'No hay puertos para editar.');
         renderSectionItems(hidroContainer, data.datos_hidrometricos, createHidroFormItem, 'No hay datos hidrométricos para editar.');
         renderSectionItems(dynamicSlidesContainer, data.dynamic_slides, createDynamicSlideItem, 'No hay slides dinámicas añadidas.');
 
