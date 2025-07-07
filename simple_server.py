@@ -113,8 +113,11 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     # Usamos el nombre de la restricción si existe, si no, "Sin Novedad".
                     condicion = port.get('nombreRestriccion') if has_restriction else "Sin Novedad"
                     
+                    nombre_limpio = port.get('NMBahia', 'Puerto Desconocido').replace('CAPITANÍA DE PUERTO', '').strip()                    
+                    nombre_final = nombre_limpio.capitalize()
+
                     processed_ports.append({
-                        'puerto': port.get('nombre'),
+                        'puerto': nombre_final,
                         'estado_del_puerto': estado_del_puerto,
                         'condicion': condicion
                     })
