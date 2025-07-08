@@ -391,28 +391,28 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
-            # --- OBTENCIÓN Y PROCESAMIENTO ---
+            # --- OBTENCIÓN Y PROCESAMIENTO (VERSIÓN CORREGIDA) ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
             headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
-            all_outages_data = []
+            all_outages_data = [] # Inicia la lista vacía para acumular.
             now = datetime.now()
 
+            # Bucle corregido: Acumula datos de las últimas 24 horas SIN detenerse.
             for i in range(24):
-                target_time = now - timedelta(hours=i + 1)
+                target_time = now - timedelta(hours=i)
                 payload = {"ANHO": target_time.year, "MES": target_time.month, "DIA": target_time.day, "HORA": target_time.hour}
-                response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=20)
-                if response.status_code == 200:
-                    data = response.json()
-                    if data and isinstance(data, list) and len(data) > 0:
-                        all_outages_data = data
-                        break
+                try:
+                    response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=10)
+                    if response.status_code == 200:
+                        data = response.json()
+                        if data and isinstance(data, list) and len(data) > 0:
+                            # Usamos .extend() para AÑADIR los registros a nuestra lista, no para reemplazarla.
+                            all_outages_data.extend(data)
+                except requests.exceptions.RequestException as e:
+                    print(f"ADVERTENCIA: Falló la petición a la SEC para la hora {target_time.hour}:00. Causa: {e}")
+                    continue # Si una hora falla, simplemente continuamos con la siguiente.
 
-            # --- INICIO: NUEVOS MENSAJES DE DEPURACIÓN ---
-            print(f"DEBUG: Se encontraron {len(all_outages_data)} registros de cortes en la API de la SEC.")
-            if all_outages_data:
-                # Imprimimos el primer registro para ver su estructura exacta.
-                print(f"DEBUG: Muestra del primer registro: {all_outages_data[0]}")
-            # --- FIN: NUEVOS MENSAJES DE DEPURACIÓN ---
+            print(f"DEBUG: Se encontraron y acumularon un total de {len(all_outages_data)} registros de cortes en las últimas 24 horas.")
 
             PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
             outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
