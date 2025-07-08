@@ -407,14 +407,17 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         all_outages_data = data
                         break
 
-            # --- LÓGICA DE CÁLCULO Y ORDENAMIENTO (REFACTORIZADA) ---
-            # 1. Define el orden y la estructura de datos final en un solo paso.
+            # --- INICIO: NUEVOS MENSAJES DE DEPURACIÓN ---
+            print(f"DEBUG: Se encontraron {len(all_outages_data)} registros de cortes en la API de la SEC.")
+            if all_outages_data:
+                # Imprimimos el primer registro para ver su estructura exacta.
+                print(f"DEBUG: Muestra del primer registro: {all_outages_data[0]}")
+            # --- FIN: NUEVOS MENSAJES DE DEPURACIÓN ---
+
             PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
             outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
-            
             total_affected_region = 0
 
-            # 2. Llena la estructura de datos ya ordenada.
             for outage in all_outages_data:
                 if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
                     commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
@@ -427,19 +430,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         outages_by_province_ordered[province] += affected_clients
                         total_affected_region += affected_clients
             
-            # 3. Convierte el diccionario ordenado a la lista de objetos que el frontend espera.
-            ordered_provinces_list = []
-            for prov_name, prov_count in outages_by_province_ordered.items():
-                ordered_provinces_list.append({
-                    "provincia": prov_name,
-                    "cantidad": prov_count
-                })
-
+            ordered_provinces_list = [
+                {"provincia": name, "cantidad": count} 
+                for name, count in outages_by_province_ordered.items()
+            ]
             percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
             
-            # 4. Mensaje de depuración: Lo veremos en los logs del servidor si el código se está ejecutando.
-            print(f"DEBUG: Datos SEC procesados. Total afectados: {total_affected_region}.")
-
             return {
                 "total_afectados_region": total_affected_region,
                 "porcentaje_afectado": round(percentage_affected, 2),
