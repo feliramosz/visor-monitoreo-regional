@@ -296,6 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (data.error) throw new Error(data.error);
 
+            
             let tableHtml = `
                 <table class="sec-table">
                     <tbody>
@@ -309,18 +310,25 @@ document.addEventListener('DOMContentLoaded', () => {
                         </tr>
                     </tbody>
                 </table>
-                <h4 class="sec-subtitle">Clientes afectados por provincia:</h4>
-                <table class="sec-table">
+                
+                <table class="sec-table" style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>Clientes afectados por provincia</th>
+                            <th>Cantidad</th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        ${Object.entries(data.desglose_provincias).map(([provincia, cantidad]) => `
+                        ${data.desglose_provincias.map(item => `
                             <tr>
-                                <td>Provincia de ${provincia}</td>
-                                <td>${cantidad.toLocaleString('es-CL')}</td>
+                                <td>Provincia de ${item.provincia}</td>
+                                <td>${item.cantidad.toLocaleString('es-CL')}</td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
             `;
+            // --- FIN DE LA MODIFICACIÓN VISUAL ---
 
             container.innerHTML = tableHtml;
 
@@ -1438,10 +1446,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- SISTEMA DE NOTIFICACIONES POR VOZ ---    
     async function verificarNotificaciones() {
-        // Guardas para los controles global y local
-        if (!lastData.notificaciones_activadas) {
-            return; // El admin desactivó las notificaciones globalmente
-        }
+        // El chequeo global fue eliminado.
+        // Ahora solo depende de la configuración local del operador.
         const notificacionesLocales = localStorage.getItem('notificacionesLocalesActivas') !== 'false';
         if (!notificacionesLocales) {
             return; // El operador desactivó las notificaciones para su sesión
@@ -1451,7 +1457,6 @@ document.addEventListener('DOMContentLoaded', () => {
         gestionarNotificacionesPrecipitacion(lastData.weather_data || []);
         gestionarNotificacionesPasoFronterizo(lastData.estado_pasos_fronterizos || []);
         
-        // --- NUEVA LÓGICA ASÍNCRONA PARA PUERTOS ---
         try {
             const response = await fetch('/api/estado_puertos_live');
             if (response.ok) {

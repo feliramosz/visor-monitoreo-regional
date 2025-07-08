@@ -319,10 +319,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             # --- MENSAJE CORREGIDO Y PRUDENTE ---
             mensaje_voz = (f"Atención, boletín informativo de sismo significativo. "
                            f"GEOFON reporta un evento de magnitud {magnitude}, a {depth} kilómetros de profundidad, "
-                           f"localizado en {place}. Por las características de este sismo, se recomienda "
-                           f"mantenerse informado a través de los canales oficiales del SHOA para obtener la "
-                           f"evaluación y las indicaciones correspondientes.")
-            
+                           f"localizado en {place}. Se recomienda "
+                           f"mantenerse informado a través de los canales oficiales")
+                                     
             sonido = "assets/notificacion_alerta_maxima.mp3"
 
             print(f"[GEOFON_CHECK] Mensaje de voz generado: '{mensaje_voz}'")
@@ -330,9 +329,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             with open(LAST_EVENT_FILE, 'w') as f:
                 f.write(event_id)
             with open(LAST_MESSAGE_FILE, 'w') as f:
-                json.dump({"sonido": sonido, "mensaje": mensaje_voz}, f, ensure_ascii=False)
+                json.dump({"sonido": sonido, "mensaje": mensaje_voz, "sonido": sonido}, f, ensure_ascii=False)
 
-            return {"sonido": sonido, "mensaje": mensaje_voz}
+            return {"sonido": sonido, "mensaje": mensaje_voz, "sonido": sonido}
 
         except Exception as e:
             print(f"[GEOFON_CHECK] ERROR FATAL en la función _check_geofon_bulletin: {e}")
@@ -374,7 +373,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         """
         Consulta la API de la SEC y procesa los datos de clientes sin suministro.
         """
-        try:           
+        try:
+            # --- FUNCIÓN DE AYUDA Y DATOS ESTÁTICOS ---
             def _normalize_str(s):
                 return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
 
@@ -390,7 +390,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 'Quilpué': 'Marga Marga', 'Limache': 'Marga Marga', 'Olmué': 'Marga Marga', 'Villa Alemana': 'Marga Marga'
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
-            
+
+            # --- OBTENCIÓN Y PROCESAMIENTO ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
             headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
             all_outages_data = []
@@ -401,7 +402,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 payload = {"ANHO": target_time.year, "MES": target_time.month, "DIA": target_time.day, "HORA": target_time.hour}
                 response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=20)
                 if response.status_code == 200:
-                    data = response.json()                    
+                    data = response.json()
                     if data and isinstance(data, list) and len(data) > 0:
                         all_outages_data = data
                         break
@@ -409,8 +410,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             outages_by_province = {prov: 0 for prov in set(PROVINCIA_MAP.values())}
             total_affected_region = 0
 
-            for outage in all_outages_data:                
-                if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():                
+            for outage in all_outages_data:
+                if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
                     commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
                     normalized_commune = _normalize_str(commune_from_api)
                     affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
@@ -422,10 +423,24 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             
             percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
             
+            # --- INICIO DE LA MODIFICACIÓN PARA ORDENAR ---
+            # 1. Definimos el orden que solicitaste
+            PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
+            
+            # 2. Creamos una lista ordenada en vez de un diccionario
+            ordered_provinces = []
+            for province_name in PROVINCE_ORDER:
+                if province_name in outages_by_province:
+                    ordered_provinces.append({
+                        "provincia": province_name,
+                        "cantidad": outages_by_province[province_name]
+                    })
+            # --- FIN DE LA MODIFICACIÓN ---
+
             return {
                 "total_afectados_region": total_affected_region,
                 "porcentaje_afectado": round(percentage_affected, 2),
-                "desglose_provincias": outages_by_province,
+                "desglose_provincias": ordered_provinces, # Ahora devolvemos la lista ordenada
             }
 
         except Exception as e:
