@@ -378,7 +378,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             def _normalize_str(s):
                 return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
 
-            TOTAL_CLIENTES_REGION = 830000 
+            TOTAL_CLIENTES_REGION = 830000
             PROVINCIA_MAP = {
                 'Valparaíso': 'Valparaíso', 'Viña del Mar': 'Valparaíso', 'Quintero': 'Valparaíso', 'Puchuncaví': 'Valparaíso', 'Casablanca': 'Valparaíso', 'Concón': 'Valparaíso', 'Juan Fernández': 'Valparaíso',
                 'Isla de Pascua': 'Isla de Pascua',
@@ -391,35 +391,34 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
-            # --- OBTENCIÓN Y PROCESAMIENTO (VERSIÓN DEFINITIVA) ---
+            # --- OBTENCIÓN Y PROCESAMIENTO (NUEVO ENFOQUE DE PETICIÓN ÚNICA) ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
             headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
-            all_outages_data = [] # Se reinicia la lista.
-            now = datetime.now()
+            all_outages_data = []
 
-            # Bucle corregido: Busca hacia atrás la HORA MÁS RECIENTE con datos y se detiene.
-            for i in range(24):
-                target_time = now - timedelta(hours=i)
-                payload = {"ANHO": target_time.year, "MES": target_time.month, "DIA": target_time.day, "HORA": target_time.hour}
-                try:
-                    response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=10)
-                    if response.status_code == 200:
-                        data = response.json()
-                        # Si la respuesta es una lista y NO está vacía, hemos encontrado el reporte más reciente.
-                        if data and isinstance(data, list) and len(data) > 0:
-                            print(f"INFO: Se encontraron datos de la SEC para la hora: {target_time.hour}:00. Usando este reporte.")
-                            all_outages_data = data # Asignamos esta lista como la única fuente de datos.
-                            break # ¡IMPORTANTE! Nos detenemos para no acumular datos de horas anteriores.
-                except requests.exceptions.RequestException as e:
-                    print(f"ADVERTENCIA: Falló la petición a la SEC para la hora {target_time.hour}:00. Causa: {e}")
-                    continue
+            # Se realiza UNA ÚNICA petición enviando un payload vacío.
+            # Esto instruye a la API a devolver el estado actual completo de todo el país.
+            try:
+                print("INFO: Realizando una única petición a la API de la SEC para obtener el estado nacional.")
+                response = requests.post(SEC_API_URL, headers=headers, json={}, timeout=15)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data and isinstance(data, list):
+                        all_outages_data = data
+                        print(f"INFO: Petición única exitosa. Se recibieron {len(all_outages_data)} registros en total.")
+                else:
+                    print(f"ADVERTENCIA: La petición única a la SEC falló con estado {response.status_code}.")
+            except requests.exceptions.RequestException as e:
+                print(f"ERROR: La petición única a la API de la SEC falló. Causa: {e}")
 
-            # El resto de la función (cálculo y ordenamiento) no necesita cambios.
+
+            # --- CÁLCULO Y FILTRADO (SIN CAMBIOS) ---
             PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
             outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
             total_affected_region = 0
 
             for outage in all_outages_data:
+                # Filtramos aquí solo los registros que corresponden a nuestra región.
                 if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
                     commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
                     normalized_commune = _normalize_str(commune_from_api)
