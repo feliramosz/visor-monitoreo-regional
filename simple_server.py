@@ -374,8 +374,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         """
         Consulta la API de la SEC y procesa los datos de clientes sin suministro.
         """
-        try:
-            # --- FUNCIÓN DE AYUDA Y DATOS ESTÁTICOS ---
+        try:           
             def _normalize_str(s):
                 return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
 
@@ -391,33 +390,27 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 'Quilpué': 'Marga Marga', 'Limache': 'Marga Marga', 'Olmué': 'Marga Marga', 'Villa Alemana': 'Marga Marga'
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
-
-            # --- OBTENCIÓN Y PROCESAMIENTO ---
+            
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
             headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
             all_outages_data = []
             now = datetime.now()
 
-            for i in range(24): # Busca hasta 24 horas hacia atrás
+            for i in range(24):
                 target_time = now - timedelta(hours=i + 1)
                 payload = {"ANHO": target_time.year, "MES": target_time.month, "DIA": target_time.day, "HORA": target_time.hour}
                 response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=20)
                 if response.status_code == 200:
-                    raw_data = response.json()
-                    # --- INICIO DE LA CORRECCIÓN ---
-                    # Verificamos si la respuesta contiene la clave "data" y si esta es una lista con contenido.
-                    if raw_data and 'data' in raw_data and isinstance(raw_data.get('data'), list) and len(raw_data['data']) > 0:
-                        all_outages_data = raw_data['data']
-                        # Si encontramos datos, detenemos la búsqueda.
-                        break 
-                    # --- FIN DE LA CORRECCIÓN ---
+                    data = response.json()                    
+                    if data and isinstance(data, list) and len(data) > 0:
+                        all_outages_data = data
+                        break
             
-            # Aseguramos que todas las provincias de nuestro mapa se inicialicen en cero.
             outages_by_province = {prov: 0 for prov in set(PROVINCIA_MAP.values())}
             total_affected_region = 0
 
-            for outage in all_outages_data:
-                if 'Valparaiso' in outage.get('NOMBRE_REGION', '').lower():
+            for outage in all_outages_data:                
+                if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():                
                     commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
                     normalized_commune = _normalize_str(commune_from_api)
                     affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
