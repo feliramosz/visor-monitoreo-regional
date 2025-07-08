@@ -295,7 +295,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.error) throw new Error(data.error);
-            
+
+            // Esta versión lee un "diccionario" de provincias, no una lista.
             let tableHtml = `
                 <table class="sec-table">
                     <tbody>
@@ -309,19 +310,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         </tr>
                     </tbody>
                 </table>
-                
-                <table class="sec-table" style="margin-top: 15px;">
-                    <thead>
-                        <tr>
-                            <th>CLIENTES AFECTADOS POR PROVINCIA</th>
-                            <th>CANTIDAD</th>
-                        </tr>
-                    </thead>
+                <h4 class="sec-subtitle">Clientes afectados por provincia:</h4>
+                <table class="sec-table">
                     <tbody>
-                        ${data.desglose_provincias.map(item => `
+                        ${Object.entries(data.desglose_provincias).map(([provincia, cantidad]) => `
                             <tr>
-                                <td>Provincia de ${item.provincia}</td>
-                                <td>${item.cantidad.toLocaleString('es-CL')}</td>
+                                <td>Provincia de ${provincia}</td>
+                                <td>${cantidad.toLocaleString('es-CL')}</td>
                             </tr>
                         `).join('')}
                     </tbody>
