@@ -295,7 +295,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.error) throw new Error(data.error);
-
             
             let tableHtml = `
                 <table class="sec-table">
@@ -314,8 +313,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <table class="sec-table" style="margin-top: 15px;">
                     <thead>
                         <tr>
-                            <th>Clientes afectados por provincia</th>
-                            <th>Cantidad</th>
+                            <th>CLIENTES AFECTADOS POR PROVINCIA</th>
+                            <th>CANTIDAD</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -328,7 +327,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tbody>
                 </table>
             `;
-            // --- FIN DE LA MODIFICACIÓN VISUAL ---
 
             container.innerHTML = tableHtml;
 
