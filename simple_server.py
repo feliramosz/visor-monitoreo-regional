@@ -372,6 +372,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
     def _get_sec_power_outages(self):
         """
         Consulta la API de la SEC y procesa los datos de clientes sin suministro.
+        *** NUEVO ENFOQUE DEFINITIVO BASADO EN EL ENDPOINT 'me-capa-comunasAfectadas.txt' ***
         """
         try:
             # --- FUNCIÓN DE AYUDA Y DATOS ESTÁTICOS ---
@@ -391,35 +392,32 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
-            # --- OBTENCIÓN Y PROCESAMIENTO (ENFOQUE DE PETICIÓN ÚNICA Y DEFINITIVA) ---
-            SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
-            
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
-                'Content-Type': 'application/json; charset=UTF-8',
-                'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx',
-                'Cookie': '_gcl_au=1.1.132691215.1752007380; _ga=GA1.1.2082393306.1752007380; _ga_6ETGEP3SQZ=GS2.1.s1752012548$o2$g1$t1752012548$j60$l0$h0',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-            
-            all_outages_data = []
-            
-            # Realizamos UNA ÚNICA petición. El payload de fecha/hora es ignorado por la API, pero lo enviamos para mayor seguridad.
-            now = datetime.now()
-            payload = {"anho": now.year, "mes": now.month, "dia": now.day, "hora": now.hour}
+            # --- OBTENCIÓN DE DATOS (NUEVO ENFOQUE) ---
+            # Este es el endpoint que la propia página de la SEC parece usar para su mapa. Es más directo.
+            SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/me-capa-comunasAfectadas.txt"
+            headers = {'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx'}
+            params = {'_': int(datetime.now().timestamp() * 1000)} # Parámetro para evitar el caché
 
-            try:
-                print("INFO: Realizando una única petición a la API de la SEC para obtener el estado nacional.")
-                response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=15)
-                if response.status_code == 200:
-                    data = response.json()
-                    if data and isinstance(data, list):
-                        all_outages_data = data
-                        print(f"INFO: Petición única exitosa. Se recibieron {len(all_outages_data)} registros en total.")
-                else:
-                    print(f"ADVERTENCIA: La petición única a la SEC falló con estado {response.status_code}.")
-            except requests.exceptions.RequestException as e:
-                print(f"ERROR: La petición única a la API de la SEC falló. Causa: {e}")
+            all_outages_data = []
+
+            print(f"INFO: Intentando nuevo enfoque con el endpoint: {SEC_API_URL}")
+            response = requests.get(SEC_API_URL, headers=headers, params=params, timeout=15)
+            
+            if response.status_code == 200:
+                # El archivo es un JSON con un prefijo "var comunasAfectadas = ". Lo removemos.
+                json_text = response.text.replace('var comunasAfectadas = ', '').strip()
+                # A veces termina con un punto y coma, también lo quitamos.
+                if json_text.endswith(';'):
+                    json_text = json_text[:-1]
+                
+                data = json.loads(json_text)
+                # La estructura es {"data": [...]}, así que extraemos la lista.
+                if 'data' in data and isinstance(data['data'], list):
+                    all_outages_data = data['data']
+                    print(f"INFO: Nuevo enfoque exitoso. Se recibieron {len(all_outages_data)} registros del endpoint .txt.")
+            else:
+                print(f"ERROR: El nuevo enfoque falló. Estado de la respuesta: {response.status_code}")
+                return {"error": "No se pudo obtener datos desde el nuevo endpoint de la SEC."}
 
             # --- CÁLCULO Y FILTRADO ---
             PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
@@ -427,20 +425,21 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             total_affected_region = 0
 
             for outage in all_outages_data:
-                if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
-                    commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
-                    normalized_commune = _normalize_str(commune_from_api)
-                    affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
-                    
-                    province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
-                    
-                    if province in outages_by_province_ordered:
-                        outages_by_province_ordered[province] += affected_clients
-                        total_affected_region += affected_clients
-            
+                # Este endpoint no incluye la región, por lo que filtramos directamente por comuna.
+                commune_from_api = outage.get('comuna', 'Desconocida')
+                normalized_commune = _normalize_str(commune_from_api)
+                
+                # Buscamos la provincia a la que pertenece la comuna
+                province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
+
+                # Si la comuna pertenece a nuestra región (es decir, está en nuestro mapa)
+                if province:
+                    affected_clients = int(outage.get('clientes_afectados', 0))
+                    outages_by_province_ordered[province] += affected_clients
+                    total_affected_region += affected_clients
+
             ordered_provinces_list = [
-                {"provincia": name, "cantidad": count} 
-                for name, count in outages_by_province_ordered.items()
+                {"provincia": name, "cantidad": count} for name, count in outages_by_province_ordered.items()
             ]
             percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
             
