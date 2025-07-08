@@ -391,13 +391,13 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
-            # --- OBTENCIÓN Y PROCESAMIENTO (VERSIÓN CORREGIDA) ---
+            # --- OBTENCIÓN Y PROCESAMIENTO (VERSIÓN DEFINITIVA) ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
             headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
-            all_outages_data = [] # Inicia la lista vacía para acumular.
+            all_outages_data = [] # Se reinicia la lista.
             now = datetime.now()
 
-            # Bucle corregido: Acumula datos de las últimas 24 horas SIN detenerse.
+            # Bucle corregido: Busca hacia atrás la HORA MÁS RECIENTE con datos y se detiene.
             for i in range(24):
                 target_time = now - timedelta(hours=i)
                 payload = {"ANHO": target_time.year, "MES": target_time.month, "DIA": target_time.day, "HORA": target_time.hour}
@@ -405,15 +405,16 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=10)
                     if response.status_code == 200:
                         data = response.json()
+                        # Si la respuesta es una lista y NO está vacía, hemos encontrado el reporte más reciente.
                         if data and isinstance(data, list) and len(data) > 0:
-                            # Usamos .extend() para AÑADIR los registros a nuestra lista, no para reemplazarla.
-                            all_outages_data.extend(data)
+                            print(f"INFO: Se encontraron datos de la SEC para la hora: {target_time.hour}:00. Usando este reporte.")
+                            all_outages_data = data # Asignamos esta lista como la única fuente de datos.
+                            break # ¡IMPORTANTE! Nos detenemos para no acumular datos de horas anteriores.
                 except requests.exceptions.RequestException as e:
                     print(f"ADVERTENCIA: Falló la petición a la SEC para la hora {target_time.hour}:00. Causa: {e}")
-                    continue # Si una hora falla, simplemente continuamos con la siguiente.
+                    continue
 
-            print(f"DEBUG: Se encontraron y acumularon un total de {len(all_outages_data)} registros de cortes en las últimas 24 horas.")
-
+            # El resto de la función (cálculo y ordenamiento) no necesita cambios.
             PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
             outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
             total_affected_region = 0
