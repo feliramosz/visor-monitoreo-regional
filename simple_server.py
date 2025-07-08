@@ -372,10 +372,10 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
     def _get_sec_power_outages(self):
         """
         Consulta la API de la SEC y procesa los datos de clientes sin suministro.
-        *** NUEVO ENFOQUE DEFINITIVO BASADO EN EL ENDPOINT 'me-capa-comunasAfectadas.txt' ***
+        *** ENFOQUE FINAL: Lectura de GeoJSON nacional y filtro por comunas de la región ***
         """
         try:
-            # --- FUNCIÓN DE AYUDA Y DATOS ESTÁTICOS ---
+            # --- FUNCIÓN DE AYUDA Y DATOS ESTÁTICOS (Sin cambios) ---
             def _normalize_str(s):
                 return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
 
@@ -392,54 +392,61 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
-            # --- OBTENCIÓN DE DATOS (NUEVO ENFOQUE) ---
-            # Este es el endpoint que la propia página de la SEC parece usar para su mapa. Es más directo.
+            # --- OBTENCIÓN DE DATOS (Enfoque de archivo .txt) ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/me-capa-comunasAfectadas.txt"
             headers = {'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx'}
-            params = {'_': int(datetime.now().timestamp() * 1000)} # Parámetro para evitar el caché
+            params = {'_': int(datetime.now().timestamp() * 1000)}
 
-            all_outages_data = []
-
-            print(f"INFO: Intentando nuevo enfoque con el endpoint: {SEC_API_URL}")
+            all_features = []
+            
+            print(f"INFO: Intentando enfoque final con el endpoint: {SEC_API_URL}")
             response = requests.get(SEC_API_URL, headers=headers, params=params, timeout=15)
             
             if response.status_code == 200:
-                # El archivo es un JSON con un prefijo "var comunasAfectadas = ". Lo removemos.
+                # El archivo es un JS que asigna un JSON a una variable. Extraemos el JSON.
                 json_text = response.text.replace('var comunasAfectadas = ', '').strip()
-                # A veces termina con un punto y coma, también lo quitamos.
                 if json_text.endswith(';'):
                     json_text = json_text[:-1]
                 
-                data = json.loads(json_text)
-                # La estructura es {"data": [...]}, así que extraemos la lista.
-                if 'data' in data and isinstance(data['data'], list):
-                    all_outages_data = data['data']
-                    print(f"INFO: Nuevo enfoque exitoso. Se recibieron {len(all_outages_data)} registros del endpoint .txt.")
+                # La estructura del JSON es un GeoJSON, los datos están en la lista "features"
+                geojson_data = json.loads(json_text)
+                all_features = geojson_data.get('features', [])
+                print(f"INFO: Enfoque final exitoso. Se recibieron {len(all_features)} registros de comunas a nivel nacional.")
             else:
-                print(f"ERROR: El nuevo enfoque falló. Estado de la respuesta: {response.status_code}")
-                return {"error": "No se pudo obtener datos desde el nuevo endpoint de la SEC."}
+                print(f"ERROR: El enfoque final falló. Estado de la respuesta: {response.status_code}")
+                return {"error": "No se pudo obtener datos desde el endpoint de la SEC."}
 
-            # --- CÁLCULO Y FILTRADO ---
+            # --- CÁLCULO Y FILTRADO POR COMUNA ---
             PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
             outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
             total_affected_region = 0
 
-            for outage in all_outages_data:
-                # Este endpoint no incluye la región, por lo que filtramos directamente por comuna.
-                commune_from_api = outage.get('comuna', 'Desconocida')
+            for feature in all_features:
+                properties = feature.get('properties', {})
+                
+                # El nombre de la comuna está en la clave "COMUNA"
+                commune_from_api = properties.get('COMUNA', 'Desconocida').replace('_', ' ')
                 normalized_commune = _normalize_str(commune_from_api)
                 
-                # Buscamos la provincia a la que pertenece la comuna
+                # Buscamos la provincia a la que pertenece la comuna en nuestro mapa
                 province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
 
-                # Si la comuna pertenece a nuestra región (es decir, está en nuestro mapa)
+                # Si se encontró una provincia, significa que la comuna es de nuestra región y la procesamos
                 if province:
-                    affected_clients = int(outage.get('clientes_afectados', 0))
-                    outages_by_province_ordered[province] += affected_clients
-                    total_affected_region += affected_clients
-
+                    affected_clients_str = properties.get('CLIENTESAFECTADOS', '0')
+                    try:
+                        affected_clients = int(affected_clients_str)
+                    except (ValueError, TypeError):
+                        affected_clients = 0
+                    
+                    if province in outages_by_province_ordered:
+                        outages_by_province_ordered[province] += affected_clients
+                        total_affected_region += affected_clients
+            
+            # Formateamos la salida final con los datos ya ordenados
             ordered_provinces_list = [
-                {"provincia": name, "cantidad": count} for name, count in outages_by_province_ordered.items()
+                {"provincia": name, "cantidad": count} 
+                for name, count in outages_by_province_ordered.items()
             ]
             percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
             
