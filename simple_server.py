@@ -398,17 +398,21 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             all_outages_data = []
             now = datetime.now()
 
-            for i in range(24):
+            for i in range(24): # Busca hasta 24 horas hacia atrás
                 target_time = now - timedelta(hours=i + 1)
                 payload = {"ANHO": target_time.year, "MES": target_time.month, "DIA": target_time.day, "HORA": target_time.hour}
                 response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=20)
                 if response.status_code == 200:
-                    data = response.json()
-                    if data and isinstance(data, list) and len(data) > 0:
-                        all_outages_data = data
-                        break
+                    raw_data = response.json()
+                    # --- INICIO DE LA CORRECCIÓN ---
+                    # Verificamos si la respuesta contiene la clave "data" y si esta es una lista con contenido.
+                    if raw_data and 'data' in raw_data and isinstance(raw_data.get('data'), list) and len(raw_data['data']) > 0:
+                        all_outages_data = raw_data['data']
+                        # Si encontramos datos, detenemos la búsqueda.
+                        break 
+                    # --- FIN DE LA CORRECCIÓN ---
             
-            # CORRECCIÓN: Aseguramos que todas las provincias de nuestro mapa se inicialicen
+            # Aseguramos que todas las provincias de nuestro mapa se inicialicen en cero.
             outages_by_province = {prov: 0 for prov in set(PROVINCIA_MAP.values())}
             total_affected_region = 0
 
