@@ -370,76 +370,76 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             return {"error": str(e)}
 
     def _get_sec_power_outages(self):
-    """
-    Consulta la API de la SEC y procesa los datos de clientes sin suministro.
-    """
-    try:
-        # --- FUNCIÓN DE AYUDA Y DATOS ESTÁTICOS ---
-        def _normalize_str(s):
-            return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
-
-        TOTAL_CLIENTES_REGION = 830000
-        PROVINCIA_MAP = {
-            'Valparaíso': 'Valparaíso', 'Viña del Mar': 'Valparaíso', 'Quintero': 'Valparaíso', 'Puchuncaví': 'Valparaíso', 'Casablanca': 'Valparaíso', 'Concón': 'Valparaíso', 'Juan Fernández': 'Valparaíso',
-            'Isla de Pascua': 'Isla de Pascua',
-            'Los Andes': 'Los Andes', 'San Esteban': 'Los Andes', 'Calle Larga': 'Los Andes', 'Rinconada': 'Los Andes',
-            'La Ligua': 'Petorca', 'Petorca': 'Petorca', 'Cabildo': 'Petorca', 'Zapallar': 'Petorca', 'Papudo': 'Petorca',
-            'Quillota': 'Quillota', 'La Calera': 'Quillota', 'Nogales': 'Quillota', 'Hijuelas': 'Quillota', 'La Cruz': 'Quillota',
-            'San Antonio': 'San Antonio', 'Algarrobo': 'San Antonio', 'El Quisco': 'San Antonio', 'El Tabo': 'San Antonio', 'Cartagena': 'San Antonio', 'Santo Domingo': 'San Antonio',
-            'San Felipe': 'San Felipe', 'Llaillay': 'San Felipe', 'Putaendo': 'San Felipe', 'Santa María': 'San Felipe', 'Catemu': 'San Felipe', 'Panquehue': 'San Felipe',
-            'Quilpué': 'Marga Marga', 'Limache': 'Marga Marga', 'Olmué': 'Marga Marga', 'Villa Alemana': 'Marga Marga'
-        }
-        PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
-
-        # --- OBTENCIÓN Y PROCESAMIENTO ---
-        SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
-        headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
-        all_outages_data = []
-
+        """
+        Consulta la API de la SEC y procesa los datos de clientes sin suministro.
+        """
         try:
-            response = requests.post(SEC_API_URL, headers=headers, json={}, timeout=15)
-            if response.status_code == 200:
-                data = response.json()
-                if data and isinstance(data, list):
-                    all_outages_data = data
-        except requests.exceptions.RequestException as e:
-            print(f"ERROR: La petición única a la API de la SEC falló. Causa: {e}")
+            # --- FUNCIÓN DE AYUDA Y DATOS ESTÁTICOS ---
+            def _normalize_str(s):
+                return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
 
-        # --- CÁLCULO Y ORDENAMIENTO ---
-        PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
-        outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
-        total_affected_region = 0
+            TOTAL_CLIENTES_REGION = 830000
+            PROVINCIA_MAP = {
+                'Valparaíso': 'Valparaíso', 'Viña del Mar': 'Valparaíso', 'Quintero': 'Valparaíso', 'Puchuncaví': 'Valparaíso', 'Casablanca': 'Valparaíso', 'Concón': 'Valparaíso', 'Juan Fernández': 'Valparaíso',
+                'Isla de Pascua': 'Isla de Pascua',
+                'Los Andes': 'Los Andes', 'San Esteban': 'Los Andes', 'Calle Larga': 'Los Andes', 'Rinconada': 'Los Andes',
+                'La Ligua': 'Petorca', 'Petorca': 'Petorca', 'Cabildo': 'Petorca', 'Zapallar': 'Petorca', 'Papudo': 'Petorca',
+                'Quillota': 'Quillota', 'La Calera': 'Quillota', 'Nogales': 'Quillota', 'Hijuelas': 'Quillota', 'La Cruz': 'Quillota',
+                'San Antonio': 'San Antonio', 'Algarrobo': 'San Antonio', 'El Quisco': 'San Antonio', 'El Tabo': 'San Antonio', 'Cartagena': 'San Antonio', 'Santo Domingo': 'San Antonio',
+                'San Felipe': 'San Felipe', 'Llaillay': 'San Felipe', 'Putaendo': 'San Felipe', 'Santa María': 'San Felipe', 'Catemu': 'San Felipe', 'Panquehue': 'San Felipe',
+                'Quilpué': 'Marga Marga', 'Limache': 'Marga Marga', 'Olmué': 'Marga Marga', 'Villa Alemana': 'Marga Marga'
+            }
+            PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
-        for outage in all_outages_data:
-            if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
-                commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
-                normalized_commune = _normalize_str(commune_from_api)
-                affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
-                
-                province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
-                
-                if province in outages_by_province_ordered:
-                    outages_by_province_ordered[province] += affected_clients
-                    total_affected_region += affected_clients
-        
-        # Convierte el diccionario ordenado a la lista de objetos que el frontend espera
-        ordered_provinces_list = [
-            {"provincia": name, "cantidad": count} 
-            for name, count in outages_by_province_ordered.items()
-        ]
-        percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
-        
-        return {
-            "total_afectados_region": total_affected_region,
-            "porcentaje_afectado": round(percentage_affected, 2),
-            "desglose_provincias": ordered_provinces_list
-        }
+            # --- OBTENCIÓN Y PROCESAMIENTO ---
+            SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
+            headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
+            all_outages_data = []
 
-    except Exception as e:
-        import traceback
-        print(f"ERROR: Fallo inesperado al procesar datos de la SEC. Causa: {e}")
-        traceback.print_exc()
-        return {"error": "Fallo en el servidor al procesar datos de la SEC"}
+            try:
+                response = requests.post(SEC_API_URL, headers=headers, json={}, timeout=15)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data and isinstance(data, list):
+                        all_outages_data = data
+            except requests.exceptions.RequestException as e:
+                print(f"ERROR: La petición única a la API de la SEC falló. Causa: {e}")
+
+            # --- CÁLCULO Y ORDENAMIENTO ---
+            PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
+            outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
+            total_affected_region = 0
+
+            for outage in all_outages_data:
+                if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
+                    commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
+                    normalized_commune = _normalize_str(commune_from_api)
+                    affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
+                    
+                    province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
+                    
+                    if province in outages_by_province_ordered:
+                        outages_by_province_ordered[province] += affected_clients
+                        total_affected_region += affected_clients
+            
+            # Convierte el diccionario ordenado a la lista de objetos que el frontend espera
+            ordered_provinces_list = [
+                {"provincia": name, "cantidad": count} 
+                for name, count in outages_by_province_ordered.items()
+            ]
+            percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
+            
+            return {
+                "total_afectados_region": total_affected_region,
+                "porcentaje_afectado": round(percentage_affected, 2),
+                "desglose_provincias": ordered_provinces_list
+            }
+
+        except Exception as e:
+            import traceback
+            print(f"ERROR: Fallo inesperado al procesar datos de la SEC. Causa: {e}")
+            traceback.print_exc()
+            return {"error": "Fallo en el servidor al procesar datos de la SEC"}
 
     def _set_headers(self, status_code=200, content_type='text/html'):
         self.send_response(status_code)
