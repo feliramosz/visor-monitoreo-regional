@@ -406,10 +406,15 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     if data and isinstance(data, list) and len(data) > 0:
                         all_outages_data = data
                         break
+
+            # --- LÓGICA DE CÁLCULO Y ORDENAMIENTO (REFACTORIZADA) ---
+            # 1. Define el orden y la estructura de datos final en un solo paso.
+            PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
+            outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
             
-            outages_by_province = {prov: 0 for prov in set(PROVINCIA_MAP.values())}
             total_affected_region = 0
 
+            # 2. Llena la estructura de datos ya ordenada.
             for outage in all_outages_data:
                 if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
                     commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
@@ -417,30 +422,28 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
                     
                     province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
-                    if province and province in outages_by_province:
-                        outages_by_province[province] += affected_clients
+                    
+                    if province in outages_by_province_ordered:
+                        outages_by_province_ordered[province] += affected_clients
                         total_affected_region += affected_clients
             
+            # 3. Convierte el diccionario ordenado a la lista de objetos que el frontend espera.
+            ordered_provinces_list = []
+            for prov_name, prov_count in outages_by_province_ordered.items():
+                ordered_provinces_list.append({
+                    "provincia": prov_name,
+                    "cantidad": prov_count
+                })
+
             percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
             
-            # --- INICIO DE LA MODIFICACIÓN PARA ORDENAR ---
-            # 1. Definimos el orden que solicitaste
-            PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
-            
-            # 2. Creamos una lista ordenada en vez de un diccionario
-            ordered_provinces = []
-            for province_name in PROVINCE_ORDER:
-                if province_name in outages_by_province:
-                    ordered_provinces.append({
-                        "provincia": province_name,
-                        "cantidad": outages_by_province[province_name]
-                    })
-            # --- FIN DE LA MODIFICACIÓN ---
+            # 4. Mensaje de depuración: Lo veremos en los logs del servidor si el código se está ejecutando.
+            print(f"DEBUG: Datos SEC procesados. Total afectados: {total_affected_region}.")
 
             return {
                 "total_afectados_region": total_affected_region,
                 "porcentaje_afectado": round(percentage_affected, 2),
-                "desglose_provincias": ordered_provinces, # Ahora devolvemos la lista ordenada
+                "desglose_provincias": ordered_provinces_list
             }
 
         except Exception as e:
