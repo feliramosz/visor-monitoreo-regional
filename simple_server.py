@@ -371,7 +371,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_sec_power_outages(self):
         """
-        Consulta la API de la SEC y procesa los datos de clientes sin suministro.        
+        Consulta la API de la SEC y procesa los datos de clientes sin suministro.
         """
         try:
             def _normalize_str(s):
@@ -394,28 +394,27 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
                 'Content-Type': 'application/json; charset=UTF-8',
-                'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx',
-                'Cookie': '_gcl_au=1.1.132691215.1752007380; _ga=GA1.1.2082393306.1752007380; _ga_6ETGEP3SQZ=GS2.1.s1752012548$o2$g1$t1752012548$j60$l0$h0',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx'
             }
             
             all_outages_data = []
             
             try:
-                print("INFO: Realizando petición única a la API de la SEC.")
+                print("INFO: Realizando petición a GetPorFecha para obtener el estado nacional.")                
                 response = requests.post(SEC_API_URL, headers=headers, json={}, timeout=15)
                 
                 if response.status_code == 200:                    
-                    data = response.json()
-                    if data and isinstance(data, list):                        
-                        all_outages_data = data 
-                        print(f"INFO: Petición exitosa. Se recibieron {len(all_outages_data)} registros en total.")
+                    nested_list = response.json()
+                    if nested_list and isinstance(nested_list, list) and len(nested_list) > 0:
+                        all_outages_data = nested_list[0] 
+                        print(f"INFO: Petición exitosa. Se extrajeron {len(all_outages_data)} registros de la lista anidada.")                    
                 else:
                     print(f"ERROR: La petición a la SEC falló con estado {response.status_code}.")
 
             except requests.exceptions.RequestException as e:
                 print(f"ERROR: La petición a la API de la SEC falló. Causa: {e}")
 
+            
             PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
             outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
             total_affected_region = 0
