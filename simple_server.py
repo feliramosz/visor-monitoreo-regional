@@ -372,9 +372,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
     def _get_sec_power_outages(self):
         """
         Consulta la API de la SEC y procesa los datos de clientes sin suministro.
+        *** SOLUCIÓN DEFINITIVA: Manejo de estructura de lista anidada ***
         """
         try:
-            # --- FUNCIÓN DE AYUDA Y DATOS ESTÁTICOS ---
             def _normalize_str(s):
                 return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
 
@@ -391,46 +391,59 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
-            # --- OBTENCIÓN Y PROCESAMIENTO ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
-            headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
-            all_outages_data = []
-            now = datetime.now()
-
-            for i in range(24):
-                target_time = now - timedelta(hours=i + 1)
-                payload = {"ANHO": target_time.year, "MES": target_time.month, "DIA": target_time.day, "HORA": target_time.hour}
-                response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=20)
-                if response.status_code == 200:
-                    data = response.json()
-                    # La respuesta de la SEC es directamente una lista, esta comprobación es la correcta.
-                    if data and isinstance(data, list) and len(data) > 0:
-                        all_outages_data = data
-                        break
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+                'Content-Type': 'application/json; charset=UTF-8',
+                'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx'
+            }
             
-            outages_by_province = {prov: 0 for prov in set(PROVINCIA_MAP.values())}
+            all_outages_data = []
+            
+            try:
+                print("INFO: Realizando petición a la API de la SEC.")
+                # Enviamos un payload vacío, ya que la API lo ignora y devuelve la lista completa.
+                response = requests.post(SEC_API_URL, headers=headers, json={}, timeout=15)
+                
+                if response.status_code == 200:
+                    # La respuesta es una lista que contiene una sola lista anidada.
+                    nested_list = response.json()
+                    if nested_list and isinstance(nested_list, list) and len(nested_list) > 0:
+                        # Extraemos la lista interna, que es la que contiene los datos de los cortes.
+                        all_outages_data = nested_list[0] 
+                        print(f"INFO: Petición exitosa. Se extrajeron {len(all_outages_data)} registros de la lista anidada.")
+                else:
+                    print(f"ERROR: La petición a la SEC falló con estado {response.status_code}.")
+
+            except requests.exceptions.RequestException as e:
+                print(f"ERROR: La petición a la API de la SEC falló. Causa: {e}")
+
+            PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
+            outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
             total_affected_region = 0
 
             for outage in all_outages_data:
-                # --- INICIO DE LA CORRECCIÓN ---
-                # La comprobación ahora se hace contra 'valparaiso' en minúsculas.
                 if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
-                # --- FIN DE LA CORRECCIÓN ---
                     commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
                     normalized_commune = _normalize_str(commune_from_api)
                     affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
                     
                     province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
-                    if province and province in outages_by_province:
-                        outages_by_province[province] += affected_clients
+                    
+                    if province in outages_by_province_ordered:
+                        outages_by_province_ordered[province] += affected_clients
                         total_affected_region += affected_clients
             
+            ordered_provinces_list = [
+                {"provincia": name, "cantidad": count} 
+                for name, count in outages_by_province_ordered.items()
+            ]
             percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
             
             return {
                 "total_afectados_region": total_affected_region,
                 "porcentaje_afectado": round(percentage_affected, 2),
-                "desglose_provincias": outages_by_province,
+                "desglose_provincias": ordered_provinces_list
             }
 
         except Exception as e:
