@@ -378,7 +378,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             def _normalize_str(s):
                 return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
 
-            TOTAL_CLIENTES_REGION = 830000
+            TOTAL_CLIENTES_REGION = 830000 
             PROVINCIA_MAP = {
                 'Valparaíso': 'Valparaíso', 'Viña del Mar': 'Valparaíso', 'Quintero': 'Valparaíso', 'Puchuncaví': 'Valparaíso', 'Casablanca': 'Valparaíso', 'Concón': 'Valparaíso', 'Juan Fernández': 'Valparaíso',
                 'Isla de Pascua': 'Isla de Pascua',
@@ -391,21 +391,37 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
-            # --- OBTENCIÓN Y PROCESAMIENTO ---
+            # --- OBTENCIÓN Y PROCESAMIENTO (ENFOQUE DE PETICIÓN ÚNICA Y DEFINITIVA) ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
-            headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
+            
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+                'Content-Type': 'application/json; charset=UTF-8',
+                'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx',
+                'Cookie': '_gcl_au=1.1.132691215.1752007380; _ga=GA1.1.2082393306.1752007380; _ga_6ETGEP3SQZ=GS2.1.s1752012548$o2$g1$t1752012548$j60$l0$h0',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+            
             all_outages_data = []
+            
+            # Realizamos UNA ÚNICA petición. El payload de fecha/hora es ignorado por la API, pero lo enviamos para mayor seguridad.
+            now = datetime.now()
+            payload = {"anho": now.year, "mes": now.month, "dia": now.day, "hora": now.hour}
 
             try:
-                response = requests.post(SEC_API_URL, headers=headers, json={}, timeout=15)
+                print("INFO: Realizando una única petición a la API de la SEC para obtener el estado nacional.")
+                response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=15)
                 if response.status_code == 200:
                     data = response.json()
                     if data and isinstance(data, list):
                         all_outages_data = data
+                        print(f"INFO: Petición única exitosa. Se recibieron {len(all_outages_data)} registros en total.")
+                else:
+                    print(f"ADVERTENCIA: La petición única a la SEC falló con estado {response.status_code}.")
             except requests.exceptions.RequestException as e:
                 print(f"ERROR: La petición única a la API de la SEC falló. Causa: {e}")
 
-            # --- CÁLCULO Y ORDENAMIENTO ---
+            # --- CÁLCULO Y FILTRADO ---
             PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
             outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
             total_affected_region = 0
@@ -422,7 +438,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         outages_by_province_ordered[province] += affected_clients
                         total_affected_region += affected_clients
             
-            # Convierte el diccionario ordenado a la lista de objetos que el frontend espera
             ordered_provinces_list = [
                 {"provincia": name, "cantidad": count} 
                 for name, count in outages_by_province_ordered.items()
