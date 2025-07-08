@@ -391,46 +391,36 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
-            # --- OBTENCIÓN Y PROCESAMIENTO (VERSIÓN CON BÚSQUEDA Y BREAK) ---
+            # --- OBTENCIÓN Y PROCESAMIENTO ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
-                'Content-Type': 'application/json; charset=UTF-8',
-                'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx',
-                'Cookie': '_gcl_au=1.1.132691215.1752007380; _ga=GA1.1.2082393306.1752007380; _ga_6ETGEP3SQZ=GS2.1.s1752012548$o2$g1$t1752012548$j60$l0$h0',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-            
+            headers = {'User-Agent': 'SenapredValparaisoDashboard/1.0'}
             all_outages_data = []
             now = datetime.now()
 
             for i in range(24):
-                target_time = now - timedelta(hours=i)
-                payload = {"anho": target_time.year, "mes": target_time.month, "dia": target_time.day, "hora": target_time.hour}
-                
-                try:
-                    response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=10)
-                    if response.status_code == 200:
-                        data = response.json()
-                        if data and isinstance(data, list) and len(data) > 0:
-                            print(f"INFO: Se encontraron datos de la SEC para la hora: {target_time.hour}:00. Usando este reporte.")
-                            all_outages_data = data
-                            break 
-                except requests.exceptions.RequestException as e:
-                    print(f"ADVERTENCIA: Falló la petición a la SEC para la hora {target_time.hour}:00. Causa: {e}")
-                    continue
-
+                target_time = now - timedelta(hours=i + 1)
+                payload = {"ANHO": target_time.year, "MES": target_time.month, "DIA": target_time.day, "HORA": target_time.hour}
+                response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=20)
+                if response.status_code == 200:
+                    data = response.json()
+                    # La respuesta de la SEC es directamente una lista, esta comprobación es la correcta.
+                    if data and isinstance(data, list) and len(data) > 0:
+                        all_outages_data = data
+                        break
+            
             outages_by_province = {prov: 0 for prov in set(PROVINCIA_MAP.values())}
             total_affected_region = 0
 
             for outage in all_outages_data:
+                # --- INICIO DE LA CORRECCIÓN ---
+                # La comprobación ahora se hace contra 'valparaiso' en minúsculas.
                 if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
+                # --- FIN DE LA CORRECCIÓN ---
                     commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
                     normalized_commune = _normalize_str(commune_from_api)
                     affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
                     
                     province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
-                    
                     if province and province in outages_by_province:
                         outages_by_province[province] += affected_clients
                         total_affected_region += affected_clients
