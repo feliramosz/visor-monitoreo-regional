@@ -376,8 +376,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_sec_power_outages(self):
         """
-        Consulta la API de la SEC usando la hora oficial del servidor de la SEC,
-        corrigiendo el método de la petición a GET para GetHoraServer.
+        Último intento de consulta a la API de la SEC, replicando todos los
+        encabezados y la lógica de peticiones observada en el navegador.
         """
         try:
             def _normalize_str(s):
@@ -397,17 +397,30 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
             SEC_URL_BASE = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados"
+            
+            
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-                'Content-Type': 'application/json; charset=UTF-8',
-                'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx'
+                'authority': 'apps.sec.cl',
+                'accept': 'application/json, text/javascript, */*; q=0.01',
+                'accept-language': 'es-ES,es;q=0.9',
+                'content-type': 'application/json; charset=UTF-8',
+                'origin': 'https://apps.sec.cl',
+                'referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx',
+                'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"',
+                'sec-fetch-dest': 'empty',
+                'sec-fetch-mode': 'cors',
+                'sec-fetch-site': 'same-origin',
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'x-requested-with': 'XMLHttpRequest',
             }
 
             all_outages_data = []
 
             try:
-                # 1. Obtener la hora del servidor de la SEC (con GET)
-                print("INFO: Obteniendo hora del servidor de la SEC con GET...")
+                # 1. Obtener la hora del servidor (con GET)
+                print("INFO: (Intento Final) Obteniendo hora del servidor de la SEC con GET...")
                 response_hora = requests.get(f"{SEC_URL_BASE}/GetHoraServer", headers=headers, timeout=10)
                 response_hora.raise_for_status()
                 server_time_data = response_hora.json()
@@ -417,12 +430,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
                 # 2. Construir el payload con esa hora
                 dt_obj = datetime.strptime(fecha_hora_str, '%d/%m/%Y %H:%M')
-                payload = {
-                    "anho": dt_obj.year,
-                    "mes": dt_obj.month,
-                    "dia": dt_obj.day,
-                    "hora": dt_obj.hour
-                }
+                payload = {"anho": dt_obj.year, "mes": dt_obj.month, "dia": dt_obj.day, "hora": dt_obj.hour}
                 print(f"INFO: Realizando petición a GetPorFecha con el payload: {payload}")
 
                 # 3. Realizar la petición principal con el payload correcto (con POST)
@@ -461,15 +469,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         outages_by_province_ordered[province] += affected_clients
                         total_affected_region += affected_clients
 
-            ordered_provinces_list = [
-                {"provincia": name, "cantidad": count} 
-                for name, count in outages_by_province_ordered.items()
-            ]
-            percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
+            ordered_provinces_list = [{"provincia": name, "cantidad": count} for name, count in outages_by_province_ordered.items()]
+            percentage_affected = round((total_affected_region / TOTAL_CLIENTES_REGION * 100), 2) if TOTAL_CLIENTES_REGION > 0 else 0
             
             return {
                 "total_afectados_region": total_affected_region,
-                "porcentaje_afectado": round(percentage_affected, 2),
+                "porcentaje_afectado": percentage_affected,
                 "desglose_provincias": ordered_provinces_list
             }
 
