@@ -376,95 +376,54 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_sec_power_outages(self):
         """
-        Consulta la página de la SEC usando un navegador automatizado (Selenium) 
-        y extrae los datos de clientes sin suministro.
+        [MODO DEPURACIÓN] Guarda el HTML de la página de la SEC para análisis.
         """
+        print("--- INICIANDO MODO DEPURACIÓN PARA SEC ---")
+        # --- CONFIGURACIÓN DE SELENIUM (igual que antes) ---
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        
+        driver = None # Inicializamos fuera del try
         try:
-            # --- MAPAS DE DATOS (Sin cambios) ---
-            def _normalize_str(s):
-                return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
-
-            TOTAL_CLIENTES_REGION = 830000 
-            PROVINCIA_MAP = {
-                'Valparaíso': 'Valparaíso', 'Viña del Mar': 'Valparaíso', 'Quintero': 'Valparaíso', 'Puchuncaví': 'Valparaíso', 'Casablanca': 'Valparaíso', 'Concón': 'Valparaíso', 'Juan Fernández': 'Valparaíso',
-                'Isla de Pascua': 'Isla de Pascua',
-                'Los Andes': 'Los Andes', 'San Esteban': 'Los Andes', 'Calle Larga': 'Los Andes', 'Rinconada': 'Los Andes',
-                'La Ligua': 'Petorca', 'Petorca': 'Petorca', 'Cabildo': 'Petorca', 'Zapallar': 'Petorca', 'Papudo': 'Petorca',
-                'Quillota': 'Quillota', 'La Calera': 'Quillota', 'Nogales': 'Quillota', 'Hijuelas': 'Quillota', 'La Cruz': 'Quillota',
-                'San Antonio': 'San Antonio', 'Algarrobo': 'San Antonio', 'El Quisco': 'San Antonio', 'El Tabo': 'San Antonio', 'Cartagena': 'San Antonio', 'Santo Domingo': 'San Antonio',
-                'San Felipe': 'San Felipe', 'Llaillay': 'San Felipe', 'Putaendo': 'San Felipe', 'Santa María': 'San Felipe', 'Catemu': 'San Felipe', 'Panquehue': 'San Felipe',
-                'Quilpué': 'Marga Marga', 'Limache': 'Marga Marga', 'Olmué': 'Marga Marga', 'Villa Alemana': 'Marga Marga'
-            }
-            PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
-
-            # --- CONFIGURACIÓN DE SELENIUM ---
-            chrome_options = Options()
-            chrome_options.add_argument("--headless")  # Ejecutar sin abrir una ventana de navegador
-            chrome_options.add_argument("--no-sandbox")
-            chrome_options.add_argument("--disable-dev-shm-usage")
-            
             # Usar el chromedriver instalado por apt-get
             driver = webdriver.Chrome(executable_path='/usr/bin/chromedriver', options=chrome_options)
             
-            total_affected_region = 0
-            percentage_affected = 0
-            
-            PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
-            outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
-            
-            try:
-                print("INFO [SEC]: Navegando a la página de la SEC con Selenium...")
-                driver.get("https://www.sec.cl/electricidad/mapa-de-corte-de-suministro/")
+            print("[DEBUG] Navegador iniciado. Accediendo a la URL de la SEC...")
+            driver.get("https://www.sec.cl/electricidad/mapa-de-corte-de-suministro/")
 
-                # Esperar a que el contenedor principal de la tabla de la región de Valparaíso esté visible
-                wait = WebDriverWait(driver, 20) # Espera hasta 20 segundos
-                region_container = wait.until(EC.visibility_of_element_located((By.ID, "valparaiso")))
+            # Espera explícita y sencilla para que carguen los elementos básicos
+            wait = WebDriverWait(driver, 30) # Aumentamos la espera a 30 segundos
+            wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+            
+            print("[DEBUG] La página ha cargado. Obteniendo el código fuente...")
+
+            # Guardar el HTML de la página en un archivo para analizarlo
+            html_source = driver.page_source
+            debug_filepath = os.path.join(SERVER_ROOT, 'sec_debug_page.html')
+            
+            with open(debug_filepath, 'w', encoding='utf-8') as f:
+                f.write(html_source)
                 
-                print("INFO [SEC]: Contenedor de la región de Valparaíso encontrado.")
-
-                # Extraer total de clientes afectados en la región
-                total_afectados_element = region_container.find_element(By.CSS_SELECTOR, ".card-header .float-right")
-                total_affected_region = int(total_afectados_element.text.replace('.', ''))
-
-                # Extraer desglose por comuna y agrupar por provincia
-                rows = region_container.find_elements(By.CSS_SELECTOR, "tbody tr")
-                for row in rows:
-                    cells = row.find_elements(By.TAG_NAME, "td")
-                    if len(cells) == 2:
-                        commune_from_page = cells[0].text
-                        affected_clients = int(cells[1].text.replace('.', ''))
-                        
-                        normalized_commune = _normalize_str(commune_from_page)
-                        province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
-                        
-                        if province in outages_by_province_ordered:
-                            outages_by_province_ordered[province] += affected_clients
-
-                percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
-
-            finally:
-                print("INFO [SEC]: Cerrando el navegador automatizado.")
-                driver.quit() # Es crucial cerrar el navegador para liberar recursos
-
-            # Formatear la salida final
-            ordered_provinces_list = [
-                {"provincia": name, "cantidad": count} 
-                for name, count in outages_by_province_ordered.items()
-            ]
-
-            return {
-                "total_afectados_region": total_affected_region,
-                "porcentaje_afectado": round(percentage_affected, 2),
-                "desglose_provincias": ordered_provinces_list
-            }
+            print(f"¡ÉXITO! El código fuente de la página se ha guardado en: {debug_filepath}")
 
         except Exception as e:
-            print(f"ERROR: Fallo grave en la función _get_sec_power_outages con Selenium. Causa: {e}")
+            print(f"ERROR GRAVE DURANTE LA DEPURACIÓN CON SELENIUM: {e}")
             import traceback
             traceback.print_exc()
-            if 'driver' in locals() and driver:
+
+        finally:
+            if driver:
+                print("[DEBUG] Cerrando el navegador de depuración.")
                 driver.quit()
-            return {"error": "Fallo en el servidor al procesar datos de la SEC con Selenium."}
+
+        # En modo depuración, devolvemos ceros para que la tabla no muestre un error.
+        return {
+            "total_afectados_region": 0,
+            "porcentaje_afectado": 0,
+            "desglose_provincias": [{"provincia": p, "cantidad": 0} for p in ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]]
+        }
 
     def _set_headers(self, status_code=200, content_type='text/html'):
         self.send_response(status_code)
