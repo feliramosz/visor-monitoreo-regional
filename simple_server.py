@@ -376,7 +376,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_sec_power_outages(self):
         """
-        Obtiene los datos de cortes de suministro eléctrico desde la API de la SEC.
+        Consulta la API de la SEC usando la hora correcta de Chile y procesa
+        la respuesta anidada.
         """
         try:
             def _normalize_str(s):
@@ -406,17 +407,19 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
                 'sec-ch-ua-mobile': '?0',
                 'sec-ch-ua-platform': '"Windows"',
-                'sec-fetch-dest': 'empty',
-                'sec-fetch-mode': 'cors',
-                'sec-fetch-site': 'same-origin',
                 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
                 'x-requested-with': 'XMLHttpRequest',
             }
+            
+            # --- INICIO DE LA CORRECCIÓN CLAVE ---
+            # Forzamos la obtención de la hora usando la zona horaria de Chile.
+            import pytz
+            chile_tz = pytz.timezone('America/Santiago')
+            now = datetime.now(chile_tz)
+            # --- FIN DE LA CORRECCIÓN CLAVE ---
 
-            # --- Usamos la hora local del servidor ---
-            now = datetime.now()
-            payload = {"anho":now.year,"mes":now.month,"dia":now.day,"hora":now.hour}
-            print(f"INFO [SEC]: Realizando petición directa con payload local: {payload}")
+            payload = {"anho": now.year, "mes": now.month, "dia": now.day, "hora": now.hour}
+            print(f"INFO [SEC]: Realizando petición con payload de Chile: {payload}")
             
             response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=15)
             response.raise_for_status()
@@ -424,14 +427,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             data = response.json()
             all_outages_data = []
 
-            # Manejamos la estructura de lista anidada [[...]]
             if isinstance(data, list) and len(data) > 0 and isinstance(data[0], list):
                 all_outages_data = data[0]
-                print(f"INFO [SEC]: Petición exitosa. Se extrajeron {len(all_outages_data)} registros.")
-            else:
-                print(f"ADVERTENCIA [SEC]: La respuesta no tiene el formato esperado. Contenido: {str(data)[:300]}")
-
-            # --- Procesamiento de datos ---
+            
             PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
             outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
             total_affected_region = 0
