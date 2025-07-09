@@ -372,6 +372,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
     def _get_sec_power_outages(self):
         """
         Consulta la API de la SEC y procesa los datos de clientes sin suministro.
+        Mejoras 2025-07-08: robustez ante cambios de formato y logs de depuración.
         """
         try:
             def _normalize_str(s):
@@ -398,45 +399,54 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             
             all_outages_data = []
-            
             try:
                 print("INFO: Realizando petición a GetPorFecha para obtener el estado nacional.")                
                 response = requests.post(SEC_API_URL, headers=headers, json={}, timeout=15)
-                
-                if response.status_code == 200:                    
-                    nested_list = response.json()
-                    if nested_list and isinstance(nested_list, list) and len(nested_list) > 0:
-                        all_outages_data = nested_list[0] 
-                        print(f"INFO: Petición exitosa. Se extrajeron {len(all_outages_data)} registros de la lista anidada.")                    
+                if response.status_code == 200:
+                    data = response.json()
+                    print(f"DEBUG: Respuesta cruda de la SEC: {type(data)} - {str(data)[:300]}")
+                    # Detectar si es lista anidada o lista directa
+                    if isinstance(data, list) and len(data) > 0:
+                        if isinstance(data[0], list):
+                            all_outages_data = data[0]
+                            print(f"INFO: Lista anidada detectada. Registros: {len(all_outages_data)}")
+                        elif isinstance(data[0], dict):
+                            all_outages_data = data
+                            print(f"INFO: Lista directa detectada. Registros: {len(all_outages_data)}")
+                        else:
+                            print("ADVERTENCIA: Formato inesperado en la respuesta de la SEC.")
+                    else:
+                        print("ADVERTENCIA: Respuesta vacía o formato inesperado de la SEC.")
                 else:
                     print(f"ERROR: La petición a la SEC falló con estado {response.status_code}.")
-
             except requests.exceptions.RequestException as e:
                 print(f"ERROR: La petición a la API de la SEC falló. Causa: {e}")
 
-            
             PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
             outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
             total_affected_region = 0
 
             for outage in all_outages_data:
-                if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
-                    commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
+                region_name = outage.get('NOMBRE_REGION', '')
+                commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
+                print(f"DEBUG: Comuna recibida: '{commune_from_api}' | Región: '{region_name}'")
+                if 'valparaiso' in region_name.lower():
                     normalized_commune = _normalize_str(commune_from_api)
                     affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
-                    
                     province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
-                    
                     if province in outages_by_province_ordered:
                         outages_by_province_ordered[province] += affected_clients
                         total_affected_region += affected_clients
-            
+                    else:
+                        print(f"ADVERTENCIA: Comuna '{commune_from_api}' (normalizada: '{normalized_commune}') no mapeada a provincia.")
+
             ordered_provinces_list = [
                 {"provincia": name, "cantidad": count} 
                 for name, count in outages_by_province_ordered.items()
             ]
             percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
-            
+            print(f"DEBUG: Total afectados región: {total_affected_region} | Porcentaje: {percentage_affected}")
+            print(f"DEBUG: Desglose por provincia: {ordered_provinces_list}")
             return {
                 "total_afectados_region": total_affected_region,
                 "porcentaje_afectado": round(percentage_affected, 2),
@@ -444,7 +454,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
 
         except Exception as e:
-            import traceback
             print(f"ERROR: Fallo inesperado al procesar datos de la SEC. Causa: {e}")
             traceback.print_exc()
             return {"error": "Fallo en el servidor al procesar datos de la SEC"}
