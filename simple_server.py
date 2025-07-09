@@ -21,6 +21,11 @@ import sqlite3
 import unicodedata
 import uuid
 from werkzeug.security import check_password_hash, generate_password_hash
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 HOST_NAME = '0.0.0.0'
@@ -371,10 +376,11 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_sec_power_outages(self):
         """
-        Consulta la API de la SEC y procesa los datos de clientes sin suministro.
-        Mejoras 2025-07-08: robustez ante cambios de formato y logs de depuración.
+        Consulta la página de la SEC usando un navegador automatizado (Selenium) 
+        y extrae los datos de clientes sin suministro.
         """
         try:
+            # --- MAPAS DE DATOS (Sin cambios) ---
             def _normalize_str(s):
                 return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
 
@@ -391,62 +397,61 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
-            SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
-                'Content-Type': 'application/json; charset=UTF-8',
-                'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx'
-            }
+            # --- CONFIGURACIÓN DE SELENIUM ---
+            chrome_options = Options()
+            chrome_options.add_argument("--headless")  # Ejecutar sin abrir una ventana de navegador
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
             
-            all_outages_data = []
-            try:
-                print("INFO: Realizando petición a GetPorFecha para obtener el estado nacional.")                
-                response = requests.post(SEC_API_URL, headers=headers, json={}, timeout=15)
-                if response.status_code == 200:
-                    data = response.json()
-                    print(f"DEBUG: Respuesta cruda de la SEC: {type(data)} - {str(data)[:300]}")
-                    # Detectar si es lista anidada o lista directa
-                    if isinstance(data, list) and len(data) > 0:
-                        if isinstance(data[0], list):
-                            all_outages_data = data[0]
-                            print(f"INFO: Lista anidada detectada. Registros: {len(all_outages_data)}")
-                        elif isinstance(data[0], dict):
-                            all_outages_data = data
-                            print(f"INFO: Lista directa detectada. Registros: {len(all_outages_data)}")
-                        else:
-                            print("ADVERTENCIA: Formato inesperado en la respuesta de la SEC.")
-                    else:
-                        print("ADVERTENCIA: Respuesta vacía o formato inesperado de la SEC.")
-                else:
-                    print(f"ERROR: La petición a la SEC falló con estado {response.status_code}.")
-            except requests.exceptions.RequestException as e:
-                print(f"ERROR: La petición a la API de la SEC falló. Causa: {e}")
-
+            # Usar el chromedriver instalado por apt-get
+            driver = webdriver.Chrome(executable_path='/usr/bin/chromedriver', options=chrome_options)
+            
+            total_affected_region = 0
+            percentage_affected = 0
+            
             PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
             outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
-            total_affected_region = 0
+            
+            try:
+                print("INFO [SEC]: Navegando a la página de la SEC con Selenium...")
+                driver.get("https://www.sec.cl/electricidad/mapa-de-corte-de-suministro/")
 
-            for outage in all_outages_data:
-                region_name = outage.get('NOMBRE_REGION', '')
-                commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
-                print(f"DEBUG: Comuna recibida: '{commune_from_api}' | Región: '{region_name}'")
-                if 'valparaiso' in region_name.lower():
-                    normalized_commune = _normalize_str(commune_from_api)
-                    affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
-                    province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
-                    if province in outages_by_province_ordered:
-                        outages_by_province_ordered[province] += affected_clients
-                        total_affected_region += affected_clients
-                    else:
-                        print(f"ADVERTENCIA: Comuna '{commune_from_api}' (normalizada: '{normalized_commune}') no mapeada a provincia.")
+                # Esperar a que el contenedor principal de la tabla de la región de Valparaíso esté visible
+                wait = WebDriverWait(driver, 20) # Espera hasta 20 segundos
+                region_container = wait.until(EC.visibility_of_element_located((By.ID, "valparaiso")))
+                
+                print("INFO [SEC]: Contenedor de la región de Valparaíso encontrado.")
 
+                # Extraer total de clientes afectados en la región
+                total_afectados_element = region_container.find_element(By.CSS_SELECTOR, ".card-header .float-right")
+                total_affected_region = int(total_afectados_element.text.replace('.', ''))
+
+                # Extraer desglose por comuna y agrupar por provincia
+                rows = region_container.find_elements(By.CSS_SELECTOR, "tbody tr")
+                for row in rows:
+                    cells = row.find_elements(By.TAG_NAME, "td")
+                    if len(cells) == 2:
+                        commune_from_page = cells[0].text
+                        affected_clients = int(cells[1].text.replace('.', ''))
+                        
+                        normalized_commune = _normalize_str(commune_from_page)
+                        province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
+                        
+                        if province in outages_by_province_ordered:
+                            outages_by_province_ordered[province] += affected_clients
+
+                percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
+
+            finally:
+                print("INFO [SEC]: Cerrando el navegador automatizado.")
+                driver.quit() # Es crucial cerrar el navegador para liberar recursos
+
+            # Formatear la salida final
             ordered_provinces_list = [
                 {"provincia": name, "cantidad": count} 
                 for name, count in outages_by_province_ordered.items()
             ]
-            percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
-            print(f"DEBUG: Total afectados región: {total_affected_region} | Porcentaje: {percentage_affected}")
-            print(f"DEBUG: Desglose por provincia: {ordered_provinces_list}")
+
             return {
                 "total_afectados_region": total_affected_region,
                 "porcentaje_afectado": round(percentage_affected, 2),
@@ -454,9 +459,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
 
         except Exception as e:
-            print(f"ERROR: Fallo inesperado al procesar datos de la SEC. Causa: {e}")
+            print(f"ERROR: Fallo grave en la función _get_sec_power_outages con Selenium. Causa: {e}")
+            import traceback
             traceback.print_exc()
-            return {"error": "Fallo en el servidor al procesar datos de la SEC"}
+            if 'driver' in locals() and driver:
+                driver.quit()
+            return {"error": "Fallo en el servidor al procesar datos de la SEC con Selenium."}
 
     def _set_headers(self, status_code=200, content_type='text/html'):
         self.send_response(status_code)
