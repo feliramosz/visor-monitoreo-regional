@@ -333,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Error al cargar datos de la SEC:", error);
-            container.innerHTML = '<p style="color:red; text-align:center;">No se pudieron cargar los datos de la SEC.</p>';
+            container.innerHTML = `<p style="color:red; text-align:center;">No se pudieron cargar los datos de la SEC. Detalle: ${error.message}</p>`;
         }
     }
 
