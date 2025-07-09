@@ -415,7 +415,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
             # --- Usamos la hora local del servidor ---
             now = datetime.now()
-            payload = {"anho":now.year, "mes":now.month, "dia":now.day, "hora":now.hour}
+            payload = {"anho":now.year,"mes":now.month,"dia":now.day,"hora":now.hour}
             print(f"INFO [SEC]: Realizando petición directa con payload local: {payload}")
             
             response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=15)
