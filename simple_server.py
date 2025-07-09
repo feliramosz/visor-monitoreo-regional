@@ -418,7 +418,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             now = datetime.now(chile_tz)
             # --- FIN DE LA CORRECCIÓN CLAVE ---
 
-            payload = {"anho": now.year, "mes": now.month, "dia": now.day, "hora": now.hour}
+            payload = {"anho":now.year,"mes":now.month,"dia":now.day,"hora":now.hour}
             print(f"INFO [SEC]: Realizando petición con payload de Chile: {payload}")
             
             response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=15)
