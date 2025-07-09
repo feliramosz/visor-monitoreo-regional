@@ -376,13 +376,14 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_sec_power_outages(self):
         """
-        Consulta la API de la SEC usando la hora oficial del servidor de la SEC.
+        Consulta la API de la SEC usando la hora oficial del servidor de la SEC,
+        corrigiendo el método de la petición a GET para GetHoraServer.
         """
         try:
             def _normalize_str(s):
                 return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
 
-            TOTAL_CLIENTES_REGION = 830000
+            TOTAL_CLIENTES_REGION = 830000 
             PROVINCIA_MAP = {
                 'Valparaíso': 'Valparaíso', 'Viña del Mar': 'Valparaíso', 'Quintero': 'Valparaíso', 'Puchuncaví': 'Valparaíso', 'Casablanca': 'Valparaíso', 'Concón': 'Valparaíso', 'Juan Fernández': 'Valparaíso',
                 'Isla de Pascua': 'Isla de Pascua',
@@ -405,13 +406,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             all_outages_data = []
 
             try:
-                # 1. Obtener la hora del servidor de la SEC
-                print("INFO: Obteniendo hora del servidor de la SEC...")
-                response_hora = requests.get(f"{SEC_URL_BASE}/GetHoraServer", headers=headers, timeout=10)
+                # 1. Obtener la hora del servidor de la SEC (CORREGIDO A GET)
+                print("INFO: Obteniendo hora del servidor de la SEC con GET...")
+                response_hora = requests.get(f"{SEC_URL_BASE}/GetHoraServer", headers=headers, timeout=10) # <--- CORRECCIÓN AQUÍ
                 response_hora.raise_for_status()
                 server_time_data = response_hora.json()
                 
-                # La respuesta es una lista con un diccionario dentro, ej: [{"FECHA":"08/07/2025 22:57"}]
                 fecha_hora_str = server_time_data[0]['FECHA']
                 print(f"INFO: Hora obtenida de la SEC: {fecha_hora_str}")
 
@@ -430,7 +430,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 response_cortes.raise_for_status()
                 
                 data = response_cortes.json()
-                # La respuesta es una lista que contiene OTRA lista. La extraemos.
                 if isinstance(data, list) and len(data) > 0 and isinstance(data[0], list):
                     all_outages_data = data[0]
                     print(f"INFO: Petición exitosa. Se extrajeron {len(all_outages_data)} registros.")
@@ -439,10 +438,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
             except Exception as e:
                 print(f"ERROR: Fallo durante la comunicación con la API de la SEC. Causa: {e}")
-                # En caso de error, devolvemos un objeto de error para que se muestre en el frontend
                 return {"error": f"No se pudo conectar con la API de la SEC. Detalle: {e}"}
             
-            # --- El resto del código de procesamiento es el mismo ---
+            # --- El resto del código de procesamiento ---
             PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
             outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
             total_affected_region = 0
