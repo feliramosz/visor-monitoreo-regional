@@ -377,14 +377,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         """
         [MODO DEPURACIÓN - v2] Corrige la inicialización de Selenium y guarda el HTML.
         """
-        # --- Importaciones de Selenium (asegúrate de que estén al principio del archivo) ---
-        from selenium import webdriver
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.chrome.service import Service
-        from selenium.webdriver.chrome.options import Options
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-
+        
         print("--- INICIANDO MODO DEPURACIÓN PARA SEC (v2) ---")
         
         # --- CONFIGURACIÓN DE SELENIUM ---
