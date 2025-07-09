@@ -1,6 +1,6 @@
 # Sistema de Monitoreo Regional - SENAPRED Valparaíso
 
-_Última actualización: 3 de julio de 2025_
+_Última actualización: 9 de julio de 2025_
 
 ![Estado](https://img.shields.io/badge/estado-en_producción-green)
 ![Python](https://img.shields.io/badge/python-3.x-blue.svg)
@@ -52,9 +52,9 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
     -   El sistema emite automáticamente un **boletín informativo hablado** en horarios programados (08:55, 12:00 y 20:55).
     -   El contenido es **generado dinámicamente** a partir de los datos más recientes.
     -   Incluye un **botón de prueba** en el panel de administración para ejecutar el boletín manualmente en cualquier momento.
--   **[NUEVO] Sistema de Notificaciones de Eventos por Voz**:
+-   **Sistema de Notificaciones de Eventos por Voz**:
     -   **Alertas Inteligentes**: El sistema notifica por voz únicamente cuando detecta **cambios de estado** en variables críticas, como la calidad del aire, el estado de pasos fronterizos y **alertas de tsunami**.
-    -   **[NUEVO] Monitoreo de Tsunamis (PTWC)**: El sistema vigila el feed oficial de Alerta Común (CAP) del PTWC, interpreta los boletines y notifica eventos nuevos, distinguiendo entre niveles de amenaza para entregar un mensaje de voz claro, seguro y en español.
+    -   **Monitoreo de Tsunamis (PTWC)**: El sistema vigila el feed oficial de Alerta Común (CAP) del PTWC, interpreta los boletines y notifica eventos nuevos, distinguiendo entre niveles de amenaza para entregar un mensaje de voz claro, seguro y en español.
     -   **Priorización de Sonidos**: Si ocurren múltiples eventos simultáneamente, el sistema reproduce un **único sonido correspondiente al evento de mayor severidad** y luego detalla todos los cambios en un solo mensaje de voz.
     -   **Recordatorios Configurables**: Emite recordatorios de voz para situaciones anómalas que se mantienen en el tiempo, con una frecuencia variable según la criticidad (ej: cada 1 hora para emergencias, cada 3 horas para estados regulares).
     -   **Controles de Activación**: Incluye un **control global** en el panel de administración para activar/desactivar las notificaciones para todos, y un **control local** en el dashboard para que cada operador pueda silenciar las alertas en su propia sesión.
@@ -67,22 +67,21 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 -   **Gestión de Usuarios y Auditoría (Solo Administradores)**:
     -   **Gestión de Usuarios desde la Interfaz**: Los administradores pueden crear, editar y eliminar cuentas de usuario.
     -   **Log de Actividad del Sistema**: El sistema registra todas las acciones importantes (inicios de sesión, cambios de datos, etc.) con **usuario, fecha, hora y dirección IP**.
--   **Integración de APIs Externas**: Consume y muestra datos en tiempo real de la DMC, SINCA, CSN, SHOA y Waze for Cities.
+-   **Integración de APIs Externas**: Consume y muestra datos en tiempo real de la DMC, SINCA, CSN, SHOA, Waze for Cities y SEC.
 -   **Múltiples Vistas de Despliegue**: `index.html` para visualización general, `dashboard.html` como panel de operaciones avanzado, y `admin.html`/`login.html` para gestión.
 -   **Mejoras de Experiencia de Usuario (UX)**: Controles de visualización locales, paginación automática de novedades y priorización de alertas.
--.  [NUEVO] **Gestión de Turnos:**
+-   **Gestión de Turnos:**
     -   Panel para la planificación visual de turnos mensuales en una vista de calendario.
     -   Sistema de asignación "click-to-assign" para operadores y profesionales a llamado.
     -   Funcionalidad para **guardar** la planificación en el servidor.
     -   Funcionalidad para **exportar** la planificación del mes a un archivo **Excel** con formato.
--   [NUEVO] **Gestión de Usuarios:**
-    -   Creación, edición y eliminación de usuarios.
-    -   Asignación de roles de Administrador u Operador.
+-   **Gestión de Perfil de Usuario:**
     -   **"Mis Turnos":** Vista personal para que cada usuario vea su propio calendario de turnos.
     -   **"Mi Perfil":** Función para que cada usuario pueda **cambiar su propia contraseña**.
--   **Se completó la lógica de notificación por voz para precipitaciones**: Implementada la notificación por aumento de valor para las estaciones meteorológicas.
-**[NUEVO] Servidor Robusto y Multihilo**: Se ha reemplazado el servidor web base por una implementación multihilo (`ThreadingHTTPServer`) para garantizar la estabilidad y capacidad de respuesta del sistema bajo alta carga de peticiones concurrentes.
--   **[NUEVO] Monitoreo de Sismos (GEOFON)**: Dentro del sistema de notificaciones, se integra una segunda fuente de monitoreo sísmico global (GEOFON) como sistema de redundancia. El sistema notifica por voz sismos significativos que podrían tener potencial tsunamigénico.
+-   **Notificación por Voz para Precipitaciones**: Implementada la notificación por aumento de valor para las estaciones meteorológicas.
+-   **Servidor Robusto y Multihilo**: Se ha reemplazado el servidor web base por una implementación multihilo (`ThreadingHTTPServer`) para garantizar la estabilidad y capacidad de respuesta del sistema bajo alta carga de peticiones concurrentes.
+-   **Monitoreo de Sismos (GEOFON)**: Se integra una segunda fuente de monitoreo sísmico global (GEOFON) como sistema de redundancia en las notificaciones por voz.
+-   **[NUEVO] Conexión a API de SEC**: Implementado un método robusto para la consulta de clientes sin suministro eléctrico directamente desde la API de la Superintendencia de Electricidad y Combustibles, asegurando la visualización automática de los datos.
 
 ---
 
@@ -96,13 +95,12 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 -   **Añadido Módulo de Monitoreo Hidrométrico Avanzado con medidores personalizados.**
 -   **Añadida Visualización de Personal de Turno en Tiempo Real**, basado en un calendario configurable.
 -   **Implementado Sistema de Boletines Informativos por Voz**, con activaciones programadas y contenido dinámico.
--   **[NUEVO] Implementado Sistema de Notificaciones de Eventos por Voz**, con alertas priorizadas, recordatorios inteligentes y controles de activación global y local.
-    -   **Añadido monitoreo de boletines de tsunami del PTWC** con análisis de datos CAP y plantillas de voz en español.
-    **[NUEVO] Añadido monitoreo sísmico redundante de GEOFON** para alertas tempranas.
--   **[NUEVO] Solucionado problema de inestabilidad del servidor** mediante la implementación de un servidor multihilo, corrigiendo bloqueos y reinicios inesperados.
+-   **Implementado Sistema de Notificaciones de Eventos por Voz**, con alertas priorizadas, recordatorios inteligentes y controles de activación.
+-   **Añadido monitoreo de boletines de tsunami del PTWC y GEOFON** con análisis de datos y plantillas de voz en español.
+-   **Solucionado problema de inestabilidad del servidor** mediante la implementación de un servidor multihilo.
+-   **[NUEVO] Solucionado problema de conexión con la API de la SEC**, implementando una lógica de petición y procesamiento de datos robusta.
 
 ## 📝 Próximos Pasos y Tareas Pendientes
--   **[PRIORIDAD ALTA] Implementar sistema de caché en el servidor** para las APIs de Sismos, Clima y Calidad del Aire. Esta tarea es **crítica y no debe posponerse** para evitar bloqueos por parte de los proveedores de datos externos y asegurar la escalabilidad del sistema.
 -   **Sistema de Notificaciones del Sistema:** Implementar alertas si el `cron job` de descarga de informes falla.
 -   **Paginación en Vistas de Administración:** Añadir paginación para el log de actividad y la lista de usuarios.
 -   **Exportación de Datos:** Añadir botones para exportar ciertas tablas a formatos como CSV o PDF.
@@ -135,6 +133,8 @@ Para evitar sobrecargar los servicios externos y mejorar el rendimiento, el serv
     * **Duración del Caché:** **2 minutos**.
 * **Hora Oficial (SHOA - `/api/shoa_times`):**
     * **Duración del Caché:** **30 segundos**.
+* **Suministro Eléctrico (SEC - `/api/clientes_afectados`):**
+    * **Duración del Caché:** **5 minutos**.
 
 #### 3. Sondeo del Frontend (Peticiones del Navegador al Servidor)
 
@@ -142,7 +142,7 @@ El frontend consulta periódicamente al servidor para mantener la interfaz actua
 
 * **Detección de Cambios Generales (`/api/last_update_timestamp`):**
     * **Página:** `dashboard.html`.
-    * **Frecuencia:** Cada **20 segundos**. Si detecta un cambio, dispara una actualización completa de los datos del informe (`/api/data`, `/api/novedades`, etc.).
+    * **Frecuencia:** Cada **10 segundos**. Si detecta un cambio, dispara una actualización completa de los datos del informe (`/api/data`, `/api/novedades`, etc.).
 * **Notificaciones de Tsunami y Geofon (`/api/tsunami_check`, `/api/geofon_check`):**
     * **Página:** `dashboard.html`.
     * **Frecuencia de Verificación:** Cada **60 segundos**. (Nota: El servidor solo procesa la alerta si el ID del boletín es nuevo).
@@ -150,6 +150,9 @@ El frontend consulta periódicamente al servidor para mantener la interfaz actua
     * **Página:** `dashboard.html`.
     * **Frecuencia:** Cada **2 minutos**.
 * **Personal de Turno (en Dashboard):**
+    * **Página:** `dashboard.html`.
+    * **Frecuencia:** Cada **5 minutos**.
+* **Suministro Eléctrico (en Dashboard):**
     * **Página:** `dashboard.html`.
     * **Frecuencia:** Cada **5 minutos**.
 * **Sismos (en `index.html`):**
