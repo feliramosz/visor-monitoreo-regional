@@ -399,9 +399,17 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             # --- Petición a la API ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-                'Content-Type': 'application/json; charset=UTF-8',
-                'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx'
+                'authority': 'apps.sec.cl',
+                'accept': 'application/json, text/javascript, */*; q=0.01',
+                'accept-language': 'es-ES,es;q=0.9',
+                'content-type': 'application/json; charset=UTF-8',
+                'origin': 'https://apps.sec.cl',
+                'referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx',
+                'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"',
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'x-requested-with': 'XMLHttpRequest',
             }
 
             import pytz
