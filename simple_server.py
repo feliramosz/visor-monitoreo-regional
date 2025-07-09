@@ -376,8 +376,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_sec_power_outages(self):
         """
-        Consulta la API de la SEC usando un payload con la fecha y hora actuales
-        y procesa la respuesta de lista anidada correctamente.
+        Consulta la API de la SEC usando la hora oficial del servidor de la SEC,
+        corrigiendo el método de la petición a GET para GetHoraServer.
         """
         try:
             def _normalize_str(s):
@@ -396,59 +396,88 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
-            SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
+            SEC_URL_BASE = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados"
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
                 'Content-Type': 'application/json; charset=UTF-8',
-                'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx',
+                'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx'
             }
-            
-            # Construimos el payload con la fecha y hora actuales, como lo hace el navegador
-            now = datetime.now()
-            payload = {"anho": now.year, "mes": now.month, "dia": now.day, "hora": now.hour}
-            print(f"INFO [SEC]: Realizando petición con payload: {payload}")
 
-            response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=15)
-            response.raise_for_status()
-            
-            data = response.json()
             all_outages_data = []
 
-            # La corrección clave: manejar la estructura de lista anidada [[...]]
-            if isinstance(data, list) and len(data) > 0 and isinstance(data[0], list):
-                all_outages_data = data[0]
-                print(f"INFO [SEC]: Petición exitosa. Se extrajeron {len(all_outages_data)} registros.")
-            else:
-                print(f"ADVERTENCIA [SEC]: La respuesta no tiene el formato esperado. Contenido: {str(data)[:200]}")
+            try:
+                # 1. Obtener la hora del servidor de la SEC (con GET)
+                print("INFO: Obteniendo hora del servidor de la SEC con GET...")
+                response_hora = requests.get(f"{SEC_URL_BASE}/GetHoraServer", headers=headers, timeout=10)
+                response_hora.raise_for_status()
+                server_time_data = response_hora.json()
+                
+                fecha_hora_str = server_time_data[0]['FECHA']
+                print(f"INFO: Hora obtenida de la SEC: {fecha_hora_str}")
 
+                # 2. Construir el payload con esa hora
+                dt_obj = datetime.strptime(fecha_hora_str, '%d/%m/%Y %H:%M')
+                payload = {
+                    "anho": dt_obj.year,
+                    "mes": dt_obj.month,
+                    "dia": dt_obj.day,
+                    "hora": dt_obj.hour
+                }
+                print(f"INFO: Realizando petición a GetPorFecha con el payload: {payload}")
+
+                # 3. Realizar la petición principal con el payload correcto (con POST)
+                response_cortes = requests.post(f"{SEC_URL_BASE}/GetPorFecha", headers=headers, json=payload, timeout=15)
+                response_cortes.raise_for_status()
+                
+                data = response_cortes.json()
+                # 4. Manejar la respuesta de lista anidada
+                if isinstance(data, list) and len(data) > 0 and isinstance(data[0], list):
+                    all_outages_data = data[0]
+                    print(f"INFO: Petición exitosa. Se extrajeron {len(all_outages_data)} registros.")
+                else:
+                    print(f"ADVERTENCIA: La respuesta de GetPorFecha no tiene el formato esperado. Contenido: {str(data)[:200]}")
+
+            except requests.exceptions.RequestException as e:
+                print(f"ERROR: Fallo durante la comunicación con la API de la SEC. Causa: {e}")
+                return {"error": f"No se pudo conectar con la API de la SEC. Detalle: {e}"}
+            
+            # --- Procesamiento de datos ---
             PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
             outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
             total_affected_region = 0
 
             for outage in all_outages_data:
-                region_name = outage.get('NOMBRE_REGION', '').lower()
-                if 'valparaiso' in region_name:
-                    commune = _normalize_str(outage.get('NOMBRE_COMUNA', ''))
-                    province = PROVINCIA_MAP_NORMALIZED.get(commune)
-                    if province in outages_by_province_ordered:
-                        clients = int(outage.get('CLIENTES_AFECTADOS', 0))
-                        outages_by_province_ordered[province] += clients
-                        total_affected_region += clients
+                if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
+                    commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
+                    normalized_commune = _normalize_str(commune_from_api)
+                    
+                    try:
+                        affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
+                    except (ValueError, TypeError):
+                        affected_clients = 0
 
-            ordered_provinces_list = [{"provincia": name, "cantidad": count} for name, count in outages_by_province_ordered.items()]
-            percentage_affected = round((total_affected_region / TOTAL_CLIENTES_REGION * 100), 2) if TOTAL_CLIENTES_REGION > 0 else 0
+                    province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
+                    if province and province in outages_by_province_ordered:
+                        outages_by_province_ordered[province] += affected_clients
+                        total_affected_region += affected_clients
 
+            ordered_provinces_list = [
+                {"provincia": name, "cantidad": count} 
+                for name, count in outages_by_province_ordered.items()
+            ]
+            percentage_affected = (total_affected_region / TOTAL_CLIENTES_REGION * 100) if TOTAL_CLIENTES_REGION > 0 else 0
+            
             return {
                 "total_afectados_region": total_affected_region,
-                "porcentaje_afectado": percentage_affected,
+                "porcentaje_afectado": round(percentage_affected, 2),
                 "desglose_provincias": ordered_provinces_list
             }
 
         except Exception as e:
-            print(f"ERROR GRAVE en _get_sec_power_outages: {e}")
             import traceback
+            print(f"ERROR: Fallo inesperado en la función _get_sec_power_outages. Causa: {e}")
             traceback.print_exc()
-            return {"error": "No se pudieron obtener los datos de la SEC."}
+            return {"error": "Fallo crítico en el servidor al procesar datos de la SEC."}
         
     def _set_headers(self, status_code=200, content_type='text/html'):
         self.send_response(status_code)
