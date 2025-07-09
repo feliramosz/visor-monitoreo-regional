@@ -23,6 +23,7 @@ import uuid
 from werkzeug.security import check_password_hash, generate_password_hash
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -377,27 +378,25 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         """
         [MODO DEPURACIÓN - v2] Corrige la inicialización de Selenium y guarda el HTML.
         """
-        
         print("--- INICIANDO MODO DEPURACIÓN PARA SEC (v2) ---")
         
-        # --- CONFIGURACIÓN DE SELENIUM ---
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         
         driver = None
-        try:            
+        try:
+            # La forma moderna de iniciar el driver
             service = Service(executable_path='/usr/bin/chromedriver')
-            driver = webdriver.Chrome(service=service, options=chrome_options)            
+            driver = webdriver.Chrome(service=service, options=chrome_options)
 
             print("[DEBUG] Navegador iniciado. Accediendo a la URL de la SEC...")
             driver.get("https://www.sec.cl/electricidad/mapa-de-corte-de-suministro/")
             
-            # Aumentamos la espera para asegurar que todo el JavaScript se ejecute
             print("[DEBUG] Esperando a que la página cargue completamente (hasta 30 segundos)...")
             wait = WebDriverWait(driver, 30)
-            wait.until(EC.presence_of_element_located((By.ID, "valparaiso"))) # Esperamos a un elemento que sabemos que debe estar
+            wait.until(EC.presence_of_element_located((By.ID, "valparaiso")))
             
             print("[DEBUG] La página ha cargado. Obteniendo el código fuente...")
             html_source = driver.page_source
