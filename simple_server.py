@@ -376,13 +376,13 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_sec_power_outages(self):
         """
-        Consulta la API de la SEC, maneja la respuesta de lista anidada y procesa los datos.        
+        Consulta la API de la SEC usando la hora oficial del servidor de la SEC.
         """
         try:
             def _normalize_str(s):
                 return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
 
-            TOTAL_CLIENTES_REGION = 830000 
+            TOTAL_CLIENTES_REGION = 830000
             PROVINCIA_MAP = {
                 'Valparaíso': 'Valparaíso', 'Viña del Mar': 'Valparaíso', 'Quintero': 'Valparaíso', 'Puchuncaví': 'Valparaíso', 'Casablanca': 'Valparaíso', 'Concón': 'Valparaíso', 'Juan Fernández': 'Valparaíso',
                 'Isla de Pascua': 'Isla de Pascua',
@@ -395,56 +395,73 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
-            SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
+            SEC_URL_BASE = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados"
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
                 'Content-Type': 'application/json; charset=UTF-8',
-                'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx',
+                'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx'
             }
-            
+
             all_outages_data = []
-            
+
             try:
-                print("INFO: Realizando petición a GetPorFecha.")
-                # Enviamos un payload vacío como hemos confirmado que funciona.
-                response = requests.post(SEC_API_URL, headers=headers, json={}, timeout=15)
+                # 1. Obtener la hora del servidor de la SEC
+                print("INFO: Obteniendo hora del servidor de la SEC...")
+                response_hora = requests.get(f"{SEC_URL_BASE}/GetHoraServer", headers=headers, timeout=10)
+                response_hora.raise_for_status()
+                server_time_data = response_hora.json()
                 
-                if response.status_code == 200:
-                    data = response.json()                    
-                    if isinstance(data, list) and len(data) > 0 and isinstance(data[0], list):                        
-                        all_outages_data = data[0] 
-                        print(f"INFO: Petición exitosa. Se extrajeron {len(all_outages_data)} registros de la lista anidada.")
-                    else:
-                        print(f"ADVERTENCIA: La respuesta de la SEC no tiene el formato de lista anidada esperado. Contenido: {str(data)[:200]}")
+                # La respuesta es una lista con un diccionario dentro, ej: [{"FECHA":"08/07/2025 22:57"}]
+                fecha_hora_str = server_time_data[0]['FECHA']
+                print(f"INFO: Hora obtenida de la SEC: {fecha_hora_str}")
+
+                # 2. Construir el payload con esa hora
+                dt_obj = datetime.strptime(fecha_hora_str, '%d/%m/%Y %H:%M')
+                payload = {
+                    "anho": dt_obj.year,
+                    "mes": dt_obj.month,
+                    "dia": dt_obj.day,
+                    "hora": dt_obj.hour
+                }
+                print(f"INFO: Realizando petición a GetPorFecha con el payload: {payload}")
+
+                # 3. Realizar la petición principal con el payload correcto
+                response_cortes = requests.post(f"{SEC_URL_BASE}/GetPorFecha", headers=headers, json=payload, timeout=15)
+                response_cortes.raise_for_status()
+                
+                data = response_cortes.json()
+                # La respuesta es una lista que contiene OTRA lista. La extraemos.
+                if isinstance(data, list) and len(data) > 0 and isinstance(data[0], list):
+                    all_outages_data = data[0]
+                    print(f"INFO: Petición exitosa. Se extrajeron {len(all_outages_data)} registros.")
                 else:
-                    print(f"ERROR: La petición a la SEC falló con estado {response.status_code}.")
+                    print(f"ADVERTENCIA: La respuesta de GetPorFecha no tiene el formato esperado. Contenido: {str(data)[:200]}")
 
-            except requests.exceptions.RequestException as e:
-                print(f"ERROR: La petición a la API de la SEC falló. Causa: {e}")
-
+            except Exception as e:
+                print(f"ERROR: Fallo durante la comunicación con la API de la SEC. Causa: {e}")
+                # En caso de error, devolvemos un objeto de error para que se muestre en el frontend
+                return {"error": f"No se pudo conectar con la API de la SEC. Detalle: {e}"}
+            
+            # --- El resto del código de procesamiento es el mismo ---
             PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
             outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
             total_affected_region = 0
 
             for outage in all_outages_data:
-                # Usamos .get() con .lower() para evitar errores si el campo no existe.
                 if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
                     commune_from_api = outage.get('NOMBRE_COMUNA', 'Desconocida')
                     normalized_commune = _normalize_str(commune_from_api)
                     
-                    # Intentamos convertir a entero, si falla, asumimos 0.
                     try:
                         affected_clients = int(outage.get('CLIENTES_AFECTADOS', 0))
                     except (ValueError, TypeError):
                         affected_clients = 0
 
                     province = PROVINCIA_MAP_NORMALIZED.get(normalized_commune)
-                    
                     if province and province in outages_by_province_ordered:
                         outages_by_province_ordered[province] += affected_clients
                         total_affected_region += affected_clients
 
-            # Formateamos la salida final con el orden correcto.
             ordered_provinces_list = [
                 {"provincia": name, "cantidad": count} 
                 for name, count in outages_by_province_ordered.items()
@@ -459,9 +476,10 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
         except Exception as e:
             import traceback
-            print(f"ERROR: Fallo inesperado en _get_sec_power_outages. Causa: {e}")
+            print(f"ERROR: Fallo inesperado en la función _get_sec_power_outages. Causa: {e}")
             traceback.print_exc()
-            return {"error": "Fallo en el servidor al procesar datos de la SEC."}
+            return {"error": "Fallo crítico en el servidor al procesar datos de la SEC."}
+        
     def _set_headers(self, status_code=200, content_type='text/html'):
         self.send_response(status_code)
         self.send_header('Content-type', content_type)
