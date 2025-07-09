@@ -376,18 +376,26 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_sec_power_outages(self):
         """
-        [MODO DEPURACIÓN - v2] Corrige la inicialización de Selenium y guarda el HTML.
+        [MODO DEPURACIÓN - v3] Añade flag --disable-gpu para compatibilidad con servidores.
         """
-        print("--- INICIANDO MODO DEPURACIÓN PARA SEC (v2) ---")
+        from selenium import webdriver
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.chrome.service import Service
+        from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+
+        print("--- INICIANDO MODO DEPURACIÓN PARA SEC (v3) ---")
         
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-dev-shm-usage")        
+        chrome_options.add_argument("--disable-gpu")
+        
         
         driver = None
         try:
-            # La forma moderna de iniciar el driver
             service = Service(executable_path='/usr/bin/chromedriver')
             driver = webdriver.Chrome(service=service, options=chrome_options)
 
@@ -417,7 +425,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 print("[DEBUG] Cerrando el navegador de depuración.")
                 driver.quit()
 
-        # En modo depuración, devolvemos ceros para que la tabla no muestre un error.
+        # Devolvemos ceros para que la tabla no muestre un error.
         return {
             "total_afectados_region": 0,
             "porcentaje_afectado": 0,
