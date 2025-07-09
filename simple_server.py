@@ -376,14 +376,14 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def _get_sec_power_outages(self):
         """
-        Consulta la API de la SEC usando la hora correcta de Chile y procesa
-        la respuesta anidada.
+        Versión de depuración para inspeccionar el flujo de datos de la SEC en cada paso.
         """
         try:
+            # --- Las funciones de ayuda y los mapas de datos no cambian ---
             def _normalize_str(s):
                 return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower().strip()
 
-            TOTAL_CLIENTES_REGION = 830000 
+            TOTAL_CLIENTES_REGION = 830000
             PROVINCIA_MAP = {
                 'Valparaíso': 'Valparaíso', 'Viña del Mar': 'Valparaíso', 'Quintero': 'Valparaíso', 'Puchuncaví': 'Valparaíso', 'Casablanca': 'Valparaíso', 'Concón': 'Valparaíso', 'Juan Fernández': 'Valparaíso',
                 'Isla de Pascua': 'Isla de Pascua',
@@ -396,55 +396,65 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
+            # --- Petición a la API ---
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
             headers = {
-                'authority': 'apps.sec.cl',
-                'accept': 'application/json, text/javascript, */*; q=0.01',
-                'accept-language': 'es-ES,es;q=0.9',
-                'content-type': 'application/json; charset=UTF-8',
-                'origin': 'https://apps.sec.cl',
-                'referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx',
-                'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
-                'sec-ch-ua-mobile': '?0',
-                'sec-ch-ua-platform': '"Windows"',
-                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-                'x-requested-with': 'XMLHttpRequest',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'Content-Type': 'application/json; charset=UTF-8',
+                'Referer': 'https://apps.sec.cl/INTONLINEv1/index.aspx'
             }
-            
-            # --- INICIO DE LA CORRECCIÓN CLAVE ---
-            # Forzamos la obtención de la hora usando la zona horaria de Chile.
+
             import pytz
             chile_tz = pytz.timezone('America/Santiago')
             now = datetime.now(chile_tz)
-            # --- FIN DE LA CORRECCIÓN CLAVE ---
-
-            payload = {"anho":now.year,"mes":now.month,"dia":now.day,"hora":now.hour}
+            payload = {"anho": now.year, "mes": now.month, "dia": now.day, "hora": now.hour}
             print(f"INFO [SEC]: Realizando petición con payload de Chile: {payload}")
-            
+
             response = requests.post(SEC_API_URL, headers=headers, json=payload, timeout=15)
+            print(f"DEBUG [SEC]: Código de estado de la respuesta: {response.status_code}")
             response.raise_for_status()
             
             data = response.json()
-            all_outages_data = []
+            print(f"DEBUG [SEC]: Tipo de dato recibido: {type(data)}. Primeros 300 caracteres: {str(data)[:300]}")
 
+            all_outages_data = []
             if isinstance(data, list) and len(data) > 0 and isinstance(data[0], list):
                 all_outages_data = data[0]
-            
+                print(f"INFO [SEC]: Se ha procesado una lista anidada con {len(all_outages_data)} registros.")
+            else:
+                print("ADVERTENCIA [SEC]: La respuesta no es una lista anidada. No se procesarán datos.")
+
+            # --- Procesamiento de los datos ---
             PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
             outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
             total_affected_region = 0
-
-            for outage in all_outages_data:
-                if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
+            
+            print("DEBUG [SEC]: Iniciando el bucle para procesar los registros...")
+            for i, outage in enumerate(all_outages_data):
+                region_name = outage.get('NOMBRE_REGION', 'SIN_REGION').lower()
+                
+                # Este print nos dirá si el registro se está considerando o saltando
+                if 'valparaiso' in region_name:
                     commune = _normalize_str(outage.get('NOMBRE_COMUNA', ''))
                     province = PROVINCIA_MAP_NORMALIZED.get(commune)
-                    if province in outages_by_province_ordered:
-                        clients = int(outage.get('CLIENTES_AFECTADOS', 0))
+                    clients = int(outage.get('CLIENTES_AFECTADOS', 0))
+
+                    print(f"  -> Registro {i}: SI (Región Valparaíso). Comuna: '{commune}', Clientes: {clients}, Provincia: {province}")
+
+                    if province and province in outages_by_province_ordered:
                         outages_by_province_ordered[province] += clients
                         total_affected_region += clients
+                else:
+                    # Imprimirá los primeros 10 registros que NO son de Valparaíso para que veamos qué llega.
+                    if i < 10:
+                        print(f"  -> Registro {i}: NO (Región '{region_name}'). Saltando...")
+
+            print("DEBUG [SEC]: Bucle finalizado.")
 
             ordered_provinces_list = [{"provincia": name, "cantidad": count} for name, count in outages_by_province_ordered.items()]
             percentage_affected = round((total_affected_region / TOTAL_CLIENTES_REGION * 100), 2) if TOTAL_CLIENTES_REGION > 0 else 0
+            
+            print(f"DEBUG [SEC]: Cálculo final: Total afectados={total_affected_region}, Desglose={ordered_provinces_list}")
 
             return {
                 "total_afectados_region": total_affected_region,
@@ -456,7 +466,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             print(f"ERROR GRAVE en _get_sec_power_outages: {e}")
             import traceback
             traceback.print_exc()
-            return {"error": "No se pudieron obtener los datos de la SEC."}
+            return {"error": "Fallo crítico en el servidor al procesar datos de la SEC."}
+
         
     def _set_headers(self, status_code=200, content_type='text/html'):
         self.send_response(status_code)
