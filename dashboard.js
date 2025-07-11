@@ -112,7 +112,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (controls.showSecDataSlide.checked) {
             finalHTML += `<div id="sec-slide" class="central-slide">
-                              <div id="panel-sec-full" class="dashboard-panel"><h3>Clientes con Alteración de Suministro Eléctrico (SEC)</h3><div id="sec-data-container"><p><i>Cargando...</i></p></div></div>
+                              <div id="panel-sec-full" class="dashboard-panel">
+                                  <div class="panel-header-flex">
+                                      <h3>Clientes con Alteración de Suministro Eléctrico (SEC)</h3>
+                                      <span id="sec-update-time" class="panel-update-time"></span>
+                                  </div>
+                                  <div id="sec-data-container"><p><i>Cargando...</i></p></div>
+                              </div>
                           </div>`;
             slidesToRotate.push('sec-slide');
         }
@@ -344,6 +350,13 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
 
             container.innerHTML = tableHtml;
+
+            const timestampContainer = document.getElementById('sec-update-time');
+            if (timestampContainer) {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+                timestampContainer.textContent = `Ult. act.: ${timeString}h`;
+            }
 
         } catch (error) {
             console.error("Error al cargar datos de la SEC:", error);
