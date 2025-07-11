@@ -92,102 +92,76 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupCentralContent(data) {
         const container = document.getElementById('central-carousel-container');
         if (!container) return;
+        if (window.centralCarouselInterval) clearTimeout(window.centralCarouselInterval);
+        container.innerHTML = '';
 
-        if (window.centralCarouselInterval) {
-            clearTimeout(window.centralCarouselInterval);
+        const slidesToRotate = [];
+
+        // 1. Definir y construir el HTML de las slides basándose en los datos y checkboxes
+        let finalHTML = '';
+
+        if (controls.showAlertsSlide.checked) {
+            finalHTML += `<div id="alertas-slide" class="central-slide">
+                              <div id="panel-alertas" class="dashboard-panel"><h3>Alertas Vigentes</h3><div id="alertas-list-container"></div></div>
+                              <div id="panel-avisos" class="dashboard-panel">
+                                  <div id="panel-avisos-header"><h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span>/<span data-title-key="alertas">Alertas</span>/<span data-title-key="alarmas">Alarmas</span>/<span data-title-key="marejadas">Marejadas</span></h3><button id="aviso-pause-play-btn" style="display: none;">||</button></div>
+                                  <div id="avisos-list-container"></div>
+                              </div>
+                          </div>`;
+            slidesToRotate.push('alertas-slide');
         }
-        container.innerHTML = ''; // Limpiamos para reconstruir
 
-        // --- Definición de las slides que pueden existir ---
-        const slidesDefinition = {
-            'alertas': {
-                checked: controls.showAlertsSlide.checked,
-                html: `<div id="alertas-slide" class="central-slide">
-                           <div id="panel-alertas" class="dashboard-panel"><h3>Alertas Vigentes</h3><div id="alertas-list-container"></div></div>
-                           <div id="panel-avisos" class="dashboard-panel">
-                               <div id="panel-avisos-header"><h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span>/<span data-title-key="alertas">Alertas</span>/<span data-title-key="alarmas">Alarmas</span>/<span data-title-key="marejadas">Marejadas</span></h3><button id="aviso-pause-play-btn" style="display: none;">||</button></div>
-                               <div id="avisos-list-container"></div>
-                           </div>
-                       </div>`
-            },
-            'sec': {
-                checked: controls.showSecDataSlide.checked,
-                html: `<div id="sec-slide" class="central-slide">
-                           <div id="panel-sec-full" class="dashboard-panel"><h3>Clientes con Alteración de Suministro Eléctrico (SEC)</h3><div id="sec-data-container"><p><i>Cargando...</i></p></div></div>
-                       </div>`
-            },
-            'imagenes': {
-                checked: controls.showImageSlides.checked,
-                html: (data.dynamic_slides && data.dynamic_slides.length > 0)
-                    ? data.dynamic_slides.map(slideInfo => 
-                        `<div class="central-slide dynamic-image-slide" data-slide-name="imagen">
+        if (controls.showSecDataSlide.checked) {
+            finalHTML += `<div id="sec-slide" class="central-slide">
+                              <div id="panel-sec-full" class="dashboard-panel"><h3>Clientes con Alteración de Suministro Eléctrico (SEC)</h3><div id="sec-data-container"><p><i>Cargando...</i></p></div></div>
+                          </div>`;
+            slidesToRotate.push('sec-slide');
+        }
+
+        // CORRECCIÓN IMÁGENES: Asignar ID en la creación del HTML
+        if (controls.showImageSlides.checked && data.dynamic_slides && data.dynamic_slides.length > 0) {
+            finalHTML += data.dynamic_slides.map((slideInfo, index) => {
+                const imageId = `imagen-slide-${index}`;
+                slidesToRotate.push(imageId); // Añadir a la rotación
+                return `<div id="${imageId}" class="central-slide dynamic-image-slide">
                             <div class="image-slide-content">
                                 <h2>${slideInfo.title || 'Visor de Monitoreo'}</h2>
                                 <img src="${slideInfo.image_url}" alt="${slideInfo.title || ''}" class="responsive-image">
                                 ${slideInfo.description ? `<p>${slideInfo.description}</p>` : ''}
                             </div>
-                         </div>`).join('')
-                    : ''
-            }
-        };
-
-        // --- Construir el HTML y la lista de slides a rotar ---
-        let finalHTML = '';
-        const slidesToRotate = [];
-        
-        if (slidesDefinition.alertas.checked) {
-            finalHTML += slidesDefinition.alertas.html;
-            slidesToRotate.push('alertas-slide');
-        }
-        if (slidesDefinition.sec.checked) {
-            finalHTML += slidesDefinition.sec.html;
-            slidesToRotate.push('sec-slide');
-        }
-        if (slidesDefinition.imagenes.checked && slidesDefinition.imagenes.html) {
-            finalHTML += slidesDefinition.imagenes.html;
-            // Añadimos un identificador único para cada slide de imagen
-            const tempContainer = document.createElement('div');
-            tempContainer.innerHTML = slidesDefinition.imagenes.html;
-            tempContainer.querySelectorAll('.dynamic-image-slide').forEach((slide, index) => {
-                const id = `imagen-slide-${index}`;
-                slide.id = id;
-                slidesToRotate.push(id);
-            });
+                         </div>`;
+            }).join('');
         }
         
         container.innerHTML = finalHTML;
 
-        // --- Renderizar el contenido dentro de las slides recién creadas ---
+        // 2. Poblar el contenido de las slides recién creadas
         if (document.getElementById('alertas-slide')) {
-            renderAlertasList(document.getElementById('alertas-list-container'), data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
-            setupAvisosCarousel(document.getElementById('avisos-list-container'), container.querySelector('#panel-avisos .dynamic-title'), data.avisos_alertas_meteorologicas, '<p>No hay avisos.</p>');
+            renderAlertasList(container.querySelector('#alertas-list-container'), data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
+            setupAvisosCarousel(container.querySelector('#avisos-list-container'), container.querySelector('#panel-avisos .dynamic-title'), data.avisos_alertas_meteorologicas, '<p>No hay avisos.</p>');
         }
         if (document.getElementById('sec-slide')) {
             fetchAndRenderSecSlide();
         }
 
-        // --- Lógica de Rotación ---
+        // 3. Lógica de Rotación
         const allSlides = container.querySelectorAll('.central-slide');
         if (slidesToRotate.length === 0) {
-            // Caso por defecto: si nada está seleccionado, muestra alertas
-            if (document.getElementById('alertas-slide')) {
-                 document.getElementById('alertas-slide').classList.add('active-central-slide');
-            }
+            if (document.getElementById('alertas-slide')) document.getElementById('alertas-slide').classList.add('active-central-slide');
         } else if (slidesToRotate.length === 1) {
-            document.getElementById(slidesToRotate[0]).classList.add('active-central-slide');
+            if (document.getElementById(slidesToRotate[0])) document.getElementById(slidesToRotate[0]).classList.add('active-central-slide');
         } else {
             let currentSlideIndex = 0;
             const runCentralCarousel = () => {
                 const slideIdToShow = slidesToRotate[currentSlideIndex];
-                
-                allSlides.forEach(slide => slide.classList.toggle('active-central-slide', slide.id === slideIdToShow));
+                if (document.getElementById(slideIdToShow)) {
+                    allSlides.forEach(slide => slide.classList.toggle('active-central-slide', slide.id === slideIdToShow));
+                }
 
-                // CÁLCULO DE DURACIÓN DINÁMICA
-                let duration = centralSlideDuration; // 15 segundos por defecto
+                let duration = centralSlideDuration;
                 if (slideIdToShow === 'alertas-slide') {
-                    // Espera a que el carrusel de avisos complete su ciclo
                     const numAvisoPages = avisoPages.length || 1;
-                    duration = numAvisoPages * avisoPageDuration; // 10s por cada página de avisos
+                    duration = numAvisoPages * avisoPageDuration;
                 }
                 
                 currentSlideIndex = (currentSlideIndex + 1) % slidesToRotate.length;
@@ -779,75 +753,152 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupRightColumnCarousel(data, novedades) {
         const container = document.getElementById('right-column-carousel-container');
         if (!container) return;
-
-        if (window.rightColumnCarouselTimeout) {
-            clearTimeout(window.rightColumnCarouselTimeout);
-        }
-
-        // Limpiamos slides de ejecuciones anteriores para evitar duplicados
+        if (window.rightColumnCarouselTimeout) clearTimeout(window.rightColumnCarouselTimeout);
         container.innerHTML = '';
 
-        // Construimos el HTML base de las slides que podrían mostrarse
-        const numNovedadesPages = setupNovedadesCarousel(novedades); // Esta función ahora solo renderiza el contenido
-        const novedadesSlideHtml = `
-            <div id="novedades-slide" class="right-column-slide">
-                <div id="panel-novedades" class="dashboard-panel">
-                     <div class="novedades-header">
-                        <h3>Novedades</h3>
-                        <div id="novedades-page-indicator"></div><div id="informe-correlativo">N° último informe: <span id="numero-informe-display">${novedades.numero_informe_manual || '---'}</span></div>
-                    </div>
-                    <div id="novedades-content">${container.querySelector('#novedades-content')?.innerHTML || ''}</div>
-                </div>
-                <div id="panel-waze" class="dashboard-panel">
-                    <h3>Accidentes reportados en Waze</h3>
-                    <div id="waze-incidents-container"><p><i>Cargando...</i></p></div>
-                </div>
-            </div>`;
-        
+        const slidesToRotate = [];
+        let finalHTML = '';
+
+        // Slide de Novedades y Waze (siempre se genera su estructura)
+        if (controls.showNovedadesSlide.checked) {
+            finalHTML += `<div id="novedades-slide" class="right-column-slide">
+                              <div id="panel-novedades" class="dashboard-panel">
+                                  <div class="novedades-header">
+                                      <h3>Novedades</h3><div id="novedades-page-indicator"></div>
+                                      <div id="informe-correlativo">N° último informe: <span id="numero-informe-display">---</span></div>
+                                  </div>
+                                  <div id="novedades-content"></div>
+                              </div>
+                              <div id="panel-waze" class="dashboard-panel">
+                                  <h3>Accidentes reportados en Waze</h3>
+                                  <div id="waze-incidents-container"><p><i>Cargando...</i></p></div>
+                                  <div id="waze-carousel-controls" style="display: none;"><button id="waze-prev-btn">&lt;</button><button id="waze-pause-play-btn">||</button><button id="waze-next-btn">&gt;</button></div>
+                              </div>
+                          </div>`;
+            slidesToRotate.push('novedades-slide');
+        }
+
+        // Slide de Emergencias
         const emergencias = data.emergencias_ultimas_24_horas || [];
-        const emergenciasItemsHtml = emergencias.length > 0
-            ? emergencias.map(item => `<tr><td>${item.n_informe || 'N/A'}</td><td>${item.fecha_hora || 'N/A'}</td><td>${item.evento_lugar || 'N/A'}</td></tr>`).join('')
-            : `<tr><td colspan="3">No hay emergencias en las últimas 24 horas.</td></tr>`;
-        const emergenciasSlideHtml = `
-            <div id="emergencias-slide" class="right-column-slide">
-                <div id="panel-emergencias-dashboard" class="dashboard-panel">
-                    <h3>Informes Emitidos (Últimas 24h)</h3>
-                    <div class="table-container"><table><thead><tr><th>N° Informe</th><th>Fecha y Hora</th><th>Evento / Lugar</th></tr></thead><tbody>${emergenciasItemsHtml}</tbody></table></div>
-                </div>
-            </div>`;
+        if (controls.showEmergenciasSlide.checked && emergencias.length > 0) {
+            const emergenciasItemsHtml = emergencias.map(item => `<tr><td>${item.n_informe || 'N/A'}</td><td>${item.fecha_hora || 'N/A'}</td><td>${item.evento_lugar || 'N/A'}</td></tr>`).join('');
+            finalHTML += `<div id="emergencias-slide" class="right-column-slide">
+                              <div id="panel-emergencias-dashboard" class="dashboard-panel">
+                                  <h3>Informes Emitidos (Últimas 24h)</h3>
+                                  <div class="table-container"><table><thead><tr><th>N° Informe</th><th>Fecha y Hora</th><th>Evento / Lugar</th></tr></thead><tbody>${emergenciasItemsHtml}</tbody></table></div>
+                              </div>
+                          </div>`;
+            slidesToRotate.push('emergencias-slide');
+        }
         
-        container.innerHTML = novedadesSlideHtml + emergenciasSlideHtml;
-        fetchAndRenderWazeData(); // Llama a renderizar Waze dentro del nuevo contenedor
-        setupNovedadesCarousel(novedades); // Re-ejecuta para manejar la paginación interna
-
-        // Lógica de visualización basada en los checkboxes
-        const activeSlides = [];
-        if (controls.showNovedadesSlide.checked) activeSlides.push('novedades-slide');
-        if (controls.showEmergenciasSlide.checked && emergencias.length > 0) activeSlides.push('emergencias-slide');
-
+        container.innerHTML = finalHTML;
+        
+        // Poblar contenido
+        const numeroInformeDisplay = container.querySelector('#numero-informe-display');
+        if (numeroInformeDisplay) numeroInformeDisplay.textContent = novedades.numero_informe_manual || 'N/A';
+        const wazeContainer = container.querySelector('#waze-incidents-container');
+        if(wazeContainer) fetchAndRenderWazeData(wazeContainer); // <-- CORRECCIÓN WAZE
+        const novedadesContainer = container.querySelector('#novedades-content');
+        const numNovedadesPages = novedadesContainer ? setupNovedadesCarousel(novedades, novedadesContainer) : 1;
+        
+        // Lógica de rotación
         const allSlides = container.querySelectorAll('.right-column-slide');
-
-        if (activeSlides.length === 0) {
-            document.getElementById('novedades-slide').classList.add('active-right-slide');
-        } else if (activeSlides.length === 1) {
-            document.getElementById(activeSlides[0]).classList.add('active-right-slide');
+        if (slidesToRotate.length === 0) {
+            if(document.getElementById('novedades-slide')) document.getElementById('novedades-slide').classList.add('active-right-slide');
+        } else if (slidesToRotate.length === 1) {
+            if(document.getElementById(slidesToRotate[0])) document.getElementById(slidesToRotate[0]).classList.add('active-right-slide');
         } else {
             let currentSlideIndex = 0;
             const switchSlide = () => {
-                const slideIdToShow = activeSlides[currentSlideIndex];
-                
-                allSlides.forEach(slide => slide.classList.toggle('active-right-slide', slide.id === slideIdToShow));
-
+                const slideIdToShow = slidesToRotate[currentSlideIndex];
+                if(document.getElementById(slideIdToShow)) allSlides.forEach(slide => slide.classList.toggle('active-right-slide', slide.id === slideIdToShow));
                 let duration = rightColumnSlideDuration;
-                // La slide de novedades tiene una duración más larga para mostrar todas sus páginas
                 if (slideIdToShow === 'novedades-slide') {
-                    duration = numNovedadesPages * 10000; // 10s por página de novedades
+                    duration = numNovedadesPages * 10000;
                 }
-                
-                currentSlideIndex = (currentSlideIndex + 1) % activeSlides.length;
+                currentSlideIndex = (currentSlideIndex + 1) % slidesToRotate.length;
                 window.rightColumnCarouselTimeout = setTimeout(switchSlide, duration);
             };
             switchSlide();
+        }
+    }
+
+    // --- FUNCIÓN PARA CARGAR DATOS DE WAZE Y RENDERIZARLOS ---
+    async function fetchAndRenderWazeData(container) {
+        // 1. Usa el contenedor que se le pasa directamente.
+        if (!container) return;
+
+        // 2. Busca los controles por su ID, que es más fiable.
+        const controls = document.getElementById('waze-carousel-controls');
+        const wazePages = []; // Mueve la declaración aquí para que siempre exista.
+        let currentWazeSlide = 0;
+        let wazeCarouselInterval;
+
+
+        // 3. Limpia cualquier intervalo anterior.
+        if (window.wazeCarouselInterval) {
+            clearInterval(window.wazeCarouselInterval);
+        }
+
+        try {
+            const response = await fetch('/api/waze');
+            const accidents = await response.json();
+
+            if (accidents.error) throw new Error(accidents.error);
+            
+            if (accidents.length === 0) {
+                container.innerHTML = '<p class="no-waze-incidents"><span class="checkmark-icon">✅</span> No hay accidentes reportados en este momento.</p>';
+                if (controls) controls.style.display = 'none';
+                return;
+            }
+
+            accidents.sort((a, b) => b.pubMillis - a.pubMillis);
+
+            const ITEMS_PER_PAGE = 4;
+            for (let i = 0; i < accidents.length; i += ITEMS_PER_PAGE) {
+                wazePages.push(accidents.slice(i, i + ITEMS_PER_PAGE));
+            }
+
+            let carouselHtml = wazePages.map((page) => {                
+                let listItemsHtml = page.map(accident => {
+                    const street = accident.street || 'Ubicación no especificada';
+                    const city = accident.city || 'Comuna no especificada';
+                    const mapLink = (accident.lat && accident.lon) ? `<a href="#" class="waze-map-link" data-lat="${accident.lat}" data-lon="${accident.lon}" title="Ver en Google Maps">📍</a>` : '';
+                    return `<li class="waze-incident-item"><div class="waze-incident-header">${mapLink}<span class="waze-street">${street}</span><span class="waze-city">Comuna o sector: ${city}</span></div><span class="waze-time">Reportado ${formatTimeAgo(accident.pubMillis)}</span></li>`;
+                }).join('');
+                return `<div class="waze-slide"><ul class="dashboard-list waze-list">${listItemsHtml}</ul></div>`;
+            }).join('');
+            container.innerHTML = carouselHtml;
+            
+            document.querySelectorAll('.waze-map-link').forEach(link => {
+                link.addEventListener('click', (event) => {
+                    event.preventDefault(); 
+                    const lat = event.currentTarget.dataset.lat;
+                    const lon = event.currentTarget.dataset.lon;
+                    openMapWindow(lat, lon);
+                });
+            });
+
+            const showWazeSlide = (index) => {
+                container.querySelectorAll('.waze-slide').forEach((slide, i) => {
+                    slide.style.transform = `translateX(${(i - index) * 100}%)`;
+                });
+            };
+            
+            showWazeSlide(currentWazeSlide);
+
+            if (wazePages.length > 1 && controls) {
+                controls.style.display = 'flex';
+                // Lógica de los botones del carrusel de Waze
+                // ...
+            } else if (controls) {
+                controls.style.display = 'none';
+            }
+
+        } catch (error) {
+            console.error("Error al cargar datos de Waze:", error);
+            container.innerHTML = '<p style="color:red;">No se pudieron cargar los datos de Waze.</p>';
+            if (controls) controls.style.display = 'none';
         }
     }
     
@@ -1265,85 +1316,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Error al cargar datos del mapa meteorológico:", error); }
     }
 
-    async function fetchAndRenderWazeData() {
-        const container = document.getElementById('waze-incidents-container');
-        const controls = document.getElementById('waze-carousel-controls');
-        if (!container || !controls) return;
-
-        clearInterval(wazeCarouselInterval);
-
-        try {
-            const response = await fetch('/api/waze');
-            const accidents = await response.json();
-
-            if (accidents.error) throw new Error(accidents.error);
-            
-            if (accidents.length === 0) {
-                // Añadimos la clase 'checkmark-icon' al span
-                container.innerHTML = '<p class="no-waze-incidents"><span class="checkmark-icon">✅</span> No hay accidentes reportados en este momento.</p>';
-                controls.style.display = 'none';
-            return;
-            }
-
-            accidents.sort((a, b) => b.pubMillis - a.pubMillis);
-
-            const ITEMS_PER_PAGE = 4;
-            wazePages = [];
-            for (let i = 0; i < accidents.length; i += ITEMS_PER_PAGE) {
-                wazePages.push(accidents.slice(i, i + ITEMS_PER_PAGE));
-            }
-
-            let carouselHtml = '';
-            wazePages.forEach((page, pageIndex) => {                
-                let listItemsHtml = page.map(accident => {
-                    const street = accident.street || 'Ubicación no especificada';
-                    const city = accident.city || 'Comuna no especificada';
-                    
-                    const mapLink = (accident.lat && accident.lon)
-                        ? `<a href="#" class="waze-map-link" data-lat="${accident.lat}" data-lon="${accident.lon}" title="Ver en Google Maps">📍</a>`
-                        : '';
-
-                    return `
-                        <li class="waze-incident-item">
-                            <div class="waze-incident-header">
-                                ${mapLink}
-                                <span class="waze-street">${street}</span>
-                                <span class="waze-city">Comuna o sector: ${city}</span>
-                            </div>
-                            <span class="waze-time">Reportado ${formatTimeAgo(accident.pubMillis)}</span>
-                        </li>
-                    `;
-                }).join('');
-                carouselHtml += `<div class="waze-slide" data-page-index="${pageIndex}"><ul class="dashboard-list waze-list">${listItemsHtml}</ul></div>`;
-            });
-            container.innerHTML = carouselHtml;
-            
-            document.querySelectorAll('.waze-map-link').forEach(link => {
-                link.addEventListener('click', (event) => {
-                    event.preventDefault(); 
-                    const lat = event.currentTarget.dataset.lat;
-                    const lon = event.currentTarget.dataset.lon;
-                    openMapWindow(lat, lon);
-                });
-            });
-
-            currentWazeSlide = 0;
-            showWazeSlide(currentWazeSlide);
-
-            if (wazePages.length > 1) {
-                controls.style.display = 'flex';
-                wazeCarouselInterval = setInterval(nextWazeSlide, wazePageDuration);
-            } else {
-                controls.style.display = 'none';
-            }
-
-        } catch (error) {
-            console.error("Error al cargar datos de Waze:", error);
-            container.innerHTML = '<p style="color:red;">No se pudieron cargar los datos de Waze.</p>';
-            controls.style.display = 'none';
-        }
-    }
-    
     function formatTimeAgo(millis) {
         const seconds = Math.floor((Date.now() - millis) / 1000);
         let interval = seconds / 31536000;
