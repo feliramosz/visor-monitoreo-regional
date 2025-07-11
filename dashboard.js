@@ -1667,19 +1667,34 @@ document.addEventListener('DOMContentLoaded', () => {
         const sonido = new Audio(archivoSonido);
         const promise = sonido.play();
 
+        // --- AÑADE ESTA LÍNEA ---
+        updateMarquee(texto); // Envía el texto a la marquesina
+        // --- FIN DE LA MODIFICACIÓN ---
+
         if (promise !== undefined) {
             promise.then(_ => {
-                // El sonido se reprodujo correctamente. La voz se leerá cuando termine.
                 sonido.onended = () => hablar(texto);
             }).catch(error => {
-                // El navegador bloqueó el sonido.
-                console.warn("Sonido de notificación bloqueado por el navegador (se requiere interacción). Reproduciendo solo la voz.");
-                // Pasamos directamente a la voz, sin esperar al sonido.
+                console.warn("Sonido de notificación bloqueado. Reproduciendo solo la voz.");
                 hablar(texto);
             });
         }
     }
 
+    function updateMarquee(newText) {
+        const marqueeText = document.getElementById('notification-marquee-text');
+        if (!marqueeText) return;
+
+        // Actualiza el texto
+        marqueeText.textContent = `📢 ${newText}`;
+
+        // Reinicia la animación para que el texto nuevo siempre empiece desde la derecha
+        marqueeText.style.animation = 'none';
+        // Forzamos un reflow del navegador, un truco para que el reinicio de la animación funcione
+        marqueeText.offsetHeight; 
+        marqueeText.style.animation = ''; 
+    }
+    
     async function gestionarNotificacionTsunami() {
         try {
             const response = await fetch('/api/tsunami_check');

@@ -2354,3 +2354,45 @@ footer {
     width: 80%; /* Ancho de la línea separadora */
     align-self: center; /* Centra la línea */
 }
+
+/* --- ESTILOS PARA LA MARQUESINA DE NOTIFICACIONES EN EL FOOTER --- */
+
+/* Ajusta el footer para que sea un contenedor flexible */
+footer {
+    display: flex;
+    align-items: center;
+    gap: 5px; /* Espacio entre los controles, la marquesina y el copyright */
+}
+
+/* El contenedor de la marquesina que ocupa el espacio disponible */
+#notification-marquee-container {
+    flex-grow: 1; /* Permite que ocupe todo el espacio sobrante */
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    height: 30px;
+    overflow: hidden; /* Oculta el texto que se sale de los bordes */
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* El texto que se desplazará */
+#notification-marquee-text {
+    position: absolute;
+    margin: 0;
+    padding-left: 100%; /* Inicia justo fuera de la vista a la derecha */
+    white-space: nowrap; /* Evita que el texto se parta en varias líneas */
+    color: #f0f0f0;
+    font-weight: bold;
+    font-size: 0.9em;
+    animation-name: scroll-left;
+    animation-duration: 25s; /* Duración por defecto, se ajustará con JS */
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+
+/* La animación de desplazamiento */
+@keyframes scroll-left {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
