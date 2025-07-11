@@ -1426,49 +1426,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function initializeApp() {
-        // 1. Tareas iniciales que no dependen de nada
-        updateClocks();
+        loadPreferences(); // Carga las preferencias de los checkboxes al iniciar.
+        updateClocks(); // Inicia los relojes (esto no depende de datos externos).
+
+        // 1. Inicializa los mapas y añade los listeners de interacción y botones estáticos.
         initializeAirQualityMap();
         initializePrecipitationMap();
-        const unlockSpeech = () => {
-            if (userHasInteracted) return;
-            userHasInteracted = true;
 
-            // Si hay mensajes en la fila de espera, los lee ahora
-            if (speechQueue.length > 0) {
-                console.log("Usuario ha interactuado. Procesando fila de espera de voz...");
-                const textoCompleto = speechQueue.join(' ... ');
-                hablar(textoCompleto);
-                speechQueue = []; // Limpia la fila
-            }
-
-            // Removemos el listener para que no se ejecute más
-            document.removeEventListener('click', unlockSpeech);
-            document.removeEventListener('keydown', unlockSpeech);
-        };
-
-        document.addEventListener('click', unlockSpeech);
-        document.addEventListener('keydown', unlockSpeech);
-
-        // 2. OBTENEMOS LOS DATOS PRINCIPALES Y ESPERAMOS A QUE TERMINEN.
-        await fetchAndRenderMainData();
-
-        // 3. AHORA que los contenedores ya existen, podemos llamar al resto de las funciones.
-        fetchAndRenderAirQuality();
-        fetchAndRenderPrecipitationData();        
-
-        // 4. Activamos los carruseles y listeners de botones estáticos
-        showMapSlide(0);
-        mapCarouselInterval = setInterval(nextMapSlide, mapSlideDuration);
+        document.addEventListener('click', () => userHasInteracted = true, { once: true });
+        document.addEventListener('keydown', () => userHasInteracted = true, { once: true });
 
         if(pausePlayBtn) pausePlayBtn.addEventListener('click', toggleMapPausePlay);
         if(nextBtn) nextBtn.addEventListener('click', nextMapSlide);
         if(prevBtn) prevBtn.addEventListener('click', prevMapSlide);
 
-        // 5. Configuramos las actualizaciones periódicas
+        // 2. OBTENEMOS LOS DATOS PRINCIPALES Y ESPERAMOS A QUE TERMINEN.
+        // Esta es la llamada más importante. Las demás dependen de que esta se complete.
+        await fetchAndRenderMainData();
+
+        // 3. AHORA que los contenedores ya existen, podemos llamar al resto de las funciones de forma segura.
+        fetchAndRenderAirQuality();
+        fetchAndRenderPrecipitationData();
+        
+        // 4. Activamos los carruseles y los intervalos de actualización.
+        showMapSlide(0); // Muestra el primer mapa
+        mapCarouselInterval = setInterval(nextMapSlide, mapSlideDuration);
+
         setInterval(fetchAndDisplayTurnos, 5 * 60 * 1000);
-        //setInterval(fetchAndRenderMainData, 60 * 1000); // Actualiza datos principales cada 1 min
-        setInterval(fetchAndRenderWazeData, 2 * 60 * 1000); // Actualiza Waze cada 2 min
         setInterval(fetchAndRenderSecSlide, 5 * 60 * 1000);
         setInterval(checkForUpdates, 10000);
         setInterval(verificarNotificaciones, 60000);
