@@ -1448,27 +1448,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if(nextBtn) nextBtn.addEventListener('click', nextMapSlide);
         if(prevBtn) prevBtn.addEventListener('click', prevMapSlide);
 
-        await fetchAndRenderMainData();      
+        await fetchAndRenderMainData(); 
+        
+        
+        fetchAndRenderAirQuality(); 
+        refreshAllMeteoData();         
 
         // 1. Funciones de actualización individuales
         const refreshWaze = () => fetchAndRenderWazeData(document.getElementById('waze-incidents-container'));
-        const refreshWeather = () => renderWeatherSlide(lastData);
 
         // 2. Intervalos de actualización para cada componente dinámico
         showMapSlide(0);
         mapCarouselInterval = setInterval(nextMapSlide, mapSlideDuration);
         
+        setInterval(fetchAndDisplayTurnos, 5 * 60 * 1000);
+        setInterval(fetchAndRenderSecSlide, 5 * 60 * 1000);
+        setInterval(checkForUpdates, 10000);
+        setInterval(verificarNotificaciones, 60000);
         
-        setInterval(fetchAndDisplayTurnos, 5 * 60 * 1000); // Turnos cada 5 min
-        setInterval(fetchAndRenderSecSlide, 5 * 60 * 1000); // SEC cada 5 min
-        setInterval(checkForUpdates, 10000); // Chequeo de informe principal cada 10 seg
-        setInterval(verificarNotificaciones, 60000); // Notificaciones cada 1 min
-        
-        
-        setInterval(refreshWaze, 2 * 60 * 1000); // Waze cada 2 minutos
-        setInterval(refreshAllMeteoData, 10 * 60 * 1000); // Clima y Mapa de Precipitación cada 10 minutos
-        setInterval(fetchAndRenderAirQuality, 5 * 60 * 1000); // Calidad del aire cada 5 min
-        
+        setInterval(refreshWaze, 2 * 60 * 1000);
+        setInterval(refreshAllMeteoData, 10 * 60 * 1000);
+        setInterval(fetchAndRenderAirQuality, 5 * 60 * 1000);
     }
 
     // --- Lógica para escuchar cambios desde otras pestañas ---
