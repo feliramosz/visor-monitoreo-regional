@@ -2051,9 +2051,7 @@ img, table {
 
 #weather-banner-container {
     position: relative;
-    overflow: hidden;
-    height: 155px; /* Altura fija */
-    align-items: center;
+    overflow: hidden;   
 }
 
 /* Estilo para CADA slide (clima, hidrometría, etc.) */
