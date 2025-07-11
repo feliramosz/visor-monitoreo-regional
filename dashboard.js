@@ -875,7 +875,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Muestra el mensaje y el GIF si no hay accidentes
                 container.innerHTML = `<div class="no-waze-container">
                                         <p class="no-waze-incidents"><span class="checkmark-icon">✅</span> No hay accidentes reportados.</p>
-                                        <img id="waze-loading-gif" src="https://i.gifer.com/or.gif" alt="Esperando reportes..." style="width: 80px; margin-top: 10px; border-radius: 8px;">
+                                        <img id="waze-loading-gif" src="https://www.deeplearning.ai/_next/image/?url=https%3A%2F%2Fcharonhub.deeplearning.ai%2Fcontent%2Fimages%2F2021%2F08%2FNear-Miss-Detection-1.gif&w=1920&q=75" alt="Esperando reportes..." style="width: 80px; margin-top: 10px; border-radius: 8px;">
                                     </div>`;
             } else {
                 // Muestra la lista de accidentes si los hay (el GIF no se incluye aquí)
