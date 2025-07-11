@@ -759,22 +759,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const slidesToRotate = [];
         let finalHTML = '';
 
-        // Slide de Novedades y Waze (siempre se genera su estructura)
+        // --- Paso 1: Construir el HTML de las slides que se podrían mostrar ---
+
+        // Slide de Novedades y Waze
         if (controls.showNovedadesSlide.checked) {
             finalHTML += `<div id="novedades-slide" class="right-column-slide">
-                              <div id="panel-novedades" class="dashboard-panel">
-                                  <div class="novedades-header">
-                                      <h3>Novedades</h3><div id="novedades-page-indicator"></div>
-                                      <div id="informe-correlativo">N° último informe: <span id="numero-informe-display">---</span></div>
-                                  </div>
-                                  <div id="novedades-content"></div>
-                              </div>
-                              <div id="panel-waze" class="dashboard-panel">
-                                  <h3>Accidentes reportados en Waze</h3>
-                                  <div id="waze-incidents-container"><p><i>Cargando...</i></p></div>
-                                  <div id="waze-carousel-controls" style="display: none;"><button id="waze-prev-btn">&lt;</button><button id="waze-pause-play-btn">||</button><button id="waze-next-btn">&gt;</button></div>
-                              </div>
-                          </div>`;
+                            <div id="panel-novedades" class="dashboard-panel">
+                                <div class="novedades-header">
+                                    <h3>Novedades</h3><div id="novedades-page-indicator"></div>
+                                    <div id="informe-correlativo">N° último informe: <span id="numero-informe-display">${novedades.numero_informe_manual || '---'}</span></div>
+                                </div>
+                                <div id="novedades-content"></div>
+                            </div>
+                            <div id="panel-waze" class="dashboard-panel">
+                                <h3>Accidentes reportados en Waze</h3>
+                                <div id="waze-incidents-container"><p><i>Cargando...</i></p></div>
+                                <div id="waze-carousel-controls" style="display: none;"><button id="waze-prev-btn">&lt;</button><button id="waze-pause-play-btn">||</button><button id="waze-next-btn">&gt;</button></div>
+                            </div>
+                        </div>`;
             slidesToRotate.push('novedades-slide');
         }
 
@@ -783,25 +785,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (controls.showEmergenciasSlide.checked && emergencias.length > 0) {
             const emergenciasItemsHtml = emergencias.map(item => `<tr><td>${item.n_informe || 'N/A'}</td><td>${item.fecha_hora || 'N/A'}</td><td>${item.evento_lugar || 'N/A'}</td></tr>`).join('');
             finalHTML += `<div id="emergencias-slide" class="right-column-slide">
-                              <div id="panel-emergencias-dashboard" class="dashboard-panel">
-                                  <h3>Informes Emitidos (Últimas 24h)</h3>
-                                  <div class="table-container"><table><thead><tr><th>N° Informe</th><th>Fecha y Hora</th><th>Evento / Lugar</th></tr></thead><tbody>${emergenciasItemsHtml}</tbody></table></div>
-                              </div>
-                          </div>`;
+                            <div id="panel-emergencias-dashboard" class="dashboard-panel">
+                                <h3>Informes Emitidos (Últimas 24h)</h3>
+                                <div class="table-container"><table><thead><tr><th>N° Informe</th><th>Fecha y Hora</th><th>Evento / Lugar</th></tr></thead><tbody>${emergenciasItemsHtml}</tbody></table></div>
+                            </div>
+                        </div>`;
             slidesToRotate.push('emergencias-slide');
         }
         
+        // --- Paso 2: Insertar el HTML construido en la página ---
         container.innerHTML = finalHTML;
         
-        // Poblar contenido
-        const numeroInformeDisplay = container.querySelector('#numero-informe-display');
-        if (numeroInformeDisplay) numeroInformeDisplay.textContent = novedades.numero_informe_manual || 'N/A';
+        // --- Paso 3: AHORA que el HTML existe, llamar a las funciones que lo llenan ---
         const wazeContainer = container.querySelector('#waze-incidents-container');
-        if(wazeContainer) fetchAndRenderWazeData(wazeContainer); // <-- CORRECCIÓN WAZE
         const novedadesContainer = container.querySelector('#novedades-content');
+        
+        if (wazeContainer) {
+            fetchAndRenderWazeData(wazeContainer);
+        }
         const numNovedadesPages = novedadesContainer ? setupNovedadesCarousel(novedades, novedadesContainer) : 1;
         
-        // Lógica de rotación
+        // --- Paso 4: Lógica de rotación (sin cambios) ---
         const allSlides = container.querySelectorAll('.right-column-slide');
         if (slidesToRotate.length === 0) {
             if(document.getElementById('novedades-slide')) document.getElementById('novedades-slide').classList.add('active-right-slide');
@@ -812,10 +816,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const switchSlide = () => {
                 const slideIdToShow = slidesToRotate[currentSlideIndex];
                 if(document.getElementById(slideIdToShow)) allSlides.forEach(slide => slide.classList.toggle('active-right-slide', slide.id === slideIdToShow));
+                
                 let duration = rightColumnSlideDuration;
                 if (slideIdToShow === 'novedades-slide') {
                     duration = numNovedadesPages * 10000;
                 }
+                
                 currentSlideIndex = (currentSlideIndex + 1) % slidesToRotate.length;
                 window.rightColumnCarouselTimeout = setTimeout(switchSlide, duration);
             };
