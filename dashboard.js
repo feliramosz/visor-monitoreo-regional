@@ -759,9 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const slidesToRotate = [];
         let finalHTML = '';
 
-        // --- Paso 1: Construir el HTML de las slides que se podrían mostrar ---
-
-        // Slide de Novedades y Waze
+        // Paso 1: Construir el HTML de las slides que se podrían mostrar
         if (controls.showNovedadesSlide.checked) {
             finalHTML += `<div id="novedades-slide" class="right-column-slide">
                             <div id="panel-novedades" class="dashboard-panel">
@@ -780,7 +778,6 @@ document.addEventListener('DOMContentLoaded', () => {
             slidesToRotate.push('novedades-slide');
         }
 
-        // Slide de Emergencias
         const emergencias = data.emergencias_ultimas_24_horas || [];
         if (controls.showEmergenciasSlide.checked && emergencias.length > 0) {
             const emergenciasItemsHtml = emergencias.map(item => `<tr><td>${item.n_informe || 'N/A'}</td><td>${item.fecha_hora || 'N/A'}</td><td>${item.evento_lugar || 'N/A'}</td></tr>`).join('');
@@ -793,10 +790,10 @@ document.addEventListener('DOMContentLoaded', () => {
             slidesToRotate.push('emergencias-slide');
         }
         
-        // --- Paso 2: Insertar el HTML construido en la página ---
+        // Paso 2: Insertar el HTML construido en la página
         container.innerHTML = finalHTML;
         
-        // --- Paso 3: AHORA que el HTML existe, llamar a las funciones que lo llenan ---
+        // Paso 3: AHORA que el HTML existe, llamar a las funciones que lo llenan
         const wazeContainer = container.querySelector('#waze-incidents-container');
         const novedadesContainer = container.querySelector('#novedades-content');
         
@@ -805,7 +802,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const numNovedadesPages = novedadesContainer ? setupNovedadesCarousel(novedades, novedadesContainer) : 1;
         
-        // --- Paso 4: Lógica de rotación (sin cambios) ---
+        // Paso 4: Lógica de rotación
         const allSlides = container.querySelectorAll('.right-column-slide');
         if (slidesToRotate.length === 0) {
             if(document.getElementById('novedades-slide')) document.getElementById('novedades-slide').classList.add('active-right-slide');
@@ -1458,8 +1455,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 3. AHORA que los contenedores ya existen, podemos llamar al resto de las funciones.
         fetchAndRenderAirQuality();
-        fetchAndRenderPrecipitationData();
-        fetchAndRenderWazeData();
+        fetchAndRenderPrecipitationData();        
 
         // 4. Activamos los carruseles y listeners de botones estáticos
         showMapSlide(0);
