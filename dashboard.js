@@ -874,13 +874,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const paginateItems = (items, itemsPerPage) => {
         if (!items || items.length === 0) return [];
         const pages = [];
+        // Se usa el parámetro 'itemsPerPage' en lugar de la variable que no existía.
         for (let i = 0; i < items.length; i += itemsPerPage) {
-            pages.push(items.slice(i, i + ITEMS_PER_PAGE));
+            pages.push(items.slice(i, i + itemsPerPage));
         }
         return pages;
     };
 
-
+    const novedadesPages = paginateItems(novedades, 5);
+    const emergenciasPages = paginateItems(emergencias, 3);
+    
     // --- FUNCIÓN PARA CARGAR DATOS DE WAZE Y RENDERIZARLOS ---
     async function fetchAndRenderWazeData(container, preloadedAccidents) {
         if (!container) return;
