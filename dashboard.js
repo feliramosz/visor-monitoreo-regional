@@ -771,7 +771,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const showWazeCheck = document.getElementById('showWazePanel');
 
         if (!showNovedadesCheck || !showEmergenciasCheck || !showWazeCheck) {
-            console.error("Error: Faltan checkboxes de control. Revisa los IDs en dashboard.html.");
             return;
         }
 
@@ -815,33 +814,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
         container.innerHTML = slidesHTML;
 
-        // Poblar contenido y rotar
-        const allSlides = container.querySelectorAll('.right-column-slide');
-        if (slidesToRotate.length === 0) return;
-
-        // Lógica para poblar el contenido después de crear el HTML
         slidesToRotate.forEach(slideInfo => {
             const slideElement = document.getElementById(slideInfo.id);
             if (!slideElement) return;
-
             if (slideInfo.type === 'novedad') {
-                const listContainer = slideElement.querySelector('.list-container ul');
-                listContainer.innerHTML = slideInfo.content.map(item => `<li><strong>[${item.timestamp}]</strong> ${item.texto}</li>`).join('');
+                slideElement.querySelector('.list-container ul').innerHTML = slideInfo.content.map(item => `<li><strong>[${item.timestamp}]</strong> ${item.texto}</li>`).join('');
             } else if (slideInfo.type === 'emergencia') {
-                const tableBody = slideElement.querySelector('tbody');
-                tableBody.innerHTML = slideInfo.content.map(item => `<tr><td>${item.n_informe||'N/A'}</td><td>${item.fecha_hora||'N/A'}</td><td>${item.evento_lugar||'N/A'}</td><td>${item.resumen||''}</td></tr>`).join('');
+                slideElement.querySelector('tbody').innerHTML = slideInfo.content.map(item => `<tr><td>${item.n_informe||'N/A'}</td><td>${item.fecha_hora||'N/A'}</td><td>${item.evento_lugar||'N/A'}</td><td>${item.resumen||''}</td></tr>`).join('');
             } else if (slideInfo.type === 'waze') {
                 fetchAndRenderWazeData(slideElement.querySelector('#waze-incidents-container'), wazeAccidents);
             }
         });
         
+        const allSlides = container.querySelectorAll('.right-column-slide');
+        if (slidesToRotate.length === 0) return;
+
         if (slidesToRotate.length === 1) {
-            const slideElement = document.getElementById(slidesToRotate[0].id);
-            if (slideElement) slideElement.classList.add('active-right-slide');
+            if (allSlides.length > 0) allSlides[0].classList.add('active-right-slide');
         } else {
             let currentSlideIndex = 0;
             const switchSlide = () => {
-                // ... (La lógica de switchSlide se mantiene como en la respuesta anterior)
+                const slideInfo = slidesToRotate[currentSlideIndex];
+                const slideElement = document.getElementById(slideInfo.id);
+
+                if (slideElement) {
+                    allSlides.forEach(slide => slide.classList.remove('active-right-slide'));
+                    slideElement.classList.add('active-right-slide');
+
+                    let duration = rightColumnSlideDuration;
+                    const contentContainer = slideElement.querySelector('.list-container, .table-container');
+
+                    if (contentContainer) {
+                        const content = contentContainer.firstElementChild;
+                        if (content) {
+                            content.classList.remove('vertical-scroll-content');
+                            content.style.animationDuration = '';
+                            if (content.scrollHeight > contentContainer.clientHeight) {
+                                const overflowHeight = content.scrollHeight - contentContainer.clientHeight;
+                                const animationDuration = Math.max(10, overflowHeight / 20);
+                                content.classList.add('vertical-scroll-content');
+                                content.style.animationDuration = `${animationDuration}s`;
+                                duration = (animationDuration + 2) * 1000;
+                            }
+                        }
+                    }
+                    
+                    window.rightColumnCarouselTimeout = setTimeout(switchSlide, duration);
+                }
+                
+                currentSlideIndex = (currentSlideIndex + 1) % slidesToRotate.length;
             };
             switchSlide();
         }
@@ -874,10 +895,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (accidents.length === 0) {
                 // Muestra el mensaje y el GIF si no hay accidentes
                 container.innerHTML = `<div class="no-waze-container">
-                                        <p class="no-waze-incidents"><span class="checkmark-icon">✅</span> No hay accidentes reportados.</p>
-                                        <img id="waze-loading-gif" src="https://www.deeplearning.ai/_next/image/?url=https%3A%2F%2Fcharonhub.deeplearning.ai%2Fcontent%2Fimages%2F2021%2F08%2FNear-Miss-Detection-1.gif&w=1920&q=75" 
-                                        alt="Esperando reportes..." style="width: 400px; height: 400px margin-top: 10px; border-radius: 8px;">
-                                    </div>`;
+                           <p class="no-waze-incidents"><span class="checkmark-icon">✅</span> No hay accidentes reportados.</p>
+                           <img id="waze-loading-gif" src="https://www.deeplearning.ai/_next/image/?url=https%3A%2F%2Fcharonhub.deeplearning.ai%2Fcontent%2Fimages%2F2021%2F08%2FNear-Miss-Detection-1.gif&w=1920&q=75" alt="Esperando reportes..." style="width: 400px; height: 400px; margin-top: 10px; border-radius: 8px;">
+                       </div>`;
             } else {
                 // Muestra la lista de accidentes si los hay (el GIF no se incluye aquí)
                 const listItemsHtml = accidents.map(accident => {

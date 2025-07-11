@@ -1361,6 +1361,15 @@ main.dashboard-grid {
     padding-top: 20px;
 }
 
+.no-waze-container {
+    display: flex;
+    flex-direction: column; /* Apila el texto y el GIF verticalmente */
+    justify-content: center; /* Centra verticalmente */
+    align-items: center;   /* Centra horizontalmente */
+    height: 100%;          /* Ocupa toda la altura del panel */
+    text-align: center;
+}
+
 /* --- ESTILOS PARA PANEL DE WAZE --- */
 
 /* Contenedor principal del carrusel de Waze */
