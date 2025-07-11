@@ -2439,3 +2439,19 @@ footer {
     flex-grow: 1;
     overflow-y: auto;
 }
+
+/* --- Estilos para Scroll Vertical Animado --- */
+/* Keyframes para la animación de desplazamiento hacia arriba */
+@keyframes vertical-scroll-anim {
+    0% { transform: translateY(0%); }
+    20% { transform: translateY(0%); } /* Pausa al inicio para leer */
+    80% { transform: translateY(calc(-100% + 200px)); } /* Se desplaza hasta mostrar el final */
+    100% { transform: translateY(calc(-100% + 200px)); } /* Pausa al final */
+}
+
+/* Clase que se aplicará con JS al contenido que necesite scroll */
+.vertical-scroll-content {
+    animation-name: vertical-scroll-anim;
+    animation-timing-function: linear;
+    animation-iteration-count: 1; /* Se ejecuta una vez por slide */
+}
