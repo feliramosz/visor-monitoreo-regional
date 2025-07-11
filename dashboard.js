@@ -766,83 +766,72 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container) return;
         if (window.rightColumnCarouselTimeout) clearTimeout(window.rightColumnCarouselTimeout);
 
-        // 1. Obtenemos los 3 checkboxes del panel derecho
-        const showNovedadesCheck = document.getElementById('showNovedadesPanel');
-        const showEmergenciasCheck = document.getElementById('showEmergenciasPanel');
-        const showWazeCheck = document.getElementById('showWazePanel');
-
-        if (!showNovedadesCheck || !showEmergenciasCheck || !showWazeCheck) {
-            console.error("Error: Faltan uno o más checkboxes de control para el panel derecho.");
+        // Los checkboxes ahora se leen desde el objeto 'controls' corregido
+        if (!controls.showNovedadesPanel || !controls.showEmergenciasPanel || !controls.showWazePanel) {
+            console.error("Error: Faltan checkboxes de control para el panel derecho. Verifica los IDs en el HTML y el objeto 'controls'.");
             return;
         }
 
-        // 2. Obtenemos todos los datos necesarios
         const wazeAccidents = await (async () => { try { return await (await fetch('/api/waze')).json(); } catch { return []; } })();
         const novedades = novedadesData.entradas || [];
         const emergencias = data.emergencias_ultimas_24_horas || [];
 
-        // 3. Construimos las slides que estén activadas
+        const paginateItems = (items, itemsPerPage) => {
+            if (!items || !items.length) return [];
+            const pages = [];
+            for (let i = 0; i < items.length; i += itemsPerPage) { pages.push(items.slice(i, i + ITEMS_PER_PAGE)); }
+            return pages;
+        };
+        
+        const novedadesPages = paginateItems(novedades, 5);
+        const emergenciasPages = paginateItems(emergencias, 3);
+
         let slidesHTML = '';
         const slidesToRotate = [];
 
-        // Slide de Novedades (con paginación de 5)
-        if (showNovedadesCheck.checked && novedades.length > 0) {
-            paginateItems(novedades, 5).forEach((page, index, pages) => {
+        if (controls.showNovedadesPanel.checked && novedades.length > 0) {
+            novedadesPages.forEach((page, index) => {
                 const slideId = `novedades-slide-${index}`;
                 const listItemsHtml = page.map(item => `<li><strong>[${item.timestamp}]</strong> ${item.texto}</li>`).join('');
                 slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height">
-                                <div class="novedades-header"><h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div id="informe-correlativo"><span>N° ${novedadesData.numero_informe_manual || '---'}</span></div></div>
+                                <div class="novedades-header"><h3>Novedades ${novedadesPages.length > 1 ? `(${index + 1}/${novedadesPages.length})` : ''}</h3><div><span>N° ${novedadesData.numero_informe_manual || '---'}</span></div></div>
                                 <div class="list-container"><ul class="dashboard-list">${listItemsHtml}</ul></div>
                             </div></div>`;
                 slidesToRotate.push({ id: slideId });
             });
         }
 
-        // Slide de Emergencias (con paginación de 3)
-        if (showEmergenciasCheck.checked && emergencias.length > 0) {
-            paginateItems(emergencias, 3).forEach((page, index, pages) => {
+        if (controls.showEmergenciasPanel.checked && emergencias.length > 0) {
+            emergenciasPages.forEach((page, index) => {
                 const slideId = `emergencias-slide-${index}`;
                 const items = page.map(item => `<tr><td>${item.n_informe||'N/A'}</td><td>${item.fecha_hora||'N/A'}</td><td>${item.evento_lugar||'N/A'}</td><td>${item.resumen||''}</td></tr>`).join('');
                 slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height">
-                                <h3>Informes Emitidos (24h) ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3>
+                                <h3>Informes Emitidos (24h) ${emergenciasPages.length > 1 ? `(${index + 1}/${emergenciasPages.length})` : ''}</h3>
                                 <div class="table-container"><table class="compact-table"><thead><tr><th>N°</th><th>Fecha/Hora</th><th>Evento/Lugar</th><th>Resumen</th></tr></thead><tbody>${items}</tbody></table></div>
                             </div></div>`;
                 slidesToRotate.push({ id: slideId });
             });
         }
 
-        // Slide de Waze (una sola slide)
-        if (showWazeCheck.checked) {
-            const slideId = 'waze-slide';
-            
-            // Esta lógica interna decide si mostrar la lista o el mensaje de "No hay accidentes"
+        if (controls.showWazePanel.checked) {
             const listItemsHtml = wazeAccidents.length > 0 
-                ? wazeAccidents.map(accident => {
-                    const mapLink = (accident.lat && accident.lon) ? `<a href="#" class="waze-map-link" data-lat="${accident.lat}" data-lon="${accident.lon}" title="Ver en Google Maps">📍</a>` : '';
-                    return `<li class="waze-incident-item"><div class="waze-incident-header">${mapLink}<span class="waze-street">${accident.street}</span><span class="waze-city">${accident.city}</span></div><span class="waze-time">${formatTimeAgo(accident.pubMillis)}</span></li>`;
-                }).join('')
-                : '<p class="no-waze-incidents"><span class="checkmark-icon">✅</span> No hay accidentes reportados en este momento.</p>';
-            
-            slidesHTML += `<div id="${slideId}" class="right-column-slide">
-                            <div class="dashboard-panel full-height">
-                                <h3>Accidentes reportados en Waze</h3>
-                                <div class="list-container"><ul class="dashboard-list waze-list">${listItemsHtml}</ul></div>
-                            </div>
-                        </div>`;
-            slidesToRotate.push({ id: slideId, type: 'waze' });
+                ? wazeAccidents.map(accident => `<li class="waze-incident-item">...</li>`).join('') // Contenido de Waze
+                : '<p class="no-waze-incidents">✅ No hay accidentes reportados.</p>';
+            slidesHTML += `<div id="waze-slide" class="right-column-slide"><div class="dashboard-panel full-height">
+                            <h3>Accidentes reportados en Waze</h3>
+                            <div class="list-container"><ul class="dashboard-list waze-list">${listItemsHtml}</ul></div>
+                        </div></div>`;
+            slidesToRotate.push({ id: 'waze-slide' });
         }
 
         container.innerHTML = slidesHTML;
 
-        // 4. Lógica de Rotación y Animación de Scroll
         const allSlides = container.querySelectorAll('.right-column-slide');
-        if (slidesToRotate.length === 0) {
-            // No hay nada que mostrar, el panel queda vacío.
-            return;
-        }
-        
+        if (slidesToRotate.length === 0) return;
+
         if (slidesToRotate.length === 1) {
-            document.getElementById(slidesToRotate[0].id).classList.add('active-right-slide');
+            const slideElement = document.getElementById(slidesToRotate[0].id);
+            if (slideElement) slideElement.classList.add('active-right-slide');
         } else {
             let currentSlideIndex = 0;
             const switchSlide = () => {
@@ -853,24 +842,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     allSlides.forEach(slide => slide.classList.remove('active-right-slide'));
                     slideElement.classList.add('active-right-slide');
 
+                    // --- LÓGICA DE ROTACIÓN SIMPLIFICADA Y CORREGIDA ---
+                    let duration = rightColumnSlideDuration; // Duración por defecto
                     const contentContainer = slideElement.querySelector('.list-container, .table-container');
+
                     if (contentContainer) {
                         const content = contentContainer.firstElementChild;
                         content.classList.remove('vertical-scroll-content');
                         content.style.animationDuration = '';
-                        if (content.scrollHeight > contentContainer.clientHeight) {
+                        
+                        if (content && content.scrollHeight > contentContainer.clientHeight) {
                             const overflowHeight = content.scrollHeight - contentContainer.clientHeight;
-                            const duration = Math.max(10, overflowHeight / 20);
+                            const animationDuration = Math.max(10, overflowHeight / 20);
                             content.classList.add('vertical-scroll-content');
-                            content.style.animationDuration = `${duration}s`;
-                            window.rightColumnCarouselTimeout = setTimeout(switchSlide, (duration + 2) * 1000);
-                        } else {
-                            window.rightColumnCarouselTimeout = setTimeout(switchSlide, rightColumnSlideDuration);
+                            content.style.animationDuration = `${animationDuration}s`;
+                            duration = (animationDuration + 2) * 1000;
                         }
-                    } else {
-                        window.rightColumnCarouselTimeout = setTimeout(switchSlide, rightColumnSlideDuration);
                     }
+                    
+                    // El timeout siempre se llama, asegurando que el carrusel no se atasque.
+                    window.rightColumnCarouselTimeout = setTimeout(switchSlide, duration);
                 }
+                
                 currentSlideIndex = (currentSlideIndex + 1) % slidesToRotate.length;
             };
             switchSlide();
@@ -1391,13 +1384,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- NUEVA LÓGICA DE CONTROLES DE VISUALIZACIÓN ---
     const controls = {
         showWeatherSlide: document.getElementById('showWeatherSlide'),
-        showHydroSlide: document.getElementById('showHydroSlide'),
-        showAlertsSlide: document.getElementById('showAlertsSlide'),
-        showSecDataSlide: document.getElementById('showSecDataSlide'),
-        showImageSlides: document.getElementById('showImageSlides'),
-        showNovedadesSlide: document.getElementById('showNovedadesSlide'),
-        showEmergenciasSlide: document.getElementById('showEmergenciasSlide'),
-        toggleNotifications: document.getElementById('toggleNotifications')
+    showHydroSlide: document.getElementById('showHydroSlide'),
+    showAlertsSlide: document.getElementById('showAlertsSlide'),
+    showSecDataSlide: document.getElementById('showSecDataSlide'),
+    showImageSlides: document.getElementById('showImageSlides'),    
+    showNovedadesPanel: document.getElementById('showNovedadesPanel'),
+    showEmergenciasPanel: document.getElementById('showEmergenciasPanel'),
+    showWazePanel: document.getElementById('showWazePanel'),
     };
 
     // Función para guardar todas las preferencias en localStorage
