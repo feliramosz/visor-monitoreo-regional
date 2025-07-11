@@ -2465,3 +2465,19 @@ footer {
     animation-timing-function: linear;
     animation-iteration-count: 1; /* Se ejecuta una vez por slide */
 }
+
+/* --- Estilos para el GIF del Panel SEC --- */
+.sec-gif-container {
+    flex-grow: 1; /* Hace que el contenedor ocupe el espacio vertical restante */
+    display: flex;
+    justify-content: center; /* Centra horizontalmente */
+    align-items: center;   /* Centra verticalmente */
+    padding: 15px 0;
+}
+
+.sec-gif-container img {
+    max-height: 180px; /* Altura máxima para que no sea demasiado grande */
+    max-width: 90%;    /* Ancho máximo para que no toque los bordes */
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}

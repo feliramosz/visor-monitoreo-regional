@@ -316,38 +316,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (data.error) throw new Error(data.error);
 
-            // Esta versión está preparada para recibir la LISTA ordenada desde el servidor
             let tableHtml = `
                 <table class="sec-table">
                     <tbody>
                         <tr>
-                            <td><strong>Porcentaje de afectados en la Región de Valparaíso</strong></td>
+                            <td><strong>Porcentaje de afectados en la Región</strong></td>
                             <td>${data.porcentaje_afectado}%</td>
                         </tr>
                         <tr>
-                            <td><strong>Clientes afectados en la Región de Valparaíso</strong></td>
+                            <td><strong>Clientes afectados en la Región</strong></td>
                             <td>${data.total_afectados_region.toLocaleString('es-CL')}</td>
                         </tr>
                     </tbody>
                 </table>
-                
                 <table class="sec-table" style="margin-top: 15px;">
                     <thead>
-                        <tr>
-                            <th>CANTIDAD DE CLIENTES AFECTADOS POR PROVINCIA</th>
-                            <th>CANTIDAD</th>
-                        </tr>
+                        <tr><th>CLIENTES AFECTADOS POR PROVINCIA</th><th>CANTIDAD</th></tr>
                     </thead>
                     <tbody>
                         ${data.desglose_provincias.map(item => `
-                            <tr>
-                                <td>Provincia de ${item.provincia}</td>
-                                <td>${item.cantidad.toLocaleString('es-CL')}</td>
-                            </tr>
+                            <tr><td>Provincia de ${item.provincia}</td><td>${item.cantidad.toLocaleString('es-CL')}</td></tr>
                         `).join('')}
                     </tbody>
                 </table>
             `;
+
+            // --- INICIO DE LA MODIFICACIÓN: Lógica del GIF condicional ---
+            const gifNormal = 'https://vpstart.com/storage/photos/10/Getting%20to%20know%20the%20electrical%20grid/Substation.gif';
+            const gifAlerta = 'https://us1.discourse-cdn.com/spiceworks/original/4X/b/4/a/b4aac0974a5cdb7a03a6919aa48e40f86d98fdb2.gif';
+
+            const gifUrl = data.total_afectados_region > 0 ? gifAlerta : gifNormal;
+
+            tableHtml += `
+                <div class="sec-gif-container">
+                    <img src="${gifUrl}" alt="Estado de la red eléctrica">
+                </div>
+            `;
+            // --- FIN DE LA MODIFICACIÓN ---
 
             container.innerHTML = tableHtml;
 
@@ -360,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Error al cargar datos de la SEC:", error);
-            container.innerHTML = `<p style="color:red; text-align:center;">No se pudieron cargar los datos de la SEC. Detalle: ${error.message}</p>`;
+            container.innerHTML = `<p style="color:red; text-align:center;">No se pudieron cargar los datos de la SEC.</p>`;
         }
     }
 
