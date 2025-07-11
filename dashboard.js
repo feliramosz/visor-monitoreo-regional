@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
             slidesToRotate.push('sec-slide');
         }
 
-        // CORRECCIÓN IMÁGENES: Asignar ID en la creación del HTML
+        // IMÁGENES: Asignar ID en la creación del HTML
         if (controls.showImageSlides.checked && data.dynamic_slides && data.dynamic_slides.length > 0) {
             finalHTML += data.dynamic_slides.map((slideInfo, index) => {
                 const imageId = `imagen-slide-${index}`;
@@ -355,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (timestampContainer) {
                 const now = new Date();
                 const timeString = now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-                timestampContainer.textContent = `Ult. act.: ${timeString}h`;
+                timestampContainer.textContent = `Ult. act.: ${timeString}`;
             }
 
         } catch (error) {
