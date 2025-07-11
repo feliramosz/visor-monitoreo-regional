@@ -761,98 +761,124 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     //Funcion de carrusel columna derecha (novedades y waze)
-    async function setupRightColumnCarousel(data, novedadesData) {        
-        const showNovedadesCheck = document.getElementById('showNovedadesPanel');
-        const showEmergenciasCheck = document.getElementById('showEmergenciasPanel');
-        
-        if (!showNovedadesCheck || !showEmergenciasCheck) {
-            console.error("Error crítico: No se encontraron los checkboxes de control del panel derecho.");
-            return;
-        }
-
+    async function setupRightColumnCarousel(data, novedadesData) {
         const container = document.getElementById('right-column-carousel-container');
         if (!container) return;
         if (window.rightColumnCarouselTimeout) clearTimeout(window.rightColumnCarouselTimeout);
-        
+
+        // 1. Obtenemos los 3 checkboxes del panel derecho
+        const showNovedadesCheck = document.getElementById('showNovedadesPanel');
+        const showEmergenciasCheck = document.getElementById('showEmergenciasPanel');
+        const showWazeCheck = document.getElementById('showWazePanel');
+
+        if (!showNovedadesCheck || !showEmergenciasCheck || !showWazeCheck) {
+            console.error("Error: Faltan uno o más checkboxes de control para el panel derecho.");
+            return;
+        }
+
+        // 2. Obtenemos todos los datos necesarios
         const wazeAccidents = await (async () => { try { return await (await fetch('/api/waze')).json(); } catch { return []; } })();
         const novedades = novedadesData.entradas || [];
         const emergencias = data.emergencias_ultimas_24_horas || [];
 
-        const useExpandedLayout = (novedades.length > 3) || (wazeAccidents.length > 3) || (emergencias.length > 2);
-
+        // 3. Construimos las slides que estén activadas
         let slidesHTML = '';
         const slidesToRotate = [];
-        
-        const getEmergenciasHTML = (items) => {
-            return items.map(item => `<tr><td>${item.n_informe||'N/A'}</td><td>${item.fecha_hora||'N/A'}</td><td>${item.evento_lugar||'N/A'}</td><td>${item.resumen||''}</td></tr>`).join('');
-        };
 
-        if (useExpandedLayout) {
-            // MODO EXPANDIDO: Ahora usa las variables locales (ej. showNovedadesCheck.checked)
-            if (showNovedadesCheck.checked && novedades.length > 0) {
-                slidesHTML += `<div id="novedades-slide" class="right-column-slide"><div id="panel-novedades" class="dashboard-panel full-height"></div></div>`;
-                slidesToRotate.push({ id: 'novedades-slide' });
-            }
-            if (showNovedadesCheck.checked && wazeAccidents.length > 0) {
-                slidesHTML += `<div id="waze-slide" class="right-column-slide"><div id="panel-waze" class="dashboard-panel full-height"><h3>Accidentes reportados en Waze</h3><div id="waze-incidents-container"></div></div></div>`;
-                slidesToRotate.push({ id: 'waze-slide' });
-            }
-            if (showEmergenciasCheck.checked && emergencias.length > 0) {
-                slidesHTML += `<div id="emergencias-slide" class="right-column-slide"><div id="panel-emergencias-dashboard" class="dashboard-panel full-height"><h3>Informes Emitidos (24h)</h3><div class="table-container"><table><thead><tr><th>N°</th><th>Fecha/Hora</th><th>Evento/Lugar</th><th>Resumen</th></tr></thead><tbody>${getEmergenciasHTML(emergencias)}</tbody></table></div></div></div>`;
-                slidesToRotate.push({ id: 'emergencias-slide' });
-            }
-        } else {
-            // MODO COMPACTO: También usa las variables locales
-            if (showNovedadesCheck.checked) {
-                slidesHTML += `<div id="novedades-waze-slide" class="right-column-slide"><div id="panel-novedades" class="dashboard-panel"></div><div id="panel-waze" class="dashboard-panel"><h3>Accidentes reportados en Waze</h3><div id="waze-incidents-container"></div></div></div>`;
-                slidesToRotate.push({ id: 'novedades-waze-slide' });
-            }
-            if (showEmergenciasCheck.checked && emergencias.length > 0) {
-                slidesHTML += `<div id="emergencias-slide" class="right-column-slide"><div id="panel-emergencias-dashboard" class="dashboard-panel"><h3 class="compact-title">Informes Emitidos (Últimas 24h)</h3><div class="table-container"><table><thead><tr><th>N°</th><th>Fecha/Hora</th><th>Evento/Lugar</th><th>Resumen</th></tr></thead><tbody>${getEmergenciasHTML(emergencias)}</tbody></table></div></div></div>`;
-                slidesToRotate.push({ id: 'emergencias-slide' });
-            }
+        // Slide de Novedades (con paginación de 5)
+        if (showNovedadesCheck.checked && novedades.length > 0) {
+            paginateItems(novedades, 5).forEach((page, index, pages) => {
+                const slideId = `novedades-slide-${index}`;
+                const listItemsHtml = page.map(item => `<li><strong>[${item.timestamp}]</strong> ${item.texto}</li>`).join('');
+                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height">
+                                <div class="novedades-header"><h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div id="informe-correlativo"><span>N° ${novedadesData.numero_informe_manual || '---'}</span></div></div>
+                                <div class="list-container"><ul class="dashboard-list">${listItemsHtml}</ul></div>
+                            </div></div>`;
+                slidesToRotate.push({ id: slideId });
+            });
         }
-                
-        if (slidesToRotate.length === 0) {
-            container.innerHTML = '';
-            return;
+
+        // Slide de Emergencias (con paginación de 3)
+        if (showEmergenciasCheck.checked && emergencias.length > 0) {
+            paginateItems(emergencias, 3).forEach((page, index, pages) => {
+                const slideId = `emergencias-slide-${index}`;
+                const items = page.map(item => `<tr><td>${item.n_informe||'N/A'}</td><td>${item.fecha_hora||'N/A'}</td><td>${item.evento_lugar||'N/A'}</td><td>${item.resumen||''}</td></tr>`).join('');
+                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height">
+                                <h3>Informes Emitidos (24h) ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3>
+                                <div class="table-container"><table class="compact-table"><thead><tr><th>N°</th><th>Fecha/Hora</th><th>Evento/Lugar</th><th>Resumen</th></tr></thead><tbody>${items}</tbody></table></div>
+                            </div></div>`;
+                slidesToRotate.push({ id: slideId });
+            });
+        }
+
+        // Slide de Waze (una sola slide)
+        if (showWazeCheck.checked && wazeAccidents.length > 0) {
+            const listItemsHtml = wazeAccidents.map(accident => {
+                const mapLink = (accident.lat && accident.lon) ? `<a href="#" class="waze-map-link" data-lat="${accident.lat}" data-lon="${accident.lon}" title="Ver en Google Maps">📍</a>` : '';
+                return `<li class="waze-incident-item"><div class="waze-incident-header">${mapLink}<span class="waze-street">${accident.street}</span><span class="waze-city">${accident.city}</span></div><span class="waze-time">${formatTimeAgo(accident.pubMillis)}</span></li>`;
+            }).join('');
+            slidesHTML += `<div id="waze-slide" class="right-column-slide">
+                            <div class="dashboard-panel full-height">
+                                <h3>Accidentes reportados en Waze</h3>
+                                <div class="list-container"><ul class="dashboard-list waze-list">${listItemsHtml}</ul></div>
+                            </div>
+                        </div>`;
+            slidesToRotate.push({ id: 'waze-slide' });
         }
 
         container.innerHTML = slidesHTML;
 
-        // POBLAR PANELES
-        const panelNovedades = document.getElementById('panel-novedades');
-        if(panelNovedades) {
-            panelNovedades.innerHTML = `<div class="novedades-header"><h3>Novedades</h3><div id="novedades-page-indicator"></div><div id="informe-correlativo">N° último informe: <span id="numero-informe-display">${novedadesData.numero_informe_manual || '---'}</span></div></div><div id="novedades-content"></div>`;
-            setupNovedadesCarousel(novedadesData, panelNovedades.querySelector('#novedades-content'));
-        }
-        const wazeContainer = document.getElementById('waze-incidents-container');
-        if (wazeContainer) {
-            fetchAndRenderWazeData(wazeContainer, wazeAccidents);
+        // 4. Lógica de Rotación y Animación de Scroll
+        const allSlides = container.querySelectorAll('.right-column-slide');
+        if (slidesToRotate.length === 0) {
+            // No hay nada que mostrar, el panel queda vacío.
+            return;
         }
         
-        // LÓGICA DE ROTACIÓN
-        const allSlides = container.querySelectorAll('.right-column-slide');
-        if (slidesToRotate.length <= 1) {
-            if (allSlides.length > 0) allSlides[0].classList.add('active-right-slide');
+        if (slidesToRotate.length === 1) {
+            document.getElementById(slidesToRotate[0].id).classList.add('active-right-slide');
         } else {
             let currentSlideIndex = 0;
             const switchSlide = () => {
                 const slideInfo = slidesToRotate[currentSlideIndex];
-                if (!slideInfo) { currentSlideIndex = 0; return; }
                 const slideElement = document.getElementById(slideInfo.id);
 
                 if (slideElement) {
                     allSlides.forEach(slide => slide.classList.remove('active-right-slide'));
                     slideElement.classList.add('active-right-slide');
+
+                    const contentContainer = slideElement.querySelector('.list-container, .table-container');
+                    if (contentContainer) {
+                        const content = contentContainer.firstElementChild;
+                        content.classList.remove('vertical-scroll-content');
+                        content.style.animationDuration = '';
+                        if (content.scrollHeight > contentContainer.clientHeight) {
+                            const overflowHeight = content.scrollHeight - contentContainer.clientHeight;
+                            const duration = Math.max(10, overflowHeight / 20);
+                            content.classList.add('vertical-scroll-content');
+                            content.style.animationDuration = `${duration}s`;
+                            window.rightColumnCarouselTimeout = setTimeout(switchSlide, (duration + 2) * 1000);
+                        } else {
+                            window.rightColumnCarouselTimeout = setTimeout(switchSlide, rightColumnSlideDuration);
+                        }
+                    } else {
+                        window.rightColumnCarouselTimeout = setTimeout(switchSlide, rightColumnSlideDuration);
+                    }
                 }
-                
                 currentSlideIndex = (currentSlideIndex + 1) % slidesToRotate.length;
-                window.rightColumnCarouselTimeout = setTimeout(switchSlide, rightColumnSlideDuration);
             };
             switchSlide();
         }
     }
+
+    const paginateItems = (items, itemsPerPage) => {
+        if (!items || items.length === 0) return [];
+        const pages = [];
+        for (let i = 0; i < items.length; i += itemsPerPage) {
+            pages.push(items.slice(i, i + ITEMS_PER_PAGE));
+        }
+        return pages;
+    };
 
 
     // --- FUNCIÓN PARA CARGAR DATOS DE WAZE Y RENDERIZARLOS ---
