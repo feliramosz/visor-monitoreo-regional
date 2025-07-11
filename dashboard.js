@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <td>${data.porcentaje_afectado}%</td>
                         </tr>
                         <tr>
-                            <td><strong>Cantidad de clientes afectados en la Región de Valparaíso</strong></td>
+                            <td><strong>Clientes afectados en la Región de Valparaíso</strong></td>
                             <td>${data.total_afectados_region.toLocaleString('es-CL')}</td>
                         </tr>
                     </tbody>
@@ -334,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <table class="sec-table" style="margin-top: 15px;">
                     <thead>
                         <tr>
-                            <th>CLIENTES AFECTADOS POR PROVINCIA</th>
+                            <th>CANTIDAD DE CLIENTES AFECTADOS POR PROVINCIA</th>
                             <th>CANTIDAD</th>
                         </tr>
                     </thead>
@@ -770,9 +770,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- 1. OBTENEMOS DATOS Y VERIFICAMOS CONDICIONES ---
         let wazeAccidents = [];
         try {
-            const response = await fetch('/api/waze');
-            wazeAccidents = await response.json();
-        } catch (e) { console.error("No se pudo obtener datos de Waze para el layout dinámico."); }
+            wazeAccidents = await (await fetch('/api/waze')).json();
+        } catch (e) { console.error("No se pudo obtener datos de Waze."); }
 
         const novedades = novedadesData.entradas || [];
         const emergencias = data.emergencias_ultimas_24_horas || [];
@@ -783,91 +782,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const useExpandedLayout = expandNovedades || expandWaze || expandEmergencias;
 
-        // --- 2. CONSTRUIMOS LAS SLIDES SEGÚN EL LAYOUT ---
+        // --- 2. CONSTRUIMOS LAS SLIDES RESPETANDO LOS CHECKBOXES ---
         let slidesHTML = '';
         const slidesToRotate = [];
 
         if (useExpandedLayout) {
-            // --- MODO EXPANDIDO: Cada panel en su propia slide de altura completa ---
-            if (novedades.length > 0) {
-                slidesHTML += `<div id="novedades-slide" class="right-column-slide">
-                                <div id="panel-novedades" class="dashboard-panel full-height">
-                                    </div>
-                            </div>`;
+            // --- MODO EXPANDIDO ---
+            if (novedades.length > 0 && controls.showNovedadesSlide.checked) {
+                slidesHTML += `<div id="novedades-slide" class="right-column-slide"><div id="panel-novedades" class="dashboard-panel full-height"></div></div>`;
                 slidesToRotate.push('novedades-slide');
             }
-            if (wazeAccidents.length > 0) {
-                slidesHTML += `<div id="waze-slide" class="right-column-slide">
-                                <div id="panel-waze" class="dashboard-panel full-height">
-                                    <h3>Accidentes reportados en Waze</h3>
-                                    <div id="waze-incidents-container"></div>
-                                </div>
-                            </div>`;
+            if (wazeAccidents.length > 0 && controls.showNovedadesSlide.checked) { // Waze se controla con el mismo check que Novedades
+                slidesHTML += `<div id="waze-slide" class="right-column-slide"><div id="panel-waze" class="dashboard-panel full-height"><h3>Accidentes reportados en Waze</h3><div id="waze-incidents-container"></div></div></div>`;
                 slidesToRotate.push('waze-slide');
             }
-            if (emergencias.length > 0) {
-                const emergenciasItemsHtml = emergencias.map(item => `<tr><td>${item.n_informe || 'N/A'}</td><td>${item.fecha_hora || 'N/A'}</td><td>${item.evento_lugar || 'N/A'}</td></tr>`).join('');
-                slidesHTML += `<div id="emergencias-slide" class="right-column-slide">
-                                <div id="panel-emergencias-dashboard" class="dashboard-panel full-height">
-                                    <h3>Informes Emitidos (Últimas 24h)</h3>
-                                    <div class="table-container"><table><thead><tr><th>N° Informe</th><th>Fecha y Hora</th><th>Evento / Lugar</th></tr></thead><tbody>${emergenciasItemsHtml}</tbody></table></div>
-                                </div>
-                            </div>`;
+            if (emergencias.length > 0 && controls.showEmergenciasSlide.checked) {
+                const items = emergencias.map(item => `<tr><td>${item.n_informe||'N/A'}</td><td>${item.fecha_hora||'N/A'}</td><td>${item.evento_lugar||'N/A'}</td></tr>`).join('');
+                slidesHTML += `<div id="emergencias-slide" class="right-column-slide"><div id="panel-emergencias-dashboard" class="dashboard-panel full-height"><h3>Informes Emitidos (Últimas 24h)</h3><div class="table-container"><table><thead><tr><th>N° Informe</th><th>Fecha y Hora</th><th>Evento / Lugar</th></tr></thead><tbody>${items}</tbody></table></div></div></div>`;
                 slidesToRotate.push('emergencias-slide');
             }
         } else {
-            // --- MODO COMPACTO: Diseño original ---
-            slidesHTML = `<div id="novedades-waze-slide" class="right-column-slide">
-                            <div id="panel-novedades" class="dashboard-panel">
-                                </div>
-                            <div id="panel-waze" class="dashboard-panel">
-                                <h3>Accidentes reportados en Waze</h3>
-                                <div id="waze-incidents-container"></div>
-                            </div>
-                        </div>`;
-            slidesToRotate.push('novedades-waze-slide');
-            if (emergencias.length > 0) {
-                const emergenciasItemsHtml = emergencias.map(item => `<tr><td>${item.n_informe || 'N/A'}</td><td>${item.fecha_hora || 'N/A'}</td><td>${item.evento_lugar || 'N/A'}</td></tr>`).join('');
-                slidesHTML += `<div id="emergencias-slide" class="right-column-slide">
-                                    <div id="panel-emergencias-dashboard" class="dashboard-panel">
-                                        <h3>Informes Emitidos (Últimas 24h)</h3>
-                                        <div class="table-container"><table><thead><tr><th>N° Informe</th><th>Fecha y Hora</th><th>Evento / Lugar</th></tr></thead><tbody>${emergenciasItemsHtml}</tbody></table></div>
-                                    </div>
-                                </div>`;
+            // --- MODO COMPACTO ---
+            if (novedades.length > 0 && controls.showNovedadesSlide.checked) {
+                slidesHTML += `<div id="novedades-waze-slide" class="right-column-slide"><div id="panel-novedades" class="dashboard-panel"></div><div id="panel-waze" class="dashboard-panel"><h3>Accidentes reportados en Waze</h3><div id="waze-incidents-container"></div></div></div>`;
+                slidesToRotate.push('novedades-waze-slide');
+            }
+            if (emergencias.length > 0 && controls.showEmergenciasSlide.checked) {
+                const items = emergencias.map(item => `<tr><td>${item.n_informe||'N/A'}</td><td>${item.fecha_hora||'N/A'}</td><td>${item.evento_lugar||'N/A'}</td></tr>`).join('');
+                slidesHTML += `<div id="emergencias-slide" class="right-column-slide"><div id="panel-emergencias-dashboard" class="dashboard-panel"><h3 class="compact-title">Informes Emitidos (Últimas 24h)</h3><div class="table-container"><table><thead><tr><th>N° Informe</th><th>Fecha y Hora</th><th>Evento / Lugar</th></tr></thead><tbody>${items}</tbody></table></div></div></div>`;
                 slidesToRotate.push('emergencias-slide');
             }
         }
 
         container.innerHTML = slidesHTML;
 
-        // --- 3. POBLAMOS LOS PANELES CREADOS CON SU CONTENIDO ---
-        // (Estas funciones ahora encontrarán los contenedores que acabamos de crear)
+        // --- 3. POBLAMOS LOS PANELES CREADOS ---
         const panelNovedades = document.getElementById('panel-novedades');
         if(panelNovedades) {
-            panelNovedades.innerHTML = `<div class="novedades-header">
-                                            <h3>Novedades</h3>
-                                            <div id="novedades-page-indicator"></div>
-                                            <div id="informe-correlativo">N° último informe: <span id="numero-informe-display">${novedadesData.numero_informe_manual || '---'}</span></div>
-                                        </div>
-                                        <div id="novedades-content"></div>`;
+            panelNovedades.innerHTML = `<div class="novedades-header"><h3>Novedades</h3><div id="novedades-page-indicator"></div><div id="informe-correlativo">N° último informe: <span id="numero-informe-display">${novedadesData.numero_informe_manual || '---'}</span></div></div><div id="novedades-content"></div>`;
             setupNovedadesCarousel(novedadesData, panelNovedades.querySelector('#novedades-content'));
         }
         const wazeContainer = document.getElementById('waze-incidents-container');
         if (wazeContainer) {
-            fetchAndRenderWazeData(wazeContainer, wazeAccidents); // Pasamos los accidentes ya obtenidos
+            fetchAndRenderWazeData(wazeContainer, wazeAccidents);
         }
 
-        // --- 4. LÓGICA DE ROTACIÓN (sin cambios) ---
+        // --- 4. LÓGICA DE ROTACIÓN ---
         const allSlides = container.querySelectorAll('.right-column-slide');
-        // ... (el resto de la lógica de rotación se mantiene igual)
         if (slidesToRotate.length <= 1) {
-            if(slidesToRotate.length === 1) document.getElementById(slidesToRotate[0]).classList.add('active-right-slide');
+            if (allSlides.length > 0) allSlides[0].classList.add('active-right-slide');
         } else {
             let currentSlideIndex = 0;
             const switchSlide = () => {
                 const slideIdToShow = slidesToRotate[currentSlideIndex];
-                if(document.getElementById(slideIdToShow)) {
-                    allSlides.forEach(slide => slide.classList.toggle('active-right-slide', slide.id === slideIdToShow));
+                const slideElement = document.getElementById(slideIdToShow);
+                if (slideElement) {
+                    allSlides.forEach(slide => slide.classList.remove('active-right-slide'));
+                    slideElement.classList.add('active-right-slide');
                 }
                 currentSlideIndex = (currentSlideIndex + 1) % slidesToRotate.length;
                 window.rightColumnCarouselTimeout = setTimeout(switchSlide, rightColumnSlideDuration);
@@ -948,62 +919,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- FUNCIÓN PARA EL CARRUSEL DE NOVEDADES ---
-    function setupNovedadesCarousel(novedadesData) {
-        const container = document.getElementById('novedades-content');
-        const indicator = document.getElementById('novedades-page-indicator');
-        if (!container || !indicator) return 1; // Devuelve 1 si los elementos no existen
+    function setupNovedadesCarousel(novedadesData, container) {
+        if (!container) return 1;
 
-        if (window.novedadesCarouselInterval) {
-            clearInterval(window.novedadesCarouselInterval);
-        }
+        const novedades = novedadesData.entradas || [];
+        const pageIndicator = document.getElementById('novedades-page-indicator');
+        const panelNovedades = container.closest('.dashboard-panel'); // Busca el panel padre
+        const isExpanded = panelNovedades && panelNovedades.classList.contains('full-height');
 
-        const entradas = novedadesData.entradas || [];
-        indicator.textContent = '';
-
-        if (entradas.length === 0) {
+        if (novedades.length === 0) {
             container.innerHTML = '<p>No hay novedades para mostrar.</p>';
-            return 1; // Considera "1 página" de contenido
+            if (pageIndicator) pageIndicator.innerHTML = '';
+            return 1;
         }
 
-        const ITEMS_PER_PAGE = 4;
-        const reversedEntradas = entradas.slice().reverse();
-        const totalPages = Math.ceil(reversedEntradas.length / ITEMS_PER_PAGE);
-
-        if (totalPages <= 1) {
-            container.innerHTML = reversedEntradas.map(item =>
-                `<p><strong>[${item.timestamp}]</strong>: ${item.texto}</p>`
-            ).join('');
-            return 1; // Solo hay una página
+        if (isExpanded) {
+            // --- MODO EXPANDIDO: Lista única con scroll ---
+            const listItemsHtml = novedades.map(item => `<li><strong>${item.hora} - ${item.tipo}:</strong> ${item.descripcion}</li>`).join('');
+            container.innerHTML = `<ul class="dashboard-list scrollable-list">${listItemsHtml}</ul>`;
+            if (pageIndicator) pageIndicator.innerHTML = `(${novedades.length} en total)`;
+            return 1; // Solo hay una "página"
+        } else {
+            // --- MODO COMPACTO: Paginación original ---
+            const ITEMS_PER_PAGE = 3;
+            const pages = [];
+            for (let i = 0; i < novedades.length; i += ITEMS_PER_PAGE) {
+                pages.push(novedades.slice(i, i + ITEMS_PER_PAGE));
+            }
+            
+            const carouselHtml = pages.map((page, pageIndex) => {
+                const listItemsHtml = page.map(item => `<li><strong>${item.hora} - ${item.tipo}:</strong> ${item.descripcion}</li>`).join('');
+                return `<div class="novedades-slide" data-page-index="${pageIndex}"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
+            }).join('');
+            
+            container.innerHTML = carouselHtml;
+            // Aquí iría la lógica del carrusel interno de novedades si la tuvieras.
+            return pages.length;
         }
-
-        const pages = [];
-        for (let i = 0; i < reversedEntradas.length; i += ITEMS_PER_PAGE) {
-            pages.push(reversedEntradas.slice(i, i + ITEMS_PER_PAGE));
-        }
-
-        container.innerHTML = pages.map((page, index) => `
-            <div class="novedad-page ${index === 0 ? 'active' : ''}">
-                ${page.map(item => `<p><strong>[${item.timestamp}]</strong>: ${item.texto}</p>`).join('')}
-            </div>
-        `).join('');
-
-        let currentPage = 0;
-        const pageElements = container.querySelectorAll('.novedad-page');
-
-        const updateIndicator = () => {
-            indicator.textContent = `Página ${currentPage + 1} de ${totalPages}`;
-        };
-
-        updateIndicator();
-
-        window.novedadesCarouselInterval = setInterval(() => {
-            pageElements[currentPage].classList.remove('active');
-            currentPage = (currentPage + 1) % totalPages;
-            pageElements[currentPage].classList.add('active');
-            updateIndicator();
-        }, 15000); // 15 segundos por página
-
-        return totalPages; // <-- ¡LA LÍNEA MÁS IMPORTANTE!
     }
 
     function renderAlertasList(container, items, noItemsText) {
