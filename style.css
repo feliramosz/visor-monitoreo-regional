@@ -2469,11 +2469,11 @@ footer {
 
 /* --- Estilos para el GIF del Panel SEC --- */
 .sec-gif-container {
-    flex-grow: 1; /* Hace que el contenedor ocupe el espacio vertical restante */
     display: flex;
-    justify-content: center; /* Centra horizontalmente */
-    align-items: center;   /* Centra verticalmente */
-    padding: 15px 0;
+    justify-content: center;
+    align-items: center;
+    padding-top: 5px;  /* Mantiene un pequeño espacio con la tabla de arriba */
+    margin-top: auto;   /* <-- Esta es la línea clave que empuja el GIF hacia abajo */
 }
 
 .sec-gif-container img {
