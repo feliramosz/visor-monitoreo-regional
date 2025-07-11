@@ -766,14 +766,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container) return;
         if (window.rightColumnCarouselTimeout) clearTimeout(window.rightColumnCarouselTimeout);
 
+        // 1. Obtenemos los 3 checkboxes del panel derecho
         const showNovedadesCheck = document.getElementById('showNovedadesPanel');
         const showEmergenciasCheck = document.getElementById('showEmergenciasPanel');
         const showWazeCheck = document.getElementById('showWazePanel');
 
+        // Verificación de seguridad
         if (!showNovedadesCheck || !showEmergenciasCheck || !showWazeCheck) {
+            console.error("Error: Faltan checkboxes de control del panel derecho. Verifica los IDs en dashboard.html.");
             return;
         }
 
+        // 2. Obtenemos todos los datos necesarios
         const wazeAccidents = await (async () => { try { return await (await fetch('/api/waze')).json(); } catch { return []; } })();
         const novedades = novedadesData.entradas || [];
         const emergencias = data.emergencias_ultimas_24_horas || [];
@@ -785,81 +789,53 @@ document.addEventListener('DOMContentLoaded', () => {
             return pages;
         };
         
-        const novedadesPages = paginateItems(novedades, 5);
-        const emergenciasPages = paginateItems(emergencias, 3);
-
+        // 3. Construimos las slides que estén activadas por su checkbox
         let slidesHTML = '';
         const slidesToRotate = [];
-        const useExpandedLayout = (novedades.length > 3) || (wazeAccidents.length > 3) || (emergencias.length > 2);
 
-        if (useExpandedLayout) {
-            if (showNovedadesCheck.checked && novedades.length > 0) {
-                novedadesPages.forEach((page, index, pages) => {
-                    const slideId = `novedades-slide-${index}`;
-                    slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div><span>N° ${novedadesData.numero_informe_manual || '---'}</span></div></div><div class="list-container"><ul class="dashboard-list"></ul></div></div></div>`;
-                    slidesToRotate.push({ id: slideId, type: 'novedad', content: page });
-                });
-            }
-            if (showEmergenciasCheck.checked && emergencias.length > 0) {
-                emergenciasPages.forEach((page, index, pages) => {
-                    const slideId = `emergencias-slide-${index}`;
-                    const items = page.map(item => `<tr><td>${item.n_informe||'N/A'}</td><td>${item.fecha_hora||'N/A'}</td><td>${item.evento_lugar||'N/A'}</td><td>${item.resumen||''}</td></tr>`).join('');
-                    slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><h3>Informes Emitidos (24h) ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div class="table-container"><table class="compact-table table-layout-auto"><thead><tr><th>N°</th><th>Fecha/Hora</th><th>Evento/Lugar</th><th>Resumen</th></tr></thead><tbody>${items}</tbody></table></div></div></div>`;
-                    slidesToRotate.push({ id: slideId, type: 'emergencia' });
-                });
-            }
-            if (showWazeCheck.checked) {
-                slidesHTML += `<div id="waze-slide" class="right-column-slide"><div class="dashboard-panel full-height"><h3>Accidentes reportados en Waze</h3><div id="waze-incidents-container"></div></div></div>`;
-                slidesToRotate.push({ id: 'waze-slide', type: 'waze' });
-            }
-        } else {
-            if (showNovedadesCheck.checked) {
-                slidesHTML += `<div id="novedades-waze-slide" class="right-column-slide"><div id="panel-novedades" class="dashboard-panel"></div><div id="panel-waze" class="dashboard-panel"><h3>Accidentes reportados en Waze</h3><div id="waze-incidents-container"></div></div></div>`;
-                slidesToRotate.push({ id: 'novedades-waze-slide' });
-            }
-            if (showEmergenciasCheck.checked && emergencias.length > 0) {
-                const items = emergencias.map(item => `<tr><td>${item.n_informe||'N/A'}</td><td>${item.fecha_hora||'N/A'}</td><td>${item.evento_lugar||'N/A'}</td><td>${item.resumen||''}</td></tr>`).join('');
-                slidesHTML += `<div id="emergencias-slide" class="right-column-slide"><div id="panel-emergencias-dashboard" class="dashboard-panel"><h3 class="compact-title">Informes Emitidos (Últimas 24h)</h3><div class="table-container"><table class="compact-table table-layout-auto"><thead><tr><th>N°</th><th>Fecha/Hora</th><th>Evento/Lugar</th><th>Resumen</th></tr></thead><tbody>${items}</tbody></table></div></div></div>`;
-                slidesToRotate.push({ id: 'emergencias-slide' });
-            }
+        // Panel de Novedades
+        if (showNovedadesCheck.checked && novedades.length > 0) {
+            paginateItems(novedades, 5).forEach((page, index, pages) => {
+                const slideId = `novedades-slide-${index}`;
+                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div id="informe-correlativo"><span>N° ${novedadesData.numero_informe_manual || '---'}</span></div></div><div class="list-container"><ul class="dashboard-list"></ul></div></div></div>`;
+                slidesToRotate.push({ id: slideId, type: 'novedad', content: page });
+            });
         }
 
-        if (slidesToRotate.length === 0 && (showNovedadesCheck.checked || showWazeCheck.checked)) {
-            slidesHTML += `<div id="novedades-waze-slide" class="right-column-slide"><div id="panel-novedades" class="dashboard-panel"></div><div id="panel-waze" class="dashboard-panel"><h3>Accidentes reportados en Waze</h3><div id="waze-incidents-container"></div></div></div>`;
-            slidesToRotate.push({ id: 'novedades-waze-slide' });
+        // Panel de Emergencias
+        if (showEmergenciasCheck.checked && emergencias.length > 0) {
+            paginateItems(emergencias, 3).forEach((page, index, pages) => {
+                const slideId = `emergencias-slide-${index}`;
+                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><h3>Informes Emitidos (24h) ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div class="table-container"><table class="compact-table table-layout-auto"><thead><tr><th>N°</th><th>Fecha/Hora</th><th>Evento/Lugar</th><th>Resumen</th></tr></thead><tbody></tbody></table></div></div></div>`;
+                slidesToRotate.push({ id: slideId, type: 'emergencia', content: page });
+            });
         }
-        
+
+        // Panel de Waze
+        if (showWazeCheck.checked) { // Se muestra siempre que el check esté activo
+            slidesHTML += `<div id="waze-slide" class="right-column-slide"><div class="dashboard-panel full-height"><h3>Accidentes reportados en Waze</h3><div id="waze-incidents-container"></div></div></div>`;
+            slidesToRotate.push({ id: 'waze-slide', type: 'waze' });
+        }
+
         container.innerHTML = slidesHTML;
 
+        // 4. Poblamos el contenido de las slides recién creadas
         slidesToRotate.forEach(slideInfo => {
             const slideElement = document.getElementById(slideInfo.id);
             if (!slideElement) return;
 
             if (slideInfo.type === 'novedad') {
-                const listContainer = slideElement.querySelector('.list-container ul');
-                if(listContainer) listContainer.innerHTML = slideInfo.content.map(item => `<li><strong>[${item.timestamp}]</strong> ${item.texto}</li>`).join('');
+                slideElement.querySelector('.list-container ul').innerHTML = slideInfo.content.map(item => `<li><strong>[${item.timestamp}]</strong> ${item.texto}</li>`).join('');
             } else if (slideInfo.type === 'emergencia') {
-                const tableBody = slideElement.querySelector('tbody');
-                // This case doesn't need repopulating as HTML is already complete
+                slideElement.querySelector('tbody').innerHTML = slideInfo.content.map(item => `<tr><td>${item.n_informe||'N/A'}</td><td>${item.fecha_hora||'N/A'}</td><td>${item.evento_lugar||'N/A'}</td><td>${item.resumen||''}</td></tr>`).join('');
             } else if (slideInfo.type === 'waze') {
                 fetchAndRenderWazeData(slideElement.querySelector('#waze-incidents-container'), wazeAccidents);
-            } else if (slideInfo.id === 'novedades-waze-slide') {
-                const panelNovedades = document.getElementById('panel-novedades');
-                if(panelNovedades) {
-                    panelNovedades.innerHTML = `<div class="novedades-header"><h3>Novedades</h3><div id="informe-correlativo"><span>N° ${novedadesData.numero_informe_manual || '---'}</span></div></div><div id="novedades-content"></div>`;
-                    setupNovedadesCarousel(novedadesData, panelNovedades.querySelector('#novedades-content'));
-                }
-                const wazeContainer = document.getElementById('waze-incidents-container');
-                if (wazeContainer) {
-                    fetchAndRenderWazeData(wazeContainer, wazeAccidents);
-                }
             }
         });
         
+        // 5. Lógica de Rotación y Animación (sin cambios)
         const allSlides = container.querySelectorAll('.right-column-slide');
-        if (slidesToRotate.length === 0) return;
-
-        if (slidesToRotate.length === 1) {
+        if (slidesToRotate.length <= 1) {
             if (allSlides.length > 0) allSlides[0].classList.add('active-right-slide');
         } else {
             let currentSlideIndex = 0;
@@ -891,7 +867,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     window.rightColumnCarouselTimeout = setTimeout(switchSlide, duration);
                 }
-                
                 currentSlideIndex = (currentSlideIndex + 1) % slidesToRotate.length;
             };
             switchSlide();
