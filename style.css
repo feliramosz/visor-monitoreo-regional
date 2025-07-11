@@ -2366,29 +2366,29 @@ footer {
 
 /* El contenedor de la marquesina que ocupa el espacio disponible */
 #notification-marquee-container {
-    flex-grow: 1; /* Permite que ocupe todo el espacio sobrante */
+    flex-grow: 1;
     background-color: rgba(0, 0, 0, 0.2);
     border-radius: 4px;
     height: 30px;
-    overflow: hidden; /* Oculta el texto que se sale de los bordes */
+    overflow: hidden;
     position: relative;
     display: flex;
-    align-items: center;
+    align-items: center;    
+    opacity: 0; /* Empieza oculta */
+    transition: opacity 0.5s ease-in-out; /* Transición suave para aparecer/desaparecer */
 }
 
 /* El texto que se desplazará */
 #notification-marquee-text {
     position: absolute;
     margin: 0;
-    padding-left: 100%; /* Inicia justo fuera de la vista a la derecha */
-    white-space: nowrap; /* Evita que el texto se parta en varias líneas */
+    padding-left: 100%;
+    white-space: nowrap;
     color: #f0f0f0;
     font-weight: bold;
     font-size: 0.9em;
     animation-name: scroll-left;
-    animation-duration: 25s; /* Duración por defecto, se ajustará con JS */
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
+    animation-timing-function: linear;    
 }
 
 /* La animación de desplazamiento */

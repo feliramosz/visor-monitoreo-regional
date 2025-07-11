@@ -1682,17 +1682,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateMarquee(newText) {
+        const marqueeContainer = document.getElementById('notification-marquee-container');
         const marqueeText = document.getElementById('notification-marquee-text');
-        if (!marqueeText) return;
+        if (!marqueeContainer || !marqueeText) return;
 
-        // Actualiza el texto
+        // 1. Prepara el texto y la duración de la animación
+        // Hacemos que la animación sea un poco más rápida para textos cortos
+        const duration = Math.max(15, newText.length / 5); // Duración en segundos
         marqueeText.textContent = `📢 ${newText}`;
+        marqueeText.style.animation = 'none'; // Detiene cualquier animación en curso
 
-        // Reinicia la animación para que el texto nuevo siempre empiece desde la derecha
-        marqueeText.style.animation = 'none';
-        // Forzamos un reflow del navegador, un truco para que el reinicio de la animación funcione
+        // 2. Hace visible el contenedor de la marquesina
+        marqueeContainer.style.opacity = '1';
+
+        // 3. Inicia la animación una sola vez
+        // Usamos un truco para forzar el reinicio de la animación
         marqueeText.offsetHeight; 
-        marqueeText.style.animation = ''; 
+        marqueeText.style.animation = `scroll-left ${duration}s linear 1`; // "1" significa que se ejecuta una sola vez
+
+        // 4. Oculta la marquesina cuando la animación termina
+        setTimeout(() => {
+            marqueeContainer.style.opacity = '0';
+        }, duration * 1000); // El tiempo de espera debe coincidir con la duración de la animación
     }
     
     async function gestionarNotificacionTsunami() {
