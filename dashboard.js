@@ -776,11 +776,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const novedades = novedadesData.entradas || [];
         const emergencias = data.emergencias_ultimas_24_horas || [];
 
-        const paginateItems = (items, itemsPerPage) => {
-            if (!items || !items.length) return [];
-            const pages = [];
-            for (let i = 0; i < items.length; i += itemsPerPage) { pages.push(items.slice(i, i + ITEMS_PER_PAGE)); }
-            return pages;
+        const paginateItems = (items, itemsPerPage) => {            
+            if (!items || items.length === 0) return [];
+            const pages = [];            
+            for (let i = 0; i < items.length; i += itemsPerPage) {
+                pages.push(items.slice(i, i + itemsPerPage));
+            }
+            return pages;        
         };
         
         const novedadesPages = paginateItems(novedades, 5);
