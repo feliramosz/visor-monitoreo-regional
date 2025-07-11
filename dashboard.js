@@ -773,6 +773,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const wazeAccidents = await (async () => { try { return await (await fetch('/api/waze')).json(); } catch { return []; } })();
+        const loadingGif = document.getElementById('waze-loading-gif');
+        if (loadingGif && wazeAccidents.length > 0) {
+            loadingGif.style.display = 'none';
+        } else if (loadingGif && wazeAccidents.length === 0) {
+            loadingGif.style.display = 'block';
+        }
         const novedades = novedadesData.entradas || [];
         const emergencias = data.emergencias_ultimas_24_horas || [];
 
@@ -904,7 +910,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (accidents.length === 0) {
-                container.innerHTML = '<p class="no-waze-incidents"><span class="checkmark-icon">✅</span> No hay accidentes reportados en este momento.</p>';
+                container.innerHTML = `<div class="no-waze-container">
+                    <p class="no-waze-incidents"><span class="checkmark-icon">✅</span> No hay accidentes reportados en este momento.</p>
+                    <img id="waze-loading-gif" src="https://www.deeplearning.ai/_next/image/?url=https%3A%2F%2Fcharonhub.deeplearning.ai%2Fcontent%2Fimages%2F2021%2F08%2FNear-Miss-Detection-1.gif&w=1920&q=75" alt="Cargando accidentes..." style="width: 50px; margin-top: 10px;">
+                </div>`;
                 if (controls) controls.style.display = 'none';
                 return;
             }
