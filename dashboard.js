@@ -881,9 +881,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return pages;
     };
 
-    const novedadesPages = paginateItems(novedades, 5);
-    const emergenciasPages = paginateItems(emergencias, 3);
-    
+      
     // --- FUNCIÓN PARA CARGAR DATOS DE WAZE Y RENDERIZARLOS ---
     async function fetchAndRenderWazeData(container, preloadedAccidents) {
         if (!container) return;
