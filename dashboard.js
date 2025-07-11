@@ -491,16 +491,14 @@ document.addEventListener('DOMContentLoaded', () => {
             'Putaendo Resguardo Los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
         };
 
-        const stationsData = data.datos_hidrometricos || [];   
+        const stationsData = data.datos_hidrometricos || [];
 
-        // Función de ayuda para calcular los DATOS del medidor.
+        // --- Funciones de ayuda (Helpers) ---
+
         const getGaugeData = (value, threshold) => {
             const currentValue = (value !== null && !isNaN(value)) ? parseFloat(value) : 0;
             const maxScale = threshold.roja * 1.2; 
-            let percentage = 0;
-            if (maxScale > 0) {
-                percentage = currentValue / maxScale;
-            }
+            let percentage = (maxScale > 0) ? (currentValue / maxScale) : 0;
             const rotation = -90 + (percentage * 180);
             return {
                 value: currentValue.toFixed(2),
@@ -510,23 +508,36 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         };
 
-        // Función de ayuda para generar el HTML de las MARCAS del medidor.
         const generateMarksHTML = (threshold) => {
             const maxScale = threshold.roja * 1.2;
             let marksHTML = '';
-            const percentages = [0.25, 0.50, 0.75];
             
-            percentages.forEach(p => {
-                const value = (maxScale * p).toFixed(1);
-                const rotation = -90 + (p * 180);
+            // --- LÓGICA MEJORADA PARA MARCAS "INTELIGENTES" ---
+            let step = 1;
+            if (maxScale > 1000) step = 250;
+            else if (maxScale > 500) step = 100;
+            else if (maxScale > 100) step = 25;
+            else if (maxScale > 50) step = 10;
+            else if (maxScale > 10) step = 2;
+
+            for (let i = step; i < maxScale; i += step) {
+                const percentage = i / maxScale;
+                const rotation = -90 + (percentage * 180);
                 marksHTML += `
                     <div class="gauge-mark" style="transform: rotate(${rotation}deg);"></div>
-                    <div class="gauge-mark-label" style="transform: rotate(${rotation}deg) translateY(-8px) rotate(${-rotation}deg);">${value}</div>
+                    <div class="gauge-mark-label" style="transform: rotate(${rotation}deg) translateY(-8px) rotate(${-rotation}deg);">${i}</div>
                 `;
-            });
+            }
+
+            // Añadir una marca específica para el umbral rojo
+            const redPercentage = threshold.roja / maxScale;
+            const redRotation = -90 + (redPercentage * 180);
+            marksHTML += `<div class="gauge-mark" style="transform: rotate(${redRotation}deg); background-color: #a42319;"></div>`;
+
             return marksHTML;
         };
 
+        // --- FIN de las funciones de ayuda ---
 
         hydroContainer.innerHTML = Object.keys(hydroThresholds).map(stationName => {
             const station = stationsData.find(s => s.nombre_estacion === stationName) || { nivel_m: null, caudal_m3s: null };
@@ -534,13 +545,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const hasData = station.nivel_m !== null || station.caudal_m3s !== null;
             const ledClass = hasData ? 'led-green' : 'led-red';
 
-            // --- Se llama a las funciones de ayuda para obtener los valores ---
             const nivelGauge = getGaugeData(station.nivel_m, thresholds.nivel);
             const caudalGauge = getGaugeData(station.caudal_m3s, thresholds.caudal);
-
             const nivelMarksHTML = generateMarksHTML(thresholds.nivel);
-            const caudalMarksHTML = generateMarksHTML(thresholds.caudal);           
+            const caudalMarksHTML = generateMarksHTML(thresholds.caudal);
 
+            // --- ESTRUCTURA HTML ACTUALIZADA ---
             return `
                 <div class="hydro-station-card">
                     <div class="hydro-card-header">
@@ -550,25 +560,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="gauges-container">
                         <div class="gauge-unit">
                             <p class="gauge-label">Altura (m)</p>
-                            <div class="threshold-label-left"><span class="threshold-amarillo">A: ${nivelGauge.amarilla}</span></div>
                             <div class="gauge-wrapper">
                                 <div class="gauge-arc-background"></div>
                                 ${nivelMarksHTML}
                                 <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
                             </div>
-                            <div class="threshold-label-right"><span class="threshold-rojo">R: ${nivelGauge.roja}</span></div>
                             <p class="gauge-current-value blinking-value">${nivelGauge.value}</p>
+                            <p class="threshold-label-amarilla">A: ${nivelGauge.amarilla}</p>
+                            <p class="threshold-label-roja">R: ${nivelGauge.roja}</p>
                         </div>
                         <div class="gauge-unit">
                             <p class="gauge-label">Caudal (m³/s)</p>
-                            <div class="threshold-label-left"><span class="threshold-amarillo">A: ${caudalGauge.amarilla}</span></div>
                             <div class="gauge-wrapper">
                                 <div class="gauge-arc-background"></div>
                                 ${caudalMarksHTML}
                                 <div class="gauge-needle" style="transform: rotate(${caudalGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
                             </div>
-                            <div class="threshold-label-right"><span class="threshold-rojo">R: ${caudalGauge.roja}</span></div>
                             <p class="gauge-current-value blinking-value">${caudalGauge.value}</p>
+                            <p class="threshold-label-amarilla">A: ${caudalGauge.amarilla}</p>
+                            <p class="threshold-label-roja">R: ${caudalGauge.roja}</p>
                         </div>
                     </div>                    
                 </div>
