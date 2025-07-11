@@ -801,7 +801,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="dashboard-panel full-height">
                                     <div class="novedades-header">
                                         <h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3>
-                                        <div id="informe-correlativo"><span>N° ${novedadesData.numero_informe_manual || '---'}</span></div>
+                                        <div id="informe-correlativo"><span>N° último informe ${novedadesData.numero_informe_manual || '---'}</span></div>
                                     </div>
                                     <div class="list-container"><ul class="dashboard-list">${listItemsHtml}</ul></div>
                                 </div>
