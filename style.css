@@ -2423,3 +2423,19 @@ footer {
     white-space: nowrap; /* Evita que el texto se parta en dos líneas */
     margin-left: 15px;
 }
+
+/* --- Estilos para Paneles Dinámicos de Columna Derecha --- */
+/* Esta clase hará que el panel ocupe toda la altura de la columna */
+.dashboard-panel.full-height {
+    flex-grow: 1; /* Permite que el panel crezca verticalmente */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Asegura que el contenido con scroll (listas, tablas) use el espacio disponible */
+.dashboard-panel.full-height .table-container,
+.dashboard-panel.full-height #novedades-content,
+.dashboard-panel.full-height #waze-incidents-container {
+    flex-grow: 1;
+    overflow-y: auto;
+}
