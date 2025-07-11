@@ -21,12 +21,6 @@ import sqlite3
 import unicodedata
 import uuid
 from werkzeug.security import check_password_hash, generate_password_hash
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8000
@@ -145,7 +139,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         
                         # Formateamos los textos para que sean más legibles
                         tipo = restriccion.get('tiporestriccion', '').strip().capitalize()
-                        nave = restriccion.get('NaveRecibe', '').replace('(&GT;=100 AB)', '').strip().lower()
+                        nave_raw = restriccion.get('NaveRecibe', '')
+                        nave = re.sub(r'\s*\([^)]*100\s*ab[^)]*\)', '', nave_raw, flags=re.IGNORECASE).strip().lower()
                         motivo = restriccion.get('MotivoRestriccion', '').strip().capitalize()
 
                         # Construimos las cadenas para cada columna
