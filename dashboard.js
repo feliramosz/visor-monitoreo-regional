@@ -796,7 +796,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const slideId = `novedades-slide-${index}`;
                 const listItemsHtml = page.map(item => `<li><strong>[${item.timestamp}]</strong> ${item.texto}</li>`).join('');
                 
-                // AQUÍ ESTÁ LA ESTRUCTURA HTML CORREGIDA:
+                
                 slidesHTML += `<div id="${slideId}" class="right-column-slide">
                                 <div class="dashboard-panel full-height">
                                     <div class="novedades-header">
