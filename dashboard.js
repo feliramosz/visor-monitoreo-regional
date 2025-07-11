@@ -769,9 +769,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- 1. OBTENEMOS DATOS Y VERIFICAMOS CONDICIONES ---
         let wazeAccidents = [];
-        try {
-            wazeAccidents = await (await fetch('/api/waze')).json();
-        } catch (e) { console.error("No se pudo obtener datos de Waze."); }
+        try { wazeAccidents = await (await fetch('/api/waze')).json(); } catch (e) { console.error("Fallo al obtener Waze."); }
 
         const novedades = novedadesData.entradas || [];
         const emergencias = data.emergencias_ultimas_24_horas || [];
@@ -779,44 +777,45 @@ document.addEventListener('DOMContentLoaded', () => {
         const expandNovedades = novedades.length > 3;
         const expandWaze = wazeAccidents.length > 3;
         const expandEmergencias = emergencias.length > 2;
-
         const useExpandedLayout = expandNovedades || expandWaze || expandEmergencias;
 
-        // --- 2. CONSTRUIMOS LAS SLIDES RESPETANDO LOS CHECKBOXES ---
+        // --- 2. CONSTRUIMOS LAS SLIDES CON LA LÓGICA CORREGIDA ---
         let slidesHTML = '';
         const slidesToRotate = [];
 
+        // --- LÓGICA PARA EL MODO EXPANDIDO ---
         if (useExpandedLayout) {
-            // --- MODO EXPANDIDO ---
-            if (novedades.length > 0 && controls.showNovedadesSlide.checked) {
+            if (controls.showNovedadesSlide.checked && novedades.length > 0) {
                 slidesHTML += `<div id="novedades-slide" class="right-column-slide"><div id="panel-novedades" class="dashboard-panel full-height"></div></div>`;
                 slidesToRotate.push('novedades-slide');
             }
-            if (wazeAccidents.length > 0 && controls.showNovedadesSlide.checked) { // Waze se controla con el mismo check que Novedades
+            if (controls.showNovedadesSlide.checked && wazeAccidents.length > 0) { // Waze se muestra si su check (el de novedades) está activo
                 slidesHTML += `<div id="waze-slide" class="right-column-slide"><div id="panel-waze" class="dashboard-panel full-height"><h3>Accidentes reportados en Waze</h3><div id="waze-incidents-container"></div></div></div>`;
                 slidesToRotate.push('waze-slide');
             }
-            if (emergencias.length > 0 && controls.showEmergenciasSlide.checked) {
-                const items = emergencias.map(item => `<tr><td>${item.n_informe||'N/A'}</td><td>${item.fecha_hora||'N/A'}</td><td>${item.evento_lugar||'N/A'}</td></tr>`).join('');
-                slidesHTML += `<div id="emergencias-slide" class="right-column-slide"><div id="panel-emergencias-dashboard" class="dashboard-panel full-height"><h3>Informes Emitidos (Últimas 24h)</h3><div class="table-container"><table><thead><tr><th>N° Informe</th><th>Fecha y Hora</th><th>Evento / Lugar</th></tr></thead><tbody>${items}</tbody></table></div></div></div>`;
+            if (controls.showEmergenciasSlide.checked && emergencias.length > 0) {
+                const items = emergencias.map(item => `<tr><td>${item.n_informe||'N/A'}</td><td>${item.fecha_hora||'N/A'}</td><td>${item.evento_lugar||'N/A'}</td><td>${item.resumen||''}</td></tr>`).join('');
+                slidesHTML += `<div id="emergencias-slide" class="right-column-slide"><div id="panel-emergencias-dashboard" class="dashboard-panel full-height"><h3>Informes Emitidos (Últimas 24h)</h3><div class="table-container"><table><thead><tr><th>N°</th><th>Fecha/Hora</th><th>Evento/Lugar</th><th>Resumen</th></tr></thead><tbody>${items}</tbody></table></div></div></div>`;
                 slidesToRotate.push('emergencias-slide');
             }
-        } else {
-            // --- MODO COMPACTO ---
-            if (novedades.length > 0 && controls.showNovedadesSlide.checked) {
+        } 
+        // --- LÓGICA PARA EL MODO COMPACTO ---
+        else {
+            // Se muestra la slide de Novedades/Waze si su check está activo O si ambos están desactivados (caso por defecto).
+            if (controls.showNovedadesSlide.checked || !controls.showEmergenciasSlide.checked) {
                 slidesHTML += `<div id="novedades-waze-slide" class="right-column-slide"><div id="panel-novedades" class="dashboard-panel"></div><div id="panel-waze" class="dashboard-panel"><h3>Accidentes reportados en Waze</h3><div id="waze-incidents-container"></div></div></div>`;
                 slidesToRotate.push('novedades-waze-slide');
             }
-            if (emergencias.length > 0 && controls.showEmergenciasSlide.checked) {
-                const items = emergencias.map(item => `<tr><td>${item.n_informe||'N/A'}</td><td>${item.fecha_hora||'N/A'}</td><td>${item.evento_lugar||'N/A'}</td></tr>`).join('');
-                slidesHTML += `<div id="emergencias-slide" class="right-column-slide"><div id="panel-emergencias-dashboard" class="dashboard-panel"><h3 class="compact-title">Informes Emitidos (Últimas 24h)</h3><div class="table-container"><table><thead><tr><th>N° Informe</th><th>Fecha y Hora</th><th>Evento / Lugar</th></tr></thead><tbody>${items}</tbody></table></div></div></div>`;
+            if (controls.showEmergenciasSlide.checked && emergencias.length > 0) {
+                const items = emergencias.map(item => `<tr><td>${item.n_informe||'N/A'}</td><td>${item.fecha_hora||'N/A'}</td><td>${item.evento_lugar||'N/A'}</td><td>${item.resumen||''}</td></tr>`).join('');
+                slidesHTML += `<div id="emergencias-slide" class="right-column-slide"><div id="panel-emergencias-dashboard" class="dashboard-panel"><h3 class="compact-title">Informes Emitidos (Últimas 24h)</h3><div class="table-container"><table><thead><tr><th>N°</th><th>Fecha/Hora</th><th>Evento/Lugar</th><th>Resumen</th></tr></thead><tbody>${items}</tbody></table></div></div></div>`;
                 slidesToRotate.push('emergencias-slide');
             }
         }
 
         container.innerHTML = slidesHTML;
 
-        // --- 3. POBLAMOS LOS PANELES CREADOS ---
+        // --- 3. POBLAR PANELES ---
         const panelNovedades = document.getElementById('panel-novedades');
         if(panelNovedades) {
             panelNovedades.innerHTML = `<div class="novedades-header"><h3>Novedades</h3><div id="novedades-page-indicator"></div><div id="informe-correlativo">N° último informe: <span id="numero-informe-display">${novedadesData.numero_informe_manual || '---'}</span></div></div><div id="novedades-content"></div>`;
@@ -924,7 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const novedades = novedadesData.entradas || [];
         const pageIndicator = document.getElementById('novedades-page-indicator');
-        const panelNovedades = container.closest('.dashboard-panel'); // Busca el panel padre
+        const panelNovedades = container.closest('.dashboard-panel');
         const isExpanded = panelNovedades && panelNovedades.classList.contains('full-height');
 
         if (novedades.length === 0) {
@@ -933,27 +932,27 @@ document.addEventListener('DOMContentLoaded', () => {
             return 1;
         }
 
+        // --- CORRECCIÓN: Se usa item.timestamp y item.texto ---
+        const renderItem = (item) => `<li><strong>[${item.timestamp}]</strong> ${item.texto}</li>`;
+
         if (isExpanded) {
-            // --- MODO EXPANDIDO: Lista única con scroll ---
-            const listItemsHtml = novedades.map(item => `<li><strong>${item.hora} - ${item.tipo}:</strong> ${item.descripcion}</li>`).join('');
+            const listItemsHtml = novedades.map(renderItem).join('');
             container.innerHTML = `<ul class="dashboard-list scrollable-list">${listItemsHtml}</ul>`;
             if (pageIndicator) pageIndicator.innerHTML = `(${novedades.length} en total)`;
-            return 1; // Solo hay una "página"
+            return 1;
         } else {
-            // --- MODO COMPACTO: Paginación original ---
             const ITEMS_PER_PAGE = 3;
             const pages = [];
             for (let i = 0; i < novedades.length; i += ITEMS_PER_PAGE) {
                 pages.push(novedades.slice(i, i + ITEMS_PER_PAGE));
             }
             
-            const carouselHtml = pages.map((page, pageIndex) => {
-                const listItemsHtml = page.map(item => `<li><strong>${item.hora} - ${item.tipo}:</strong> ${item.descripcion}</li>`).join('');
-                return `<div class="novedades-slide" data-page-index="${pageIndex}"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
+            const carouselHtml = pages.map((page) => {
+                const listItemsHtml = page.map(renderItem).join('');
+                return `<div class="novedades-slide"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
             }).join('');
             
             container.innerHTML = carouselHtml;
-            // Aquí iría la lógica del carrusel interno de novedades si la tuvieras.
             return pages.length;
         }
     }
