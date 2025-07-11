@@ -14,8 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Referencias a elementos del DOM
     const weatherBannerContainer = document.getElementById('weather-banner-container');
-    const headerAlertBanner = document.getElementById('header-alert-banner');
-    const numeroInformeDisplay = document.getElementById('numero-informe-display');
+    const headerAlertBanner = document.getElementById('header-alert-banner');    
     const novedadesContent = document.getElementById('novedades-content');
     const toggleTopBannerCheck = document.getElementById('toggleTopBanner');
     const toggleCentralCarouselCheck = document.getElementById('toggleCentralCarousel');
@@ -739,8 +738,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             lastData = data;
             lastNovedades = novedades;
-
-            numeroInformeDisplay.textContent = novedades.numero_informe_manual || 'N/A';
+            
             setupNovedadesCarousel(novedades);            
             setupTopBannerCarousel(data);
             setupCentralContent(data);
