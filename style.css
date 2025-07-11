@@ -2476,7 +2476,7 @@ footer {
 }
 
 .sec-gif-container img {
-    max-height: 110px; /* Altura máxima para que no sea demasiado grande */
+    max-height: 100px; /* Altura máxima para que no sea demasiado grande */
     max-width: 80%;    /* Ancho máximo para que no toque los bordes */
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
