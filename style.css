@@ -903,6 +903,7 @@ main.dashboard-grid {
     inset 1px 1px 3px rgba(0,0,0,0.4); 
     display: flex;
     flex-direction: column;
+    flex-grow: 0;
     flex: 1;
     min-height: 0;
 }
@@ -2480,4 +2481,11 @@ footer {
     max-width: 80%;    /* Ancho máximo para que no toque los bordes */
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+#sec-data-slide .dashboard-panel {
+    /* ... otros estilos ... */
+    max-height: 350px; /* Ajusta este valor según necesites */
+    overflow: hidden; /* Opcional: si el contenido excede la altura */
+    /* ... otros estilos ... */
 }
