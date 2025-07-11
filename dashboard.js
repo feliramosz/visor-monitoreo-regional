@@ -792,10 +792,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const slidesToRotate = [];
 
         if (showNovedadesCheck.checked && novedades.length > 0) {
-            novedadesPages.forEach((page, index, pages) => {
+            paginateItems(novedades, 5).forEach((page, index, pages) => {
                 const slideId = `novedades-slide-${index}`;
-                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div><span>N° ${novedadesData.numero_informe_manual || '---'}</span></div></div><div class="list-container"><ul class="dashboard-list"></ul></div></div></div>`;
-                slidesToRotate.push({ id: slideId, type: 'novedad', content: page });
+                const listItemsHtml = page.map(item => `<li><strong>[${item.timestamp}]</strong> ${item.texto}</li>`).join('');
+                
+                // AQUÍ ESTÁ LA ESTRUCTURA HTML CORREGIDA:
+                slidesHTML += `<div id="${slideId}" class="right-column-slide">
+                                <div class="dashboard-panel full-height">
+                                    <div class="novedades-header">
+                                        <h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3>
+                                        <div id="informe-correlativo"><span>N° ${novedadesData.numero_informe_manual || '---'}</span></div>
+                                    </div>
+                                    <div class="list-container"><ul class="dashboard-list">${listItemsHtml}</ul></div>
+                                </div>
+                            </div>`;
+                slidesToRotate.push({ id: slideId });
             });
         }
 
