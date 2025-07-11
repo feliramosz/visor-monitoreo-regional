@@ -342,8 +342,8 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
 
             // --- INICIO DE LA MODIFICACIÓN: Lógica del GIF condicional ---
-            const gifNormal = 'https://vpstart.com/storage/photos/10/Getting%20to%20know%20the%20electrical%20grid/Substation.gif';
-            const gifAlerta = 'https://us1.discourse-cdn.com/spiceworks/original/4X/b/4/a/b4aac0974a5cdb7a03a6919aa48e40f86d98fdb2.gif';
+            const gifNormal = 'https://media.baamboozle.com/uploads/images/804667/86ec0e19-47c5-4e57-8f2e-7752a8c3c33d.gif';
+            const gifAlerta = 'https://images.squarespace-cdn.com/content/v1/5d75891a7cccee2f7f911d76/1613049092180-DMW5H5WPJJC5CQBUAAVZ/Broken-Bulb.gif';
 
             const gifUrl = data.total_afectados_region > 0 ? gifAlerta : gifNormal;
 
