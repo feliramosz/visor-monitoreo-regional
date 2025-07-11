@@ -1877,13 +1877,13 @@ img, table {
 .gauge-unit {
     display: grid;
     grid-template-areas:
-        "title title title"
-        "gauge gauge gauge"
-        "label-a value label-r";
-    grid-template-columns: 1fr auto 1fr; 
-    gap: 2px 5px; 
+        ". title ."
+        "label-l gauge label-r"
+        ". value .";
+    grid-template-columns: 45px auto 45px;
     align-items: center;
     justify-items: center;
+    width: 50%;
 }
 
 .gauge-label {
@@ -1899,20 +1899,35 @@ img, table {
     height: 45px;
     position: relative;
     overflow: hidden;
-    margin-bottom: 2px;
 }
 
 .gauge-arc-background {
-    width: 90px; height: 90px; border-radius: 50%;
-    box-sizing: border-box; background: #4caf50; position: absolute;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    box-sizing: border-box;
+    background: #4caf50;
+    position: absolute;
 }
 
-.gauge-arc-background::before, .gauge-arc-background::after {
-    content: ''; position: absolute; width: 100%; height: 100%;
-    border-radius: 50%; box-sizing: border-box; clip: rect(0px, 90px, 45px, 0px);
+.gauge-arc-background::before,
+.gauge-arc-background::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    box-sizing: border-box;
+    clip: rect(0px, 90px, 45px, 0px);
 }
-.gauge-arc-background::before { background: #ffeb3b; transform: rotate(90deg); }
-.gauge-arc-background::after { background: #f44336; transform: rotate(135deg); }
+.gauge-arc-background::before {
+    background: #ffeb3b;    
+    transform: rotate(90deg);
+}
+.gauge-arc-background::after {
+    background: #f44336;
+    transform: rotate(135deg);
+}
 
 .gauge-needle {
     width: 2px;
@@ -1929,8 +1944,8 @@ img, table {
     width: 100%;
     height: 100%;
     background-color: #333;
-    border-radius: 2px;        
-    animation: needle-settling-swing 4s ease-in-out infinite;
+    border-radius: 2px;    
+    animation: needle-vibration 3s ease-in-out infinite;
 }
 
 @keyframes needle-vibration {
@@ -1940,55 +1955,12 @@ img, table {
     100% { transform: rotate(0deg); }
 }
 
-@keyframes needle-settling-swing {
-    0%   { transform: rotate(-2deg); }
-    50%  { transform: rotate(2deg); }
-    100% { transform: rotate(-2deg); }
-}
-
-
 .gauge-current-value {
     grid-area: value;
     font-size: 1.2em;
     font-weight: bold;
     color: #004d99;
-}
-
-/* ESTILOS para los umbrales A y R en la parte inferior */
-.threshold-label-amarilla, .threshold-label-roja {
-    font-size: 0.75em;
-    font-weight: bold;
-}
-.threshold-label-amarilla {
-    grid-area: label-a;
-    text-align: right;
-    color: #b48b00;
-}
-.threshold-label-roja {
-    grid-area: label-r;
-    text-align: left;
-    color: #a42319;
-}
-
-/* --- ESTILOS PARA MARCAS DEL MEDIDOR HIDROMÉTRICO --- */
-.gauge-mark {
-    position: absolute;
-    bottom: 43px; /* Posiciona la marca en el borde del arco */
-    left: 44px;
-    width: 2px;
-    height: 6px; /* Altura de la línea de la marca */
-    background-color: #555;
-    transform-origin: bottom center;
-}
-
-.gauge-mark-label {
-    position: absolute;
-    bottom: 50px; /* Posiciona la etiqueta un poco más afuera */
-    left: 45px;
-    font-size: 0.6em; /* Tamaño de letra pequeño */
-    font-weight: bold;
-    color: #333;
-    transform-origin: center center;
+    margin-top: 1px;
 }
 
 .threshold-label-left, .threshold-label-right {
