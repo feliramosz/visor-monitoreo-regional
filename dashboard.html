@@ -77,20 +77,24 @@
     <footer>
         <div id="dashboard-controls-container">
             <div class="control-group">
-                <label for="toggleTopBanner">📊 Rotar panel superior (Clima/Hidrologia):</label>
-                <input type="checkbox" id="toggleTopBanner">
+                <label>📊 Panel Superior:</label>
+                <input type="checkbox" id="showWeatherSlide" checked> <label for="showWeatherSlide">Clima</label>
+                <input type="checkbox" id="showHydroSlide"> <label for="showHydroSlide">Hidrología y Turnos</label>
             </div>
             <div class="control-group">
                 <label for="toggleSecSlide">⚡ Mostrar panel SEC:</label>
                 <input type="checkbox" id="toggleSecSlide" checked>
             </div>
             <div class="control-group">
-                <label for="toggleCentralCarousel">🖼️ Rotar panel central:</label>
-                <input type="checkbox" id="toggleCentralCarousel">
+                <label>🖼️ Panel Central:</label>
+                <input type="checkbox" id="showAlertsSlide" checked> <label for="showAlertsSlide">Alertas y Avisos</label>
+                <input type="checkbox" id="showSecDataSlide"> <label for="showSecDataSlide">SEC</label>
+                <input type="checkbox" id="showImageSlides"> <label for="showImageSlides">Imágenes</label>
             </div>
             <div class="control-group">
-                <label for="toggleRightColumn">🚨 Rotar panel Emergencias:</label>
-                <input type="checkbox" id="toggleRightColumn">
+                <label>🚨 Panel Derecho:</label>
+                <input type="checkbox" id="showNovedadesSlide" checked> <label for="showNovedadesSlide">Novedades y Waze</label>
+                <input type="checkbox" id="showEmergenciasSlide"> <label for="showEmergenciasSlide">Emergencias 24h</label>
             </div>
             <div class="control-group">
                 <label for="toggleNotifications">🔊 Activar Notificaciones Sonidos:</label>

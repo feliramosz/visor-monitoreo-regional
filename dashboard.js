@@ -93,66 +93,107 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('central-carousel-container');
         if (!container) return;
 
-        if (window.centralCarouselInterval) clearInterval(window.centralCarouselInterval);
+        if (window.centralCarouselInterval) {
+            clearTimeout(window.centralCarouselInterval);
+        }
         container.innerHTML = ''; // Limpiamos para reconstruir
 
-        // --- Lógica para decidir qué slides mostrar ---
-        const showSecSlide = localStorage.getItem('secSlideEnabled') !== 'false';
-        const useImageCarousel = localStorage.getItem('centralCarouselEnabled') === 'true';
-        const hasDynamicSlides = data.dynamic_slides && data.dynamic_slides.length > 0;
-
-        let slidesHTML = [];
-
-        // Prioridad: Si el carrusel de imágenes está activado, solo mostramos esas.
-        if (useImageCarousel && hasDynamicSlides) {
-            data.dynamic_slides.forEach(slideInfo => {
-                slidesHTML.push(`<div class="central-slide dynamic-image-slide"><div class="image-slide-content"><h2>${slideInfo.title || 'Visor de Monitoreo'}</h2><img src="${slideInfo.image_url}" alt="${slideInfo.title || ''}" class="responsive-image">${slideInfo.description ? `<p>${slideInfo.description}</p>` : ''}</div></div>`);
-            });
-        } else {
-            // Si no, mostramos las slides de información (Alertas y SEC)
-            // Slide 1: Alertas y Avisos (siempre se añade en este modo)
-            slidesHTML.push(`
-                <div class="central-slide">
-                    <div id="panel-alertas" class="dashboard-panel"><h3>Alertas Vigentes</h3><div id="alertas-list-container"></div></div>
-                    <div id="panel-avisos" class="dashboard-panel">
-                        <div id="panel-avisos-header"><h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span>/<span data-title-key="alertas">Alertas</span>/<span data-title-key="alarmas">Alarmas</span>/<span data-title-key="marejadas">Marejadas</span></h3><button id="aviso-pause-play-btn" style="display: none;">||</button></div>
-                        <div id="avisos-list-container"></div>
-                    </div>
-                </div>`);
-
-            // Slide 2: SEC (se añade si está habilitada)
-            if (showSecSlide) {
-                slidesHTML.push(`
-                    <div id="slide-sec" class="central-slide">
-                        <div id="panel-sec-full" class="dashboard-panel"><h3>Clientes con Alteración de Suministro Eléctrico (SEC)</h3><div id="sec-data-container"><p><i>Cargando...</i></p></div></div>
-                    </div>`);
+        // --- Definición de las slides que pueden existir ---
+        const slidesDefinition = {
+            'alertas': {
+                checked: controls.showAlertsSlide.checked,
+                html: `<div id="alertas-slide" class="central-slide">
+                           <div id="panel-alertas" class="dashboard-panel"><h3>Alertas Vigentes</h3><div id="alertas-list-container"></div></div>
+                           <div id="panel-avisos" class="dashboard-panel">
+                               <div id="panel-avisos-header"><h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span>/<span data-title-key="alertas">Alertas</span>/<span data-title-key="alarmas">Alarmas</span>/<span data-title-key="marejadas">Marejadas</span></h3><button id="aviso-pause-play-btn" style="display: none;">||</button></div>
+                               <div id="avisos-list-container"></div>
+                           </div>
+                       </div>`
+            },
+            'sec': {
+                checked: controls.showSecDataSlide.checked,
+                html: `<div id="sec-slide" class="central-slide">
+                           <div id="panel-sec-full" class="dashboard-panel"><h3>Clientes con Alteración de Suministro Eléctrico (SEC)</h3><div id="sec-data-container"><p><i>Cargando...</i></p></div></div>
+                       </div>`
+            },
+            'imagenes': {
+                checked: controls.showImageSlides.checked,
+                html: (data.dynamic_slides && data.dynamic_slides.length > 0)
+                    ? data.dynamic_slides.map(slideInfo => 
+                        `<div class="central-slide dynamic-image-slide" data-slide-name="imagen">
+                            <div class="image-slide-content">
+                                <h2>${slideInfo.title || 'Visor de Monitoreo'}</h2>
+                                <img src="${slideInfo.image_url}" alt="${slideInfo.title || ''}" class="responsive-image">
+                                ${slideInfo.description ? `<p>${slideInfo.description}</p>` : ''}
+                            </div>
+                         </div>`).join('')
+                    : ''
             }
-        }
+        };
 
-        container.innerHTML = slidesHTML.join('');
-
-        // --- Renderizar el contenido solo si los contenedores existen ---
-        const alertasContainer = document.getElementById('alertas-list-container');
-        if (alertasContainer) {
-            renderAlertasList(alertasContainer, data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
-            setupAvisosCarousel(document.getElementById('avisos-list-container'), container.querySelector('#panel-avisos .dynamic-title'), data.avisos_alertas_meteorologicas, '<p>No hay avisos.</p>');
+        // --- Construir el HTML y la lista de slides a rotar ---
+        let finalHTML = '';
+        const slidesToRotate = [];
+        
+        if (slidesDefinition.alertas.checked) {
+            finalHTML += slidesDefinition.alertas.html;
+            slidesToRotate.push('alertas-slide');
         }
-        if (showSecSlide && document.getElementById('sec-data-container')) {
-            fetchAndRenderSecSlide();
+        if (slidesDefinition.sec.checked) {
+            finalHTML += slidesDefinition.sec.html;
+            slidesToRotate.push('sec-slide');
+        }
+        if (slidesDefinition.imagenes.checked && slidesDefinition.imagenes.html) {
+            finalHTML += slidesDefinition.imagenes.html;
+            // Añadimos un identificador único para cada slide de imagen
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = slidesDefinition.imagenes.html;
+            tempContainer.querySelectorAll('.dynamic-image-slide').forEach((slide, index) => {
+                const id = `imagen-slide-${index}`;
+                slide.id = id;
+                slidesToRotate.push(id);
+            });
         }
         
+        container.innerHTML = finalHTML;
+
+        // --- Renderizar el contenido dentro de las slides recién creadas ---
+        if (document.getElementById('alertas-slide')) {
+            renderAlertasList(document.getElementById('alertas-list-container'), data.alertas_vigentes, '<p>No hay alertas vigentes.</p>');
+            setupAvisosCarousel(document.getElementById('avisos-list-container'), container.querySelector('#panel-avisos .dynamic-title'), data.avisos_alertas_meteorologicas, '<p>No hay avisos.</p>');
+        }
+        if (document.getElementById('sec-slide')) {
+            fetchAndRenderSecSlide();
+        }
+
         // --- Lógica de Rotación ---
-        const slides = container.querySelectorAll('.central-slide');
-        if (slides.length > 1) {
+        const allSlides = container.querySelectorAll('.central-slide');
+        if (slidesToRotate.length === 0) {
+            // Caso por defecto: si nada está seleccionado, muestra alertas
+            if (document.getElementById('alertas-slide')) {
+                 document.getElementById('alertas-slide').classList.add('active-central-slide');
+            }
+        } else if (slidesToRotate.length === 1) {
+            document.getElementById(slidesToRotate[0]).classList.add('active-central-slide');
+        } else {
             let currentSlideIndex = 0;
-            const showCentralSlide = (index) => slides.forEach((slide, i) => slide.classList.toggle('active-central-slide', i === index));
-            showCentralSlide(currentSlideIndex);
-            window.centralCarouselInterval = setInterval(() => {
-                currentSlideIndex = (currentSlideIndex + 1) % slides.length;
-                showCentralSlide(currentSlideIndex);
-            }, 10000);
-        } else if (slides.length === 1) {
-            slides[0].classList.add('active-central-slide');
+            const runCentralCarousel = () => {
+                const slideIdToShow = slidesToRotate[currentSlideIndex];
+                
+                allSlides.forEach(slide => slide.classList.toggle('active-central-slide', slide.id === slideIdToShow));
+
+                // CÁLCULO DE DURACIÓN DINÁMICA
+                let duration = centralSlideDuration; // 15 segundos por defecto
+                if (slideIdToShow === 'alertas-slide') {
+                    // Espera a que el carrusel de avisos complete su ciclo
+                    const numAvisoPages = avisoPages.length || 1;
+                    duration = numAvisoPages * avisoPageDuration; // 10s por cada página de avisos
+                }
+                
+                currentSlideIndex = (currentSlideIndex + 1) % slidesToRotate.length;
+                window.centralCarouselInterval = setTimeout(runCentralCarousel, duration);
+            };
+            runCentralCarousel();
         }
     }
 
@@ -375,20 +416,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('weather-banner-container');
         if (!container) return;
 
-        let activeSlideId = 'weather-slide'; // Por defecto, es la del clima.
-        const currentActive = container.querySelector('.active-top-slide');
-        if (currentActive) {
-            activeSlideId = currentActive.id;
-        }
-
-        const localPref = localStorage.getItem('topBannerCarouselEnabled');
-        let isCarouselActive = (localPref === 'false') ? false : true;
-        toggleTopBannerCheck.checked = isCarouselActive;
-
         if (window.topBannerInterval) {
             clearInterval(window.topBannerInterval);
         }
 
+        // Renderiza siempre ambas slides en el HTML para que estén disponibles
         const weatherSlideHTML = '<div id="weather-slide" class="top-banner-slide"></div>';
         const hydroAndTurnosSlideHTML = `
             <div id="hydro-slide" class="top-banner-slide">
@@ -396,28 +428,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div id="hydro-stations-wrapper"></div>
                 <div id="turno-operadores-container" class="turno-container"></div>
             </div>`;
-
         container.innerHTML = weatherSlideHTML + hydroAndTurnosSlideHTML;
-
+        
+        // Puebla el contenido de cada slide
         renderWeatherSlide(data);
         renderStaticHydroSlide(data);
-       
-        fetchAndDisplayTurnos();        
+        fetchAndDisplayTurnos();
 
-        const slideToActivate = document.getElementById(activeSlideId);
-        if (slideToActivate) {
-            slideToActivate.classList.add('active-top-slide');
-        }
+        // Lógica de visualización basada en los checkboxes
+        const activeSlides = [];
+        if (controls.showWeatherSlide.checked) activeSlides.push('weather-slide');
+        if (controls.showHydroSlide.checked) activeSlides.push('hydro-slide');
+        
+        const allSlides = container.querySelectorAll('.top-banner-slide');
 
-        if (isCarouselActive) {
-            window.topBannerInterval = setInterval(() => {
-                const slides = container.querySelectorAll('.top-banner-slide');
-                if (slides.length <= 1) return;
-                let currentActiveIndex = Array.from(slides).findIndex(s => s.classList.contains('active-top-slide'));
-                slides[currentActiveIndex].classList.remove('active-top-slide');
-                const nextSlideIndex = (currentActiveIndex + 1) % slides.length;
-                slides[nextSlideIndex].classList.add('active-top-slide');
-            }, topBannerSlideDuration);
+        if (activeSlides.length === 0) {
+            // Caso por defecto: si nada está seleccionado, muestra la primera (clima)
+            document.getElementById('weather-slide').classList.add('active-top-slide');
+        } else if (activeSlides.length === 1) {
+            // Muestra una sola slide de forma fija
+            document.getElementById(activeSlides[0]).classList.add('active-top-slide');
+        } else {
+            // Rotación entre las slides seleccionadas
+            let currentSlideIndex = 0;
+            const showSlide = () => {
+                allSlides.forEach(slide => slide.classList.remove('active-top-slide'));
+                const slideIdToShow = activeSlides[currentSlideIndex];
+                document.getElementById(slideIdToShow).classList.add('active-top-slide');
+                currentSlideIndex = (currentSlideIndex + 1) % activeSlides.length;
+            };
+            showSlide(); // Muestra la primera inmediatamente
+            window.topBannerInterval = setInterval(showSlide, topBannerSlideDuration);
         }
     }
 
@@ -734,7 +775,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Error al cargar datos principales:", error); }
     }
 
-
     //Funcion de carrusel columna derecha (novedades y waze)
     function setupRightColumnCarousel(data, novedades) {
         const container = document.getElementById('right-column-carousel-container');
@@ -744,50 +784,70 @@ document.addEventListener('DOMContentLoaded', () => {
             clearTimeout(window.rightColumnCarouselTimeout);
         }
 
-        const numNovedadesPages = setupNovedadesCarousel(novedades);
+        // Limpiamos slides de ejecuciones anteriores para evitar duplicados
+        container.innerHTML = '';
 
-        // --- LÓGICA CORREGIDA PARA LEER EL CHECKBOX ---
-        const localPref = localStorage.getItem('rightColumnCarouselEnabled');
-        let useCarousel;
-        if (localPref === 'true') {
-            useCarousel = true;
-        } else if (localPref === 'false') {
-            useCarousel = false;
-        } else {
-            useCarousel = data.novedades_carousel_enabled; // Usar el default del admin
-        }
-        toggleRightColumnCheck.checked = useCarousel; // Sincroniza el checkbox
-        // --- FIN DE LA CORRECCIÓN ---
-
+        // Construimos el HTML base de las slides que podrían mostrarse
+        const numNovedadesPages = setupNovedadesCarousel(novedades); // Esta función ahora solo renderiza el contenido
+        const novedadesSlideHtml = `
+            <div id="novedades-slide" class="right-column-slide">
+                <div id="panel-novedades" class="dashboard-panel">
+                     <div class="novedades-header">
+                        <h3>Novedades</h3>
+                        <div id="novedades-page-indicator"></div><div id="informe-correlativo">N° último informe: <span id="numero-informe-display">${novedades.numero_informe_manual || '---'}</span></div>
+                    </div>
+                    <div id="novedades-content">${container.querySelector('#novedades-content')?.innerHTML || ''}</div>
+                </div>
+                <div id="panel-waze" class="dashboard-panel">
+                    <h3>Accidentes reportados en Waze</h3>
+                    <div id="waze-incidents-container"><p><i>Cargando...</i></p></div>
+                </div>
+            </div>`;
+        
         const emergencias = data.emergencias_ultimas_24_horas || [];
-        const finalUseCarousel = useCarousel && emergencias.length > 0;
+        const emergenciasItemsHtml = emergencias.length > 0
+            ? emergencias.map(item => `<tr><td>${item.n_informe || 'N/A'}</td><td>${item.fecha_hora || 'N/A'}</td><td>${item.evento_lugar || 'N/A'}</td></tr>`).join('')
+            : `<tr><td colspan="3">No hay emergencias en las últimas 24 horas.</td></tr>`;
+        const emergenciasSlideHtml = `
+            <div id="emergencias-slide" class="right-column-slide">
+                <div id="panel-emergencias-dashboard" class="dashboard-panel">
+                    <h3>Informes Emitidos (Últimas 24h)</h3>
+                    <div class="table-container"><table><thead><tr><th>N° Informe</th><th>Fecha y Hora</th><th>Evento / Lugar</th></tr></thead><tbody>${emergenciasItemsHtml}</tbody></table></div>
+                </div>
+            </div>`;
+        
+        container.innerHTML = novedadesSlideHtml + emergenciasSlideHtml;
+        fetchAndRenderWazeData(); // Llama a renderizar Waze dentro del nuevo contenedor
+        setupNovedadesCarousel(novedades); // Re-ejecuta para manejar la paginación interna
 
-        // Limpiamos slides de emergencias de ejecuciones anteriores
-        const existingEmergenciasSlide = container.querySelector('#panel-emergencias-dashboard');
-        if (existingEmergenciasSlide) {
-            existingEmergenciasSlide.parentElement.remove();
-        }
+        // Lógica de visualización basada en los checkboxes
+        const activeSlides = [];
+        if (controls.showNovedadesSlide.checked) activeSlides.push('novedades-slide');
+        if (controls.showEmergenciasSlide.checked && emergencias.length > 0) activeSlides.push('emergencias-slide');
 
-        if (finalUseCarousel) {
-            const emergenciasItemsHtml = emergencias.map(item => `
-                <tr><td>${item.n_informe || 'N/A'}</td><td>${item.fecha_hora || 'N/A'}</td><td>${item.evento_lugar || 'N/A'}</td></tr>`
-            ).join('');
-            const emergenciasSlideHtml = `<div class="right-column-slide"><div id="panel-emergencias-dashboard" class="dashboard-panel"><h3>Informes Emitidos (Últimas 24h)</h3><div class="table-container"><table><thead><tr><th>N° Informe</th><th>Fecha y Hora</th><th>Evento / Lugar</th></tr></thead><tbody>${emergenciasItemsHtml}</tbody></table></div></div></div>`;
-            container.insertAdjacentHTML('beforeend', emergenciasSlideHtml);
+        const allSlides = container.querySelectorAll('.right-column-slide');
 
+        if (activeSlides.length === 0) {
+            document.getElementById('novedades-slide').classList.add('active-right-slide');
+        } else if (activeSlides.length === 1) {
+            document.getElementById(activeSlides[0]).classList.add('active-right-slide');
+        } else {
             let currentSlideIndex = 0;
-            const slides = container.querySelectorAll('.right-column-slide');
-
             const switchSlide = () => {
-                slides.forEach((slide, index) => slide.classList.toggle('active-right-slide', index === currentSlideIndex));
-                let duration = (currentSlideIndex === 0) ? (numNovedadesPages * 15000) : rightColumnSlideDuration;
-                currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+                const slideIdToShow = activeSlides[currentSlideIndex];
+                
+                allSlides.forEach(slide => slide.classList.toggle('active-right-slide', slide.id === slideIdToShow));
+
+                let duration = rightColumnSlideDuration;
+                // La slide de novedades tiene una duración más larga para mostrar todas sus páginas
+                if (slideIdToShow === 'novedades-slide') {
+                    duration = numNovedadesPages * 10000; // 10s por página de novedades
+                }
+                
+                currentSlideIndex = (currentSlideIndex + 1) % activeSlides.length;
                 window.rightColumnCarouselTimeout = setTimeout(switchSlide, duration);
             };
             switchSlide();
-        } else {
-            const slides = container.querySelectorAll('.right-column-slide');
-            slides.forEach((slide, index) => slide.classList.toggle('active-right-slide', index === 0));
         }
     }
     
@@ -1319,6 +1379,52 @@ document.addEventListener('DOMContentLoaded', () => {
         window.open(mapUrl, 'wazeMapWindow', windowFeatures);
     }
 
+    // --- NUEVA LÓGICA DE CONTROLES DE VISUALIZACIÓN ---
+    const controls = {
+        showWeatherSlide: document.getElementById('showWeatherSlide'),
+        showHydroSlide: document.getElementById('showHydroSlide'),
+        showAlertsSlide: document.getElementById('showAlertsSlide'),
+        showSecDataSlide: document.getElementById('showSecDataSlide'),
+        showImageSlides: document.getElementById('showImageSlides'),
+        showNovedadesSlide: document.getElementById('showNovedadesSlide'),
+        showEmergenciasSlide: document.getElementById('showEmergenciasSlide'),
+        toggleNotifications: document.getElementById('toggleNotifications')
+    };
+
+    // Función para guardar todas las preferencias en localStorage
+    function savePreferences() {
+        const preferences = {};
+        for (const key in controls) {
+            if (controls[key]) {
+                preferences[key] = controls[key].checked;
+            }
+        }
+        localStorage.setItem('dashboardPreferences', JSON.stringify(preferences));
+    }
+
+    // Función para cargar y aplicar las preferencias guardadas
+    function loadPreferences() {
+        const preferences = JSON.parse(localStorage.getItem('dashboardPreferences'));
+        if (preferences) {
+            for (const key in controls) {
+                if (controls[key] && preferences[key] !== undefined) {
+                    controls[key].checked = preferences[key];
+                }
+            }
+        }
+    }
+
+    // Añadir listeners a todos los checkboxes
+    for (const key in controls) {
+        if (controls[key]) {
+            controls[key].addEventListener('change', () => {
+                savePreferences();
+                // Al cambiar cualquier preferencia, se redibuja todo el dashboard con la nueva configuración
+                fetchAndRenderMainData();
+            });
+        }
+    }
+
     function showMapSlide(index) {
         mapSlides.forEach((slide, i) => { slide.classList.toggle('active-map-slide', i === index); });
         mapPanelTitle.textContent = mapTitles[index];
@@ -1403,45 +1509,6 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchAndRenderMainData();
         }
     });
-
-    toggleTopBannerCheck.addEventListener('change', (e) => {
-        localStorage.setItem('topBannerCarouselEnabled', e.target.checked);
-        setupTopBannerCarousel(lastData); // Re-ejecuta la configuración del carrusel
-    });
-
-    toggleCentralCarouselCheck.addEventListener('change', (e) => {
-        localStorage.setItem('centralCarouselEnabled', e.target.checked);
-        setupCentralContent(lastData); // Re-ejecuta la configuración del carrusel
-    });
-
-    toggleRightColumnCheck.addEventListener('change', (e) => {
-        localStorage.setItem('rightColumnCarouselEnabled', e.target.checked);
-        setupRightColumnCarousel(lastData, lastNovedades); // Re-ejecuta la configuración del carrusel
-    });
-
-    //Listener para boton de notificaciones
-    const toggleNotificationsCheck = document.getElementById('toggleNotifications');
-    if (toggleNotificationsCheck) {
-        // Al cargar, establece el estado del checkbox según lo guardado
-        toggleNotificationsCheck.checked = localStorage.getItem('notificacionesLocalesActivas') !== 'false';
-
-        // Al cambiar, guarda la preferencia
-        toggleNotificationsCheck.addEventListener('change', (e) => {
-            localStorage.setItem('notificacionesLocalesActivas', e.target.checked);
-        });
-    }
-
-    const toggleSecSlideCheck = document.getElementById('toggleSecSlide');
-    if (toggleSecSlideCheck) {
-        // Al cargar, establece el estado del checkbox según lo guardado
-        toggleSecSlideCheck.checked = localStorage.getItem('secSlideEnabled') !== 'false';
-
-        // Al cambiar, guarda la preferencia y reconstruye el dashboard
-        toggleSecSlideCheck.addEventListener('change', (e) => {
-            localStorage.setItem('secSlideEnabled', e.target.checked);
-            fetchAndRenderMainData(); // Forzamos una reconstrucción completa
-        });
-    }
 
     // --- SISTEMA DE NOTIFICACIONES POR VOZ ---    
     async function verificarNotificaciones() {
