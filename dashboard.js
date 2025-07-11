@@ -812,18 +812,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Slide de Waze (una sola slide)
-        if (showWazeCheck.checked && wazeAccidents.length > 0) {
-            const listItemsHtml = wazeAccidents.map(accident => {
-                const mapLink = (accident.lat && accident.lon) ? `<a href="#" class="waze-map-link" data-lat="${accident.lat}" data-lon="${accident.lon}" title="Ver en Google Maps">📍</a>` : '';
-                return `<li class="waze-incident-item"><div class="waze-incident-header">${mapLink}<span class="waze-street">${accident.street}</span><span class="waze-city">${accident.city}</span></div><span class="waze-time">${formatTimeAgo(accident.pubMillis)}</span></li>`;
-            }).join('');
-            slidesHTML += `<div id="waze-slide" class="right-column-slide">
+        if (showWazeCheck.checked) {
+            const slideId = 'waze-slide';
+            
+            // Esta lógica interna decide si mostrar la lista o el mensaje de "No hay accidentes"
+            const listItemsHtml = wazeAccidents.length > 0 
+                ? wazeAccidents.map(accident => {
+                    const mapLink = (accident.lat && accident.lon) ? `<a href="#" class="waze-map-link" data-lat="${accident.lat}" data-lon="${accident.lon}" title="Ver en Google Maps">📍</a>` : '';
+                    return `<li class="waze-incident-item"><div class="waze-incident-header">${mapLink}<span class="waze-street">${accident.street}</span><span class="waze-city">${accident.city}</span></div><span class="waze-time">${formatTimeAgo(accident.pubMillis)}</span></li>`;
+                }).join('')
+                : '<p class="no-waze-incidents"><span class="checkmark-icon">✅</span> No hay accidentes reportados en este momento.</p>';
+            
+            slidesHTML += `<div id="${slideId}" class="right-column-slide">
                             <div class="dashboard-panel full-height">
                                 <h3>Accidentes reportados en Waze</h3>
                                 <div class="list-container"><ul class="dashboard-list waze-list">${listItemsHtml}</ul></div>
                             </div>
                         </div>`;
-            slidesToRotate.push({ id: 'waze-slide' });
+            slidesToRotate.push({ id: slideId, type: 'waze' });
         }
 
         container.innerHTML = slidesHTML;
