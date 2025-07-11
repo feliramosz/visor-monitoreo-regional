@@ -493,8 +493,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const stationsData = data.datos_hidrometricos || [];
 
-        // --- Funciones de ayuda (Helpers) ---
-
         const getGaugeData = (value, threshold) => {
             const currentValue = (value !== null && !isNaN(value)) ? parseFloat(value) : 0;
             const maxScale = threshold.roja * 1.2; 
@@ -508,36 +506,35 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         };
 
+        // --- LÓGICA DE MARCAS MEJORADA PARA COPIAR LA IMAGEN DE REFERENCIA ---
         const generateMarksHTML = (threshold) => {
             const maxScale = threshold.roja * 1.2;
-            let marksHTML = '';
-            
-            // --- LÓGICA MEJORADA PARA MARCAS "INTELIGENTES" ---
-            let step = 1;
-            if (maxScale > 1000) step = 250;
-            else if (maxScale > 500) step = 100;
-            else if (maxScale > 100) step = 25;
-            else if (maxScale > 50) step = 10;
-            else if (maxScale > 10) step = 2;
+            let marks = [];
 
-            for (let i = step; i < maxScale; i += step) {
-                const percentage = i / maxScale;
-                const rotation = -90 + (percentage * 180);
-                marksHTML += `
-                    <div class="gauge-mark" style="transform: rotate(${rotation}deg);"></div>
-                    <div class="gauge-mark-label" style="transform: rotate(${rotation}deg) translateY(-8px) rotate(${-rotation}deg);">${i}</div>
-                `;
+            // 1. Añadir marcas en números enteros
+            for (let i = 1; i < maxScale; i++) {
+                // Solo añade marcas en números enteros para limpiar la vista
+                if (i === Math.round(i)) {
+                    marks.push({ value: i, label: `${i} m` });
+                }
             }
-
-            // Añadir una marca específica para el umbral rojo
-            const redPercentage = threshold.roja / maxScale;
-            const redRotation = -90 + (redPercentage * 180);
-            marksHTML += `<div class="gauge-mark" style="transform: rotate(${redRotation}deg); background-color: #a42319;"></div>`;
-
-            return marksHTML;
+            
+            // 2. Añadir las marcas de los umbrales Amarillo y Rojo
+            marks.push({ value: threshold.amarilla, label: `${threshold.amarilla.toFixed(2)} m` });
+            marks.push({ value: threshold.roja, label: `${threshold.roja.toFixed(2)} m` });
+            
+            // 3. Generar el HTML final
+            return marks.map(mark => {
+                const percentage = mark.value / maxScale;
+                // Solo mostrar marcas que estén dentro del arco visible
+                if (percentage > 1) return '';
+                const rotation = -90 + (percentage * 180);
+                return `
+                    <div class="gauge-mark" style="transform: rotate(${rotation}deg);"></div>
+                    <div class="gauge-mark-label" style="transform: rotate(${rotation}deg) translateY(-10px) rotate(${-rotation}deg);">${mark.label}</div>
+                `;
+            }).join('');
         };
-
-        // --- FIN de las funciones de ayuda ---
 
         hydroContainer.innerHTML = Object.keys(hydroThresholds).map(stationName => {
             const station = stationsData.find(s => s.nombre_estacion === stationName) || { nivel_m: null, caudal_m3s: null };
@@ -550,7 +547,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const nivelMarksHTML = generateMarksHTML(thresholds.nivel);
             const caudalMarksHTML = generateMarksHTML(thresholds.caudal);
 
-            // --- ESTRUCTURA HTML ACTUALIZADA ---
             return `
                 <div class="hydro-station-card">
                     <div class="hydro-card-header">
