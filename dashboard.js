@@ -892,73 +892,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FUNCIÓN PARA CARGAR DATOS DE WAZE Y RENDERIZARLOS ---
     async function fetchAndRenderWazeData(container, preloadedAccidents) {
         if (!container) return;
-
-        // Busca los controles por su ID, que es más fiable.
-        const controls = document.getElementById('waze-carousel-controls');
         
-        // Limpia cualquier intervalo anterior para evitar fugas de memoria.
+        // Limpia el intervalo del carrusel de Waze si existe
         if (window.wazeCarouselInterval) {
             clearInterval(window.wazeCarouselInterval);
         }
 
         try {
-            // Usa los accidentes pre-cargados si existen, si no, los busca en la red.
             const accidents = preloadedAccidents || await (await fetch('/api/waze')).json();
-
-            if (accidents.error) {
-                throw new Error(accidents.error);
-            }
+            if (accidents.error) throw new Error(accidents.error);
             
             if (accidents.length === 0) {
+                // Muestra el mensaje y el GIF si no hay accidentes
                 container.innerHTML = `<div class="no-waze-container">
-                    <p class="no-waze-incidents"><span class="checkmark-icon">✅</span> No hay accidentes reportados en este momento.</p>
-                    <img id="waze-loading-gif" src="https://www.deeplearning.ai/_next/image/?url=https%3A%2F%2Fcharonhub.deeplearning.ai%2Fcontent%2Fimages%2F2021%2F08%2FNear-Miss-Detection-1.gif&w=1920&q=75" alt="Cargando accidentes..." style="width: 50px; margin-top: 10px;">
-                </div>`;
-                if (controls) controls.style.display = 'none';
-                return;
-            }
-
-            accidents.sort((a, b) => b.pubMillis - a.pubMillis);
-
-            const ITEMS_PER_PAGE = 4;
-            let wazePages = [];
-            for (let i = 0; i < accidents.length; i += ITEMS_PER_PAGE) {
-                wazePages.push(accidents.slice(i, i + ITEMS_PER_PAGE));
-            }
-
-            let carouselHtml = wazePages.map((page) => {                
-                let listItemsHtml = page.map(accident => {
+                                        <p class="no-waze-incidents"><span class="checkmark-icon">✅</span> No hay accidentes reportados.</p>
+                                        <img id="waze-loading-gif" src="https://i.gifer.com/or.gif" alt="Esperando reportes..." style="width: 80px; margin-top: 10px; border-radius: 8px;">
+                                    </div>`;
+            } else {
+                // Muestra la lista de accidentes si los hay (el GIF no se incluye aquí)
+                const listItemsHtml = accidents.map(accident => {
                     const street = accident.street || 'Ubicación no especificada';
                     const city = accident.city || 'Comuna no especificada';
                     const mapLink = (accident.lat && accident.lon) ? `<a href="#" class="waze-map-link" data-lat="${accident.lat}" data-lon="${accident.lon}" title="Ver en Google Maps">📍</a>` : '';
-                    return `<li class="waze-incident-item"><div class="waze-incident-header">${mapLink}<span class="waze-street">${street}</span><span class="waze-city">Comuna o sector: ${city}</span></div><span class="waze-time">Reportado ${formatTimeAgo(accident.pubMillis)}</span></li>`;
+                    return `<li class="waze-incident-item"><div class="waze-incident-header">${mapLink}<span class="waze-street">${street}</span><span class="waze-city">${city}</span></div><span class="waze-time">${formatTimeAgo(accident.pubMillis)}</span></li>`;
                 }).join('');
-                return `<div class="waze-slide"><ul class="dashboard-list waze-list">${listItemsHtml}</ul></div>`;
-            }).join('');
+                container.innerHTML = `<ul class="dashboard-list waze-list">${listItemsHtml}</ul>`;
+            }
             
-            container.innerHTML = carouselHtml;
-            
-            document.querySelectorAll('.waze-map-link').forEach(link => {
+            // Añade los listeners a los links del mapa si existen
+            container.querySelectorAll('.waze-map-link').forEach(link => {
                 link.addEventListener('click', (event) => {
-                    event.preventDefault(); 
-                    const lat = event.currentTarget.dataset.lat;
-                    const lon = event.currentTarget.dataset.lon;
-                    openMapWindow(lat, lon);
+                    event.preventDefault();
+                    openMapWindow(event.currentTarget.dataset.lat, event.currentTarget.dataset.lon);
                 });
             });
-
-            // Lógica para mostrar los slides y controles del carrusel de Waze
-            if (wazePages.length > 1 && controls) {
-                controls.style.display = 'flex';
-                // Aquí iría la lógica para los botones de Waze si la implementamos en el futuro
-            } else if (controls) {
-                controls.style.display = 'none';
-            }
 
         } catch (error) {
             console.error("Error al cargar datos de Waze:", error);
             container.innerHTML = '<p style="color:red;">No se pudieron cargar los datos de Waze.</p>';
-            if (controls) controls.style.display = 'none';
         }
     }
     
