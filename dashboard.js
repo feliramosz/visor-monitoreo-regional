@@ -482,7 +482,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }  
 
     function renderStaticHydroSlide(data) {
-        // El contenedor ahora es el "wrapper" central que creamos dinámicamente
         const hydroContainer = document.getElementById('hydro-stations-wrapper');
         if (!hydroContainer) return;
 
@@ -492,7 +491,42 @@ document.addEventListener('DOMContentLoaded', () => {
             'Putaendo Resguardo Los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
         };
 
-        const stationsData = data.datos_hidrometricos || [];
+        const stationsData = data.datos_hidrometricos || [];   
+
+        // Función de ayuda para calcular los DATOS del medidor.
+        const getGaugeData = (value, threshold) => {
+            const currentValue = (value !== null && !isNaN(value)) ? parseFloat(value) : 0;
+            const maxScale = threshold.roja * 1.2; 
+            let percentage = 0;
+            if (maxScale > 0) {
+                percentage = currentValue / maxScale;
+            }
+            const rotation = -90 + (percentage * 180);
+            return {
+                value: currentValue.toFixed(2),
+                rotation: Math.max(-90, Math.min(90, rotation)),
+                amarilla: threshold.amarilla.toFixed(2),
+                roja: threshold.roja.toFixed(2)
+            };
+        };
+
+        // Función de ayuda para generar el HTML de las MARCAS del medidor.
+        const generateMarksHTML = (threshold) => {
+            const maxScale = threshold.roja * 1.2;
+            let marksHTML = '';
+            const percentages = [0.25, 0.50, 0.75];
+            
+            percentages.forEach(p => {
+                const value = (maxScale * p).toFixed(1);
+                const rotation = -90 + (p * 180);
+                marksHTML += `
+                    <div class="gauge-mark" style="transform: rotate(${rotation}deg);"></div>
+                    <div class="gauge-mark-label" style="transform: rotate(${rotation}deg) translateY(-8px) rotate(${-rotation}deg);">${value}</div>
+                `;
+            });
+            return marksHTML;
+        };
+
 
         hydroContainer.innerHTML = Object.keys(hydroThresholds).map(stationName => {
             const station = stationsData.find(s => s.nombre_estacion === stationName) || { nivel_m: null, caudal_m3s: null };
@@ -500,29 +534,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const hasData = station.nivel_m !== null || station.caudal_m3s !== null;
             const ledClass = hasData ? 'led-green' : 'led-red';
 
-            const getGaugeData = (value, threshold) => {
-                const currentValue = (value !== null && !isNaN(value)) ? value : 0;
-                let rotation;
-                if (currentValue <= 0) {
-                    rotation = -90;
-                } else {
-                    const maxThreshold = threshold.roja;
-                    let percentage = 0;
-                    if (maxThreshold > 0) {
-                        percentage = currentValue / maxThreshold;
-                    }
-                    rotation = -90 + (percentage * 180);
-                }
-                return {
-                    value: currentValue.toFixed(2),
-                    rotation: Math.max(-90, Math.min(90, rotation)),
-                    amarilla: threshold.amarilla.toFixed(2),
-                    roja: threshold.roja.toFixed(2)
-                };
-            };
-
+            // --- Se llama a las funciones de ayuda para obtener los valores ---
             const nivelGauge = getGaugeData(station.nivel_m, thresholds.nivel);
             const caudalGauge = getGaugeData(station.caudal_m3s, thresholds.caudal);
+
+            const nivelMarksHTML = generateMarksHTML(thresholds.nivel);
+            const caudalMarksHTML = generateMarksHTML(thresholds.caudal);           
 
             return `
                 <div class="hydro-station-card">
@@ -536,6 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="threshold-label-left"><span class="threshold-amarillo">A: ${nivelGauge.amarilla}</span></div>
                             <div class="gauge-wrapper">
                                 <div class="gauge-arc-background"></div>
+                                ${nivelMarksHTML}
                                 <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
                             </div>
                             <div class="threshold-label-right"><span class="threshold-rojo">R: ${nivelGauge.roja}</span></div>
@@ -546,6 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="threshold-label-left"><span class="threshold-amarillo">A: ${caudalGauge.amarilla}</span></div>
                             <div class="gauge-wrapper">
                                 <div class="gauge-arc-background"></div>
+                                ${caudalMarksHTML}
                                 <div class="gauge-needle" style="transform: rotate(${caudalGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
                             </div>
                             <div class="threshold-label-right"><span class="threshold-rojo">R: ${caudalGauge.roja}</span></div>

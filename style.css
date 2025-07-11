@@ -1944,8 +1944,8 @@ img, table {
     width: 100%;
     height: 100%;
     background-color: #333;
-    border-radius: 2px;    
-    animation: needle-vibration 3s ease-in-out infinite;
+    border-radius: 2px;        
+    animation: needle-settling-swing 4s ease-in-out infinite;
 }
 
 @keyframes needle-vibration {
@@ -1955,12 +1955,40 @@ img, table {
     100% { transform: rotate(0deg); }
 }
 
+@keyframes needle-settling-swing {
+    0%   { transform: rotate(-2deg); }
+    50%  { transform: rotate(2deg); }
+    100% { transform: rotate(-2deg); }
+}
+
+
 .gauge-current-value {
     grid-area: value;
     font-size: 1.2em;
     font-weight: bold;
     color: #004d99;
     margin-top: 1px;
+}
+
+/* --- ESTILOS PARA MARCAS DEL MEDIDOR HIDROMÉTRICO --- */
+.gauge-mark {
+    position: absolute;
+    bottom: 43px; /* Posiciona la marca en el borde del arco */
+    left: 44px;
+    width: 2px;
+    height: 6px; /* Altura de la línea de la marca */
+    background-color: #555;
+    transform-origin: bottom center;
+}
+
+.gauge-mark-label {
+    position: absolute;
+    bottom: 50px; /* Posiciona la etiqueta un poco más afuera */
+    left: 45px;
+    font-size: 0.6em; /* Tamaño de letra pequeño */
+    font-weight: bold;
+    color: #333;
+    transform-origin: center center;
 }
 
 .threshold-label-left, .threshold-label-right {
