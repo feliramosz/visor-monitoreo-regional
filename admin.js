@@ -1287,6 +1287,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+        // --- LÓGICA PARA PESTAÑAS (TABS) EN EL PANEL DE ADMINISTRACIÓN ---
+    const tabsContainer = document.querySelector('.admin-tabs-nav');
+    if (tabsContainer) {
+        const tabButtons = tabsContainer.querySelectorAll('.admin-tab-btn');
+        const tabContents = document.querySelectorAll('.admin-tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetId = button.dataset.tabTarget; // Ej: "#tab-alertas"
+                
+                // Desactivar todas las pestañas y contenidos
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+
+                // Activar la pestaña y el contenido seleccionados
+                button.classList.add('active');
+                const targetContent = document.querySelector(targetId);
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                }
+            });
+        });
+    }
+
     // --- MANEJADOR DE CLICS DEL MENÚ LATERAL (POSICIÓN CORRECTA Y FINAL) ---
     sidebarLinks.forEach(link => {
         link.addEventListener('click', function(e) {
