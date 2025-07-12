@@ -1,3 +1,4 @@
+import sys
 from io import StringIO
 import pandas as pd
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -1967,10 +1968,22 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     cache = {}
 
 if __name__ == "__main__":
-    # Ahora usamos nuestro nuevo servidor multihilo en lugar del básico
-    httpd = ThreadingHTTPServer((HOST_NAME, PORT_NUMBER), SimpleHttpRequestHandler)
+    # Asigna el puerto por defecto
+    port = PORT_NUMBER 
 
-    print(f"Servidor MULTIHILO iniciado en http://{HOST_NAME}:{PORT_NUMBER}")
+    # Si se proporciona un argumento en la línea de comandos (ej: python simple_server.py 8001)
+    if len(sys.argv) > 1:
+        try:
+            # Intenta convertir el argumento a un número entero para usarlo como puerto
+            port = int(sys.argv[1])
+        except ValueError:
+            # Si no es un número válido, usa el puerto por defecto
+            print(f"Puerto invalido '{sys.argv[1]}'. Usando el puerto por defecto {PORT_NUMBER}.")
+
+    # Ahora usamos la variable 'port' en lugar de PORT_NUMBER
+    httpd = ThreadingHTTPServer((HOST_NAME, port), SimpleHttpRequestHandler)
+
+    print(f"Servidor MULTIHILO iniciado en http://{HOST_NAME}:{port} con PID {PID}")
     print("Presiona Ctrl+C para detener el servidor.")
     try:
         httpd.serve_forever()
