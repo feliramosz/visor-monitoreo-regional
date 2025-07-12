@@ -28,7 +28,7 @@ jobs:
           script: |
             # Le pasamos las variables necesarias al script que se ejecutará
             export DEPLOY_BRANCH=${{ github.ref_name }}
-            export SUDO_PASSWORD=${{ secrets.SUDO_PASSWORD }}
+            export SUDO_PASSWORD='${{ secrets.SUDO_PASSWORD }}'
             
             # Navegamos a la carpeta del repositorio en el servidor
             cd /home/linuxuser/visor-monitoreo-regional
