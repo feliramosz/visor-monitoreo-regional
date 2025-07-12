@@ -1,39 +1,43 @@
-# Nombre del flujo de trabajo que verás en la pestaña "Actions"
-name: Despliegue al Servidor
+name: Despliegue de Visor Monitoreo Regional
 
-# Disparador: Este workflow se ejecutará cada vez que hagas un "push" a la rama "main"
 on:
   push:
     branches:
       - main
+      - develop
 
 # Tareas a ejecutar
 jobs:
   deploy:
-    # El tipo de máquina virtual que usará GitHub para ejecutar las tareas
     runs-on: ubuntu-latest
 
-    # Pasos a seguir
     steps:
-      # 1. Nombre del paso
-      - name: Desplegar en el servidor Vultr
-        # Usamos una acción pre-hecha de la comunidad para conectarse por SSH
+      # Paso 1: Clonar el repositorio en la máquina virtual de GitHub Actions      
+      - name: Checkout del código
+        uses: actions/checkout@v3 # Usa la versión más reciente si es compatible (v4 o superior)
+
+      # Paso 2: Conectarse a servidor y ejecutar el script deploy.sh
+      - name: Desplegar en el servidor remoto
         uses: appleboy/ssh-action@master
         with:
-          # Aquí usamos los "Secretos" que configuraremos en GitHub
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
-          port: ${{ secrets.PORT }}
-          # El script que se ejecutará en el servidor una vez conectado
+          port: ${{ secrets.PORT }}          
           script: |
-            # Navega a la carpeta del proyecto
-            cd /home/linuxuser/visor-monitoreo-regional
-            
-            # Descarga los últimos cambios desde GitHub
-            git pull
-            
-            # Reinicia los servicios usando la contraseña de sudo
-            # El comando "echo ... | sudo -S" permite pasar la contraseña a sudo de forma no interactiva
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart senapred-monitor.service
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart nginx
+            # Navegar al directorio donde se encuentra el script deploy.sh
+            # Asumo que deploy.sh está en /home/linuxuser/
+            # Si deploy.sh está dentro de visor-monitoreo-regional, ajusta la ruta
+            cd /home/linuxuser/
+
+            # Dar permisos de ejecución al script deploy.sh si no los tiene ya
+            # Es buena práctica asegurar esto en el flujo de CI/CD
+            chmod +x deploy.sh
+
+            # Ejecutar el script deploy.sh, pasándole la rama actual como variable de entorno
+            # La variable DEPLOY_BRANCH se define aquí y es utilizada por deploy.sh
+            # ${{ github.ref_name }} obtendrá el nombre de la rama (ej. 'main' o 'develop')
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S DEPLOY_BRANCH="${{ github.ref_name }}" ./deploy.sh
+
+            echo "--- Flujo de despliegue completado para la rama ${{ github.ref_name }} ---"
+
