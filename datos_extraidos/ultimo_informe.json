@@ -1,15 +1,9 @@
 {
-    "id_informe_origen": "PM-2025-06-11",
-    "tipo_informe": "PM",
-    "fecha_informe": "Miércoles 11 de junio 2025",
-    "hora_informe": "18:45 horas",
+    "id_informe_origen": "AM-2025-07-11",
+    "tipo_informe": "AM",
+    "fecha_informe": "Viernes 11 de julio 2025",
+    "hora_informe": "09:35 horas",
     "alertas_vigentes": [
-        {
-            "nivel_alerta": "Temprana Preventiva",
-            "evento": "Meteorológico",
-            "cobertura": "Regional, excepto provincia de Isla de Pascua",
-            "amplitud": "SINAPRED"
-        },
         {
             "nivel_alerta": "Temprana Preventiva",
             "evento": "Alteración Sanitaria",
@@ -33,59 +27,17 @@
     ],
     "avisos_alertas_meteorologicas": [
         {
-            "aviso_alerta_alarma": "Alerta AA42/2025",
-            "fecha_hora_emision": "10/06 12:05",
-            "descripcion": "Viento Moderado a Fuerte desde la tarde del miércoles 11 a la madrugada del jueves 12 de junio.",
-            "cobertura": "Desde la región de Valparaíso al Biobío"
-        },
-        {
-            "aviso_alerta_alarma": "Aviso A204-2/2025",
-            "fecha_hora_emision": "08/06 15:13",
-            "descripcion": "Precipitaciones normales a moderadas desde la madrugada y la noche del jueves 12 de junio.",
-            "cobertura": "Entre las regiones de Coquimbo al Biobío"
-        },
-        {
-            "aviso_alerta_alarma": "Aviso A205-4/2025",
-            "fecha_hora_emision": "10/06 12:28",
-            "descripcion": "Viento Normal a Moderado desde la madrugada del miércoles 11 a la tarde del jueves 12 de junio.",
-            "cobertura": "Entre las regiones de Coquimbo al Biobío"
-        },
-        {
-            "aviso_alerta_alarma": "Aviso A208/2025",
-            "fecha_hora_emision": "08/07 15:13",
-            "descripcion": "Precipitaciones normales a moderadas en corto periodo de tiempo desde la madrugada a la tarde del miércoles 11 de junio.",
-            "cobertura": "Archipiélago Juan Fernández"
-        },
-        {
-            "aviso_alerta_alarma": "Aviso A209-1/2025",
-            "fecha_hora_emision": "10/06 12:08",
-            "descripcion": "Probables tormentas eléctricas, desde la noche 11 de junio hasta la mañana del jueves 12",
-            "cobertura": "Archipiélago Juan Fernández"
-        },
-        {
-            "aviso_alerta_alarma": "Aviso de Marejadas N°21",
-            "fecha_hora_emision": "07/06 10:27",
-            "descripcion": "Aviso de Marejadas desde el lunes 09/06 hasta el miércoles 11/06",
-            "cobertura": "Isla de Pascua"
-        },
-        {
-            "aviso_alerta_alarma": "Aviso de Marejadas N°22",
-            "fecha_hora_emision": "09/06 16:06",
-            "descripcion": "Aviso de Marejadas desde el miércoles 11/06 hasta el viernes 13/06",
-            "cobertura": "Golfo de Penas hasta Arica y Archipiélago Juan Fernández."
-        },
-        {
-            "aviso_alerta_alarma": "Aviso A212/2025",
-            "fecha_hora_emision": "10/06 13:39",
-            "descripcion": "Aviso de viento normal a moderado desde la madrugada a la tarde del miércoles 11 de junio.",
-            "cobertura": "Isla de Pascua"
+            "aviso_alerta_alarma": "Aviso de marejada N° 28",
+            "fecha_hora_emision": "09/07 21:58 horas",
+            "descripcion": "Marejadas desde el viernes 11 hasta el lunes 14 de julio 2025",
+            "cobertura": "Golfo de Pena hasta Arica, incluyendo a Juan Fernández."
         }
     ],
     "radiacion_uv": {
-        "observado_ayer_label": "Índice observado hoy:",
-        "observado_ayer_value": "1 (Bajo)",
-        "pronosticado_hoy_label": "Índice pronosticado para ayer:",
-        "pronosticado_hoy_value": "1-2 (Bajo)"
+        "observado_ayer_label": "Índice observado ayer:",
+        "observado_ayer_value": "3 (Moderado)",
+        "pronosticado_hoy_label": "Índice pronosticado para hoy:",
+        "pronosticado_hoy_value": "3 – 5 (Moderado)"
     },
     "estado_carreteras": [
         {
@@ -100,30 +52,30 @@
         },
         {
             "carretera": "Ruta F – 20",
-            "estado": "Desvíos de tránsito por ejecución de trabajos entre sector puente Puchuncavi y enlace Puchuncavi.",
+            "estado": "Desvíos de tránsito por ejecución de trabajos entre sector puente Puchuncaví y enlace Puchuncaví.",
             "condicion": "Tránsito regulado"
         }
     ],
     "estado_puertos": [
         {
             "puerto": "Hanga Roa",
-            "estado_del_puerto": "Puerto cerrado para embarcaciones menores dentro y fuera de la bahía",
-            "condicion": "Ola - Marejada"
+            "estado_del_puerto": "Sin restricciones.",
+            "condicion": "Normal"
         },
         {
             "puerto": "Quintero",
-            "estado_del_puerto": "Restricción: limites operacionales nave mayor",
-            "condicion": "Viento"
+            "estado_del_puerto": "Restricción: limites operacionales nave mayor y menor dentro y fuera del límite del puerto",
+            "condicion": "Ola - Marejada"
         },
         {
             "puerto": "Valparaíso",
-            "estado_del_puerto": "Restricción: limites operacionales nave mayor y menor dentro y fuera del límite del puerto",
-            "condicion": "Ola - Marejada, Viento"
+            "estado_del_puerto": "Sin restricciones",
+            "condicion": "Normal"
         },
         {
             "puerto": "San Antonio",
-            "estado_del_puerto": "Puerto cerrado para embarcaciones mayores dentro y fuera de la bahía",
-            "condicion": "Ola - Marejada"
+            "estado_del_puerto": "Sin restricciones",
+            "condicion": "Normal"
         },
         {
             "puerto": "Algarrobo",
@@ -132,15 +84,32 @@
         },
         {
             "puerto": "Juan Fernández",
-            "estado_del_puerto": "Puerto cerrado para embarcaciones menores dentro y fuera de la bahía",
-            "condicion": "Viento"
+            "estado_del_puerto": "Restricción: limites operacionales naves menores",
+            "condicion": "Ola – Marejada - Viento"
+        }
+    ],
+    "datos_hidrometricos": [
+        {
+            "nombre_estacion": "Aconcagua en Chacabuquito",
+            "nivel_m": 0.83,
+            "caudal_m3s": 9.627
+        },
+        {
+            "nombre_estacion": "Aconcagua San Felipe 2",
+            "nivel_m": 0.92,
+            "caudal_m3s": 8.473
+        },
+        {
+            "nombre_estacion": "Putaendo Resguardo Los Patos",
+            "nivel_m": 0.27,
+            "caudal_m3s": 2.126
         }
     ],
     "estado_pasos_fronterizos": [
         {
             "nombre_paso": "Los Libertadores",
-            "condicion": "Cerrado",
-            "observaciones": "Hasta nuevo aviso por condición meteorológica"
+            "condicion": "Habilitado",
+            "observaciones": "Horario de invierno desde las 08:00 hasta las 20:00 horas"
         }
     ]
 }

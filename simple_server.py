@@ -23,8 +23,8 @@ import uuid
 from werkzeug.security import check_password_hash, generate_password_hash
 
 HOST_NAME = '0.0.0.0'
-PORT_NUMBER = 8000
-load_dotenv(dotenv_path=os.path.join(os.path.expanduser('~'), 'senapred-monitor.env'))
+PORT_NUMBER = 8001
+load_dotenv()
 PID = os.getpid()
 
 # --- Definición de Rutas del Proyecto ---
@@ -38,7 +38,7 @@ DATA_FOLDER_PATH = os.path.join(SERVER_ROOT, 'datos_extraidos')
 DATA_FILE = os.path.join(DATA_FOLDER_PATH, 'ultimo_informe.json')
 NOVEDADES_FILE = os.path.join(DATA_FOLDER_PATH, 'novedades.json')
 TURNOS_FILE = os.path.join(DATA_FOLDER_PATH, 'turnos.json')
-DATABASE_FILE = os.path.join(SERVER_ROOT, 'database.db')
+DATABASE_FILE = os.path.join(SERVER_ROOT, 'database-staging.db')
 
 # Define la carpeta para las imágenes dinámicas
 DYNAMIC_SLIDES_FOLDER = os.path.join(SERVER_ROOT, 'assets', 'dynamic_slides')
@@ -1525,7 +1525,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         download_script_py = os.path.join(application_path, "descargar_informe.py")
 
                         # Definimos la ruta al ejecutable de Python DENTRO del venv
-                        python_executable = os.path.join(application_path, "venv/bin/python3")
+                        python_executable = "/usr/bin/python3"
 
                         # El comando ahora usa ambas variables definidas
                         command = [python_executable, download_script_py, "--force"]
