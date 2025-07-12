@@ -21,22 +21,31 @@ Cuenta con un panel de administración protegido por un sistema de login y roles
 El sistema ha sido migrado de un entorno local a un servidor de producción dedicado, asegurando alta disponibilidad y un rendimiento robusto.
 
 -   **Infraestructura**: Desplegado en un Servidor Privado Virtual (VPS) con **Ubuntu Linux**.
--   **Servidor Web**: **Nginx** actúa como un proxy inverso, gestionando el tráfico público, sirviendo los archivos estáticos y manejando las conexiones seguras.
+-   **Entornos Separados**: El sistema opera con dos entornos paralelos: un entorno de **Staging** para pruebas y validación, y un entorno de **Producción** para el uso final. Cada entorno cuenta con su propia base de datos y configuración aislada.
+-   **Servidor Web**: **Nginx** actúa como un proxy inverso, gestionando el tráfico público para ambos entornos, sirviendo los archivos estáticos y manejando las conexiones seguras.
 -   **Seguridad**: La comunicación está cifrada mediante un certificado **SSL/TLS (HTTPS)** gestionado por Let's Encrypt. Todas las vistas de la aplicación requieren autenticación.
--   **Aplicación Backend**: El servidor `simple_server.py` se ejecuta como un **servicio de systemd** (`senapred-monitor.service`), lo que garantiza que la aplicación se inicie automáticamente y se reinicie en caso de fallo.
+-   **Aplicación Backend**: El servidor `simple_server.py` se ejecuta como un **servicio de systemd** para cada entorno (`senapred-monitor.service` y `senapred-monitor-staging.service`), lo que garantiza que las aplicaciones se inicien automáticamente y se reinicien en caso de fallo.
 -   **Tareas Automatizadas**: El script `descargar_informe.py` se ejecuta automáticamente mediante un **cron job** en horarios definidos (11:00 y 20:00) para procesar los informes AM y PM.
--   **Base de Datos**: Utiliza **SQLite** para la gestión de usuarios (con roles) y el registro de auditoría de actividad, proporcionando una solución de persistencia ligera y eficaz.
+-   **Base de Datos**: Utiliza **SQLite** para la gestión de usuarios (con roles) y el registro de auditoría de actividad, proporcionando una solución de persistencia ligera y eficaz para cada entorno.
 
 ---
 
-## Flujo de Despliegue Continuo (CI/CD)
+## Flujo de Despliegue con Entorno de Staging (CI/CD)
 
-Se ha implementado un flujo de trabajo profesional que automatiza el despliegue de nuevas actualizaciones, eliminando la necesidad de intervención manual en el servidor.
+Se ha implementado un flujo de trabajo profesional que automatiza el despliegue a los entornos de Staging y Producción, basado en un sistema de ramas en Git para garantizar la estabilidad.
 
-1.  **Desarrollo Local**: Los cambios en el código se realizan en un entorno de desarrollo local.
-2.  **Control de Versiones**: Los cambios se suben al repositorio en GitHub usando `git push`.
-3.  **Despliegue Automático**: **GitHub Actions** detecta automáticamente el `push` a la rama `main`.
-4.  **Ejecución en el Servidor**: La acción se conecta de forma segura al servidor, ejecuta `git pull` para descargar la última versión del código y reinicia los servicios (`nginx` y `senapred-monitor.service`) para aplicar los cambios de forma inmediata.
+1.  **Ramas Principales**:
+    * **`develop`**: Es la rama principal de desarrollo. Todos los cambios nuevos se integran aquí. Cualquier `push` a esta rama despliega automáticamente los cambios al **entorno de Staging**.
+    * **`main`**: Es la rama que refleja el código en producción. Está protegida y solo puede ser actualizada mediante una Pull Request desde `develop`. Cualquier cambio en esta rama despliega automáticamente al **entorno de Producción**.
+
+2.  **Proceso de Desarrollo y Prueba**:
+    * Los cambios se realizan en VS Code y se suben a la rama `develop` (`git push origin develop`).
+    * **GitHub Actions** detecta el cambio y despliega la nueva versión en el sitio de Staging.
+    * Se realizan pruebas y validaciones en el entorno de Staging para asegurar que todo funcione correctamente.
+
+3.  **Proceso de Lanzamiento a Producción**:
+    * Una vez que los cambios han sido validados en Staging, se crea una **Pull Request** en GitHub para fusionar la rama `develop` en `main`.
+    * Tras la aprobación y el "merge" de la Pull Request, **GitHub Actions** se activa de nuevo, desplegando la versión estable y probada al entorno de Producción.
 
 ---
 
@@ -88,7 +97,7 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 ## ✅ Tareas Clave Implementadas
 
 -   **Desplegado en Entorno de Producción:** La aplicación está funcionando en un servidor en la nube con Nginx y SSL.
--   **Implementado Flujo de CI/CD:** El despliegue de actualizaciones ahora es 100% automático.
+-   **Implementado Flujo de CI/CD con Entorno de Staging:** El despliegue de actualizaciones ahora es 100% automático y seguro.
 -   **Implementado un Sistema de Autenticación y Control de Acceso por Roles.**
 -   **Añadida Gestión de Usuarios y Log de Auditoría desde la Interfaz.**
 -   **Desarrollado un Dashboard de Operaciones Avanzado y Sincronización en Tiempo Real.**

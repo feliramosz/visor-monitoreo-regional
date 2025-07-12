@@ -1,39 +1,40 @@
-# Nombre del flujo de trabajo que verás en la pestaña "Actions"
+# Nombre del flujo de trabajo
 name: Despliegue al Servidor
 
-# Disparador: Este workflow se ejecutará cada vez que hagas un "push" a la rama "main"
+# Disparador para las ramas main y develop
 on:
   push:
     branches:
       - main
+      - develop
 
-# Tareas a ejecutar
 jobs:
   deploy:
-    # El tipo de máquina virtual que usará GitHub para ejecutar las tareas
     runs-on: ubuntu-latest
-
-    # Pasos a seguir
     steps:
-      # 1. Nombre del paso
-      - name: Desplegar en el servidor Vultr
-        # Usamos una acción pre-hecha de la comunidad para conectarse por SSH
+      # Este paso clona tu repositorio en la máquina virtual de GitHub
+      # para que el script deploy.sh esté disponible.
+      - name: Clonar repositorio
+        uses: actions/checkout@v3
+
+      # Este paso se conecta a tu servidor y ejecuta el script inteligente
+      - name: Desplegar en el servidor
         uses: appleboy/ssh-action@master
         with:
-          # Aquí usamos los "Secretos" que configuraremos en GitHub
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           port: ${{ secrets.PORT }}
-          # El script que se ejecutará en el servidor una vez conectado
           script: |
-            # Navega a la carpeta del proyecto
+            # Le pasamos las variables necesarias al script que se ejecutará
+            export DEPLOY_BRANCH=${{ github.ref_name }}
+            export SUDO_PASSWORD='${{ secrets.SUDO_PASSWORD }}'
+            
+            # Navegamos a la carpeta del repositorio en el servidor
             cd /home/linuxuser/visor-monitoreo-regional
             
-            # Descarga los últimos cambios desde GitHub
-            git pull
-            
-            # Reinicia los servicios usando la contraseña de sudo
-            # El comando "echo ... | sudo -S" permite pasar la contraseña a sudo de forma no interactiva
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart senapred-monitor.service
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart nginx
+            # Nos aseguramos de tener la última versión del script de despliegue
+            git pull origin $DEPLOY_BRANCH
+
+            # Ejecutamos el script de despliegue
+            sh ./deploy.sh
