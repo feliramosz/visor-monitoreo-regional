@@ -26,15 +26,18 @@ jobs:
           password: ${{ secrets.PASSWORD }}
           port: ${{ secrets.PORT }}
           script: |
-            # Le pasamos las variables necesarias al script que se ejecutará
-            export DEPLOY_BRANCH=${{ github.ref_name }}
-            export SUDO_PASSWORD='${{ secrets.SUDO_PASSWORD }}'
-            
-            # Navegamos a la carpeta del repositorio en el servidor
-            cd /home/linuxuser/visor-monitoreo-regional
-            
-            # Nos aseguramos de tener la última versión del script de despliegue
-            git pull origin $DEPLOY_BRANCH
+            echo "--- INICIANDO DEPURACIÓN EN EL SERVIDOR ---"
 
-            # Ejecutamos el script de despliegue
-            sh ./deploy.sh
+            echo ">>> 1. Listando archivos y permisos en la carpeta de PRODUCCIÓN:"
+            ls -la /home/linuxuser/visor-monitoreo-regional
+
+            echo ">>> 2. Mostrando contenido de deploy.sh en la carpeta de PRODUCCIÓN:"
+            cat /home/linuxuser/visor-monitoreo-regional/deploy.sh
+
+            echo ">>> 3. Listando archivos y permisos en la carpeta de STAGING:"
+            ls -la /home/linuxuser/senapred-monitor-staging
+
+            echo ">>> 4. Mostrando contenido de deploy.sh en la carpeta de STAGING:"
+            cat /home/linuxuser/senapred-monitor-staging/deploy.sh
+
+            echo "--- FIN DE LA DEPURACIÓN ---"
