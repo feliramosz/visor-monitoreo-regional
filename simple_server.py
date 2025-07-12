@@ -1980,7 +1980,7 @@ if __name__ == "__main__":
             # Si no es un número válido, usa el puerto por defecto
             print(f"Puerto invalido '{sys.argv[1]}'. Usando el puerto por defecto {PORT_NUMBER}.")
 
-    # Ahora usamos la variable 'port' en lugar de PORT_NUMBER
+    # usa la variable 'port'
     httpd = ThreadingHTTPServer((HOST_NAME, port), SimpleHttpRequestHandler)
 
     print(f"Servidor MULTIHILO iniciado en http://{HOST_NAME}:{port} con PID {PID}")
