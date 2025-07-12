@@ -17,5 +17,5 @@ tzdata==2025.2
 urllib3==2.4.0
 beautifulsoup4==4.12.3
 requests==2.32.3
-openpyxl==-3.1.5
+openpyxl==3.1.5
 selenium
