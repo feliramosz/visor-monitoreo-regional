@@ -1,32 +1,45 @@
 #!/bin/bash
-set -e 
+set -e
 
-echo "--- Iniciando despliegue para la rama: $DEPLOY_BRANCH ---"
+echo "--- Despliegue iniciado para la rama: $DEPLOY_BRANCH ---"
 
+# --- Configuración de Entornos ---
 PROD_DIR="/home/linuxuser/visor-monitoreo-regional"
-STAGING_DIR="/home/linuxuser/senapred-monitor-staging"
+PROD_SERVICE="senapred-prod.service" # <-- Nombre del servicio de producción
 
-if [ "$DEPLOY_BRANCH" == "main" ]; then
-  echo ">>> Desplegando en PRODUCCIÓN..."
-  TARGET_DIR=$PROD_DIR
-  TARGET_BRANCH="main"
-elif [ "$DEPLOY_BRANCH" == "develop" ]; then
-  echo ">>> Desplegando en STAGING..."
-  TARGET_DIR=$STAGING_DIR
-  TARGET_BRANCH="develop"
+STAGING_DIR="/home/linuxuser/senapred-monitor-staging"
+STAGING_SERVICE="senapred-staging.service" # <-- Nombre del servicio de staging
+
+# --- Lógica de Despliegue ---
+TARGET_DIR=""
+TARGET_BRANCH=""
+TARGET_SERVICE=""
+
+if [ "$DEPLOY_BRANCH" = "main" ]; then
+    echo ">>> Configurando para PRODUCCIÓN..."
+    TARGET_DIR=$PROD_DIR
+    TARGET_BRANCH="main"
+    TARGET_SERVICE=$PROD_SERVICE
+elif [ "$DEPLOY_BRANCH" = "develop" ]; then
+    echo ">>> Configurando para STAGING..."
+    TARGET_DIR=$STAGING_DIR
+    TARGET_BRANCH="develop"
+    TARGET_SERVICE=$STAGING_SERVICE
 else
-  echo "!!! Rama '$DEPLOY_BRANCH' no configurada. Abortando."
-  exit 1
+    echo "!!! Rama '$DEPLOY_BRANCH' no configurada. Abortando."
+    exit 1
 fi
 
-echo "Navegando a $TARGET_DIR"
-cd $TARGET_DIR
+echo "Directorio de destino: $TARGET_DIR"
+echo "Servicio a reiniciar: $TARGET_SERVICE"
 
-echo "Actualizando la rama '$TARGET_BRANCH' desde el origen..."
+cd $TARGET_DIR
+echo "Actualizando rama '$TARGET_BRANCH' desde GitHub..."
 git fetch origin
 git reset --hard origin/$TARGET_BRANCH
 
-echo ">>> Código actualizado. Reiniciando servicios..."
-echo "$SUDO_PASSWORD" | sudo -S systemctl restart senapred-monitor.service
-echo "$SUDO_PASSWORD" | sudo -S systemctl restart nginx
-echo "--- Despliegue para '$DEPLOY_BRANCH' finalizado exitosamente ---"
+echo ">>> Reiniciando servicios específicos..."
+echo "$SUDO_PASSWORD" | sudo -S systemctl restart $TARGET_SERVICE
+echo "$SUDO_PASSWORD" | sudo -S systemctl restart nginx # Nginx se reinicia siempre
+
+echo "--- Despliegue para '$DEPLOY_BRANCH' finalizado. ---"
