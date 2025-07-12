@@ -1,6 +1,6 @@
 # Sistema de Monitoreo Regional - SENAPRED Valparaíso
 
-_Última actualización: 9 de julio de 2025_
+_Última actualización: 12 de julio de 2025_
 
 ![Estado](https://img.shields.io/badge/estado-en_producción-green)
 ![Python](https://img.shields.io/badge/python-3.x-blue.svg)
@@ -21,10 +21,10 @@ Cuenta con un panel de administración protegido por un sistema de login y roles
 El sistema ha sido migrado de un entorno local a un servidor de producción dedicado, asegurando alta disponibilidad y un rendimiento robusto.
 
 -   **Infraestructura**: Desplegado en un Servidor Privado Virtual (VPS) con **Ubuntu Linux**.
--   **Entornos Separados**: El sistema opera con dos entornos paralelos: un entorno de **Staging** para pruebas y validación, y un entorno de **Producción** para el uso final. Cada entorno cuenta con su propia base de datos y configuración aislada.
+-   **Entornos Separados**: El sistema opera con dos entornos paralelos: un entorno de **Staging** para pruebas y validación (`staging.esrvalparaiso.cl`) y un entorno de **Producción** para el uso final (`www.esrvalparaiso.cl`). Cada entorno cuenta con su propia base de datos y configuración aislada.
 -   **Servidor Web**: **Nginx** actúa como un proxy inverso, gestionando el tráfico público para ambos entornos, sirviendo los archivos estáticos y manejando las conexiones seguras.
 -   **Seguridad**: La comunicación está cifrada mediante un certificado **SSL/TLS (HTTPS)** gestionado por Let's Encrypt. Todas las vistas de la aplicación requieren autenticación.
--   **Aplicación Backend**: El servidor `simple_server.py` se ejecuta como un **servicio de systemd** para cada entorno (`senapred-monitor.service` y `senapred-monitor-staging.service`), lo que garantiza que las aplicaciones se inicien automáticamente y se reinicien en caso de fallo.
+-   **Aplicación Backend**: El servidor `simple_server.py` se ejecuta como un **servicio de systemd** para cada entorno (`senapred-prod.service` y `senapred-staging.service`), lo que garantiza que las aplicaciones se inicien automáticamente y se reinicien en caso de fallo.
 -   **Tareas Automatizadas**: El script `descargar_informe.py` se ejecuta automáticamente mediante un **cron job** en horarios definidos (11:00 y 20:00) para procesar los informes AM y PM.
 -   **Base de Datos**: Utiliza **SQLite** para la gestión de usuarios (con roles) y el registro de auditoría de actividad, proporcionando una solución de persistencia ligera y eficaz para cada entorno.
 
@@ -35,17 +35,18 @@ El sistema ha sido migrado de un entorno local a un servidor de producción dedi
 Se ha implementado un flujo de trabajo profesional que automatiza el despliegue a los entornos de Staging y Producción, basado en un sistema de ramas en Git para garantizar la estabilidad.
 
 1.  **Ramas Principales**:
-    * **`develop`**: Es la rama principal de desarrollo. Todos los cambios nuevos se integran aquí. Cualquier `push` a esta rama despliega automáticamente los cambios al **entorno de Staging**.
-    * **`main`**: Es la rama que refleja el código en producción. Está protegida y solo puede ser actualizada mediante una Pull Request desde `develop`. Cualquier cambio en esta rama despliega automáticamente al **entorno de Producción**.
+    * **`develop`**: Es la rama principal de desarrollo. Todos los cambios nuevos se integran aquí. Cualquier `push` a esta rama despliega automáticamente los cambios al **entorno de Staging** (`staging.esrvalparaiso.cl`).
+    * **`main`**: Es la rama que refleja el código en producción. Está protegida y solo puede ser actualizada mediante una Pull Request desde `develop`. Cualquier cambio en esta rama despliega automáticamente al **entorno de Producción** (`www.esrvalparaiso.cl`).
 
 2.  **Proceso de Desarrollo y Prueba**:
-    * Los cambios se realizan en VS Code y se suben a la rama `develop` (`git push origin develop`).
-    * **GitHub Actions** detecta el cambio y despliega la nueva versión en el sitio de Staging.
-    * Se realizan pruebas y validaciones en el entorno de Staging para asegurar que todo funcione correctamente.
+    * Los cambios se realizan en VS Code en una rama de característica basada en `develop`.
+    * Una vez listos para probar, se suben a la rama `develop` (`git push origin develop`).
+    * **GitHub Actions** (`.github/workflows/deploy.yml`) detecta el cambio y ejecuta un script en el servidor para desplegar la nueva versión en el sitio de Staging.
+    * Se realizan pruebas y validaciones exhaustivas en el entorno de Staging para asegurar que todo funcione correctamente.
 
 3.  **Proceso de Lanzamiento a Producción**:
     * Una vez que los cambios han sido validados en Staging, se crea una **Pull Request** en GitHub para fusionar la rama `develop` en `main`.
-    * Tras la aprobación y el "merge" de la Pull Request, **GitHub Actions** se activa de nuevo, desplegando la versión estable y probada al entorno de Producción.
+    * Tras la aprobación y el "merge" de la Pull Request, **GitHub Actions** se activa de nuevo, ejecutando el mismo script de despliegue, pero esta vez dirigido a la rama `main`, lo que despliega la versión estable y probada al entorno de Producción.
 
 ---
 
@@ -64,10 +65,12 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 -   **Sistema de Notificaciones de Eventos por Voz**:
     -   **Alertas Inteligentes**: El sistema notifica por voz únicamente cuando detecta **cambios de estado** en variables críticas, como la calidad del aire, el estado de pasos fronterizos y **alertas de tsunami**.
     -   **Monitoreo de Tsunamis (PTWC)**: El sistema vigila el feed oficial de Alerta Común (CAP) del PTWC, interpreta los boletines y notifica eventos nuevos, distinguiendo entre niveles de amenaza para entregar un mensaje de voz claro, seguro y en español.
+    -   **Monitoreo de Sismos (GEOFON)**: Se integra una segunda fuente de monitoreo sísmico global (GEOFON) como sistema de redundancia en las notificaciones por voz.
     -   **Priorización de Sonidos**: Si ocurren múltiples eventos simultáneamente, el sistema reproduce un **único sonido correspondiente al evento de mayor severidad** y luego detalla todos los cambios en un solo mensaje de voz.
     -   **Recordatorios Configurables**: Emite recordatorios de voz para situaciones anómalas que se mantienen en el tiempo, con una frecuencia variable según la criticidad (ej: cada 1 hora para emergencias, cada 3 horas para estados regulares).
     -   **Controles de Activación**: Incluye un **control global** en el panel de administración para activar/desactivar las notificaciones para todos, y un **control local** en el dashboard para que cada operador pueda silenciar las alertas en su propia sesión.
     -   **Módulo de Prueba**: El panel de administración cuenta con botones para probar los diferentes sonidos y mensajes de notificación.
+    -   **Notificación por Voz para Precipitaciones**: Implementada la notificación por aumento de valor para las estaciones meteorológicas.
 -   **Panel de Administración Centralizado**: Una interfaz (`admin.html`) que permite a los operadores autorizados editar datos, gestionar el panel de "Novedades", subir imágenes para slides dinámicas y controlar la configuración global de visualización del dashboard.
 -   **Visualización de Turnos en Tiempo Real**: El dashboard muestra automáticamente al **Profesional a llamado** y a los **Operadores de Turno** según la hora y fecha actual, gestionado a través de un archivo `turnos.json` centralizado.
 -   **Visualización Avanzada de Datos**:
@@ -77,6 +80,7 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
     -   **Gestión de Usuarios desde la Interfaz**: Los administradores pueden crear, editar y eliminar cuentas de usuario.
     -   **Log de Actividad del Sistema**: El sistema registra todas las acciones importantes (inicios de sesión, cambios de datos, etc.) con **usuario, fecha, hora y dirección IP**.
 -   **Integración de APIs Externas**: Consume y muestra datos en tiempo real de la DMC, SINCA, CSN, SHOA, Waze for Cities y SEC.
+    -   **Conexión a API de SEC**: Implementado un método robusto para la consulta de clientes sin suministro eléctrico directamente desde la API de la Superintendencia de Electricidad y Combustibles, asegurando la visualización automática de los datos.
 -   **Múltiples Vistas de Despliegue**: `index.html` para visualización general, `dashboard.html` como panel de operaciones avanzado, y `admin.html`/`login.html` para gestión.
 -   **Mejoras de Experiencia de Usuario (UX)**: Controles de visualización locales, paginación automática de novedades y priorización de alertas.
 -   **Gestión de Turnos:**
@@ -87,10 +91,7 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 -   **Gestión de Perfil de Usuario:**
     -   **"Mis Turnos":** Vista personal para que cada usuario vea su propio calendario de turnos.
     -   **"Mi Perfil":** Función para que cada usuario pueda **cambiar su propia contraseña**.
--   **Notificación por Voz para Precipitaciones**: Implementada la notificación por aumento de valor para las estaciones meteorológicas.
 -   **Servidor Robusto y Multihilo**: Se ha reemplazado el servidor web base por una implementación multihilo (`ThreadingHTTPServer`) para garantizar la estabilidad y capacidad de respuesta del sistema bajo alta carga de peticiones concurrentes.
--   **Monitoreo de Sismos (GEOFON)**: Se integra una segunda fuente de monitoreo sísmico global (GEOFON) como sistema de redundancia en las notificaciones por voz.
--   **[NUEVO] Conexión a API de SEC**: Implementado un método robusto para la consulta de clientes sin suministro eléctrico directamente desde la API de la Superintendencia de Electricidad y Combustibles, asegurando la visualización automática de los datos.
 
 ---
 
@@ -107,15 +108,15 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 -   **Implementado Sistema de Notificaciones de Eventos por Voz**, con alertas priorizadas, recordatorios inteligentes y controles de activación.
 -   **Añadido monitoreo de boletines de tsunami del PTWC y GEOFON** con análisis de datos y plantillas de voz en español.
 -   **Solucionado problema de inestabilidad del servidor** mediante la implementación de un servidor multihilo.
--   **[NUEVO] Solucionado problema de conexión con la API de la SEC**, implementando una lógica de petición y procesamiento de datos robusta.
+-   **Solucionado problema de conexión con la API de la SEC**, implementando una lógica de petición y procesamiento de datos robusta.
 
 ## 📝 Próximos Pasos y Tareas Pendientes
 -   **Sistema de Notificaciones del Sistema:** Implementar alertas si el `cron job` de descarga de informes falla.
 -   **Paginación en Vistas de Administración:** Añadir paginación para el log de actividad y la lista de usuarios.
 -   **Exportación de Datos:** Añadir botones para exportar ciertas tablas a formatos como CSV o PDF.
 -   **Optimizar la carga:** Se debe optimizar la carga de datos en el dashboard para reducir el parpadeo.
--   **Se debe crear manual de usuario para panel de administración**
--   **Finalizado el proceso de implementación de funcionalidades se debe refactorizar el codigo en js para modularizar componentes repetidos**
+-   **Se debe crear manual de usuario para panel de administración.**
+-   **Finalizado el proceso de implementación de funcionalidades se debe refactorizar el código en js para modularizar componentes repetidos.**
 
 ### Resumen de Tiempos de Actualización y Origen de Datos
 
