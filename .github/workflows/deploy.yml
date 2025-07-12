@@ -5,7 +5,8 @@ name: Despliegue al Servidor
 on:
   push:
     branches:
-      - [main, develop] 
+      - main
+      - develop 
 
 # Tareas a ejecutar
 jobs:
