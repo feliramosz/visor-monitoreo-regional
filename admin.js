@@ -1287,7 +1287,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-        // --- LÓGICA PARA PESTAÑAS (TABS) EN EL PANEL DE ADMINISTRACIÓN ---
+        // --- LÓGICA PARA PESTAÑAS EN EL PANEL DE ADMINISTRACIÓN ---
     const tabsContainer = document.querySelector('.admin-tabs-nav');
     if (tabsContainer) {
         const tabButtons = tabsContainer.querySelectorAll('.admin-tab-btn');
