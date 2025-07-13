@@ -658,7 +658,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (i === 0 && j < diaSemana) {
                     celdasSemanaHtml += '<div class="grid-empty"></div>';
                 } else if (dia > diasEnMes) {
-                    celdasSemdasSemanaHtml += '<div class="grid-empty"></div>';
+                    celdasSemanaHtml += '<div class="grid-empty"></div>';
                 } else {
                     if (primerDiaDeLaSemana === 0) primerDiaDeLaSemana = dia;
 
