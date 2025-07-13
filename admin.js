@@ -473,6 +473,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             console.error("Error al guardar datos:", error);
             showMessage(`Error al guardar: ${error.message}`, 'error');
+        } finally {
+            // Remover la clase 'pressed' después de un breve retardo para el efecto visual
+            setTimeout(() => {
+                saveDataBtn.classList.remove('pressed');
+            }, 300); // 300ms de duración para el efecto verde
         }
     });
 

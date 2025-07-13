@@ -158,7 +158,19 @@
             background-color: #007bff;
             padding: 12px 25px;
             font-size: 1.1em;
+            transition: background-color 0.3s ease; /* Añade una transición suave */
         }
+
+        .save-button:hover {
+            background-color: #0056b3; /* Color más oscuro al pasar el mouse */
+        }
+        
+        .save-button.pressed {
+            background-color: #28a745;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.5);
+            transform: translateY(1px);
+        }
+
         .message {
             margin-top: 20px;
             padding: 10px;
@@ -443,6 +455,34 @@
             margin-right: 20px; /* Ajusta este valor para el padding interno de las tabs */
         }
 
+                /* Estilos para el Índice UV con formato unificado */
+        #uvRadiacionContainer {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px 20px; /* Espacio entre filas y columnas */
+            align-items: center;
+            border: 1px dashed #ced4da;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            background-color: #e9ecef;
+        }
+
+        #uvRadiacionContainer .uv-info-item {
+            display: contents;
+        }
+
+        #uvRadiacionContainer label {
+            text-align: right;
+            padding-right: 10px; /* Pequeño espacio entre label e input */
+            font-weight: bold;
+        }
+
+        #uvRadiacionContainer input[type="text"] {
+            width: calc(100% - 20px); /* Ajusta el ancho para el padding */
+            margin-bottom: 0;
+        }
+        
     </style>
 </head>
 <body>
@@ -492,9 +532,9 @@
                     <button class="admin-tab-btn" data-tab-target="#tab-avisos-meteorologicos">Avisos Meteorológicos</button>
                     <button class="admin-tab-btn" data-tab-target="#tab-radiacion-uv">Radiación UV</button>
                     <button class="admin-tab-btn" data-tab-target="#tab-emergencias">Emergencias 24 Horas</button>
-                    <button class="admin-tab-btn" data-tab-target="#tab-carreteras">Carreteras</button>
+                    <button class="admin-tab-btn" data-tab-target="#tab-carreteras">Estado Carreteras</button>
                     <button class="admin-tab-btn" data-tab-target="#tab-pasos-fronterizos">Pasos Fronterizos</button>
-                    <button class="admin-tab-btn" data-tab-target="#tab-datos-hidrometricos">Hidrométricos</button>
+                    <button class="admin-tab-btn" data-tab-target="#tab-datos-hidrometricos">Hidrométricos DGA</button>
                 </div>
 
                 <div id="admin-tabs-content-wrapper">
@@ -503,16 +543,6 @@
                             <p>En el campo inferior se puede modificar la fecha a mostrar en pagina para exterior, la hora se actualiza automaticamente al presionar guardar.</p>
                             <label for="adminFechaInforme">Fecha proyectada en pantalla exterior:</label>
                             <input type="text" id="adminFechaInforme" placeholder="Ej: martes, 24 de junio de 2025">
-
-                            <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
-                                <h4 style="margin-top:0;">Botón de prueba para el Boletín Informativo</h4>
-                                <p>
-                                    Presiona este botón para generar y escuchar una vista previa del boletín informativo por voz con los datos cargados actualmente en el panel.
-                                </p>
-                                <button type="button" id="testBoletinBtn" style="background-color: #17a2b8;">
-                                    ▶️ Prueba del Boletín por Voz
-                                </button>
-                            </div>
 
                             <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
                                 <h4 style="margin-top:0;">Configuración de carrusel</h4>                                
@@ -528,6 +558,16 @@
                                 </select>
                             </div>
 
+                            <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
+                                <h4 style="margin-top:0;">Botón de prueba para el Boletín Informativo</h4>
+                                <p>
+                                    Presiona este botón para generar y escuchar una vista previa del boletín informativo por voz con los datos cargados actualmente en el panel.
+                                </p>
+                                <button type="button" id="testBoletinBtn" style="background-color: #17a2b8;">
+                                    ▶️ Prueba del Boletín por Voz
+                                </button>
+                            </div>
+                            
                             <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
                                 <h4 style="margin-top:0;">Gestión de Notificaciones por Voz</h4>                  
 
@@ -572,13 +612,20 @@
 
                     <div id="tab-radiacion-uv" class="admin-tab-content">
                         <h3>Índice de Radiación Ultravioleta</h3>
-                        <div class="uv-info-admin">
+                    <div class="form-group" id="uvRadiacionContainer">
+                        <div class="uv-info-item">
                             <label for="adminUVObservadoLabel">Etiqueta Observado:</label>
                             <input type="text" id="adminUVObservadoLabel" value="Observado ayer:">
+                        </div>
+                        <div class="uv-info-item">
                             <label for="adminUVObservadoValue">Valor Observado:</label>
                             <input type="text" id="adminUVObservadoValue" value="N/A">
+                        </div>
+                        <div class="uv-info-item">
                             <label for="adminUVPronosticadoLabel">Etiqueta Pronosticado:</label>
                             <input type="text" id="adminUVPronosticadoLabel" value="Pronosticado para hoy:">
+                        </div>
+                        <div class="uv-info-item">
                             <label for="adminUVPronosticadoValue">Valor Pronosticado:</label>
                             <input type="text" id="adminUVPronosticadoValue" value="N/A">
                         </div>
