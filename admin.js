@@ -1328,28 +1328,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- LÓGICA PARA PESTAÑAS EN EL PANEL DE ADMINISTRACIÓN ---
-    const adminTabsNav = document.querySelector('.admin-tabs-nav');
-    if (adminTabsNav) {
-        const tabButtons = adminTabsNav.querySelectorAll('.admin-tab-btn');
-        const tabContents = document.querySelectorAll('.admin-tab-content');
+    const todosLosNavegadoresDePestanas = document.querySelectorAll('.admin-tabs-nav');
+
+    todosLosNavegadoresDePestanas.forEach(nav => {        
+        const tabButtons = nav.querySelectorAll('.admin-tab-btn');
+        const contenedorPadre = nav.parentElement;
+        const tabContents = contenedorPadre.querySelectorAll('.admin-tab-content');
 
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
-                const targetId = button.dataset.tabTarget; // Ej: "#tab-alertas"
-                
-                // Desactivar todas las pestañas y contenidos
+                const targetId = button.dataset.tabTarget;
+
+                // Desactivamos solo los botones y contenidos de ESTE GRUPO
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 tabContents.forEach(content => content.classList.remove('active'));
 
-                // Activar la pestaña y el contenido seleccionados
+                // Activamos la pestaña y el contenido seleccionados
                 button.classList.add('active');
                 const targetContent = document.querySelector(targetId);
                 if (targetContent) {
                     targetContent.classList.add('active');
                 }
+
+                // --- Lógica adicional específica para cada pestaña ---
+                // Si hacemos clic en la pestaña del calendario, cargamos sus datos.
+                if (targetId === '#tab-mis-turnos') {
+                    inicializarMisTurnos();
+                }
             });
         });
-    }
+    });
 
     // --- MANEJADOR DE CLICS DEL MENÚ LATERAL  ---
     sidebarLinks.forEach(link => {
