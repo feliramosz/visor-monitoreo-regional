@@ -32,14 +32,14 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             # Crear un archivo temporal para el script deploy.sh en el servidor
-            # INICIO DE LA MODIFICACIÓN IMPORTANTE
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S bash -c 'cat > /tmp/deploy_temp.sh << EOF
+            # Ahora, el script temporal leerá los argumentos
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S bash -c 'cat > /tmp/deploy_temp.sh << '"EOF"
             #!/bin/bash
             set -e
 
-            # Inyecta la rama de despliegue directamente en el script
-            DEPLOY_BRANCH="${{ github.ref_name }}"
-            SUDO_PASSWORD="${{ secrets.SUDO_PASSWORD }}" # También inyectamos la contraseña
+            # Leer los argumentos pasados al script
+            DEPLOY_BRANCH="$1"
+            SUDO_PASSWORD="$2"
 
             echo "--- Despliegue iniciado para la rama: $DEPLOY_BRANCH ---"
 
@@ -73,11 +73,11 @@ jobs:
             echo "Directorio de destino: $TARGET_DIR"
             echo "Servicio a reiniciar: $TARGET_SERVICE"
 
-            cd $TARGET_DIR
+            cd "$TARGET_DIR" # Usar comillas para el path, por si acaso
+
             echo "Actualizando rama '$TARGET_BRANCH' desde GitHub..."
             
             # Gestiona el known_hosts para evitar "Host key verification failed"
-            # Importante que el usuario 'linuxuser' tenga permiso de escritura en ~/.ssh
             mkdir -p ~/.ssh # Asegura que el directorio existe
             ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null || true
             chmod 600 ~/.ssh/known_hosts
@@ -90,14 +90,14 @@ jobs:
             echo "$SUDO_PASSWORD" | sudo -S systemctl restart nginx # Nginx se reinicia siempre
 
             echo "--- Despliegue para '$DEPLOY_BRANCH' finalizado. ---"
-            EOF'
-            # FIN DE LA MODIFICACIÓN IMPORTANTE
+            '"EOF" # Cierre del heredoc con comillas
+            # FIN DE LA MODIFICACIÓN
 
             # Dar permisos de ejecución al script temporal
             echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S chmod +x /tmp/deploy_temp.sh
 
-            # Ejecutar el script temporal (ahora sin pasar variables, ya están inyectadas)
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S /tmp/deploy_temp.sh
+            # Ejecutar el script temporal y pasar las variables como argumentos
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S /tmp/deploy_temp.sh "${{ github.ref_name }}" "${{ secrets.SUDO_PASSWORD }}"
 
             # Eliminar el script temporal después de la ejecución
             sudo rm /tmp/deploy_temp.sh
