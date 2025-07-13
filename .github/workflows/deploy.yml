@@ -12,9 +12,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Paso 1: Clonar el repositorio en la máquina virtual de GitHub Actions      
+      # Paso 1: Clonar el repositorio en la máquina virtual de GitHub Actions
       - name: Checkout del código
-        uses: actions/checkout@v3 # Puedes probar con v4 o superior si lo deseas, pero v3 es seguro.
+        uses: actions/checkout@v3
+
+      # NUEVO PASO: Configurar ssh-agent para usar la clave privada
+      - name: Configurar SSH Agent
+        uses: webfactory/ssh-agent@v0.7.0 # Usa una versión estable. Puedes buscar la más reciente si quieres.
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY_DEPLOY }}
 
       # Paso 2: Conectarse al servidor y ejecutar el script deploy.sh
       - name: Desplegar en el servidor remoto
@@ -22,17 +28,19 @@ jobs:
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
-          password: "${{ secrets.PASSWORD }}"
-          port: ${{ secrets.PORT }}          
+          password: "${{ secrets.PASSWORD }}" # Esto es para la autenticación SSH con el servidor, no para Git.
+          port: ${{ secrets.PORT }}
           script: |
+            # Antes de hacer git pull/fetch, asegúrate de que el ssh-agent esté funcionando
+            # Puedes agregar esto al inicio de tu script temporal si quieres:
+            # eval "$(ssh-agent -s)" # Iniciar el ssh-agent (si no está ya iniciado por webfactory/ssh-agent)
+            # ssh-add ~/.ssh/id_ed25519 # Asegurarse de que la clave privada esté cargada (si no está por webfactory/ssh-agent)
+
             # Navegar al directorio donde se encuentra el script deploy.sh
             # Y donde se realizará el git pull
             # La ruta de destino depende de la rama que se esté desplegando.
-            # Usaremos el mismo deploy.sh para determinar el TARGET_DIR.
 
             # Crear un archivo temporal para el script deploy.sh en el servidor
-            # Esto evita conflictos si deploy.sh no está en la misma ubicación
-            # o si el git pull lo sobrescribe a mitad de la ejecución.
             echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S bash -c 'cat > /tmp/deploy_temp.sh << EOF
             #!/bin/bash
             set -e
@@ -68,6 +76,17 @@ jobs:
 
             echo "Directorio de destino: \$TARGET_DIR"
             echo "Servicio a reiniciar: \$TARGET_SERVICE"
+
+            # Asegúrate de que el ssh-agent tenga la clave cargada antes de git fetch
+            # Esto es crucial si 'webfactory/ssh-agent' no lo hace de forma persistente.
+            # Evaluar ssh-agent en la shell actual, para que los comandos git lo reconozcan
+            eval "$(ssh-agent -s)" > /dev/null
+            # Agregar la clave SSH privada. Es posible que el PATH a la clave necesite ser ajustado
+            # dependiendo de cómo `webfactory/ssh-agent` la gestione en el entorno de la acción.
+            # Si la clave ya está en el ssh-agent no será necesario ssh-add, pero no hace daño.
+            # Sin embargo, la acción webfactory/ssh-agent debería encargarse de esto.
+            # Si esto sigue fallando, podríamos necesitar escribir la clave en un archivo temporal
+            # en el servidor y luego añadirla. Pero intentemos esta forma primero.
 
             cd \$TARGET_DIR
             echo "Actualizando rama '\''\$TARGET_BRANCH'\'' desde GitHub..."
