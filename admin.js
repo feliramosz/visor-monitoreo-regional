@@ -1298,13 +1298,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (openNovedadesFloatBtn) {
         openNovedadesFloatBtn.addEventListener('click', (e) => {
             e.preventDefault();            
-            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));            
-            document.querySelectorAll('.admin-sidebar nav ul li a').forEach(l => l.classList.remove('active'));          
-            
-            novedadesChatPanel.classList.add('active');            
-            openNovedadesFloatBtn.classList.remove('visible');             
-            
-            loadNovedadesOnly(); 
+            novedadesChatPanel.classList.add('active');           
+            openNovedadesFloatBtn.classList.remove('visible');            
+            loadNovedadesOnly();
         });
     }
 

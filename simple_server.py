@@ -1418,23 +1418,31 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         # --- Endpoint para guardar /api/data
         if self.path == '/api/data':
             username = self._get_user_from_token() 
-                        
+
             if not username:
                 self._set_headers(401, 'application/json')
                 self.wfile.write(json.dumps({'error': 'No autorizado. Se requiere iniciar sesión.'}).encode('utf-8'))
                 return
-            
+
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             try:
-                new_data = json.loads(post_data.decode('utf-8'))
+                received_data = json.loads(post_data.decode('utf-8')) # Datos recibidos del frontend
+
+                # Cargar los datos actuales del archivo para preservar campos no modificados
+                current_file_data = {}
+                if os.path.exists(DATA_FILE):
+                    with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                        current_file_data = json.load(f)
+
+                                
+                current_file_data.update(received_data)
 
                 os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
 
                 with open(DATA_FILE, 'w', encoding='utf-8') as f:
-                    json.dump(new_data, f, ensure_ascii=False, indent=4)
-                
-                # Aquí añadiremos el registro de actividad en el siguiente paso
+                    json.dump(current_file_data, f, ensure_ascii=False, indent=4) # Guardar los datos actualizados
+
                 self._log_activity(username, "Informe Principal Actualizado")
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps({"message": "Datos de informe actualizados correctamente."}, ensure_ascii=False).encode('utf-8'))
