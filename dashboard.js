@@ -799,12 +799,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const slidesToRotate = [];
 
         // Panel de Novedades
-        if (showNovedadesCheck.checked && novedades.length > 0) {
-            paginateItems(novedades, 5).forEach((page, index, pages) => {
-                const slideId = `novedades-slide-${index}`;
-                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div id="informe-correlativo"><span>N° de último informe ${data.numero_informe_manual || '---'}</span></div></div><div class="list-container"><ul class="dashboard-list"></ul></div></div></div>`;
-                slidesToRotate.push({ id: slideId, type: 'novedad', content: page });
-            });
+        if (showNovedadesCheck.checked) {
+            const paginasNovedades = paginateItems(novedades, 5);
+
+            if (paginasNovedades.length > 0) {                
+                paginasNovedades.forEach((page, index, pages) => {
+                    const slideId = `novedades-slide-${index}`;
+                    slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div id="informe-correlativo"><span>N° de último informe ${data.numero_informe_manual || '---'}</span></div></div><div class="list-container"><ul class="dashboard-list"></ul></div></div></div>`;
+                    slidesToRotate.push({ id: slideId, type: 'novedad', content: page });
+                });
+            } else {                
+                const slideId = 'novedades-slide-empty';
+                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades</h3><div id="informe-correlativo"><span>N° de último informe ${data.numero_informe_manual || '---'}</span></div></div><div class="list-container"><p class="no-items-placeholder">No hay novedades registradas.</p></div></div></div>`;
+                slidesToRotate.push({ id: slideId, type: 'novedad_empty' });
+            }
         }
 
         // Panel de Emergencias
@@ -829,8 +837,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const slideElement = document.getElementById(slideInfo.id);
             if (!slideElement) return;
 
-            if (slideInfo.type === 'novedad') {
+            if (slideInfo.type === 'novedad') {                
                 slideElement.querySelector('.list-container ul').innerHTML = slideInfo.content.map(item => `<li><strong>[${item.timestamp}]</strong> ${item.texto}</li>`).join('');
+            } else if (slideInfo.type === 'novedad_empty') {               
+                slideElement.querySelector('.list-container').innerHTML = '<p class="no-items-placeholder">No hay novedades registradas.</p>';
             } else if (slideInfo.type === 'emergencia') {
                 slideElement.querySelector('tbody').innerHTML = slideInfo.content.map(item => `<tr><td>${item.n_informe||'N/A'}</td><td>${item.fecha_hora||'N/A'}</td><td>${item.evento_lugar||'N/A'}</td><td>${item.resumen||''}</td></tr>`).join('');
             } else if (slideInfo.type === 'waze') {

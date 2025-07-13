@@ -2489,3 +2489,10 @@ footer {
     overflow: hidden; /* Opcional: si el contenido excede la altura */
     /* ... otros estilos ... */
 }
+
+.no-items-placeholder {
+    text-align: center;
+    padding: 20px;
+    font-style: italic;
+    color: #6c757d;
+}
