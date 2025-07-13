@@ -698,6 +698,62 @@
             justify-self: start;
         }
 
+        /* Estilos para el formulario de subida de imagenes*/
+        #dynamic-slides .form-group {
+            display: grid;
+            grid-template-columns: max-content 1fr;
+            gap: 15px;
+            align-items: center;
+        }
+
+        #dynamic-slides .form-group h4,
+        #dynamic-slides .form-group button {
+            grid-column: 1 / -1;
+            justify-self: start;
+        }
+
+        /* Estilos para la lista de imágenes ya subidas */
+        .dynamic-slide-item {
+            display: grid;
+            /* Tres columnas: Miniatura, Información, Botón de acción */
+            grid-template-columns: 120px 1fr auto;
+            gap: 20px;
+            align-items: start;
+            border: 1px dashed #ced4da;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+        }
+
+        .dynamic-slide-item img {
+            width: 120px;
+            height: auto;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            object-fit: cover;
+        }
+
+        /* Un nuevo contenedor para agrupar los campos de texto */
+        .dynamic-slide-item .slide-info {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .dynamic-slide-item .slide-info label,
+        .dynamic-slide-item .slide-info input,
+        .dynamic-slide-item .slide-info textarea {
+            width: 100%;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        .dynamic-slide-item button {
+            height: fit-content;
+            align-self: center;
+        }
+
     </style>
 </head>
 <body>

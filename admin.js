@@ -339,13 +339,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         const div = document.createElement('div');
         div.className = 'dynamic-slide-item';
         div.dataset.id = slide.id;
+
+        // Estructura HTML mejorada para funcionar con el nuevo CSS Grid
         div.innerHTML = `
-            <img src="${slide.image_url || ''}" alt="${slide.title || ''}" style="max-width: 100px; height: auto; display: block; margin-bottom: 10px;">
-            <label>URL Imagen:</label><input type="text" class="slide-image-url" value="${slide.image_url || ''}" disabled>
-            <label>Título:</label><input type="text" class="slide-title" value="${slide.title || ''}">
-            <label>Descripción:</label><textarea class="slide-description">${slide.description || ''}</textarea>
-            <button type="button" class="remove-slide-btn remove">Eliminar Slide</button>
+            <img src="${slide.image_url || ''}" alt="${slide.title || ''}">
+            
+            <div class="slide-info">
+                <label>Título:</label>
+                <input type="text" class="slide-title" value="${slide.title || ''}">
+                
+                <label>Descripción:</label>
+                <textarea class="slide-description">${slide.description || ''}</textarea>
+                
+                <label>URL Imagen (solo lectura):</label>
+                <input type="text" class="slide-image-url" value="${slide.image_url || ''}" readonly style="background-color: #e9ecef;">
+            </div>
+            
+            <button type="button" class="remove-slide-btn remove">Eliminar</button>
         `;
+
         div.querySelector('.remove-slide-btn').addEventListener('click', () => handleDeleteSlide(slide));
         return div;
     }
