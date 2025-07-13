@@ -1351,7 +1351,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- MANEJADOR DE CLICS DEL MENÚ LATERAL ---
+    // --- MANEJADOR DE CLICS DEL MENÚ LATERAL  ---
     sidebarLinks.forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
@@ -1370,18 +1370,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return; 
             }
             
-            // Lógica adicional para la sección 'informacion-general'
+            // --- LÓGICA DE RESETEO DE PESTAÑAS ---
             if (sectionId === 'informacion-general') {
-                // Activar la primera pestaña por defecto si no hay ninguna activa
-                const firstTabButton = document.querySelector('#informacion-general .admin-tab-btn');
-                const firstTabContent = document.querySelector('#informacion-general .admin-tab-content');
-                if (firstTabButton && firstTabContent && !firstTabButton.classList.contains('active')) {
-                    firstTabButton.classList.add('active');
-                    firstTabContent.classList.add('active');
-                }
-            }
+                // Seleccionamos todas las pestañas y contenidos DENTRO de la sección de informe
+                const tabButtons = document.querySelectorAll('#informacion-general .admin-tab-btn');
+                const tabContents = document.querySelectorAll('#informacion-general .admin-tab-content');
 
-            // Llama a la función de inicialización correcta según la sección
+                // Desactivamos todas
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+
+                // Reactivamos solo la primera pestaña y su contenido por defecto
+                if (tabButtons.length > 0) {
+                    tabButtons[0].classList.add('active');
+                }
+                if (tabContents.length > 0) {
+                    tabContents[0].classList.add('active');
+                }
+            }            
+
+            // Llama a la función de inicialización correcta según la sección 
             if (sectionId === 'gestion-usuarios') {
                 loadUsers();
             } else if (sectionId === 'log-actividad') {
@@ -1390,8 +1398,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 inicializarGestionTurnos();
             } else if (sectionId === 'mis-turnos') {
                 inicializarMisTurnos();
-            } else if (sectionId === 'mi-perfil') {
-                
             }
         });
     });
