@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addNovedadBtn = document.getElementById('addNovedadBtn');
     const adminNovedadInput = document.getElementById('adminNovedadInput');
     const adminNovedadEditIndex = document.getElementById('adminNovedadEditIndex');
-
+    
     // Referencias a los contenedores de los paneles movidos dentro de las pestañas
     const alertasContainer = document.getElementById('alertasContainer');
     const addAlertaBtn = document.getElementById('addAlertaBtn');
@@ -88,7 +88,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     //YA NO SE USA PORQUE SE OBTIENE DESDE DIRECTEMAR: const addPuertoBtn = document.getElementById('addPuertoBtn');
     const hidroContainer = document.getElementById('hidroContainer');
     const addHidroBtn = document.getElementById('addHidroBtn');
-
+    const novedadesChatPanel = document.getElementById('novedades-chat-panel');
+    const openNovedadesPanelBtn = document.getElementById('openNovedadesPanelBtn');
+    const closeNovedadesPanelBtn = document.getElementById('closeNovedadesPanelBtn');
     const imageFile = document.getElementById('imageFile');
     const imageTitle = document.getElementById('imageTitle');
     const imageDescription = document.getElementById('imageDescription');
@@ -141,7 +143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function renderAdminForms(data, novedades) {
         adminFechaInforme.value = data.fecha_informe || '';
-        adminNumeroInforme.value = novedades.numero_informe_manual || '';
+        adminNumeroInforme.value = data.numero_informe_manual || '';
         renderNovedadesList(novedades.entradas || []);
 
         // Estos ahora son renderizados en sus respectivos tab-contents
@@ -432,6 +434,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     saveDataBtn.addEventListener('click', async () => {
+        saveDataBtn.classList.add('pressed');
         const updatedInformeData = { ...currentData };
         const now = new Date();
         const hours = now.getHours();
@@ -439,6 +442,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updatedInformeData.hora_informe = `${hours}:${minutes} h.`;
         updatedInformeData.tipo_informe = (hours < 12) ? 'AM' : 'PM';
         updatedInformeData.fecha_informe = adminFechaInforme.value;
+        updatedInformeData.numero_informe_manual = adminNumeroInforme.value;
         updatedInformeData.alertas_vigentes = Array.from(alertasContainer.querySelectorAll('.alert-item')).map(item => ({ nivel_alerta: item.querySelector('.alerta-nivel').value, evento: item.querySelector('.alerta-evento').value, cobertura: item.querySelector('.alerta-cobertura').value, amplitud: item.querySelector('.alerta-amplitud').value }));
         updatedInformeData.avisos_alertas_meteorologicas = Array.from(avisosMetContainer.querySelectorAll('.avisos-item')).map(item => ({ aviso_alerta_alarma: item.querySelector('.avisos-aviso').value, fecha_hora_emision: item.querySelector('.avisos-fecha-hora').value, descripcion: item.querySelector('.avisos-descripcion').value, cobertura: item.querySelector('.avisos-cobertura').value }));
         updatedInformeData.radiacion_uv = { observado_ayer_label: adminUVObservadoLabel.value, observado_ayer_value: adminUVObservadoValue.value, pronosticado_hoy_label: adminUVPronosticadoLabel.value, pronosticado_hoy_value: adminUVPronosticadoValue.value };
@@ -449,9 +453,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         updatedInformeData.datos_hidrometricos = Array.from(hidroContainer.querySelectorAll('.hidro-item')).map(item => ({ nombre_estacion: item.querySelector('.hidro-nombre').value, nivel_m: parseFloat(item.querySelector('.hidro-nivel').value) || null, caudal_m3s: parseFloat(item.querySelector('.hidro-caudal').value) || null }));
         updatedInformeData.dynamic_slides = Array.from(dynamicSlidesContainer.querySelectorAll('.dynamic-slide-item')).map(item => ({ id: item.dataset.id, image_url: item.querySelector('.slide-image-url').value, title: item.querySelector('.slide-title').value, description: item.querySelector('.slide-description').value }));                   
         
-        const updatedNovedadesData = { ...novedadesData };
-        updatedNovedadesData.numero_informe_manual = adminNumeroInforme.value;        
-
+        const updatedNovedadesData = { entradas: novedadesData.entradas };
+                        
         try {
             const [informeResponse, novedadesResponse] = await Promise.all([
                 fetch(DATA_API_URL, {
@@ -1288,6 +1291,46 @@ document.addEventListener('DOMContentLoaded', async () => {
                 changePasswordBtn.textContent = 'Cambiar Contraseña';
             }
         });
+    }
+
+    // Abrir el panel de novedades
+    if (openNovedadesPanelBtn) {
+        openNovedadesPanelBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // Evita que el navegador navegue o recargue la página
+
+            // Desactiva todas las demás secciones del admin-content que puedan estar visibles
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+            // Desactiva el enlace activo en el sidebar para que no haya dos activos
+            document.querySelectorAll('.admin-sidebar nav ul li a').forEach(l => l.classList.remove('active'));
+            
+            // Activa el panel flotante haciéndolo visible
+            novedadesChatPanel.classList.add('active');
+            
+            // Cargar las novedades de nuevo por si se actualizaron en segundo plano
+            loadNovedadesOnly(); 
+        });
+    }
+
+    // Cerrar el panel de novedades (botón 'x')
+    if (closeNovedadesPanelBtn) {
+        closeNovedadesPanelBtn.addEventListener('click', () => {
+            novedadesChatPanel.classList.remove('active'); // Oculta el panel
+        });
+    }
+
+    // Función para cargar solo las novedades (útil para el panel flotante)
+    async function loadNovedadesOnly() {
+        try {
+            const novedadesResponse = await fetch(NOVEDADES_API_URL);
+            if (!novedadesResponse.ok) throw new Error(`Error al cargar novedades: ${novedadesResponse.statusText}`);
+            novedadesData = await novedadesResponse.json(); // Actualiza la variable global novedadesData
+            renderNovedadesList(novedadesData.entradas || []);
+        } catch (error) {
+            console.error("Error al cargar solo novedades:", error);
+            if (novedadesListContainer) { 
+                novedadesListContainer.innerHTML = `<p style="color: red;">Error al cargar novedades: ${error.message}</p>`;
+            }
+        }
     }
 
     // --- LÓGICA PARA PESTAÑAS EN EL PANEL DE ADMINISTRACIÓN ---

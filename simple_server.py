@@ -612,7 +612,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         "estado_carreteras": [],
                         "estado_puertos": [],
                         "estado_pasos_fronterizos": [],
-                        "dynamic_slides": []
+                        "dynamic_slides": [],
+                        "numero_informe_manual": "---"
                     }
                     self._set_headers(200, 'application/json')
                     self.wfile.write(json.dumps(initial_data, ensure_ascii=False, indent=4).encode('utf-8'))
@@ -623,8 +624,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 if not os.path.exists(NOVEDADES_FILE):
                     # Crear el archivo con estructura por defecto si no existe
                     os.makedirs(os.path.dirname(NOVEDADES_FILE), exist_ok=True)
-                    default_novedades = {
-                        "numero_informe_manual": "---",
+                    default_novedades = {                        
                         "entradas": []
                     }
                     with open(NOVEDADES_FILE, 'w', encoding='utf-8') as f:

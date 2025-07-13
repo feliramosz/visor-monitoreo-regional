@@ -148,8 +148,6 @@
             justify-self: end;
             margin-top: 10px;
         }
-
-
         .action-buttons {
             text-align: right;
             margin-top: 20px;
@@ -247,7 +245,7 @@
         .edit-btn { background-color: #ffc107; border-color: #ffc107; color: #212529; }
         .delete-btn { background-color: #dc3545; border-color: #dc3545; }
 
-        /* --- INICIO: Estilos para Gestión de Turnos --- */
+        /* --- Estilos para Gestión de Turnos --- */
         .gestion-turnos-container {
             display: flex;
             gap: 20px;
@@ -403,9 +401,8 @@
             background-color: #495057;
             border-color: #fff;
         }
-        /* --- FIN: Estilos para Gestión de Turnos --- */
-
-        /* --- NUEVOS ESTILOS PARA PESTAÑAS --- */
+        
+        /* --- ESTILOS PARA PESTAÑAS --- */
         .admin-tabs-nav {
             display: flex;
             flex-wrap: wrap; /* Permite que las pestañas se envuelvan si hay muchas */
@@ -455,7 +452,7 @@
             margin-right: 20px; /* Ajusta este valor para el padding interno de las tabs */
         }
 
-                /* Estilos para el Índice UV con formato unificado */
+        /* Estilos para el Índice UV con formato unificado */
         #uvRadiacionContainer {
             display: grid;
             grid-template-columns: auto 1fr;
@@ -464,7 +461,7 @@
             border: 1px dashed #ced4da;
             padding: 15px;
             margin-bottom: 15px;
-            border-radius: 4px;
+            border-radius: 2px;
             background-color: #e9ecef;
         }
 
@@ -481,6 +478,142 @@
         #uvRadiacionContainer input[type="text"] {
             width: calc(100% - 20px); /* Ajusta el ancho para el padding */
             margin-bottom: 0;
+        }
+
+        /* Estilos para fecha y número de informe en línea */
+        .inline-form-group {
+            display: flex;
+            gap: 20px; /* Espacio entre los dos campos */
+            flex-wrap: wrap; /* Para que se envuelva en pantallas pequeñas */
+            margin-bottom: 20px; /* Espacio debajo de este grupo */
+        }
+        .form-field-half {
+            flex: 1; /* Ocupa la mitad del espacio disponible */
+            min-width: 280px; /* Ancho mínimo antes de envolver */
+        }
+        .form-field-half label {
+            display: block; /* Asegura que la etiqueta esté encima del input */
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        .form-field-half input[type="text"] {
+            width: calc(100% - 22px); /* Ajusta por padding */
+        }
+
+                /* Estilos para el Panel Flotante de Novedades */
+        #novedades-chat-panel {
+            position: fixed; /* Lo hace flotar */
+            top: 0;
+            right: -400px; /* Empieza fuera de la pantalla, oculto */
+            width: 380px; /* Ancho del panel */
+            height: 100vh; /* Ocupa toda la altura de la ventana */
+            background-color: white;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.2); /* Sombra hacia la izquierda */
+            z-index: 1000; /* Asegura que esté por encima de otros elementos */
+            transition: right 0.4s ease-out; /* Transición para el efecto de deslizar */
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box; /* Incluye padding en el ancho/alto */
+            border-left: 1px solid #ddd;
+        }
+
+        #novedades-chat-panel.active {
+            right: 0; /* Lo desliza hacia adentro */
+        }
+
+        #novedades-chat-panel .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        #novedades-chat-panel .panel-header h4 {
+            margin: 0;
+            color: #333;
+            font-size: 1.3em;
+        }
+
+        #novedades-chat-panel .close-btn {
+            background: none;
+            border: none;
+            font-size: 2em;
+            cursor: pointer;
+            color: #888;
+            padding: 5px;
+            line-height: 1; /* Elimina espacio extra */
+            transition: color 0.2s ease;
+        }
+
+        #novedades-chat-panel .close-btn:hover {
+            color: #333;
+        }
+
+        #novedades-chat-panel hr {
+            border: 0;
+            border-top: 1px solid #eee;
+            margin: 15px 0;
+        }
+
+        #novedades-chat-panel .panel-body {
+            flex-grow: 1; /* Permite que el cuerpo ocupe el espacio restante */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-input-area {
+            margin-bottom: 15px;
+        }
+
+        .chat-input-area label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .chat-input-area textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1em;
+            resize: vertical; /* Permite redimensionar verticalmente */
+            box-sizing: border-box; /* Incluye padding en el ancho */
+            margin-bottom: 10px;
+        }
+
+        .add-chat-novedad-btn { /* Estilo para el botón Añadir Novedad dentro del panel */
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+        .add-chat-novedad-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .chat-novedades-list {
+            flex-grow: 1; /* Ocupa el espacio restante */
+            overflow-y: auto; /* Desplazamiento si el contenido es largo */
+            border: 1px solid #e9ecef;
+            background-color: #fcfcfc;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .chat-novedades-list .novedad-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background-color: #fff;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
         
     </style>
@@ -502,7 +635,7 @@
             <nav>
                 <ul>
                     <li><a href="#" data-section="informacion-general" class="active">Información del Reporte</a></li>
-                    <li><a href="#" data-section="contenido-dashboard">Panel Novedades</a></li>
+                    <li><a href="#" id="openNovedadesPanelBtn">Panel Novedades</a></li>
                     <li><a href="#" data-section="dynamic-slides">Agregar imagenes</a></li>
                     <li><a href="#" data-section="accion-manual">Descargar Informe Manual</a></li>
                     <li><a href="#" data-section="mis-turnos">Mis Turnos</a></li>
@@ -538,25 +671,34 @@
                 </div>
 
                 <div id="admin-tabs-content-wrapper">
-                    <div id="tab-config-general" class="admin-tab-content active">
-                        <div class="form-group">
-                            <p>En el campo inferior se puede modificar la fecha a mostrar en pagina para exterior, la hora se actualiza automaticamente al presionar guardar.</p>
-                            <label for="adminFechaInforme">Fecha proyectada en pantalla exterior:</label>
-                            <input type="text" id="adminFechaInforme" placeholder="Ej: martes, 24 de junio de 2025">
+                    <div class="form-group">
+                        <p>En el campo inferior se puede modificar la fecha a mostrar en pagina para exterior, la hora se actualiza automaticamente al presionar guardar.</p>
 
-                            <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
-                                <h4 style="margin-top:0;">Configuración de carrusel</h4>                                
-                                <br>
-                                <label for="adminIntervaloSlide" style="font-weight: bold; color: #555;">Velocidad del Carrusel en pantalla exterior:</label>
-                                <select id="adminIntervaloSlide" style="width: 100%; max-width:250px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                                    <option value="5000">5 segundos</option>
-                                    <option value="10000" selected>10 segundos</option>
-                                    <option value="15000">15 segundos</option>
-                                    <option value="20000">20 segundos</option>
-                                    <option value="25000">25 segundos</option>
-                                    <option value="30000">30 segundos</option>
-                                </select>
+                        <div class="inline-form-group">
+                            <div class="form-field-half">
+                                <label for="adminFechaInforme">Fecha proyectada en pantalla exterior:</label>
+                                <input type="text" id="adminFechaInforme" placeholder="Ej: martes, 24 de junio de 2025">
                             </div>
+                            <div class="form-field-half">
+                                <label for="adminNumeroInforme">N° de último informe:</label>
+                                <input type="text" id="adminNumeroInforme" placeholder="Ej: 153">
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
+                            <h4 style="margin-top:0;">Configuración de carrusel</h4>                                
+                            <br>
+                            <label for="adminIntervaloSlide" style="font-weight: bold; color: #555;">Velocidad del Carrusel en pantalla exterior:</label>
+                            <select id="adminIntervaloSlide" style="width: 100%; max-width:250px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                                <option value="5000">5 segundos</option>
+                                <option value="10000" selected>10 segundos</option>
+                                <option value="15000">15 segundos</option>
+                                <option value="20000">20 segundos</option>
+                                <option value="25000">25 segundos</option>
+                                <option value="30000">30 segundos</option>
+                            </select>
+                        </div>
+                        </div>
 
                             <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
                                 <h4 style="margin-top:0;">Botón de prueba para el Boletín Informativo</h4>
@@ -660,27 +802,6 @@
                         <button type="button" id="addHidroBtn">Añadir Estación Hidrométrica</button>
                     </div>
                 </div>             
-            </section>
-
-            <section id="contenido-dashboard" class="admin-section">
-                <h3>Panel de Novedades del Dashboard</h3>
-                <div class="form-group">
-                    <label for="adminNumeroInforme">N° de último informe:</label>
-                    <input type="text" id="adminNumeroInforme" placeholder="Ej: 153">
-                    
-                    <hr style="margin: 20px 0;">
-
-                    <h4>Registro de Novedades</h4>
-                    <label for="adminNovedadInput">Texto de la nueva novedad: (no olvidar presionar "Guardar todos los cambios" luego de "Añadir novedad)</label>
-                    <input type="text" id="adminNovedadInput" placeholder="Escriba aquí y presione 'Añadir'...">
-                    <input type="hidden" id="adminNovedadEditIndex">
-                    <button type="button" id="addNovedadBtn">Añadir Novedad</button>
-
-                    <h4>Novedades guardadas y proyectadas a la pantalla:</h4>
-                    <div id="novedadesListContainer">
-                        <p>Cargando novedades...</p>
-                    </div>
-                </div>
             </section>
 
             <section id="dynamic-slides" class="admin-section">
@@ -829,6 +950,27 @@
         </div>
     </main>
 
+    <div id="novedades-chat-panel">
+        <div class="panel-header">
+            <h4>Panel de Novedades del Dashboard</h4>
+            <button id="closeNovedadesPanelBtn" class="close-btn">&times;</button>
+        </div>
+        <hr>
+        <div class="panel-body">
+            <div class="chat-input-area">
+                <label for="adminNovedadInput">Nueva novedad:</label>
+                <textarea id="adminNovedadInput" placeholder="Escribe aquí y presiona 'Añadir Novedad'" rows="5"></textarea>
+                <input type="hidden" id="adminNovedadEditIndex">
+                <button type="button" id="addNovedadBtn" class="add-chat-novedad-btn">Añadir Novedad</button>
+            </div>
+            <hr>
+            <h4>Novedades guardadas:</h4>
+            <div id="novedadesListContainer" class="chat-novedades-list">
+                <p>Cargando novedades...</p>
+            </div>
+        </div>
+    </div>
+
     <footer>
         <p>&copy; 2025 SENAPRED Valparaíso. Administración.</p>
     </footer>
@@ -836,3 +978,5 @@
     <script src="admin.js"></script>
 </body>
 </html>
+
+
