@@ -1,3 +1,4 @@
+import sys
 from io import StringIO
 import pandas as pd
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -23,8 +24,8 @@ import uuid
 from werkzeug.security import check_password_hash, generate_password_hash
 
 HOST_NAME = '0.0.0.0'
-PORT_NUMBER = 8000
-load_dotenv(dotenv_path=os.path.join(os.path.expanduser('~'), 'senapred-monitor.env'))
+PORT_NUMBER = 8001
+load_dotenv()
 PID = os.getpid()
 
 # --- Definición de Rutas del Proyecto ---
@@ -38,7 +39,7 @@ DATA_FOLDER_PATH = os.path.join(SERVER_ROOT, 'datos_extraidos')
 DATA_FILE = os.path.join(DATA_FOLDER_PATH, 'ultimo_informe.json')
 NOVEDADES_FILE = os.path.join(DATA_FOLDER_PATH, 'novedades.json')
 TURNOS_FILE = os.path.join(DATA_FOLDER_PATH, 'turnos.json')
-DATABASE_FILE = os.path.join(SERVER_ROOT, 'database.db')
+DATABASE_FILE = os.path.join(SERVER_ROOT, 'database-staging.db')
 
 # Define la carpeta para las imágenes dinámicas
 DYNAMIC_SLIDES_FOLDER = os.path.join(SERVER_ROOT, 'assets', 'dynamic_slides')
@@ -611,7 +612,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         "estado_carreteras": [],
                         "estado_puertos": [],
                         "estado_pasos_fronterizos": [],
-                        "dynamic_slides": []
+                        "dynamic_slides": [],
+                        "numero_informe_manual": "---"
                     }
                     self._set_headers(200, 'application/json')
                     self.wfile.write(json.dumps(initial_data, ensure_ascii=False, indent=4).encode('utf-8'))
@@ -622,8 +624,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 if not os.path.exists(NOVEDADES_FILE):
                     # Crear el archivo con estructura por defecto si no existe
                     os.makedirs(os.path.dirname(NOVEDADES_FILE), exist_ok=True)
-                    default_novedades = {
-                        "numero_informe_manual": "---",
+                    default_novedades = {                        
                         "entradas": []
                     }
                     with open(NOVEDADES_FILE, 'w', encoding='utf-8') as f:
@@ -1417,23 +1418,31 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         # --- Endpoint para guardar /api/data
         if self.path == '/api/data':
             username = self._get_user_from_token() 
-                        
+
             if not username:
                 self._set_headers(401, 'application/json')
                 self.wfile.write(json.dumps({'error': 'No autorizado. Se requiere iniciar sesión.'}).encode('utf-8'))
                 return
-            
+
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             try:
-                new_data = json.loads(post_data.decode('utf-8'))
+                received_data = json.loads(post_data.decode('utf-8')) # Datos recibidos del frontend
+
+                # Cargar los datos actuales del archivo para preservar campos no modificados
+                current_file_data = {}
+                if os.path.exists(DATA_FILE):
+                    with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                        current_file_data = json.load(f)
+
+                                
+                current_file_data.update(received_data)
 
                 os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
 
                 with open(DATA_FILE, 'w', encoding='utf-8') as f:
-                    json.dump(new_data, f, ensure_ascii=False, indent=4)
-                
-                # Aquí añadiremos el registro de actividad en el siguiente paso
+                    json.dump(current_file_data, f, ensure_ascii=False, indent=4) # Guardar los datos actualizados
+
                 self._log_activity(username, "Informe Principal Actualizado")
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps({"message": "Datos de informe actualizados correctamente."}, ensure_ascii=False).encode('utf-8'))
@@ -1525,7 +1534,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         download_script_py = os.path.join(application_path, "descargar_informe.py")
 
                         # Definimos la ruta al ejecutable de Python DENTRO del venv
-                        python_executable = os.path.join(application_path, "venv/bin/python3")
+                        python_executable = "/usr/bin/python3"
 
                         # El comando ahora usa ambas variables definidas
                         command = [python_executable, download_script_py, "--force"]
@@ -1967,10 +1976,22 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     cache = {}
 
 if __name__ == "__main__":
-    # Ahora usamos nuestro nuevo servidor multihilo en lugar del básico
-    httpd = ThreadingHTTPServer((HOST_NAME, PORT_NUMBER), SimpleHttpRequestHandler)
+    # Asigna el puerto por defecto
+    port = PORT_NUMBER 
 
-    print(f"Servidor MULTIHILO iniciado en http://{HOST_NAME}:{PORT_NUMBER}")
+    # Si se proporciona un argumento en la línea de comandos (ej: python simple_server.py 8001)
+    if len(sys.argv) > 1:
+        try:
+            # Intenta convertir el argumento a un número entero para usarlo como puerto
+            port = int(sys.argv[1])
+        except ValueError:
+            # Si no es un número válido, usa el puerto por defecto
+            print(f"Puerto invalido '{sys.argv[1]}'. Usando el puerto por defecto {PORT_NUMBER}.")
+
+    # usa la variable 'port'
+    httpd = ThreadingHTTPServer((HOST_NAME, port), SimpleHttpRequestHandler)
+
+    print(f"Servidor MULTIHILO iniciado en http://{HOST_NAME}:{port} con PID {PID}")
     print("Presiona Ctrl+C para detener el servidor.")
     try:
         httpd.serve_forever()

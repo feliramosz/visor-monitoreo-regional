@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // ... (El resto del código existente hasta la función saveDataBtn.addEventListener) ...
     const testBoletinBtn = document.getElementById('testBoletinBtn');
     if (testBoletinBtn) {
         testBoletinBtn.addEventListener('click', async () => {
@@ -69,7 +68,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addNovedadBtn = document.getElementById('addNovedadBtn');
     const adminNovedadInput = document.getElementById('adminNovedadInput');
     const adminNovedadEditIndex = document.getElementById('adminNovedadEditIndex');
-
+    
+    // Referencias a los contenedores de los paneles movidos dentro de las pestañas
     const alertasContainer = document.getElementById('alertasContainer');
     const addAlertaBtn = document.getElementById('addAlertaBtn');
     const avisosMetContainer = document.getElementById('avisosMetContainer');
@@ -84,10 +84,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addCarreteraBtn = document.getElementById('addCarreteraBtn');
     const pasosFronterizosContainer = document.getElementById('pasosFronterizosContainer');
     const addPasoFronterizoBtn = document.getElementById('addPasoFronterizoBtn');
-    //const puertosContainer = document.getElementById('puertosContainer'); 
-    //const addPuertoBtn = document.getElementById('addPuertoBtn');
+    //YA NO SE USA PORQUE SE OBTIENE DESDE DIRECTEMAR: const puertosContainer = document.getElementById('puertosContainer'); 
+    //YA NO SE USA PORQUE SE OBTIENE DESDE DIRECTEMAR: const addPuertoBtn = document.getElementById('addPuertoBtn');
     const hidroContainer = document.getElementById('hidroContainer');
     const addHidroBtn = document.getElementById('addHidroBtn');
+    const novedadesChatPanel = document.getElementById('novedades-chat-panel');
+    const openNovedadesFloatBtn = document.getElementById('openNovedadesFloatBtn');
+    const openNovedadesPanelBtn = document.getElementById('openNovedadesPanelBtn');
+    const closeNovedadesPanelBtn = document.getElementById('closeNovedadesPanelBtn');
     const imageFile = document.getElementById('imageFile');
     const imageTitle = document.getElementById('imageTitle');
     const imageDescription = document.getElementById('imageDescription');
@@ -140,14 +144,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function renderAdminForms(data, novedades) {
         adminFechaInforme.value = data.fecha_informe || '';
-        adminNumeroInforme.value = novedades.numero_informe_manual || '';
+        adminNumeroInforme.value = data.numero_informe_manual || '';
         renderNovedadesList(novedades.entradas || []);
+
+        // Estos ahora son renderizados en sus respectivos tab-contents
         renderSectionItems(alertasContainer, data.alertas_vigentes, createAlertaFormItem, 'No hay alertas para editar.');
         renderSectionItems(avisosMetContainer, data.avisos_alertas_meteorologicas, createAvisoMetFormItem, 'No hay avisos meteorológicos para editar.');
         renderSectionItems(emergenciasContainer, data.emergencias_ultimas_24_horas, createEmergenciaFormItem, 'No hay emergencias para editar.');
         renderSectionItems(carreterasContainer, data.estado_carreteras, createCarreteraFormItem, 'No hay carreteras para editar.');
         renderSectionItems(pasosFronterizosContainer, data.estado_pasos_fronterizos, createPasoFronterizoFormItem, 'No hay pasos fronterizos para editar.');
-        //renderSectionItems(puertosContainer, data.estado_puertos, createPuertoFormItem, 'No hay puertos para editar.');
+        //YA NO SE USA PORQUE SE OBTIENE DESDE DIRECTEMAR: renderSectionItems(puertosContainer, data.estado_puertos, createPuertoFormItem, 'No hay puertos para editar.');
         renderSectionItems(hidroContainer, data.datos_hidrometricos, createHidroFormItem, 'No hay datos hidrométricos para editar.');
         renderSectionItems(dynamicSlidesContainer, data.dynamic_slides, createDynamicSlideItem, 'No hay slides dinámicas añadidas.');
 
@@ -157,9 +163,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             adminUVPronosticadoLabel.value = data.radiacion_uv.pronosticado_hoy_label || 'Pronosticado para hoy:';
             adminUVPronosticadoValue.value = data.radiacion_uv.pronosticado_hoy_value || 'N/A';
         }
-                
-        document.getElementById('adminEnableDashboardCarousel').checked = data.dashboard_carousel_enabled || false;
-        document.getElementById('adminEnableNovedadesCarousel').checked = data.novedades_carousel_enabled || false;
+        
         document.getElementById('adminIntervaloSlide').value = data.slide_interval || '10000';        
     }
 
@@ -320,7 +324,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function createHidroFormItem(item = {}, index) {
         const div = document.createElement('div');
-        div.className = 'form-item-grid';
+        div.className = 'hidro-item'; // Cambio de form-item-grid a hidro-item para consistencia
         div.innerHTML = `
             <label>Nombre Estación:</label><input type="text" class="hidro-nombre" value="${item.nombre_estacion || ''}">
             <label>Nivel (m):</label><input type="number" step="0.01" class="hidro-nivel" value="${item.nivel_m || ''}">
@@ -335,24 +339,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         const div = document.createElement('div');
         div.className = 'dynamic-slide-item';
         div.dataset.id = slide.id;
+
+        // Estructura HTML mejorada para funcionar con el nuevo CSS Grid
         div.innerHTML = `
-            <img src="${slide.image_url || ''}" alt="${slide.title || ''}" style="max-width: 100px; height: auto; display: block; margin-bottom: 10px;">
-            <label>URL Imagen:</label><input type="text" class="slide-image-url" value="${slide.image_url || ''}" disabled>
-            <label>Título:</label><input type="text" class="slide-title" value="${slide.title || ''}">
-            <label>Descripción:</label><textarea class="slide-description">${slide.description || ''}</textarea>
-            <button type="button" class="remove-slide-btn remove">Eliminar Slide</button>
+            <img src="${slide.image_url || ''}" alt="${slide.title || ''}">
+            
+            <div class="slide-info">
+                <label>Título:</label>
+                <input type="text" class="slide-title" value="${slide.title || ''}">
+                
+                <label>Descripción:</label>
+                <textarea class="slide-description">${slide.description || ''}</textarea>
+                
+                <label>URL Imagen (solo lectura):</label>
+                <input type="text" class="slide-image-url" value="${slide.image_url || ''}" readonly style="background-color: #e9ecef;">
+            </div>
+            
+            <button type="button" class="remove-slide-btn remove">Eliminar</button>
         `;
+
         div.querySelector('.remove-slide-btn').addEventListener('click', () => handleDeleteSlide(slide));
         return div;
     }
 
-    addAlertaBtn.addEventListener('click', () => alertasContainer.appendChild(createAlertaFormItem()));
-    addAvisoMetBtn.addEventListener('click', () => avisosMetContainer.appendChild(createAvisoMetFormItem()));
-    addEmergenciaBtn.addEventListener('click', () => emergenciasContainer.appendChild(createEmergenciaFormItem()));
-    addCarreteraBtn.addEventListener('click', () => carreterasContainer.appendChild(createCarreteraFormItem()));
-    addPasoFronterizoBtn.addEventListener('click', () => pasosFronterizosContainer.appendChild(createPasoFronterizoFormItem()));
-    //addPuertoBtn.addEventListener('click', () => puertosContainer.appendChild(createPuertoFormItem()));
-    addHidroBtn.addEventListener('click', () => hidroContainer.appendChild(createHidroFormItem()));
+    // Los botones de añadir ahora se encuentran en sus respectivos tab-contents    
+    document.getElementById('addAlertaBtn').addEventListener('click', () => alertasContainer.appendChild(createAlertaFormItem()));
+    document.getElementById('addAvisoMetBtn').addEventListener('click', () => avisosMetContainer.appendChild(createAvisoMetFormItem()));
+    document.getElementById('addEmergenciaBtn').addEventListener('click', () => emergenciasContainer.appendChild(createEmergenciaFormItem()));
+    document.getElementById('addCarreteraBtn').addEventListener('click', () => carreterasContainer.appendChild(createCarreteraFormItem()));
+    document.getElementById('addPasoFronterizoBtn').addEventListener('click', () => pasosFronterizosContainer.appendChild(createPasoFronterizoFormItem()));
+    //YA NO SE USA PORQUE SE TOMAN LOS DATOS DESDE DIRECTEMAR: document.getElementById('addPuertoBtn').addEventListener('click', () => puertosContainer.appendChild(createPuertoFormItem()));
+    document.getElementById('addHidroBtn').addEventListener('click', () => hidroContainer.appendChild(createHidroFormItem()));
 
     runScriptBtn.addEventListener('click', async () => {
         runScriptBtn.disabled = true;
@@ -430,6 +447,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     saveDataBtn.addEventListener('click', async () => {
+        saveDataBtn.classList.add('pressed');
         const updatedInformeData = { ...currentData };
         const now = new Date();
         const hours = now.getHours();
@@ -437,21 +455,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         updatedInformeData.hora_informe = `${hours}:${minutes} h.`;
         updatedInformeData.tipo_informe = (hours < 12) ? 'AM' : 'PM';
         updatedInformeData.fecha_informe = adminFechaInforme.value;
+        updatedInformeData.numero_informe_manual = adminNumeroInforme.value;
         updatedInformeData.alertas_vigentes = Array.from(alertasContainer.querySelectorAll('.alert-item')).map(item => ({ nivel_alerta: item.querySelector('.alerta-nivel').value, evento: item.querySelector('.alerta-evento').value, cobertura: item.querySelector('.alerta-cobertura').value, amplitud: item.querySelector('.alerta-amplitud').value }));
         updatedInformeData.avisos_alertas_meteorologicas = Array.from(avisosMetContainer.querySelectorAll('.avisos-item')).map(item => ({ aviso_alerta_alarma: item.querySelector('.avisos-aviso').value, fecha_hora_emision: item.querySelector('.avisos-fecha-hora').value, descripcion: item.querySelector('.avisos-descripcion').value, cobertura: item.querySelector('.avisos-cobertura').value }));
         updatedInformeData.radiacion_uv = { observado_ayer_label: adminUVObservadoLabel.value, observado_ayer_value: adminUVObservadoValue.value, pronosticado_hoy_label: adminUVPronosticadoLabel.value, pronosticado_hoy_value: adminUVPronosticadoValue.value };
         updatedInformeData.emergencias_ultimas_24_horas = Array.from(emergenciasContainer.querySelectorAll('.emergency-item')).map(item => ({ n_informe: item.querySelector('.emergencia-n-informe').value, fecha_hora: item.querySelector('.emergencia-fecha-hora').value, evento_lugar: item.querySelector('.emergencia-evento-lugar').value, resumen: item.querySelector('.emergencia-resumen').value }));
         updatedInformeData.estado_carreteras = Array.from(carreterasContainer.querySelectorAll('.carretera-item')).map(item => ({ carretera: item.querySelector('.carretera-nombre').value, estado: item.querySelector('.carretera-estado').value, condicion: item.querySelector('.carretera-condicion').value }));
         updatedInformeData.estado_pasos_fronterizos = Array.from(pasosFronterizosContainer.querySelectorAll('.paso-item')).map(item => ({ nombre_paso: item.querySelector('.paso-nombre').value, condicion: item.querySelector('.paso-condicion').value, observaciones: item.querySelector('.paso-observaciones').value }));
-        //updatedInformeData.estado_puertos = Array.from(puertosContainer.querySelectorAll('.puerto-item')).map(item => ({ puerto: item.querySelector('.puerto-nombre').value, estado_del_puerto: item.querySelector('.puerto-estado').value, condicion: item.querySelector('.puerto-condicion').value }));
-        updatedInformeData.datos_hidrometricos = Array.from(hidroContainer.querySelectorAll('.form-item-grid')).map(item => ({ nombre_estacion: item.querySelector('.hidro-nombre').value, nivel_m: parseFloat(item.querySelector('.hidro-nivel').value) || null, caudal_m3s: parseFloat(item.querySelector('.hidro-caudal').value) || null }));
-        updatedInformeData.dynamic_slides = Array.from(dynamicSlidesContainer.querySelectorAll('.dynamic-slide-item')).map(item => ({ id: item.dataset.id, image_url: item.querySelector('.slide-image-url').value, title: item.querySelector('.slide-title').value, description: item.querySelector('.slide-description').value }));
-        updatedInformeData.dashboard_carousel_enabled = document.getElementById('adminEnableDashboardCarousel').checked;
-        updatedInformeData.novedades_carousel_enabled = document.getElementById('adminEnableNovedadesCarousel').checked;        
+        //Esto ya no se usa porque toma los datos directamente desde DIRECTEMAR: updatedInformeData.estado_puertos = Array.from(puertosContainer.querySelectorAll('.puerto-item')).map(item => ({ puerto: item.querySelector('.puerto-nombre').value, estado_del_puerto: item.querySelector('.puerto-estado').value, condicion: item.querySelector('.puerto-condicion').value }));
+        updatedInformeData.datos_hidrometricos = Array.from(hidroContainer.querySelectorAll('.hidro-item')).map(item => ({ nombre_estacion: item.querySelector('.hidro-nombre').value, nivel_m: parseFloat(item.querySelector('.hidro-nivel').value) || null, caudal_m3s: parseFloat(item.querySelector('.hidro-caudal').value) || null }));
+        updatedInformeData.dynamic_slides = Array.from(dynamicSlidesContainer.querySelectorAll('.dynamic-slide-item')).map(item => ({ id: item.dataset.id, image_url: item.querySelector('.slide-image-url').value, title: item.querySelector('.slide-title').value, description: item.querySelector('.slide-description').value }));                   
         
-        const updatedNovedadesData = { ...novedadesData };
-        updatedNovedadesData.numero_informe_manual = adminNumeroInforme.value;        
-
+        const updatedNovedadesData = { entradas: novedadesData.entradas };
+                        
         try {
             const [informeResponse, novedadesResponse] = await Promise.all([
                 fetch(DATA_API_URL, {
@@ -473,18 +489,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             console.error("Error al guardar datos:", error);
             showMessage(`Error al guardar: ${error.message}`, 'error');
+        } finally {
+            // Remover la clase 'pressed' después de un breve retardo para el efecto visual
+            setTimeout(() => {
+                saveDataBtn.classList.remove('pressed');
+            }, 300); // 300ms de duración para el efecto verde
         }
     });
 
-    // --- INICIO: Lógica para Gestión de Turnos ---
-
+    // --- Lógica para Gestión de Turnos ---
     // Referencias a elementos del DOM para la gestión de turnos
     const turnosContainer = document.getElementById('gestion-turnos');
     const mesSelect = document.getElementById('select-mes-turnos');
     const anioSelect = document.getElementById('select-anio-turnos');
     const calendarioContainer = document.getElementById('turnos-calendario-container');
-    const operadoresListContainer = document.getElementById('operadores-list-container');
-    const llamadoListContainer = document.getElementById('llamado-list-container');
+    const operadoresListContainer = document.getElementById('personal-list-container');
+    const llamadoListContainer = document.getElementById('llamado-list-container'); // Este no se usa directamente en el HTML actual
     const btnGuardarTurnos = document.getElementById('btnGuardarTurnos');
     const btnExportarExcel = document.getElementById('btnExportarExcel');
     
@@ -652,7 +672,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else if (dia > diasEnMes) {
                     celdasSemanaHtml += '<div class="grid-empty"></div>';
                 } else {
-                    if (primerDiaDeLaSemana === 0) primerDiaDeLaSemana = dia; // Captura el primer día válido de la semana
+                    if (primerDiaDeLaSemana === 0) primerDiaDeLaSemana = dia;
 
                     const datosDia = datosTurnos[mesStr].dias?.find(d => d.dia === dia) || {};
                     const turnoDia = datosDia.turno_dia || {};
@@ -681,7 +701,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             calendarioHtml += celdasSemanaHtml;
 
-            // CORRECCIÓN: Lee el 'llamado' del primer día de la semana como representante de la semana completa
+            // Lee el 'llamado' del primer día de la semana como representante de la semana completa
             const datosPrimerDiaSemana = datosTurnos[mesStr].dias?.find(d => d.dia === primerDiaDeLaSemana);
             const llamado = datosPrimerDiaSemana?.turno_dia?.llamado || '';
 
@@ -710,7 +730,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
 
-                // --- LÓGICA DE VALIDACIÓN MODIFICADA ---
+                // --- LÓGICA DE VALIDACIÓN  ---
                 // Solo se bloquea la acción si se intenta poner un 'operador' en el slot de 'llamado'
                 if (seleccionActual.tipo === 'operador' && tipoSlot === 'llamado') {
                     showMessage('Un Operador de Turno no puede ser asignado como Profesional a Llamado.', 'error');
@@ -754,7 +774,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 diaObj.turno_noche[op] = valor;
             }
         } else if (slot.classList.contains('grid-llamado')) {
-            // CORRECCIÓN: Lógica para actualizar el 'llamado' en todos los días de la semana
+            // Lógica para actualizar el 'llamado' en todos los días de la semana
             const primerDia = parseInt(slot.dataset.primerDia);
             const ultimoDia = parseInt(slot.dataset.ultimoDia);
 
@@ -777,8 +797,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             datosTurnos[mesStr].dias.sort((a, b) => a.dia - b.dia);
         }
     }
-    // --- FIN: Lógica para Gestión de Turnos ---
-
+    
 
     // --- Para Gestión de Usuarios y Logs ---
     const usersTableBody = document.querySelector('#usersTable tbody');
@@ -1287,7 +1306,72 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- MANEJADOR DE CLICS DEL MENÚ LATERAL (POSICIÓN CORRECTA Y FINAL) ---
+    // Abrir el panel de novedades
+    if (openNovedadesFloatBtn) {
+        openNovedadesFloatBtn.addEventListener('click', (e) => {
+            e.preventDefault();            
+            novedadesChatPanel.classList.add('active');           
+            openNovedadesFloatBtn.classList.remove('visible');            
+            loadNovedadesOnly();
+        });
+    }
+
+    // Cerrar el panel de novedades (botón 'x' dentro del panel)
+    if (closeNovedadesPanelBtn) {
+        closeNovedadesPanelBtn.addEventListener('click', () => {
+            novedadesChatPanel.classList.remove('active');
+            openNovedadesFloatBtn.classList.add('visible');
+        });
+    }
+
+    // Función para cargar solo las novedades 
+    async function loadNovedadesOnly() {
+        try {
+            const novedadesResponse = await fetch(NOVEDADES_API_URL);
+            if (!novedadesResponse.ok) throw new Error(`Error al cargar novedades: ${novedadesResponse.statusText}`);
+            novedadesData = await novedadesResponse.json();
+            renderNovedadesList(novedadesData.entradas || []);
+        } catch (error) {
+            console.error("Error al cargar solo novedades:", error);
+            if (novedadesListContainer) { 
+                novedadesListContainer.innerHTML = `<p style="color: red;">Error al cargar novedades: ${error.message}</p>`;
+            }
+        }
+    }
+
+    // --- LÓGICA PARA PESTAÑAS EN EL PANEL DE ADMINISTRACIÓN ---
+    const todosLosNavegadoresDePestanas = document.querySelectorAll('.admin-tabs-nav');
+
+    todosLosNavegadoresDePestanas.forEach(nav => {        
+        const tabButtons = nav.querySelectorAll('.admin-tab-btn');
+        const contenedorPadre = nav.parentElement;
+        const tabContents = contenedorPadre.querySelectorAll('.admin-tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetId = button.dataset.tabTarget;
+
+                // Desactivamos solo los botones y contenidos de ESTE GRUPO
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+
+                // Activamos la pestaña y el contenido seleccionados
+                button.classList.add('active');
+                const targetContent = document.querySelector(targetId);
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                }
+
+                // --- Lógica adicional específica para cada pestaña ---
+                // Si hacemos clic en la pestaña del calendario, cargamos sus datos.
+                if (targetId === '#tab-mis-turnos') {
+                    inicializarMisTurnos();
+                }
+            });
+        });
+    });
+
+    // --- MANEJADOR DE CLICS DEL MENÚ LATERAL  ---
     sidebarLinks.forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
@@ -1298,16 +1382,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             this.classList.add('active');
             const sectionId = this.dataset.section;
             
-            // Verificación de seguridad para evitar errores futuros
             const targetSection = document.getElementById(sectionId);
             if (targetSection) {
                 targetSection.classList.add('active');
             } else {
                 console.error(`Error: No se encontró la sección con el id: ${sectionId}`);
-                return; // Detiene la ejecución si una sección no existe
+                return; 
             }
             
-            // Llama a la función de inicialización correcta según la sección
+            // --- LÓGICA DE RESETEO DE PESTAÑAS ---
+            if (sectionId === 'informacion-general') {
+                // Seleccionamos todas las pestañas y contenidos DENTRO de la sección de informe
+                const tabButtons = document.querySelectorAll('#informacion-general .admin-tab-btn');
+                const tabContents = document.querySelectorAll('#informacion-general .admin-tab-content');
+
+                // Desactivamos todas
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+
+                // Reactivamos solo la primera pestaña y su contenido por defecto
+                if (tabButtons.length > 0) {
+                    tabButtons[0].classList.add('active');
+                }
+                if (tabContents.length > 0) {
+                    tabContents[0].classList.add('active');
+                }
+            }            
+
+            // Llama a la función de inicialización correcta según la sección 
             if (sectionId === 'gestion-usuarios') {
                 loadUsers();
             } else if (sectionId === 'log-actividad') {
@@ -1316,10 +1418,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 inicializarGestionTurnos();
             } else if (sectionId === 'mis-turnos') {
                 inicializarMisTurnos();
-            } else if (sectionId === 'mi-perfil') {
-                // Esta sección no necesita una función especial al cargar
             }
         });
     });
+
+        // Esto simula un clic en el enlace del sidebar para "Información del Reporte" al inicio.
+    const initialSidebarLink = document.querySelector('.admin-sidebar nav ul li a.active');
+    if (initialSidebarLink && initialSidebarLink.dataset.section === 'informacion-general') {
+        const firstTabButton = document.querySelector('#informacion-general .admin-tab-btn');
+        const firstTabContent = document.querySelector('#informacion-general .admin-tab-content');
+        if (firstTabButton && firstTabContent) {
+            firstTabButton.classList.add('active');
+            firstTabContent.classList.add('active');
+        }
+    }
+
+    //Asegurar la visibilidad inicial del botón flotante
+    if (openNovedadesFloatBtn) {
+        openNovedadesFloatBtn.classList.add('visible');
+    }
 
 });

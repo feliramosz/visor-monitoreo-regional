@@ -2,7 +2,7 @@ import imaplib
 import email
 import os
 from dotenv import load_dotenv
-load_dotenv(dotenv_path=os.path.join(os.path.expanduser('~'), 'visor-monitoreo-regional', '.env'))
+load_dotenv()
 from datetime import datetime
 from docx import Document
 import json
