@@ -9,12 +9,18 @@ on:
 # Tareas a ejecutar
 jobs:
   deploy:
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
 
     steps:
-      # Paso 1: Clonar el repositorio en la máquina virtual de GitHub Actions      
+      # Paso 1: Clonar el repositorio en la máquina virtual de GitHub Actions
       - name: Checkout del código
-        uses: actions/checkout@v3 # Puedes probar con v4 o superior si lo deseas, pero v3 es seguro.
+        uses: actions/checkout@v3
+
+      # Configurar ssh-agent para usar la clave privada (en el runner de GitHub Actions)
+      - name: Configurar SSH Agent para Git
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY_DEPLOY }}
 
       # Paso 2: Conectarse al servidor y ejecutar el script deploy.sh
       - name: Desplegar en el servidor remoto
@@ -23,21 +29,17 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: "${{ secrets.PASSWORD }}"
-          port: ${{ secrets.PORT }}          
+          port: ${{ secrets.PORT }}
+          
           script: |
-            # Navegar al directorio donde se encuentra el script deploy.sh
-            # Y donde se realizará el git pull
-            # La ruta de destino depende de la rama que se esté desplegando.
-            # Usaremos el mismo deploy.sh para determinar el TARGET_DIR.
-
-            # Crear un archivo temporal para el script deploy.sh en el servidor
-            # Esto evita conflictos si deploy.sh no está en la misma ubicación
-            # o si el git pull lo sobrescribe a mitad de la ejecución.
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S bash -c 'cat > /tmp/deploy_temp.sh << EOF
             #!/bin/bash
             set -e
 
-            echo "--- Despliegue iniciado para la rama: \$DEPLOY_BRANCH ---"
+            # Definimos las variables para que Bash las expanda aquí
+            DEPLOY_BRANCH="${{ github.ref_name }}"
+            SUDO_PASSWORD="${{ secrets.SUDO_PASSWORD }}"
+
+            echo "--- Despliegue iniciado para la rama: $DEPLOY_BRANCH ---"
 
             # --- Configuración de Entornos ---
             PROD_DIR="/home/linuxuser/visor-monitoreo-regional"
@@ -51,44 +53,45 @@ jobs:
             TARGET_BRANCH=""
             TARGET_SERVICE=""
 
-            if [ "\$DEPLOY_BRANCH" = "main" ]; then
+            if [ "$DEPLOY_BRANCH" = "main" ]; then
                 echo ">>> Configurando para PRODUCCIÓN..."
-                TARGET_DIR=\$PROD_DIR
+                TARGET_DIR=$PROD_DIR
                 TARGET_BRANCH="main"
-                TARGET_SERVICE=\$PROD_SERVICE
-            elif [ "\$DEPLOY_BRANCH" = "develop" ]; then
+                TARGET_SERVICE=$PROD_SERVICE
+            elif [ "$DEPLOY_BRANCH" = "develop" ]; then
                 echo ">>> Configurando para STAGING..."
-                TARGET_DIR=\$STAGING_DIR
+                TARGET_DIR=$STAGING_DIR
                 TARGET_BRANCH="develop"
-                TARGET_SERVICE=\$STAGING_SERVICE
+                TARGET_SERVICE=$STAGING_SERVICE
             else
-                echo "!!! Rama '\''\$DEPLOY_BRANCH'\'' no configurada. Abortando."
+                echo "!!! Rama '$DEPLOY_BRANCH' no configurada. Abortando."
                 exit 1
             fi
 
-            echo "Directorio de destino: \$TARGET_DIR"
-            echo "Servicio a reiniciar: \$TARGET_SERVICE"
+            echo "Directorio de destino: $TARGET_DIR"
+            echo "Servicio a reiniciar: $TARGET_SERVICE"
 
-            cd \$TARGET_DIR
-            echo "Actualizando rama '\''\$TARGET_BRANCH'\'' desde GitHub..."
+            cd "$TARGET_DIR" # Usar comillas para el path, por si acaso
+
+            echo "Actualizando rama '$TARGET_BRANCH' desde GitHub..."
+            
+            # Gestiona el known_hosts para evitar "Host key verification failed"
+            mkdir -p ~/.ssh # Asegura que el directorio existe
+            ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null || true
+            chmod 600 ~/.ssh/known_hosts
+
+            # Iniciar ssh-agent y cargar la clave privada, solo si no hay uno ya iniciado.
+            # Esto es necesario si el entorno de SSH no lo maneja automáticamente.
+            # Puedes probar quitando la primera línea de `ssh-agent` si ya está funcionando.
+            eval "$(ssh-agent -s)" || true # Inicia un agente SSH en esta sesión
+            ssh-add ~/.ssh/id_ed25519 # Añade la clave privada por defecto al agente
+
             git fetch origin
-            git reset --hard origin/\$TARGET_BRANCH
+            git reset --hard origin/$TARGET_BRANCH
 
             echo ">>> Reiniciando servicios específicos..."
-            echo "\$SUDO_PASSWORD" | sudo -S systemctl restart \$TARGET_SERVICE
-            echo "\$SUDO_PASSWORD" | sudo -S systemctl restart nginx # Nginx se reinicia siempre
+            echo "$SUDO_PASSWORD" | sudo -S systemctl restart $TARGET_SERVICE
+            echo "$SUDO_PASSWORD" | sudo -S systemctl restart nginx # Nginx se reinicia siempre
 
-            echo "--- Despliegue para '\''\$DEPLOY_BRANCH'\'' finalizado. ---"
-            EOF'
-
-            # Dar permisos de ejecución al script temporal
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S chmod +x /tmp/deploy_temp.sh
-
-            # Ejecutar el script temporal, pasándole la rama actual como variable de entorno
-            # y la contraseña de sudo de forma segura
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S DEPLOY_BRANCH="${{ github.ref_name }}" SUDO_PASSWORD="${{ secrets.SUDO_PASSWORD }}" /tmp/deploy_temp.sh
-
-            # Eliminar el script temporal después de la ejecución
-            sudo rm /tmp/deploy_temp.sh
-
-            echo "--- Flujo de despliegue completado para la rama ${{ github.ref_name }} ---"
+            echo "--- Despliegue para '$DEPLOY_BRANCH' finalizado. ---"
+          
