@@ -31,9 +31,22 @@ jobs:
           password: "${{ secrets.PASSWORD }}"
           port: ${{ secrets.PORT }}
           script: |
-            # Crear un archivo temporal para el script deploy.sh en el servidor
-            # Ahora, el script temporal leerá los argumentos
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S bash -c 'cat > /tmp/deploy_temp.sh << '"EOF"
+            # Este es el script que se ejecutará en el servidor remoto.
+            # Se usará un comando bash -c para crear y ejecutar el script temporal,
+            # pasando las variables como argumentos.
+
+            set -e # Salir inmediatamente si un comando falla
+
+            # Definimos las variables para que bash las expanda aquí, antes de pasarlas al script.
+            _DEPLOY_BRANCH="${{ github.ref_name }}"
+            _SUDO_PASSWORD="${{ secrets.SUDO_PASSWORD }}"
+
+            # Creamos el script temporal directamente con 'echo' y lo ejecutamos.
+            # Se usa una sintaxis de heredoc con 'EOT' para evitar conflictos con 'EOF'.
+            # Las variables internas DEBEN ir escapadas (\$) para que se expandan en el script final.
+            # ¡ATENCIÓN a las comillas alrededor del comando bash -c y las escapadas!
+
+            echo "$_SUDO_PASSWORD" | sudo -S bash -c 'cat > /tmp/deploy_temp.sh << "EOT"
             #!/bin/bash
             set -e
 
@@ -90,14 +103,13 @@ jobs:
             echo "$SUDO_PASSWORD" | sudo -S systemctl restart nginx # Nginx se reinicia siempre
 
             echo "--- Despliegue para '$DEPLOY_BRANCH' finalizado. ---"
-            '"EOF" # Cierre del heredoc con comillas
-            # FIN DE LA MODIFICACIÓN
+            EOT' # Cierre del heredoc
 
             # Dar permisos de ejecución al script temporal
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S chmod +x /tmp/deploy_temp.sh
+            echo "$_SUDO_PASSWORD" | sudo -S chmod +x /tmp/deploy_temp.sh
 
             # Ejecutar el script temporal y pasar las variables como argumentos
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S /tmp/deploy_temp.sh "${{ github.ref_name }}" "${{ secrets.SUDO_PASSWORD }}"
+            echo "$_SUDO_PASSWORD" | sudo -S /tmp/deploy_temp.sh "$_DEPLOY_BRANCH" "$_SUDO_PASSWORD"
 
             # Eliminar el script temporal después de la ejecución
             sudo rm /tmp/deploy_temp.sh
