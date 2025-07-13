@@ -452,97 +452,292 @@
             <div class="message" id="adminMessage"></div>
 
             <section id="informacion-general" class="admin-section active">
-                <h3>Configuración General del Reporte</h3>
-                <p>En esta sección puedes modificar la fecha a mostrar en el monitor exterior y probar las notificaciones por voz. La hora se actualiza automáticamente al guardar.</p>
+                <h3>Confg. Fecha y carrusel</h3>
+                <p>En el campo inferior se puede modificar la fecha a mostrar en pagina para exterior, la hora se actualiza automaticamente al presionar guardar.</p>
                 <label for="adminFechaInforme">Fecha proyectada en pantalla exterior:</label>
                 <input type="text" id="adminFechaInforme" placeholder="Ej: martes, 24 de junio de 2025">
-                
+
                 <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
-                            <h3>Probar Notificaciones por Voz</h3>
-                    <p>Utiliza estos botones para probar los diferentes tipos de boletines y notificaciones de voz que el sistema puede emitir.</p>
-                    <button type="button" id="testBoletinBtn">▶️ Probar Boletín por Voz</button>
-                    <div style="margin-top: 15px;">
-                        <label for="testNotificationType">Probar Notificación Específica:</label>
-                        <select id="testNotificationType">
-                            <option value="regular">Regular</option>
-                            <option value="alerta">Alerta</option>
-                            <option value="emergencia">Emergencia</option>
-                            <option value="precipitacion">Precipitación</option>
-                        </select>
-                        <button type="button" id="testNotificationBtn" style="margin-left: 10px;">Probar</button>
-                    </div>
-                    <div style="margin-top: 10px;">
-                        <button type="button" id="testTsunamiBtn" style="background-color: #007bff;">Probar Último Boletín Tsunami</button>
-                        <button type="button" id="testGeofonBtn" style="background-color: #007bff;">Probar Último Boletín Sismo (GEOFON)</button>
-                        <button type="button" id="testPortBtn" style="background-color: #007bff;">Probar Notificación de Puerto</button>
-                    </div>    
+                    <h4 style="margin-top:0;">Botón de prueba para el Boletín Informativo</h4>
+                    <p>
+                        Presiona este botón para generar y escuchar una vista previa del boletín informativo por voz con los datos cargados actualmente en el panel.
+                    </p>
+                    <button type="button" id="testBoletinBtn" style="background-color: #17a2b8;">
+                        ▶️ Prueba del Boletín por Voz
+                    </button>
                 </div>
 
-                <div class="admin-tabs-nav">
-                    <button class="admin-tab-btn active" data-tab-target="#tab-alertas">Alertas Vigentes</button>
-                    <button class="admin-tab-btn" data-tab-target="#tab-avisos">Avisos Meteorológicos</button>
-                    <button class="admin-tab-btn" data-tab-target="#tab-uv">Radiación UV</button>
-                    <button class="admin-tab-btn" data-tab-target="#tab-carreteras">Carreteras</button>
-                    <button class="admin-tab-btn" data-tab-target="#tab-hidro">Datos Hidrométricos</button>
+                <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
+                    <h4 style="margin-top:0;">Configuración de carrusel</h4>
+                    <label for="adminEnableDashboardCarousel" style="display:flex; align-items:center; gap:10px;">
+                        <input type="checkbox" id="adminEnableDashboardCarousel" style="width: auto; height: 18px; flex-shrink:0;">
+                        Habilitar para todos los usuarios el carrusel central en pantalla Dashboard (reemplaza Alertas y Avisos por slides con imagenes si estas están guardadas).
+                    </label>
+                    
+                    <label for="adminEnableNovedadesCarousel" style="display:flex; align-items:center; gap:10px; margin-top: 10px;">
+                        <input type="checkbox" id="adminEnableNovedadesCarousel" style="width: auto; height: 18px; flex-shrink:0;">
+                        Habilitar para todos los usuarios el carrusel en panel derecho (alterna Novedades/Waze con Emergencias 24h).
+                    </label>
+                    <br>
+                    <label for="adminIntervaloSlide" style="font-weight: bold; color: #555;">Velocidad del Carrusel en pantalla exterior:</label>
+                    <select id="adminIntervaloSlide" style="width: 100%; max-width:250px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                        <option value="5000">5 segundos</option>
+                        <option value="10000" selected>10 segundos</option>
+                        <option value="15000">15 segundos</option>
+                        <option value="20000">20 segundos</option>
+                        <option value="25000">25 segundos</option>
+                        <option value="30000">30 segundos</option>
+                    </select>
                 </div>
-                <div class="admin-tabs-content">
-                    <div id="tab-alertas" class="admin-tab-content active">
-                        <h3>Resumen de Alertas Vigentes</h3>
-                        <div id="alertasContainer"></div>
-                        <button type="button" id="addAlertaBtn">Añadir Alerta</button>
-                    </div>
 
-                    <div id="tab-avisos" class="admin-tab-content">
-                        <h3>Avisos / Alertas / Alarmas Meteorológicas</h3>
-                        <div id="avisosMetContainer"></div>
-                        <button type="button" id="addAvisoMetBtn">Añadir Aviso</button>
-                    </div>
+                <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
+                    <h4 style="margin-top:0;">Gestión de Notificaciones por Voz</h4>                  
 
-                    <div id="tab-uv" class="admin-tab-content">
-                        <h3>Índice de Radiación Ultravioleta</h3>
-                        <div class="uv-info-admin">
-                            <label for="adminUVObservadoLabel">Etiqueta Observado:</label>
-                            <input type="text" id="adminUVObservadoLabel" value="Observado ayer:">
-                            <label for="adminUVObservadoValue">Valor Observado:</label>
-                            <input type="text" id="adminUVObservadoValue" value="N/A">
-                            <label for="adminUVPronosticadoLabel">Etiqueta Pronosticado:</label>
-                            <input type="text" id="adminUVPronosticadoLabel" value="Pronosticado para hoy:">
-                            <label for="adminUVPronosticadoValue">Valor Pronosticado:</label>
-                            <input type="text" id="adminUVPronosticadoValue" value="N/A">
-                        </div>
-                    </div>
+                    <hr style="margin: 20px 0;">
 
-                    <div id="tab-carreteras" class="admin-tab-content">
-                         <h3>Estado de Carreteras</h3>
-                         <div id="carreterasContainer"></div>
-                         <button type="button" id="addCarreteraBtn">Añadir Carretera</button>
-                    </div>
-
-                    <div id="tab-hidro" class="admin-tab-content">
-                        <h3>Datos Hidrométricos (Estáticos del Informe)</h3>
-                        <div id="hidroContainer"></div>
-                        <button type="button" id="addHidroBtn">Añadir Estación Hidrométrica</button>
-                    </div>
+                    <p>Selecciona de la lista y usa el botón para probar los diferentes sonidos y mensajes de alerta.</p>
+                    <select id="testNotificationType" style="margin-bottom: 10px; padding: 8px;">
+                        <option value="regular">Prueba: Estado Regular</option>
+                        <option value="alerta">Prueba: Estado Alerta</option>
+                        <option value="emergencia">Prueba: Estado Emergencia</option>
+                        <option value="precipitacion">Prueba: Precipitaciones</option>
+                    </select>
+                    <button type="button" id="testNotificationBtn" style="background-color: #ffc107; color: black;">
+                        ▶️ Probar Notificación
+                    </button>
+                    <button type="button" id="testTsunamiBtn" style="background-color: #17a2b8; color: white; margin-left: 10px;">
+                        🌊 Probar Último Boletín Tsunami
+                    </button>
+                    <button type="button" id="testGeofonBtn" style="background-color: #6f42c1; color: white; margin-left: 10px;">
+                        🛰️ Probar Último Boletín GEOFON
+                    </button>
+                    <button type="button" id="testPortBtn" style="background-color: #0069d9; color: white; margin-left: 10px;">
+                        ⚓ Probar Notificación de Puerto
+                    </button>
                 </div>
-                </section>
+            </section>
 
             <section id="contenido-dashboard" class="admin-section">
-                </section>
+                <h3>Panel de Novedades del Dashboard</h3>
+                <div class="form-group">
+                    <label for="adminNumeroInforme">N° de último informe:</label>
+                    <input type="text" id="adminNumeroInforme" placeholder="Ej: 153">
+                    
+                    <hr style="margin: 20px 0;">
+
+                    <h4>Registro de Novedades</h4>
+                    <label for="adminNovedadInput">Texto de la nueva novedad: (no olvidar presionar "Guardar todos los cambios" luego de "Añadir novedad)</label>
+                    <input type="text" id="adminNovedadInput" placeholder="Escriba aquí y presione 'Añadir'...">
+                    <input type="hidden" id="adminNovedadEditIndex">
+                    <button type="button" id="addNovedadBtn">Añadir Novedad</button>
+
+                    <h4>Novedades guardadas y proyectadas a la pantalla:</h4>
+                    <div id="novedadesListContainer">
+                        <p>Cargando novedades...</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="alertas-vigentes" class="admin-section">
+                <h3>Resumen de Alertas Vigentes</h3>
+                <div id="alertasContainer">
+                    </div>
+                <button type="button" id="addAlertaBtn">Añadir Alerta</button>
+            </section>
+
+            <section id="avisos-meteorologicos" class="admin-section">
+                <h3>Avisos / Alertas / Alarmas Meteorológicas</h3>
+                <div id="avisosMetContainer">
+                    </div>
+                <button type="button" id="addAvisoMetBtn">Añadir Aviso</button>
+            </section>
+
+            <section id="radiacion-uv" class="admin-section">
+                <h3>Índice de Radiación Ultravioleta</h3>
+                <div class="uv-info-admin">
+                    <label for="adminUVObservadoLabel">Etiqueta Observado:</label>
+                    <input type="text" id="adminUVObservadoLabel" value="Observado ayer:">
+                    <label for="adminUVObservadoValue">Valor Observado:</label>
+                    <input type="text" id="adminUVObservadoValue" value="N/A">
+                    <label for="adminUVPronosticadoLabel">Etiqueta Pronosticado:</label>
+                    <input type="text" id="adminUVPronosticadoLabel" value="Pronosticado para hoy:">
+                    <label for="adminUVPronosticadoValue">Valor Pronosticado:</label>
+                    <input type="text" id="adminUVPronosticadoValue" value="N/A">
+                </div>
+            </section>
+
             <section id="emergencias" class="admin-section">
-                 </section>
-            </div>
+                <h3>Emergencias de las Últimas 24 Horas</h3>
+                <div id="emergenciasContainer">
+                    </div>
+                <button type="button" id="addEmergenciaBtn">Añadir Emergencia</button>
+            </section>
 
-            <h4>Gestión de Novedades</h4>
-            <div class="form-group">
-                <label for="adminNovedadInput">Nueva Novedad:</label>
-                <textarea id="adminNovedadInput" rows="3" placeholder="Escribe la novedad aquí..."></textarea>
-                <input type="hidden" id="adminNovedadEditIndex"> <button type="button" id="addNovedadBtn">Añadir Novedad</button>
-            </div>
+            <section id="carreteras" class="admin-section">
+                <h3>Estado de Carreteras</h3>
+                <div id="carreterasContainer">
+                    </div>
+                <button type="button" id="addCarreteraBtn">Añadir Carretera</button>
+            </section>
 
-            <h4>Novedades Registradas</h4>
-            <div id="novedadesListContainer">
-                <p>No hay novedades registradas.</p>
+            <section id="pasos-fronterizos" class="admin-section">
+                <h3>Estado de Pasos Fronterizos</h3>
+                <div id="pasosFronterizosContainer">
+                    </div>
+                <button type="button" id="addPasoFronterizoBtn">Añadir Paso</button>
+            </section>
+
+            <section id="datos-hidrometricos" class="admin-section">
+                <h3>Datos Hidrométricos (Estáticos del Informe)</h3>
+                <div id="hidroContainer">
+                    </div>
+                <button type="button" id="addHidroBtn">Añadir Estación Hidrométrica</button>
+            </section>
+
+            <section id="dynamic-slides" class="admin-section">
+                <h3>Slides Dinámicas con Imágenes</h3>
+                <div class="form-group">
+                    <h4>Subir Nueva Imagen para Slide</h4>
+                    <label for="imageFile">Seleccionar Imagen:</label>
+                    <input type="file" id="imageFile" accept="image/*">
+                    <label for="imageTitle">Título (Opcional):</label>
+                    <input type="text" id="imageTitle" placeholder="Título de la imagen">
+                    <label for="imageDescription">Descripción (Opcional):</label>
+                    <textarea id="imageDescription" placeholder="Breve descripción de la imagen"></textarea>
+                    <button type="button" id="uploadImageBtn">Subir Imagen y Añadir Slide</button>
+                </div>
+                <h4>Imágenes de Slides Actuales:</h4>
+                <div id="dynamicSlidesContainer">
+                    <p>No hay slides dinámicas añadidas.</p>
+                </div>
+            </section>
+            
+            <section id="accion-manual" class="admin-section">
+                <h3>Descargar Informe Manual</h3>
+                <div class="form-group">
+                    <p>
+                        Haz clic en este botón para forzar la descarga y procesamiento del último informe
+                        disponible en el correo electrónico. Esto sobreescribirá los datos actuales
+                        del informe con los datos extraídos del archivo .docx.
+                    </p>
+                    <button type="button" id="runScriptBtn" style="background-color: #0056b3;">Iniciar Descarga Manual</button>
+                    <h4>Salida del Proceso:</h4>
+                    <pre id="scriptOutput" style="background-color: #333; color: #fff; padding: 15px; border-radius: 5px; max-height: 400px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">La salida del script aparecerá aquí...</pre>
+                </div>
+            </section>
+            
+            <section id="mi-perfil" class="admin-section">
+                <h3>Mi Perfil</h3>
+                <div class="form-group">
+                    <h4>Cambiar mi Contraseña</h4>
+                    <label for="current-password">Contraseña Actual:</label>
+                    <input type="password" id="current-password" placeholder="Ingresa tu contraseña actual" required>
+
+                    <label for="new-password">Nueva Contraseña:</label>
+                    <input type="password" id="new-password" placeholder="Ingresa la nueva contraseña" required>
+
+                    <label for="confirm-password">Confirmar Nueva Contraseña:</label>
+                    <input type="password" id="confirm-password" placeholder="Vuelve a ingresar la nueva contraseña" required>
+
+                    <button type="button" id="changePasswordBtn" class="save-button">Cambiar Contraseña</button>
+                </div>
+            </section>
+            
+            <section id="mis-turnos" class="admin-section">
+                <h3>Mi Calendario de Turnos</h3>
+                <div class="turnos-main">
+                    <div class="turnos-controls">
+                        <label for="select-mes-mis-turnos">Mes:</label>
+                        <select id="select-mes-mis-turnos"></select>
+                        <label for="select-anio-mis-turnos">Año:</label>
+                        <select id="select-anio-mis-turnos"></select>
+                        
+                        <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="verCalendarioCompletoCheckbox" style="width: 18px; height: 18px;">
+                            <label for="verCalendarioCompletoCheckbox" style="font-weight: normal; cursor: pointer;">Ver calendario completo</label>
+                        </div>
+                    </div>
+                    <div class="turnos-calendario" id="mis-turnos-calendario-container">
+                        </div>
+                </div>
+            </section>
+
+            <section id="gestion-turnos" class="admin-section">
+                <h3>Planificación de Turnos Mensual</h3>
+                <div class="gestion-turnos-container">
+                    <div class="turnos-sidebar">
+                        <div class="operadores-list" id="personal-list-container">
+                            </div>
+                    </div>
+                    <div class="turnos-main">
+                        <div class="turnos-controls">
+                            <label for="select-mes-turnos">Mes:</label>
+                            <select id="select-mes-turnos"></select>
+                            <label for="select-anio-turnos">Año:</label>
+                            <select id="select-anio-turnos"></select>
+                            <button id="btnGuardarTurnos">Guardar Cambios</button>
+                            <button id="btnExportarExcel">Exportar a Excel</button>
+                        </div>
+                        <div class="turnos-calendario" id="turnos-calendario-container">
+                            </div>
+                    </div>
+                </div>
+            </section>
+            <section id="gestion-usuarios" class="admin-section">
+                <h3>Gestión de Usuarios</h3>
+                <div class="form-group">
+                    <h4>Añadir Nuevo Usuario</h4>
+                    <input type="hidden" id="adminUserId">
+                    <label for="adminUsername">Nombre de Usuario:</label>
+                    <input type="text" id="adminUsername" placeholder="Nuevo nombre de usuario">
+                    <label for="adminPassword">Contraseña:</label>
+                    <input type="password" id="adminPassword" placeholder="Dejar en blanco para no cambiar">
+                    <label for="adminRole">Rol:</label>
+                    <select id="adminRole">
+                        <option value="operador">Operador</option>
+                        <option value="administrador">Administrador</option>
+                    </select>
+                    <button type="button" id="saveUserBtn">Guardar Usuario</button>
+                    <button type="button" id="cancelEditBtn" style="display:none; background-color: #6c757d;">Cancelar Edición</button>
+                </div>
+
+                <h4>Usuarios Existentes</h4>
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuario</th>
+                            <th>Rol</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </section>
+
+            <section id="log-actividad" class="admin-section">
+                <h3>Log de Actividad del Sistema</h3>
+                <p>Mostrando los últimos 100 eventos registrados.</p>
+                <table id="logTable">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Dirección IP</th>
+                            <th>Detalles</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </section>
+
+            <div class="action-buttons">
+                <button type="button" id="saveDataBtn" class="save-button">Guardar Todos los Cambios</button>
             </div>
+        </div>
 
     </main>
 
