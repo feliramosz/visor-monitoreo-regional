@@ -16,14 +16,13 @@ jobs:
       - name: Checkout del código
         uses: actions/checkout@v3
 
-      # Paso 2: Configurar el entorno de despliegue
+      # Configurar ssh-agent para usar la clave privada
       - name: Configurar SSH Agent para Git
-        uses: webfactory/ssh-agent@v0.7.0 # Versión recomendada, puede ser v0.8.0 o la más reciente
+        uses: webfactory/ssh-agent@v0.7.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY_DEPLOY }}
 
       # Paso 2: Conectarse al servidor y ejecutar el script deploy.sh
-      
       - name: Desplegar en el servidor remoto
         uses: appleboy/ssh-action@master
         with:
@@ -32,13 +31,15 @@ jobs:
           password: "${{ secrets.PASSWORD }}"
           port: ${{ secrets.PORT }}
           script: |
-            # Este 'script' se ejecuta en el SERVIDOR REMOTO.
-            # La acción 'webfactory/ssh-agent' ya se encargó de configurar el ssh-agent
-            # en el entorno del RUNNER de GitHub Actions.
-            # Por lo tanto, no necesitas 'eval "$(ssh-agent -s)"' ni 'ssh-add' aquí.
-            # Git debería encontrar las credenciales automáticamente si el runner está bien configurado.
+            # Crear un archivo temporal para el script deploy.sh en el servidor
+            # INICIO DE LA MODIFICACIÓN IMPORTANTE
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S bash -c 'cat > /tmp/deploy_temp.sh << EOF
+            #!/bin/bash
+            set -e
 
-            set -e # Esto asegura que el script se detenga si algún comando falla
+            # Inyecta la rama de despliegue directamente en el script
+            DEPLOY_BRANCH="${{ github.ref_name }}"
+            SUDO_PASSWORD="${{ secrets.SUDO_PASSWORD }}" # También inyectamos la contraseña
 
             echo "--- Despliegue iniciado para la rama: $DEPLOY_BRANCH ---"
 
@@ -74,19 +75,31 @@ jobs:
 
             cd $TARGET_DIR
             echo "Actualizando rama '$TARGET_BRANCH' desde GitHub..."
-            # El fallo 'Host key verification failed' indica que el servidor Git de GitHub
-            # no ha sido añadido a los 'known_hosts' del usuario 'linuxuser' en el servidor remoto.
-            # Para la automatización, podemos añadirlo de forma no interactiva.
-            ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null || true # Añade github.com a known_hosts
-            chmod 600 ~/.ssh/known_hosts # Asegura permisos correctos
             
+            # Gestiona el known_hosts para evitar "Host key verification failed"
+            # Importante que el usuario 'linuxuser' tenga permiso de escritura en ~/.ssh
+            mkdir -p ~/.ssh # Asegura que el directorio existe
+            ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null || true
+            chmod 600 ~/.ssh/known_hosts
+
             git fetch origin
             git reset --hard origin/$TARGET_BRANCH
 
             echo ">>> Reiniciando servicios específicos..."
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart $TARGET_SERVICE
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl restart nginx # Nginx se reinicia siempre
+            echo "$SUDO_PASSWORD" | sudo -S systemctl restart $TARGET_SERVICE
+            echo "$SUDO_PASSWORD" | sudo -S systemctl restart nginx # Nginx se reinicia siempre
 
             echo "--- Despliegue para '$DEPLOY_BRANCH' finalizado. ---"
-            
-            # El resto del script temporal se gestiona por appleboy/ssh-action, no es parte de este script temporal
+            EOF'
+            # FIN DE LA MODIFICACIÓN IMPORTANTE
+
+            # Dar permisos de ejecución al script temporal
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S chmod +x /tmp/deploy_temp.sh
+
+            # Ejecutar el script temporal (ahora sin pasar variables, ya están inyectadas)
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S /tmp/deploy_temp.sh
+
+            # Eliminar el script temporal después de la ejecución
+            sudo rm /tmp/deploy_temp.sh
+
+            echo "--- Flujo de despliegue completado para la rama ${{ github.ref_name }} ---"
