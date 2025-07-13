@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hidroContainer = document.getElementById('hidroContainer');
     const addHidroBtn = document.getElementById('addHidroBtn');
     const novedadesChatPanel = document.getElementById('novedades-chat-panel');
+    const openNovedadesFloatBtn = document.getElementById('openNovedadesFloatBtn');
     const openNovedadesPanelBtn = document.getElementById('openNovedadesPanelBtn');
     const closeNovedadesPanelBtn = document.getElementById('closeNovedadesPanelBtn');
     const imageFile = document.getElementById('imageFile');
@@ -1294,36 +1295,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Abrir el panel de novedades
-    if (openNovedadesPanelBtn) {
-        openNovedadesPanelBtn.addEventListener('click', (e) => {
-            e.preventDefault(); // Evita que el navegador navegue o recargue la página
-
-            // Desactiva todas las demás secciones del admin-content que puedan estar visibles
-            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
-            // Desactiva el enlace activo en el sidebar para que no haya dos activos
-            document.querySelectorAll('.admin-sidebar nav ul li a').forEach(l => l.classList.remove('active'));
+    if (openNovedadesFloatBtn) {
+        openNovedadesFloatBtn.addEventListener('click', (e) => {
+            e.preventDefault();            
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));            
+            document.querySelectorAll('.admin-sidebar nav ul li a').forEach(l => l.classList.remove('active'));          
             
-            // Activa el panel flotante haciéndolo visible
-            novedadesChatPanel.classList.add('active');
+            novedadesChatPanel.classList.add('active');            
+            openNovedadesFloatBtn.classList.remove('visible');             
             
-            // Cargar las novedades de nuevo por si se actualizaron en segundo plano
             loadNovedadesOnly(); 
         });
     }
 
-    // Cerrar el panel de novedades (botón 'x')
+    // Cerrar el panel de novedades (botón 'x' dentro del panel)
     if (closeNovedadesPanelBtn) {
         closeNovedadesPanelBtn.addEventListener('click', () => {
-            novedadesChatPanel.classList.remove('active'); // Oculta el panel
+            novedadesChatPanel.classList.remove('active');
+            openNovedadesFloatBtn.classList.add('visible');
         });
     }
 
-    // Función para cargar solo las novedades (útil para el panel flotante)
+    // Función para cargar solo las novedades 
     async function loadNovedadesOnly() {
         try {
             const novedadesResponse = await fetch(NOVEDADES_API_URL);
             if (!novedadesResponse.ok) throw new Error(`Error al cargar novedades: ${novedadesResponse.statusText}`);
-            novedadesData = await novedadesResponse.json(); // Actualiza la variable global novedadesData
+            novedadesData = await novedadesResponse.json();
             renderNovedadesList(novedadesData.entradas || []);
         } catch (error) {
             console.error("Error al cargar solo novedades:", error);
@@ -1387,7 +1385,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-
             // Llama a la función de inicialización correcta según la sección
             if (sectionId === 'gestion-usuarios') {
                 loadUsers();
@@ -1403,8 +1400,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    
-    // Esto simula un clic en el enlace del sidebar para "Información del Reporte" al inicio.
+        // Esto simula un clic en el enlace del sidebar para "Información del Reporte" al inicio.
     const initialSidebarLink = document.querySelector('.admin-sidebar nav ul li a.active');
     if (initialSidebarLink && initialSidebarLink.dataset.section === 'informacion-general') {
         const firstTabButton = document.querySelector('#informacion-general .admin-tab-btn');
@@ -1413,6 +1409,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             firstTabButton.classList.add('active');
             firstTabContent.classList.add('active');
         }
+    }
+
+    //Asegurar la visibilidad inicial del botón flotante
+    if (openNovedadesFloatBtn) {
+        openNovedadesFloatBtn.classList.add('visible');
     }
 
 });

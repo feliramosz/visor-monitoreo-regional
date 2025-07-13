@@ -210,6 +210,7 @@
         }
         .novedad-item {
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
             padding: 8px;
@@ -220,16 +221,24 @@
         }
         .novedad-text {
             flex-grow: 1;
+            margin-right: 15px;
+            min-width: 150px;
         }
         .novedad-timestamp {
             font-size: 0.8em;
             color: #6c757d;
             margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .novedad-actions {
+            display: flex;
+            gap: 3px;
+            flex-shrink: 0;
+            margin-top: 5px;
         }
         .novedad-actions button {
             padding: 5px 10px;
-            font-size: 0.9em;
-            margin-left: 5px;
+            font-size: 0.9em;            
         }
         .admin-sidebar nav li.separator {
         height: 1px;
@@ -615,6 +624,56 @@
             border-radius: 4px;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
+
+        /* Estilos para el Botón Flotante de Abrir Novedades */
+        .float-panel-toggler {
+            position: fixed;
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%) translateX(100%);
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            padding: 15px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-top-left-radius: 8px;
+            border-bottom-left-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            box-shadow: -3px 0 8px rgba(0,0,0,0.2);
+            transition: transform 0.4s ease-out;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 120px;
+        }
+
+        .float-panel-toggler:hover {
+            background-color: #0056b3; /* Color oscuro al pasar el mouse */
+        }
+
+        /* Cuando el panel está activo, el botón se esconde */
+        #novedades-chat-panel.active + .float-panel-toggler {
+             transform: translateY(-50%) translateX(0);
+             opacity: 0;
+             pointer-events: none;
+        }
+
+        /* Si el panel NO está activo, el botón se muestra un poco hacia afuera */
+        .float-panel-toggler.visible { 
+            transform: translateY(-50%) translateX(0);
+        }
+        /* Ajuste para pantallas pequeñas */
+        @media (max-width: 768px) {
+            .float-panel-toggler {
+                font-size: 0.9em;
+                padding: 10px 5px;
+                height: 100px;
+            }
+        }
         
     </style>
 </head>
@@ -634,8 +693,7 @@
             <h2>Paneles</h2>
             <nav>
                 <ul>
-                    <li><a href="#" data-section="informacion-general" class="active">Información del Reporte</a></li>
-                    <li><a href="#" id="openNovedadesPanelBtn">Panel Novedades</a></li>
+                    <li><a href="#" data-section="informacion-general" class="active">Información del Reporte</a></li>                    
                     <li><a href="#" data-section="dynamic-slides">Agregar imagenes</a></li>
                     <li><a href="#" data-section="accion-manual">Descargar Informe Manual</a></li>
                     <li><a href="#" data-section="mis-turnos">Mis Turnos</a></li>
@@ -970,6 +1028,13 @@
             </div>
         </div>
     </div>
+
+    <button id="openNovedadesFloatBtn" class="float-panel-toggler">
+        Novedades
+    </button>
+
+    <div id="novedades-chat-panel">
+        </div>
 
     <footer>
         <p>&copy; 2025 SENAPRED Valparaíso. Administración.</p>
