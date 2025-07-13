@@ -160,9 +160,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             adminUVPronosticadoLabel.value = data.radiacion_uv.pronosticado_hoy_label || 'Pronosticado para hoy:';
             adminUVPronosticadoValue.value = data.radiacion_uv.pronosticado_hoy_value || 'N/A';
         }
-                
-        document.getElementById('adminEnableDashboardCarousel').checked = data.dashboard_carousel_enabled || false;
-        document.getElementById('adminEnableNovedadesCarousel').checked = data.novedades_carousel_enabled || false;
+        
         document.getElementById('adminIntervaloSlide').value = data.slide_interval || '10000';        
     }
 
@@ -449,9 +447,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         updatedInformeData.estado_pasos_fronterizos = Array.from(pasosFronterizosContainer.querySelectorAll('.paso-item')).map(item => ({ nombre_paso: item.querySelector('.paso-nombre').value, condicion: item.querySelector('.paso-condicion').value, observaciones: item.querySelector('.paso-observaciones').value }));
         //Esto ya no se usa porque toma los datos directamente desde DIRECTEMAR: updatedInformeData.estado_puertos = Array.from(puertosContainer.querySelectorAll('.puerto-item')).map(item => ({ puerto: item.querySelector('.puerto-nombre').value, estado_del_puerto: item.querySelector('.puerto-estado').value, condicion: item.querySelector('.puerto-condicion').value }));
         updatedInformeData.datos_hidrometricos = Array.from(hidroContainer.querySelectorAll('.hidro-item')).map(item => ({ nombre_estacion: item.querySelector('.hidro-nombre').value, nivel_m: parseFloat(item.querySelector('.hidro-nivel').value) || null, caudal_m3s: parseFloat(item.querySelector('.hidro-caudal').value) || null }));
-        updatedInformeData.dynamic_slides = Array.from(dynamicSlidesContainer.querySelectorAll('.dynamic-slide-item')).map(item => ({ id: item.dataset.id, image_url: item.querySelector('.slide-image-url').value, title: item.querySelector('.slide-title').value, description: item.querySelector('.slide-description').value }));
-        updatedInformeData.dashboard_carousel_enabled = document.getElementById('adminEnableDashboardCarousel').checked;
-        updatedInformeData.novedades_carousel_enabled = document.getElementById('adminEnableNovedadesCarousel').checked;        
+        updatedInformeData.dynamic_slides = Array.from(dynamicSlidesContainer.querySelectorAll('.dynamic-slide-item')).map(item => ({ id: item.dataset.id, image_url: item.querySelector('.slide-image-url').value, title: item.querySelector('.slide-title').value, description: item.querySelector('.slide-description').value }));                   
         
         const updatedNovedadesData = { ...novedadesData };
         updatedNovedadesData.numero_informe_manual = adminNumeroInforme.value;        
