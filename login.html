@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Administración SENAPRED</title>
     <link rel="stylesheet" href="style.css">
     <style>
@@ -24,15 +25,24 @@
         }
     </style>
 </head>
-<body>
+<body class="login-body">
     <div class="login-container">
-        <h1>Acceso de Administración</h1>
+        <img src="assets/logo_circ.jpg" alt="Logo SENAPRED" class="login-logo">
+        <h2>Acceso de Administración</h1>
         <p>Sistema de Monitoreo Regional</p>
         <form id="login-form">
-            <input type="text" id="username" placeholder="Nombre de usuario" required>
-            <input type="password" id="password" placeholder="Contraseña" required>
-            <button type="submit">Ingresar</button>
+            <div class="input-group">
+                <label for="username">Usuario</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="login-btn">Ingresar</button>
         </form>
+        
+        <div id="login-message" class="message" style="display: none;"></div>
 
         <p class="registration-info">
             Si usted quiere ser registrado para visualizar el sitio, por favor escriba a la siguiente dirección de correo electrónico: <br>
