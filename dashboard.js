@@ -802,7 +802,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (showNovedadesCheck.checked && novedades.length > 0) {
             paginateItems(novedades, 5).forEach((page, index, pages) => {
                 const slideId = `novedades-slide-${index}`;
-                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div id="informe-correlativo"><span>N° de último informe ${novedadesData.numero_informe_manual || '---'}</span></div></div><div class="list-container"><ul class="dashboard-list"></ul></div></div></div>`;
+                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div id="informe-correlativo"><span>N° de último informe ${data.numero_informe_manual || '---'}</span></div></div><div class="list-container"><ul class="dashboard-list"></ul></div></div></div>`;
                 slidesToRotate.push({ id: slideId, type: 'novedad', content: page });
             });
         }
