@@ -9,7 +9,7 @@
         /* Estilos específicos para la página de administración (se combinarán con style.css) */
         body {
             overflow-y: auto;
-            display: flex; /* flexbox para layout principal (header, main, footer) */
+            display: flex; /* flexbox para el layout principal (header, main, footer) */
             flex-direction: column;
             min-height: 100vh;
             background-color: #e9ecef;
@@ -376,51 +376,18 @@
         }
         /* --- FIN: Estilos para Gestión de Turnos --- */
 
-/* --- INICIO: Estilos para Pestañas (Tabs) en Admin --- */
-        .admin-tabs-nav {
-            display: flex;
-            border-bottom: 2px solid #dee2e6;
-            margin-bottom: 25px;
-            margin-top: 20px;
-        }
-        .admin-tab-btn {
-            padding: 12px 22px;
-            border: none;
-            background-color: transparent;
-            cursor: pointer;
-            font-size: 1.1em;
-            color: #555;
-            margin-bottom: -2px;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-        }
-        .admin-tab-btn:hover {
-            background-color: #f8f9fa;
-            color: #0056b3;
-        }
-        .admin-tab-btn.active {
-            font-weight: bold;
-            color: #007bff;
-            border-bottom-color: #007bff;
-        }
-        .admin-tab-content {
-            display: none;
-            animation: fadeIn 0.5s;
-        }
-        .admin-tab-content.active {
-            display: block;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        /* --- FIN: Estilos para Pestañas --- */
-
     </style>
 </head>
 <body>
     <header>
-        </header>
+        <div class="logo-left">
+            <img src="assets/bnnr_line_sup.png" alt="Logo SENAPRED Valparaiso">
+        </div>
+        <h1>Administración de Monitoreo Regional</h1>
+        <div class="logo-right">
+            <img src="assets/logo_circ.jpg" alt="Logo SENAPRED">
+        </div>
+    </header>
 
     <main>
         <aside class="admin-sidebar">
@@ -429,8 +396,14 @@
                 <ul>
                     <li><a href="#" data-section="informacion-general" class="active">Información del Reporte</a></li>
                     <li><a href="#" data-section="contenido-dashboard">Panel Novedades</a></li>
+                    <li><a href="#" data-section="alertas-vigentes">Alertas Vigentes</a></li>
+                    <li><a href="#" data-section="avisos-meteorologicos">Avisos Meteorológicos</a></li>
+                    <li><a href="#" data-section="radiacion-uv">Índice Radiación UV</a></li>
                     <li><a href="#" data-section="emergencias">Emergencias 24 Horas</a></li>
+                    <li><a href="#" data-section="carreteras">Estado de Carreteras</a></li>
                     <li><a href="#" data-section="pasos-fronterizos">Pasos Fronterizos</a></li>
+                    <!--<li><a href="#" data-section="puertos">Estado de Puertos</a></li>-->
+                    <li><a href="#" data-section="datos-hidrometricos">Datos Hidrométricos</a></li>
                     <li><a href="#" data-section="dynamic-slides">Agregar imagenes</a></li>
                     <li><a href="#" data-section="accion-manual">Descargar Informe Manual</a></li>
                     <li><a href="#" data-section="mis-turnos">Mis Turnos</a></li>
@@ -587,6 +560,13 @@
                 <button type="button" id="addPasoFronterizoBtn">Añadir Paso</button>
             </section>
 
+            <!--<section id="puertos" class="admin-section">
+                <h3>Estado de Puertos</h3>
+                <div id="puertosContainer">
+                    </div>
+                <button type="button" id="addPuertoBtn">Añadir Puerto</button>
+            </section>-->
+            
             <section id="datos-hidrometricos" class="admin-section">
                 <h3>Datos Hidrométricos (Estáticos del Informe)</h3>
                 <div id="hidroContainer">
@@ -738,7 +718,6 @@
                 <button type="button" id="saveDataBtn" class="save-button">Guardar Todos los Cambios</button>
             </div>
         </div>
-
     </main>
 
     <footer>
