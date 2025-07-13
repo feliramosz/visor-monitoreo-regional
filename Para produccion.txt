@@ -1,0 +1,107 @@
+# Flujo de Trabajo de Desarrollo (Staging -> Producción)
+
+Esta es la guía paso a paso para realizar cambios en el proyecto de forma segura, usando un entorno de pruebas (staging) antes de pasar a producción.
+
+---
+
+### **Paso 1: Iniciar un Nuevo Trabajo**
+
+Antes de empezar a editar código, asegúrate de estar en la rama `develop` y de tener la última versión del código.
+
+* En la terminal de VS Code, ejecuta:
+    ```bash
+    git checkout develop
+    git pull
+    ```
+
+---
+
+### **Paso 2: Hacer los Cambios**
+
+* Trabaja en tus archivos como siempre lo has hecho en VS Code (editar `.html`, `.css`, `.js`, `.py`, etc.).
+
+---
+
+### **Paso 3: Guardar y Subir a Staging**
+
+Cuando quieras guardar y probar tus cambios en el sitio de pruebas, sigue estos pasos en la terminal:
+
+1.  **Añade los archivos modificados:**
+    ```bash
+    git add .
+    ```
+
+2.  **Crea un "commit" con un mensaje descriptivo:**
+    ```bash
+    git commit -m "Un mensaje claro que describa el cambio"
+    ```
+
+3.  **Sube los cambios a GitHub:**
+    ```bash
+    git push origin develop
+    ```
+
+* **Automáticamente**, GitHub Actions desplegará estos cambios en el sitio de staging. Espera 1-2 minutos.
+
+---
+
+### **Paso 4: Probar en Staging**
+
+* Abre tu navegador y ve a la URL de staging: `https://staging.esrvalparaiso.cl`.
+* Verifica que los cambios que hiciste se ven y funcionan correctamente.
+* Si encuentras un error, simplemente corrígelo en VS Code y repite el Paso 3.
+
+---
+
+### **Paso 5: Pasar a Producción (El Lanzamiento)**
+
+Cuando estés 100% seguro de que los cambios en staging son correctos, es hora de publicarlos en el sitio real.
+
+1.  Ve a tu repositorio en **GitHub**.
+2.  Busca el aviso para crear una **Pull Request** desde `develop` hacia `main` y hazle clic.
+3.  Si no aparece, ve a la pestaña **"Pull requests"** -> **"New pull request"**.
+4.  Asegúrate de que la configuración sea: **base: `main`** ← **compare: `develop`**.
+5.  Crea la Pull Request.
+
+---
+
+### **Paso 6: Fusionar (Merge)**
+
+* Dentro de la Pull Request que acabas de crear en GitHub, revisa por última vez y haz clic en el botón **"Merge pull request"**.
+* Confirma la fusión.
+* **Automáticamente**, GitHub Actions tomará estos cambios de la rama `main` y los desplegará en el sitio de producción.
+* En 1-2 minutos, tus cambios estarán en vivo en `https://esrvalparaiso.cl`.
+
+
+Pasos a Seguir en tu Computador de Casa (Solo una vez)
+Mañana, cuando llegues a tu casa, haz lo siguiente:
+
+Abre tu proyecto en VS Code.
+
+Abre una nueva terminal integrada.
+
+Ejecuta estos dos comandos, uno por uno:
+
+Primero, para cambiarte a la nueva rama develop (Git es lo suficientemente inteligente para ver que existe en GitHub y creará una copia local para ti):
+
+Bash
+
+git checkout develop
+Segundo, para asegurarte de que tienes la última versión de todo el código que subiste desde tu trabajo:
+
+Bash
+
+git pull
+¡Y eso es todo!
+
+Después de hacer esa sincronización inicial, tu computador de casa ya estará al día. El flujo de trabajo será exactamente el mismo que el que te detallé antes:
+
+Asegúrate de estar en la rama develop.
+
+Haz tus cambios.
+
+Guarda y sube con git add, git commit y git push.
+
+Prueba en el sitio de staging.
+
+Cuando esté listo, pasa a producción creando una Pull Request en GitHub.
