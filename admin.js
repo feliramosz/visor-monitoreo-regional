@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // ... (El resto del código existente hasta la función saveDataBtn.addEventListener) ...
     const testBoletinBtn = document.getElementById('testBoletinBtn');
     if (testBoletinBtn) {
         testBoletinBtn.addEventListener('click', async () => {
@@ -70,6 +69,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const adminNovedadInput = document.getElementById('adminNovedadInput');
     const adminNovedadEditIndex = document.getElementById('adminNovedadEditIndex');
 
+    // Referencias a los contenedores de los paneles movidos dentro de las pestañas
     const alertasContainer = document.getElementById('alertasContainer');
     const addAlertaBtn = document.getElementById('addAlertaBtn');
     const avisosMetContainer = document.getElementById('avisosMetContainer');
@@ -84,10 +84,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addCarreteraBtn = document.getElementById('addCarreteraBtn');
     const pasosFronterizosContainer = document.getElementById('pasosFronterizosContainer');
     const addPasoFronterizoBtn = document.getElementById('addPasoFronterizoBtn');
-    //const puertosContainer = document.getElementById('puertosContainer'); 
-    //const addPuertoBtn = document.getElementById('addPuertoBtn');
+    //YA NO SE USA PORQUE SE OBTIENE DESDE DIRECTEMAR: const puertosContainer = document.getElementById('puertosContainer'); 
+    //YA NO SE USA PORQUE SE OBTIENE DESDE DIRECTEMAR: const addPuertoBtn = document.getElementById('addPuertoBtn');
     const hidroContainer = document.getElementById('hidroContainer');
     const addHidroBtn = document.getElementById('addHidroBtn');
+
     const imageFile = document.getElementById('imageFile');
     const imageTitle = document.getElementById('imageTitle');
     const imageDescription = document.getElementById('imageDescription');
@@ -142,12 +143,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         adminFechaInforme.value = data.fecha_informe || '';
         adminNumeroInforme.value = novedades.numero_informe_manual || '';
         renderNovedadesList(novedades.entradas || []);
+
+        // Estos ahora son renderizados en sus respectivos tab-contents
         renderSectionItems(alertasContainer, data.alertas_vigentes, createAlertaFormItem, 'No hay alertas para editar.');
         renderSectionItems(avisosMetContainer, data.avisos_alertas_meteorologicas, createAvisoMetFormItem, 'No hay avisos meteorológicos para editar.');
         renderSectionItems(emergenciasContainer, data.emergencias_ultimas_24_horas, createEmergenciaFormItem, 'No hay emergencias para editar.');
         renderSectionItems(carreterasContainer, data.estado_carreteras, createCarreteraFormItem, 'No hay carreteras para editar.');
         renderSectionItems(pasosFronterizosContainer, data.estado_pasos_fronterizos, createPasoFronterizoFormItem, 'No hay pasos fronterizos para editar.');
-        //renderSectionItems(puertosContainer, data.estado_puertos, createPuertoFormItem, 'No hay puertos para editar.');
+        //YA NO SE USA PORQUE SE OBTIENE DESDE DIRECTEMAR: renderSectionItems(puertosContainer, data.estado_puertos, createPuertoFormItem, 'No hay puertos para editar.');
         renderSectionItems(hidroContainer, data.datos_hidrometricos, createHidroFormItem, 'No hay datos hidrométricos para editar.');
         renderSectionItems(dynamicSlidesContainer, data.dynamic_slides, createDynamicSlideItem, 'No hay slides dinámicas añadidas.');
 
@@ -320,7 +323,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function createHidroFormItem(item = {}, index) {
         const div = document.createElement('div');
-        div.className = 'form-item-grid';
+        div.className = 'hidro-item'; // Cambio de form-item-grid a hidro-item para consistencia
         div.innerHTML = `
             <label>Nombre Estación:</label><input type="text" class="hidro-nombre" value="${item.nombre_estacion || ''}">
             <label>Nivel (m):</label><input type="number" step="0.01" class="hidro-nivel" value="${item.nivel_m || ''}">
@@ -346,13 +349,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         return div;
     }
 
-    addAlertaBtn.addEventListener('click', () => alertasContainer.appendChild(createAlertaFormItem()));
-    addAvisoMetBtn.addEventListener('click', () => avisosMetContainer.appendChild(createAvisoMetFormItem()));
-    addEmergenciaBtn.addEventListener('click', () => emergenciasContainer.appendChild(createEmergenciaFormItem()));
-    addCarreteraBtn.addEventListener('click', () => carreterasContainer.appendChild(createCarreteraFormItem()));
-    addPasoFronterizoBtn.addEventListener('click', () => pasosFronterizosContainer.appendChild(createPasoFronterizoFormItem()));
-    //addPuertoBtn.addEventListener('click', () => puertosContainer.appendChild(createPuertoFormItem()));
-    addHidroBtn.addEventListener('click', () => hidroContainer.appendChild(createHidroFormItem()));
+    // Los botones de añadir ahora se encuentran en sus respectivos tab-contents    
+    document.getElementById('addAlertaBtn').addEventListener('click', () => alertasContainer.appendChild(createAlertaFormItem()));
+    document.getElementById('addAvisoMetBtn').addEventListener('click', () => avisosMetContainer.appendChild(createAvisoMetFormItem()));
+    document.getElementById('addEmergenciaBtn').addEventListener('click', () => emergenciasContainer.appendChild(createEmergenciaFormItem()));
+    document.getElementById('addCarreteraBtn').addEventListener('click', () => carreterasContainer.appendChild(createCarreteraFormItem()));
+    document.getElementById('addPasoFronterizoBtn').addEventListener('click', () => pasosFronterizosContainer.appendChild(createPasoFronterizoFormItem()));
+    //YA NO SE USA PORQUE SE TOMAN LOS DATOS DESDE DIRECTEMAR: document.getElementById('addPuertoBtn').addEventListener('click', () => puertosContainer.appendChild(createPuertoFormItem()));
+    document.getElementById('addHidroBtn').addEventListener('click', () => hidroContainer.appendChild(createHidroFormItem()));
 
     runScriptBtn.addEventListener('click', async () => {
         runScriptBtn.disabled = true;
@@ -443,8 +447,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         updatedInformeData.emergencias_ultimas_24_horas = Array.from(emergenciasContainer.querySelectorAll('.emergency-item')).map(item => ({ n_informe: item.querySelector('.emergencia-n-informe').value, fecha_hora: item.querySelector('.emergencia-fecha-hora').value, evento_lugar: item.querySelector('.emergencia-evento-lugar').value, resumen: item.querySelector('.emergencia-resumen').value }));
         updatedInformeData.estado_carreteras = Array.from(carreterasContainer.querySelectorAll('.carretera-item')).map(item => ({ carretera: item.querySelector('.carretera-nombre').value, estado: item.querySelector('.carretera-estado').value, condicion: item.querySelector('.carretera-condicion').value }));
         updatedInformeData.estado_pasos_fronterizos = Array.from(pasosFronterizosContainer.querySelectorAll('.paso-item')).map(item => ({ nombre_paso: item.querySelector('.paso-nombre').value, condicion: item.querySelector('.paso-condicion').value, observaciones: item.querySelector('.paso-observaciones').value }));
-        //updatedInformeData.estado_puertos = Array.from(puertosContainer.querySelectorAll('.puerto-item')).map(item => ({ puerto: item.querySelector('.puerto-nombre').value, estado_del_puerto: item.querySelector('.puerto-estado').value, condicion: item.querySelector('.puerto-condicion').value }));
-        updatedInformeData.datos_hidrometricos = Array.from(hidroContainer.querySelectorAll('.form-item-grid')).map(item => ({ nombre_estacion: item.querySelector('.hidro-nombre').value, nivel_m: parseFloat(item.querySelector('.hidro-nivel').value) || null, caudal_m3s: parseFloat(item.querySelector('.hidro-caudal').value) || null }));
+        //Esto ya no se usa porque toma los datos directamente desde DIRECTEMAR: updatedInformeData.estado_puertos = Array.from(puertosContainer.querySelectorAll('.puerto-item')).map(item => ({ puerto: item.querySelector('.puerto-nombre').value, estado_del_puerto: item.querySelector('.puerto-estado').value, condicion: item.querySelector('.puerto-condicion').value }));
+        updatedInformeData.datos_hidrometricos = Array.from(hidroContainer.querySelectorAll('.hidro-item')).map(item => ({ nombre_estacion: item.querySelector('.hidro-nombre').value, nivel_m: parseFloat(item.querySelector('.hidro-nivel').value) || null, caudal_m3s: parseFloat(item.querySelector('.hidro-caudal').value) || null }));
         updatedInformeData.dynamic_slides = Array.from(dynamicSlidesContainer.querySelectorAll('.dynamic-slide-item')).map(item => ({ id: item.dataset.id, image_url: item.querySelector('.slide-image-url').value, title: item.querySelector('.slide-title').value, description: item.querySelector('.slide-description').value }));
         updatedInformeData.dashboard_carousel_enabled = document.getElementById('adminEnableDashboardCarousel').checked;
         updatedInformeData.novedades_carousel_enabled = document.getElementById('adminEnableNovedadesCarousel').checked;        
@@ -476,15 +480,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // --- INICIO: Lógica para Gestión de Turnos ---
-
+    // --- Lógica para Gestión de Turnos ---
     // Referencias a elementos del DOM para la gestión de turnos
     const turnosContainer = document.getElementById('gestion-turnos');
     const mesSelect = document.getElementById('select-mes-turnos');
     const anioSelect = document.getElementById('select-anio-turnos');
     const calendarioContainer = document.getElementById('turnos-calendario-container');
-    const operadoresListContainer = document.getElementById('operadores-list-container');
-    const llamadoListContainer = document.getElementById('llamado-list-container');
+    const operadoresListContainer = document.getElementById('personal-list-container');
+    const llamadoListContainer = document.getElementById('llamado-list-container'); // Este no se usa directamente en el HTML actual
     const btnGuardarTurnos = document.getElementById('btnGuardarTurnos');
     const btnExportarExcel = document.getElementById('btnExportarExcel');
     
@@ -650,9 +653,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (i === 0 && j < diaSemana) {
                     celdasSemanaHtml += '<div class="grid-empty"></div>';
                 } else if (dia > diasEnMes) {
-                    celdasSemanaHtml += '<div class="grid-empty"></div>';
+                    celdasSemdasSemanaHtml += '<div class="grid-empty"></div>';
                 } else {
-                    if (primerDiaDeLaSemana === 0) primerDiaDeLaSemana = dia; // Captura el primer día válido de la semana
+                    if (primerDiaDeLaSemana === 0) primerDiaDeLaSemana = dia;
 
                     const datosDia = datosTurnos[mesStr].dias?.find(d => d.dia === dia) || {};
                     const turnoDia = datosDia.turno_dia || {};
@@ -681,7 +684,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             calendarioHtml += celdasSemanaHtml;
 
-            // CORRECCIÓN: Lee el 'llamado' del primer día de la semana como representante de la semana completa
+            // Lee el 'llamado' del primer día de la semana como representante de la semana completa
             const datosPrimerDiaSemana = datosTurnos[mesStr].dias?.find(d => d.dia === primerDiaDeLaSemana);
             const llamado = datosPrimerDiaSemana?.turno_dia?.llamado || '';
 
@@ -710,7 +713,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
 
-                // --- LÓGICA DE VALIDACIÓN MODIFICADA ---
+                // --- LÓGICA DE VALIDACIÓN  ---
                 // Solo se bloquea la acción si se intenta poner un 'operador' en el slot de 'llamado'
                 if (seleccionActual.tipo === 'operador' && tipoSlot === 'llamado') {
                     showMessage('Un Operador de Turno no puede ser asignado como Profesional a Llamado.', 'error');
@@ -754,7 +757,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 diaObj.turno_noche[op] = valor;
             }
         } else if (slot.classList.contains('grid-llamado')) {
-            // CORRECCIÓN: Lógica para actualizar el 'llamado' en todos los días de la semana
+            // Lógica para actualizar el 'llamado' en todos los días de la semana
             const primerDia = parseInt(slot.dataset.primerDia);
             const ultimoDia = parseInt(slot.dataset.ultimoDia);
 
@@ -777,8 +780,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             datosTurnos[mesStr].dias.sort((a, b) => a.dia - b.dia);
         }
     }
-    // --- FIN: Lógica para Gestión de Turnos ---
-
+    
 
     // --- Para Gestión de Usuarios y Logs ---
     const usersTableBody = document.querySelector('#usersTable tbody');
@@ -1287,10 +1289,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-        // --- LÓGICA PARA PESTAÑAS EN EL PANEL DE ADMINISTRACIÓN ---
-    const tabsContainer = document.querySelector('.admin-tabs-nav');
-    if (tabsContainer) {
-        const tabButtons = tabsContainer.querySelectorAll('.admin-tab-btn');
+    // --- LÓGICA PARA PESTAÑAS EN EL PANEL DE ADMINISTRACIÓN ---
+    const adminTabsNav = document.querySelector('.admin-tabs-nav');
+    if (adminTabsNav) {
+        const tabButtons = adminTabsNav.querySelectorAll('.admin-tab-btn');
         const tabContents = document.querySelectorAll('.admin-tab-content');
 
         tabButtons.forEach(button => {
@@ -1311,7 +1313,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- MANEJADOR DE CLICS DEL MENÚ LATERAL (POSICIÓN CORRECTA Y FINAL) ---
+    // --- MANEJADOR DE CLICS DEL MENÚ LATERAL ---
     sidebarLinks.forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
@@ -1322,15 +1324,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             this.classList.add('active');
             const sectionId = this.dataset.section;
             
-            // Verificación de seguridad para evitar errores futuros
             const targetSection = document.getElementById(sectionId);
             if (targetSection) {
                 targetSection.classList.add('active');
             } else {
                 console.error(`Error: No se encontró la sección con el id: ${sectionId}`);
-                return; // Detiene la ejecución si una sección no existe
+                return; 
             }
             
+            // Lógica adicional para la sección 'informacion-general'
+            if (sectionId === 'informacion-general') {
+                // Activar la primera pestaña por defecto si no hay ninguna activa
+                const firstTabButton = document.querySelector('#informacion-general .admin-tab-btn');
+                const firstTabContent = document.querySelector('#informacion-general .admin-tab-content');
+                if (firstTabButton && firstTabContent && !firstTabButton.classList.contains('active')) {
+                    firstTabButton.classList.add('active');
+                    firstTabContent.classList.add('active');
+                }
+            }
+
+
             // Llama a la función de inicialización correcta según la sección
             if (sectionId === 'gestion-usuarios') {
                 loadUsers();
@@ -1341,9 +1354,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (sectionId === 'mis-turnos') {
                 inicializarMisTurnos();
             } else if (sectionId === 'mi-perfil') {
-                // Esta sección no necesita una función especial al cargar
+                
             }
         });
     });
+
+    
+    // Esto simula un clic en el enlace del sidebar para "Información del Reporte" al inicio.
+    const initialSidebarLink = document.querySelector('.admin-sidebar nav ul li a.active');
+    if (initialSidebarLink && initialSidebarLink.dataset.section === 'informacion-general') {
+        const firstTabButton = document.querySelector('#informacion-general .admin-tab-btn');
+        const firstTabContent = document.querySelector('#informacion-general .admin-tab-content');
+        if (firstTabButton && firstTabContent) {
+            firstTabButton.classList.add('active');
+            firstTabContent.classList.add('active');
+        }
+    }
 
 });

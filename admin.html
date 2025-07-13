@@ -122,7 +122,7 @@
         .form-group button:hover {
             opacity: 0.9;
         }
-        .alert-item, .emergency-item, .avisos-item, .carretera-item, .puerto-item, .paso-item {
+        .alert-item, .emergency-item, .avisos-item, .carretera-item, .puerto-item, .paso-item, .hidro-item, .dynamic-slide-item { /* Añadir .hidro-item y .dynamic-slide-item */
             border: 1px dashed #ced4da;
             padding: 15px;
             margin-bottom: 15px;
@@ -133,6 +133,23 @@
             gap: 10px 20px;
             align-items: center;
         }
+        /* Ajuste para los ítems que necesitan más columnas o un diseño diferente, si aplica */
+        .hidro-item {
+            grid-template-columns: auto 1fr auto 1fr auto 1fr; /* Más columnas para datos hidrométricos si es necesario */
+        }
+        .hidro-item label {
+            grid-column: span 1; /* Etiqueta en una columna */
+        }
+        .hidro-item input {
+            grid-column: span 1; /* Input en otra columna */
+        }
+        .hidro-item button {
+            grid-column: span 6; /* Botón en su propia fila */
+            justify-self: end;
+            margin-top: 10px;
+        }
+
+
         .action-buttons {
             text-align: right;
             margin-top: 20px;
@@ -376,6 +393,56 @@
         }
         /* --- FIN: Estilos para Gestión de Turnos --- */
 
+        /* --- NUEVOS ESTILOS PARA PESTAÑAS --- */
+        .admin-tabs-nav {
+            display: flex;
+            flex-wrap: wrap; /* Permite que las pestañas se envuelvan si hay muchas */
+            border-bottom: 2px solid #dee2e6;
+            margin-bottom: 20px;
+            padding-left: 0; /* Asegura que no haya padding extra */
+        }
+        .admin-tab-btn {
+            padding: 12px 20px;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            font-weight: bold;
+            color: #495057;
+        }
+        .admin-tab-btn:hover {
+            background-color: #e2e6ea;
+            color: #0056b3;
+        }
+        .admin-tab-btn.active {
+            background-color: white;
+            border-color: #007bff #007bff #fff; /* Borde inferior blanco para que parezca conectado al contenido */
+            color: #007bff;
+        }
+        .admin-tab-content {
+            display: none;
+            padding: 20px 0; /* Ajusta el padding si es necesario */
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            background-color: white;
+        }
+        .admin-tab-content.active {
+            display: block;
+        }
+        /* Ocultar los h3 dentro de las secciones de tabs si no quieres doble título */
+        .admin-tab-content h3 {
+            display: none; 
+        }
+        /* Asegurarse que los form-group tengan el borde correcto dentro de las tabs */
+        .admin-tab-content .form-group {
+            margin-left: 20px; /* Ajusta este valor para el padding interno de las tabs */
+            margin-right: 20px; /* Ajusta este valor para el padding interno de las tabs */
+        }
+
     </style>
 </head>
 <body>
@@ -396,14 +463,6 @@
                 <ul>
                     <li><a href="#" data-section="informacion-general" class="active">Información del Reporte</a></li>
                     <li><a href="#" data-section="contenido-dashboard">Panel Novedades</a></li>
-                    <li><a href="#" data-section="alertas-vigentes">Alertas Vigentes</a></li>
-                    <li><a href="#" data-section="avisos-meteorologicos">Avisos Meteorológicos</a></li>
-                    <li><a href="#" data-section="radiacion-uv">Índice Radiación UV</a></li>
-                    <li><a href="#" data-section="emergencias">Emergencias 24 Horas</a></li>
-                    <li><a href="#" data-section="carreteras">Estado de Carreteras</a></li>
-                    <li><a href="#" data-section="pasos-fronterizos">Pasos Fronterizos</a></li>
-                    <!--<li><a href="#" data-section="puertos">Estado de Puertos</a></li>-->
-                    <li><a href="#" data-section="datos-hidrometricos">Datos Hidrométricos</a></li>
                     <li><a href="#" data-section="dynamic-slides">Agregar imagenes</a></li>
                     <li><a href="#" data-section="accion-manual">Descargar Informe Manual</a></li>
                     <li><a href="#" data-section="mis-turnos">Mis Turnos</a></li>
@@ -425,70 +484,143 @@
             <div class="message" id="adminMessage"></div>
 
             <section id="informacion-general" class="admin-section active">
-                <h3>Confg. Fecha y carrusel</h3>
-                <p>En el campo inferior se puede modificar la fecha a mostrar en pagina para exterior, la hora se actualiza automaticamente al presionar guardar.</p>
-                <label for="adminFechaInforme">Fecha proyectada en pantalla exterior:</label>
-                <input type="text" id="adminFechaInforme" placeholder="Ej: martes, 24 de junio de 2025">
-
-                <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
-                    <h4 style="margin-top:0;">Botón de prueba para el Boletín Informativo</h4>
-                    <p>
-                        Presiona este botón para generar y escuchar una vista previa del boletín informativo por voz con los datos cargados actualmente en el panel.
-                    </p>
-                    <button type="button" id="testBoletinBtn" style="background-color: #17a2b8;">
-                        ▶️ Prueba del Boletín por Voz
-                    </button>
+                <h3>Configuración y Datos del Reporte</h3>
+                
+                <div class="admin-tabs-nav">
+                    <button class="admin-tab-btn active" data-tab-target="#tab-config-general">Configuración General</button>
+                    <button class="admin-tab-btn" data-tab-target="#tab-alertas">Alertas</button>
+                    <button class="admin-tab-btn" data-tab-target="#tab-avisos-meteorologicos">Avisos Meteorológicos</button>
+                    <button class="admin-tab-btn" data-tab-target="#tab-radiacion-uv">Radiación UV</button>
+                    <button class="admin-tab-btn" data-tab-target="#tab-emergencias">Emergencias 24 Horas</button>
+                    <button class="admin-tab-btn" data-tab-target="#tab-carreteras">Carreteras</button>
+                    <button class="admin-tab-btn" data-tab-target="#tab-pasos-fronterizos">Pasos Fronterizos</button>
+                    <button class="admin-tab-btn" data-tab-target="#tab-datos-hidrometricos">Hidrométricos</button>
                 </div>
 
-                <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
-                    <h4 style="margin-top:0;">Configuración de carrusel</h4>
-                    <label for="adminEnableDashboardCarousel" style="display:flex; align-items:center; gap:10px;">
-                        <input type="checkbox" id="adminEnableDashboardCarousel" style="width: auto; height: 18px; flex-shrink:0;">
-                        Habilitar para todos los usuarios el carrusel central en pantalla Dashboard (reemplaza Alertas y Avisos por slides con imagenes si estas están guardadas).
-                    </label>
-                    
-                    <label for="adminEnableNovedadesCarousel" style="display:flex; align-items:center; gap:10px; margin-top: 10px;">
-                        <input type="checkbox" id="adminEnableNovedadesCarousel" style="width: auto; height: 18px; flex-shrink:0;">
-                        Habilitar para todos los usuarios el carrusel en panel derecho (alterna Novedades/Waze con Emergencias 24h).
-                    </label>
-                    <br>
-                    <label for="adminIntervaloSlide" style="font-weight: bold; color: #555;">Velocidad del Carrusel en pantalla exterior:</label>
-                    <select id="adminIntervaloSlide" style="width: 100%; max-width:250px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                        <option value="5000">5 segundos</option>
-                        <option value="10000" selected>10 segundos</option>
-                        <option value="15000">15 segundos</option>
-                        <option value="20000">20 segundos</option>
-                        <option value="25000">25 segundos</option>
-                        <option value="30000">30 segundos</option>
-                    </select>
-                </div>
+                <div id="admin-tabs-content-wrapper">
+                    <div id="tab-config-general" class="admin-tab-content active">
+                        <div class="form-group">
+                            <p>En el campo inferior se puede modificar la fecha a mostrar en pagina para exterior, la hora se actualiza automaticamente al presionar guardar.</p>
+                            <label for="adminFechaInforme">Fecha proyectada en pantalla exterior:</label>
+                            <input type="text" id="adminFechaInforme" placeholder="Ej: martes, 24 de junio de 2025">
 
-                <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
-                    <h4 style="margin-top:0;">Gestión de Notificaciones por Voz</h4>                  
+                            <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
+                                <h4 style="margin-top:0;">Botón de prueba para el Boletín Informativo</h4>
+                                <p>
+                                    Presiona este botón para generar y escuchar una vista previa del boletín informativo por voz con los datos cargados actualmente en el panel.
+                                </p>
+                                <button type="button" id="testBoletinBtn" style="background-color: #17a2b8;">
+                                    ▶️ Prueba del Boletín por Voz
+                                </button>
+                            </div>
 
-                    <hr style="margin: 20px 0;">
+                            <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
+                                <h4 style="margin-top:0;">Configuración de carrusel</h4>
+                                <label for="adminEnableDashboardCarousel" style="display:flex; align-items:center; gap:10px;">
+                                    <input type="checkbox" id="adminEnableDashboardCarousel" style="width: auto; height: 18px; flex-shrink:0;">
+                                    Habilitar para todos los usuarios el carrusel central en pantalla Dashboard (reemplaza Alertas y Avisos por slides con imagenes si estas están guardadas).
+                                </label>
+                                
+                                <label for="adminEnableNovedadesCarousel" style="display:flex; align-items:center; gap:10px; margin-top: 10px;">
+                                    <input type="checkbox" id="adminEnableNovedadesCarousel" style="width: auto; height: 18px; flex-shrink:0;">
+                                    Habilitar para todos los usuarios el carrusel en panel derecho (alterna Novedades/Waze con Emergencias 24h).
+                                </label>
+                                <br>
+                                <label for="adminIntervaloSlide" style="font-weight: bold; color: #555;">Velocidad del Carrusel en pantalla exterior:</label>
+                                <select id="adminIntervaloSlide" style="width: 100%; max-width:250px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                                    <option value="5000">5 segundos</option>
+                                    <option value="10000" selected>10 segundos</option>
+                                    <option value="15000">15 segundos</option>
+                                    <option value="20000">20 segundos</option>
+                                    <option value="25000">25 segundos</option>
+                                    <option value="30000">30 segundos</option>
+                                </select>
+                            </div>
 
-                    <p>Selecciona de la lista y usa el botón para probar los diferentes sonidos y mensajes de alerta.</p>
-                    <select id="testNotificationType" style="margin-bottom: 10px; padding: 8px;">
-                        <option value="regular">Prueba: Estado Regular</option>
-                        <option value="alerta">Prueba: Estado Alerta</option>
-                        <option value="emergencia">Prueba: Estado Emergencia</option>
-                        <option value="precipitacion">Prueba: Precipitaciones</option>
-                    </select>
-                    <button type="button" id="testNotificationBtn" style="background-color: #ffc107; color: black;">
-                        ▶️ Probar Notificación
-                    </button>
-                    <button type="button" id="testTsunamiBtn" style="background-color: #17a2b8; color: white; margin-left: 10px;">
-                        🌊 Probar Último Boletín Tsunami
-                    </button>
-                    <button type="button" id="testGeofonBtn" style="background-color: #6f42c1; color: white; margin-left: 10px;">
-                        🛰️ Probar Último Boletín GEOFON
-                    </button>
-                    <button type="button" id="testPortBtn" style="background-color: #0069d9; color: white; margin-left: 10px;">
-                        ⚓ Probar Notificación de Puerto
-                    </button>
-                </div>
-            </section>
+                            <div class="form-group" style="margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
+                                <h4 style="margin-top:0;">Gestión de Notificaciones por Voz</h4>                  
+
+                                <hr style="margin: 20px 0;">
+
+                                <p>Selecciona de la lista y usa el botón para probar los diferentes sonidos y mensajes de alerta.</p>
+                                <select id="testNotificationType" style="margin-bottom: 10px; padding: 8px;">
+                                    <option value="regular">Prueba: Estado Regular</option>
+                                    <option value="alerta">Prueba: Estado Alerta</option>
+                                    <option value="emergencia">Prueba: Estado Emergencia</option>
+                                    <option value="precipitacion">Prueba: Precipitaciones</option>
+                                </select>
+                                <button type="button" id="testNotificationBtn" style="background-color: #ffc107; color: black;">
+                                    ▶️ Probar Notificación
+                                </button>
+                                <button type="button" id="testTsunamiBtn" style="background-color: #17a2b8; color: white; margin-left: 10px;">
+                                    🌊 Probar Último Boletín Tsunami
+                                </button>
+                                <button type="button" id="testGeofonBtn" style="background-color: #6f42c1; color: white; margin-left: 10px;">
+                                    🛰️ Probar Último Boletín GEOFON
+                                </button>
+                                <button type="button" id="testPortBtn" style="background-color: #0069d9; color: white; margin-left: 10px;">
+                                    ⚓ Probar Notificación de Puerto
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="tab-alertas" class="admin-tab-content">
+                        <h3>Resumen de Alertas Vigentes</h3>
+                        <div id="alertasContainer">
+                            </div>
+                        <button type="button" id="addAlertaBtn">Añadir Alerta</button>
+                    </div>
+
+                    <div id="tab-avisos-meteorologicos" class="admin-tab-content">
+                        <h3>Avisos / Alertas / Alarmas Meteorológicas</h3>
+                        <div id="avisosMetContainer">
+                            </div>
+                        <button type="button" id="addAvisoMetBtn">Añadir Aviso</button>
+                    </div>
+
+                    <div id="tab-radiacion-uv" class="admin-tab-content">
+                        <h3>Índice de Radiación Ultravioleta</h3>
+                        <div class="uv-info-admin">
+                            <label for="adminUVObservadoLabel">Etiqueta Observado:</label>
+                            <input type="text" id="adminUVObservadoLabel" value="Observado ayer:">
+                            <label for="adminUVObservadoValue">Valor Observado:</label>
+                            <input type="text" id="adminUVObservadoValue" value="N/A">
+                            <label for="adminUVPronosticadoLabel">Etiqueta Pronosticado:</label>
+                            <input type="text" id="adminUVPronosticadoLabel" value="Pronosticado para hoy:">
+                            <label for="adminUVPronosticadoValue">Valor Pronosticado:</label>
+                            <input type="text" id="adminUVPronosticadoValue" value="N/A">
+                        </div>
+                    </div>
+
+                    <div id="tab-emergencias" class="admin-tab-content">
+                        <h3>Emergencias de las Últimas 24 Horas</h3>
+                        <div id="emergenciasContainer">
+                            </div>
+                        <button type="button" id="addEmergenciaBtn">Añadir Emergencia</button>
+                    </div>
+
+                    <div id="tab-carreteras" class="admin-tab-content">
+                        <h3>Estado de Carreteras</h3>
+                        <div id="carreterasContainer">
+                            </div>
+                        <button type="button" id="addCarreteraBtn">Añadir Carretera</button>
+                    </div>
+
+                    <div id="tab-pasos-fronterizos" class="admin-tab-content">
+                        <h3>Estado de Pasos Fronterizos</h3>
+                        <div id="pasosFronterizosContainer">
+                            </div>
+                        <button type="button" id="addPasoFronterizoBtn">Añadir Paso</button>
+                    </div>
+
+                    <div id="tab-datos-hidrometricos" class="admin-tab-content">
+                        <h3>Datos Hidrométricos (Estáticos del Informe)</h3>
+                        <div id="hidroContainer">
+                            </div>
+                        <button type="button" id="addHidroBtn">Añadir Estación Hidrométrica</button>
+                    </div>
+                </div> </section>
 
             <section id="contenido-dashboard" class="admin-section">
                 <h3>Panel de Novedades del Dashboard</h3>
@@ -509,69 +641,6 @@
                         <p>Cargando novedades...</p>
                     </div>
                 </div>
-            </section>
-
-            <section id="alertas-vigentes" class="admin-section">
-                <h3>Resumen de Alertas Vigentes</h3>
-                <div id="alertasContainer">
-                    </div>
-                <button type="button" id="addAlertaBtn">Añadir Alerta</button>
-            </section>
-
-            <section id="avisos-meteorologicos" class="admin-section">
-                <h3>Avisos / Alertas / Alarmas Meteorológicas</h3>
-                <div id="avisosMetContainer">
-                    </div>
-                <button type="button" id="addAvisoMetBtn">Añadir Aviso</button>
-            </section>
-
-            <section id="radiacion-uv" class="admin-section">
-                <h3>Índice de Radiación Ultravioleta</h3>
-                <div class="uv-info-admin">
-                    <label for="adminUVObservadoLabel">Etiqueta Observado:</label>
-                    <input type="text" id="adminUVObservadoLabel" value="Observado ayer:">
-                    <label for="adminUVObservadoValue">Valor Observado:</label>
-                    <input type="text" id="adminUVObservadoValue" value="N/A">
-                    <label for="adminUVPronosticadoLabel">Etiqueta Pronosticado:</label>
-                    <input type="text" id="adminUVPronosticadoLabel" value="Pronosticado para hoy:">
-                    <label for="adminUVPronosticadoValue">Valor Pronosticado:</label>
-                    <input type="text" id="adminUVPronosticadoValue" value="N/A">
-                </div>
-            </section>
-
-            <section id="emergencias" class="admin-section">
-                <h3>Emergencias de las Últimas 24 Horas</h3>
-                <div id="emergenciasContainer">
-                    </div>
-                <button type="button" id="addEmergenciaBtn">Añadir Emergencia</button>
-            </section>
-
-            <section id="carreteras" class="admin-section">
-                <h3>Estado de Carreteras</h3>
-                <div id="carreterasContainer">
-                    </div>
-                <button type="button" id="addCarreteraBtn">Añadir Carretera</button>
-            </section>
-
-            <section id="pasos-fronterizos" class="admin-section">
-                <h3>Estado de Pasos Fronterizos</h3>
-                <div id="pasosFronterizosContainer">
-                    </div>
-                <button type="button" id="addPasoFronterizoBtn">Añadir Paso</button>
-            </section>
-
-            <!--<section id="puertos" class="admin-section">
-                <h3>Estado de Puertos</h3>
-                <div id="puertosContainer">
-                    </div>
-                <button type="button" id="addPuertoBtn">Añadir Puerto</button>
-            </section>-->
-            
-            <section id="datos-hidrometricos" class="admin-section">
-                <h3>Datos Hidrométricos (Estáticos del Informe)</h3>
-                <div id="hidroContainer">
-                    </div>
-                <button type="button" id="addHidroBtn">Añadir Estación Hidrométrica</button>
             </section>
 
             <section id="dynamic-slides" class="admin-section">
