@@ -16,7 +16,7 @@ jobs:
       - name: Checkout del código
         uses: actions/checkout@v3
 
-      # Configurar ssh-agent para usar la clave privada
+      # Configurar ssh-agent para usar la clave privada (en el runner de GitHub Actions)
       - name: Configurar SSH Agent para Git
         uses: webfactory/ssh-agent@v0.7.0
         with:
@@ -32,21 +32,16 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             # Este es el script que se ejecutará en el servidor remoto.
-            # Se usará un comando bash -c para crear y ejecutar el script temporal,
-            # pasando las variables como argumentos.
 
             set -e # Salir inmediatamente si un comando falla
 
-            # Definimos las variables para que bash las expanda aquí, antes de pasarlas al script.
-            _DEPLOY_BRANCH="${{ github.ref_name }}"
-            _SUDO_PASSWORD="${{ secrets.SUDO_PASSWORD }}"
+            # Definimos las variables que serán pasadas como argumentos al script temporal
+            _DEPLOY_BRANCH_ARG="${{ github.ref_name }}"
+            _SUDO_PASSWORD_ARG="${{ secrets.SUDO_PASSWORD }}"
 
-            # Creamos el script temporal directamente con 'echo' y lo ejecutamos.
-            # Se usa una sintaxis de heredoc con 'EOT' para evitar conflictos con 'EOF'.
-            # Las variables internas DEBEN ir escapadas (\$) para que se expandan en el script final.
-            # ¡ATENCIÓN a las comillas alrededor del comando bash -c y las escapadas!
-
-            echo "$_SUDO_PASSWORD" | sudo -S bash -c 'cat > /tmp/deploy_temp.sh << "EOT"
+            # Creamos el script temporal directamente con 'cat' y heredoc.
+            # Asegúrate de que no haya espacios antes de EOT de cierre.
+            echo "$_SUDO_PASSWORD_ARG" | sudo -S bash -c 'cat > /tmp/deploy_temp.sh << "EOT"
             #!/bin/bash
             set -e
 
@@ -89,7 +84,12 @@ jobs:
             cd "$TARGET_DIR" # Usar comillas para el path, por si acaso
 
             echo "Actualizando rama '$TARGET_BRANCH' desde GitHub..."
-            
+
+            # *** INICIO DE LA MODIFICACIÓN CLAVE PARA AUTENTICACIÓN GIT EN SERVIDOR ***
+            # Iniciar ssh-agent y cargar la clave privada
+            eval "$(ssh-agent -s)" # Inicia un agente SSH en esta sesión
+            ssh-add ~/.ssh/id_ed25519 # Añade la clave privada por defecto al agente
+
             # Gestiona el known_hosts para evitar "Host key verification failed"
             mkdir -p ~/.ssh # Asegura que el directorio existe
             ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null || true
@@ -97,19 +97,21 @@ jobs:
 
             git fetch origin
             git reset --hard origin/$TARGET_BRANCH
+            # *** FIN DE LA MODIFICACIÓN CLAVE ***
 
             echo ">>> Reiniciando servicios específicos..."
             echo "$SUDO_PASSWORD" | sudo -S systemctl restart $TARGET_SERVICE
             echo "$SUDO_PASSWORD" | sudo -S systemctl restart nginx # Nginx se reinicia siempre
 
             echo "--- Despliegue para '$DEPLOY_BRANCH' finalizado. ---"
-            EOT' # Cierre del heredoc
+            EOT" # Cierre del heredoc
+            # FIN DE LA CREACIÓN DEL SCRIPT TEMPORAL
 
             # Dar permisos de ejecución al script temporal
-            echo "$_SUDO_PASSWORD" | sudo -S chmod +x /tmp/deploy_temp.sh
+            echo "$_SUDO_PASSWORD_ARG" | sudo -S chmod +x /tmp/deploy_temp.sh
 
             # Ejecutar el script temporal y pasar las variables como argumentos
-            echo "$_SUDO_PASSWORD" | sudo -S /tmp/deploy_temp.sh "$_DEPLOY_BRANCH" "$_SUDO_PASSWORD"
+            echo "$_SUDO_PASSWORD_ARG" | sudo -S /tmp/deploy_temp.sh "$_DEPLOY_BRANCH_ARG" "$_SUDO_PASSWORD_ARG"
 
             # Eliminar el script temporal después de la ejecución
             sudo rm /tmp/deploy_temp.sh
