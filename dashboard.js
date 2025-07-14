@@ -805,12 +805,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (paginasNovedades.length > 0) {                
                 paginasNovedades.forEach((page, index, pages) => {
                     const slideId = `novedades-slide-${index}`;
-                    slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div id="informe-correlativo"><span>N° de último informe ${data.numero_informe_manual || '---'}</span></div></div><div class="list-container"><ul class="dashboard-list"></ul></div></div></div>`;
+                    slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div id="informe-correlativo"><span>N° de último informe ${novedadesData.numero_informe_manual || '---'}</span></div></div><div class="list-container"><ul class="dashboard-list"></ul></div></div></div>`;
                     slidesToRotate.push({ id: slideId, type: 'novedad', content: page });
                 });
             } else {                
                 const slideId = 'novedades-slide-empty';
-                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades</h3><div id="informe-correlativo"><span>N° de último informe ${data.numero_informe_manual || '---'}</span></div></div><div class="list-container"><p class="no-items-placeholder">No hay novedades registradas.</p></div></div></div>`;
+                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades</h3><div id="informe-correlativo"><span>N° de último informe ${novedadesData.numero_informe_manual || '---'}</span></div></div><div class="list-container"><p class="no-items-placeholder">No hay novedades registradas.</p></div></div></div>`;
                 slidesToRotate.push({ id: slideId, type: 'novedad_empty' });
             }
         }
@@ -1535,13 +1535,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const tiempoDesdeUltimaNotificacion = ahora - memoriaEstacion.ultimaNotificacion;
 
             // Mapeo de estados a su severidad y tiempo de recordatorio
-            const severidad = { 'emergencia': 1, 'alarma': 2, 'alerta': 2, 'preemergencia': 2, 'regular': 3 };
+            const severidad = { 'emergencia': 1, 'alarma': 2, 'alerta': 2, 'preemergencia': 2 };
             const tiempoRecordatorio = {
                 'emergencia': 1 * 3600 * 1000, // 1 hora
                 'alarma': 1 * 3600 * 1000,     // 1 hora
                 'alerta': 2 * 3600 * 1000,     // 2 horas
-                'preemergencia': 2 * 3600 * 1000, // 2 horas
-                'regular': 3 * 3600 * 1000      // 3 horas
+                'preemergencia': 2 * 3600 * 1000 // 2 horas            
             };
 
             // Detección de un CAMBIO de estado
@@ -1656,39 +1655,53 @@ document.addEventListener('DOMContentLoaded', () => {
             return; // No hay datos para procesar
         }
 
-        let estacionesConPrecipitacionNueva = [];
+        let estacionesDebiles = [];
+        let estacionesFuertes = [];
+
+        // Función auxiliar para construir el listado de estaciones en el mensaje de voz
+        const construirMensajeLista = (listaEstaciones) => {
+            if (listaEstaciones.length === 1) {
+                return `la estación de ${listaEstaciones[0]}.`;
+            } else {
+                const ultimo = listaEstaciones.pop();
+                return `las estaciones de ${listaEstaciones.join(', ')} y ${ultimo}.`;
+            }
+        };
 
         estaciones.forEach(estacion => {
             const nombreEstacion = estacion.nombre;
             const precipActual = parseFloat(estacion.precipitacion_24h) || 0;
-
-            // Obtiene el valor anterior de la memoria. Si no existe, se asume 0.
             const precipAnterior = memoriaNotificaciones.precipitacion[nombreEstacion] || 0;
 
-            // --- CONDICIÓN DE NOTIFICACIÓN ---
-            // Se notifica solo si antes no llovía (valor era 0) y ahora sí (valor > 0).
-            if (precipAnterior === 0 && precipActual > 0) {
-                estacionesConPrecipitacionNueva.push(nombreEstacion);
+            // --- Lógica de Detección de Umbrales ---
+
+            // 1. Detecta si la lluvia pasó de 0 a DÉBIL (entre 0.1 y 1.9 mm)
+            if (precipAnterior < 0.1 && precipActual >= 0.1 && precipActual < 2.0) {
+                estacionesDebiles.push(nombreEstacion);
             }
 
-            // Actualiza la memoria con el valor actual para el próximo ciclo.
+            // 2. Detecta si la lluvia pasó a ser MODERADA/FUERTE (desde < 2.0 a >= 2.0 mm)
+            if (precipAnterior < 2.0 && precipActual >= 2.0) {
+                estacionesFuertes.push(nombreEstacion);
+            }
+
+            // Actualiza la memoria con el valor actual para el próximo ciclo
             memoriaNotificaciones.precipitacion[nombreEstacion] = precipActual;
         });
 
-        // Si se detectaron una o más estaciones con nueva precipitación, se genera una notificación agrupada.
-        if (estacionesConPrecipitacionNueva.length > 0) {
-            let mensajeVoz = "Atención, se registran precipitaciones en ";
-            if (estacionesConPrecipitacionNueva.length === 1) {
-                mensajeVoz += `la estación de ${estacionesConPrecipitacionNueva[0]}.`;
-            } else {
-                // Concatena los nombres para un mensaje más natural.
-                // Ej: "estaciones de A, B y C."
-                const ultimo = estacionesConPrecipitacionNueva.pop();
-                mensajeVoz += `las estaciones de ${estacionesConPrecipitacionNueva.join(', ')} y ${ultimo}.`;
-            }
+        // --- Lógica de Notificación (dando prioridad a la más fuerte) ---
 
-            // Lanza la notificación con el sonido específico y el mensaje generado.
+        if (estacionesFuertes.length > 0) {
+            const listaTexto = construirMensajeLista(estacionesFuertes);
+            const mensajeVoz = `Atención, se registran precipitaciones en ${listaTexto}`;
+            // Usamos el sonido de alerta principal para lluvias fuertes
             lanzarNotificacion('assets/notificacion_precipitacion.mp3', mensajeVoz);
+
+        } else if (estacionesDebiles.length > 0) {
+            const listaTexto = construirMensajeLista(estacionesDebiles);
+            const mensajeVoz = `Se registran precipitaciones débiles en ${listaTexto}`;
+            // Usamos un sonido más sutil para lluvias débiles
+            lanzarNotificacion('assets/notificacion_alerta.mp3', mensajeVoz);
         }
     }
 

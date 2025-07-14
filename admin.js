@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function renderAdminForms(data, novedades) {
         adminFechaInforme.value = data.fecha_informe || '';
-        adminNumeroInforme.value = data.numero_informe_manual || '';
+        adminNumeroInforme.value = novedades.numero_informe_manual || '';
         renderNovedadesList(novedades.entradas || []);
 
         // Estos ahora son renderizados en sus respectivos tab-contents
@@ -454,8 +454,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const minutes = String(now.getMinutes()).padStart(2, '0');
         updatedInformeData.hora_informe = `${hours}:${minutes} h.`;
         updatedInformeData.tipo_informe = (hours < 12) ? 'AM' : 'PM';
-        updatedInformeData.fecha_informe = adminFechaInforme.value;
-        updatedInformeData.numero_informe_manual = adminNumeroInforme.value;
+        updatedInformeData.fecha_informe = adminFechaInforme.value;        
         updatedInformeData.alertas_vigentes = Array.from(alertasContainer.querySelectorAll('.alert-item')).map(item => ({ nivel_alerta: item.querySelector('.alerta-nivel').value, evento: item.querySelector('.alerta-evento').value, cobertura: item.querySelector('.alerta-cobertura').value, amplitud: item.querySelector('.alerta-amplitud').value }));
         updatedInformeData.avisos_alertas_meteorologicas = Array.from(avisosMetContainer.querySelectorAll('.avisos-item')).map(item => ({ aviso_alerta_alarma: item.querySelector('.avisos-aviso').value, fecha_hora_emision: item.querySelector('.avisos-fecha-hora').value, descripcion: item.querySelector('.avisos-descripcion').value, cobertura: item.querySelector('.avisos-cobertura').value }));
         updatedInformeData.radiacion_uv = { observado_ayer_label: adminUVObservadoLabel.value, observado_ayer_value: adminUVObservadoValue.value, pronosticado_hoy_label: adminUVPronosticadoLabel.value, pronosticado_hoy_value: adminUVPronosticadoValue.value };
@@ -466,7 +465,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         updatedInformeData.datos_hidrometricos = Array.from(hidroContainer.querySelectorAll('.hidro-item')).map(item => ({ nombre_estacion: item.querySelector('.hidro-nombre').value, nivel_m: parseFloat(item.querySelector('.hidro-nivel').value) || null, caudal_m3s: parseFloat(item.querySelector('.hidro-caudal').value) || null }));
         updatedInformeData.dynamic_slides = Array.from(dynamicSlidesContainer.querySelectorAll('.dynamic-slide-item')).map(item => ({ id: item.dataset.id, image_url: item.querySelector('.slide-image-url').value, title: item.querySelector('.slide-title').value, description: item.querySelector('.slide-description').value }));                   
         
-        const updatedNovedadesData = { entradas: novedadesData.entradas };
+        const updatedNovedadesData = {
+            numero_informe_manual: adminNumeroInforme.value, 
+            entradas: novedadesData.entradas 
+        };
                         
         try {
             const [informeResponse, novedadesResponse] = await Promise.all([
