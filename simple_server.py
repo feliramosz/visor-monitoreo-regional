@@ -767,7 +767,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     
                     STATIONS_MAP = {
                         "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
-                        "330006": "J. Botánico, Viña del Mar", "330161": "Lo Zárate, San Antonio",
+                        "320041": "Torquemada", "330161": "Lo Zárate, San Antonio",
                         "320124": "L. Agricola, Quillota", "320051": "Los Libertadores, Los Andes",
                         "330031": "Isla Juan Fernández", "270001": "Isla de Pascua" 
                     }
