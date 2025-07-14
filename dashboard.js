@@ -805,12 +805,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (paginasNovedades.length > 0) {                
                 paginasNovedades.forEach((page, index, pages) => {
                     const slideId = `novedades-slide-${index}`;
-                    slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div id="informe-correlativo"><span>N° de último informe ${data.numero_informe_manual || '---'}</span></div></div><div class="list-container"><ul class="dashboard-list"></ul></div></div></div>`;
+                    slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div id="informe-correlativo"><span>N° de último informe ${novedadesData.numero_informe_manual || '---'}</span></div></div><div class="list-container"><ul class="dashboard-list"></ul></div></div></div>`;
                     slidesToRotate.push({ id: slideId, type: 'novedad', content: page });
                 });
             } else {                
                 const slideId = 'novedades-slide-empty';
-                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades</h3><div id="informe-correlativo"><span>N° de último informe ${data.numero_informe_manual || '---'}</span></div></div><div class="list-container"><p class="no-items-placeholder">No hay novedades registradas.</p></div></div></div>`;
+                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades</h3><div id="informe-correlativo"><span>N° de último informe ${novedadesData.numero_informe_manual || '---'}</span></div></div><div class="list-container"><p class="no-items-placeholder">No hay novedades registradas.</p></div></div></div>`;
                 slidesToRotate.push({ id: slideId, type: 'novedad_empty' });
             }
         }
