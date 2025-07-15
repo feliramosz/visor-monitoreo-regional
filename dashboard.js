@@ -242,11 +242,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const textoFinal = boletinCompleto.filter(Boolean).join(" ... ");
         
-        const sonidoNotificacion = new Audio('assets/notificacion_boletin.mp3');
+        const sonidoNotificacion = new Audio('assets/notificacion_normal.mp3');
         sonidoNotificacion.play();
         sonidoNotificacion.onended = () => {
             if (hora === 12 && minuto === 0) {
-                const audioIntro = new Audio('assets/boletin_intro.mp3');
+                const audioIntro = new Audio('assets/notificacion_normal.mp3');
                 audioIntro.play();
                 audioIntro.onended = () => {
                     hablar(textoFinal);
@@ -297,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const mensajeVoz = `El puerto ${nombrePuerto} ahora se encuentra ${estadoNuevo} y su condicion es ${condicionNueva}.`;
 
                 // Lanza la notificación con un sonido de alerta
-                lanzarNotificacion('assets/notificacion_alerta.mp3', mensajeVoz);
+                lanzarNotificacion('assets/notificacion_normal.mp3', mensajeVoz);
 
                 // Actualiza la memoria con el nuevo estado para no volver a notificar
                 memoriaNotificaciones.puertos[nombrePuerto] = { estado: estadoNuevo, condicion: condicionNueva };
@@ -333,9 +333,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <thead>
                         <tr><th>CLIENTES AFECTADOS POR PROVINCIA</th><th>CANTIDAD</th></tr>
                     </thead>
-                    <tbody>
+                    <tbody id="sec-provinces-tbody">
                         ${data.desglose_provincias.map(item => `
-                            <tr><td>Provincia de ${item.provincia}</td><td>${item.cantidad.toLocaleString('es-CL')}</td></tr>
+                            <tr class="province-row" data-province='${JSON.stringify(item)}' style="${item.total_afectados > 0 ? 'cursor: pointer;' : ''}">
+                                <td>Provincia de ${item.provincia}</td>
+                                <td>${item.total_afectados.toLocaleString('es-CL')}</td>
+                            </tr>
                         `).join('')}
                     </tbody>
                 </table>
@@ -355,6 +358,47 @@ document.addEventListener('DOMContentLoaded', () => {
             // --- FIN DE LA MODIFICACIÓN ---
 
             container.innerHTML = tableHtml;
+
+            const modal = document.getElementById('sec-commune-modal');
+            const modalTitle = document.getElementById('sec-modal-title');
+            const modalBody = document.getElementById('sec-modal-body');
+            const closeModalBtn = document.getElementById('sec-modal-close');
+
+            document.querySelectorAll('.province-row').forEach(row => {
+                row.addEventListener('click', () => {
+                    const provinceData = JSON.parse(row.dataset.province);
+                    if (provinceData.total_afectados === 0) return; // No hacer nada si no hay afectados
+
+                    modalTitle.textContent = `Desglose para la Provincia de ${provinceData.provincia}`;
+                    
+                    if (provinceData.comunas && provinceData.comunas.length > 0) {
+                        modalBody.innerHTML = `
+                            <table class="sec-communes-table">
+                                <thead><tr><th>Comuna</th><th>Clientes Afectados</th><th>% Afectación</th></tr></thead>
+                                <tbody>
+                                    ${provinceData.comunas.map(c => `
+                                        <tr>
+                                            <td>${c.comuna}</td>
+                                            <td>${c.cantidad.toLocaleString('es-CL')}</td>
+                                            <td>${c.porcentaje}%</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                                </table>`;
+                    } else {
+                        modalBody.innerHTML = '<p>No hay desglose por comuna disponible para esta provincia.</p>';
+                    }
+                    modal.style.display = 'flex';
+                });
+            });
+
+            const closeModal = () => { modal.style.display = 'none'; };
+            closeModalBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) { // Cierra solo si se hace clic en el fondo
+                    closeModal();
+                }
+            });
 
             const timestampContainer = document.getElementById('sec-update-time');
             if (timestampContainer) {
@@ -422,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = weatherSlideHTML + hydroAndTurnosSlideHTML;
         
         // Puebla el contenido de cada slide
-        renderWeatherSlide(data);
+        renderWeatherSlide(lastData)
         renderStaticHydroSlide(data);
         fetchAndDisplayTurnos();
 
@@ -456,7 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Obtiene los datos del clima y los renderiza en la slide de clima.
      */
-    async function renderWeatherSlide(data) {
+    async function renderWeatherSlide(fullData) {
         const weatherContainer = document.getElementById('weather-slide');
         if (!weatherContainer) return;
 
@@ -465,17 +509,76 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('Error de red al obtener clima');
             const weatherData = await response.json();
             
-            // *** NUEVO: Guardar datos del clima para notificaciones ***
+            // *** Guardar datos del clima para notificaciones ***
             if (lastData) {
                 lastData.weather_data = weatherData;
             }
+            
+            const gifMap = {
+                'despejado_costa': { files: ['despejado_2.gif'], counter: 0 },
+                'despejado_interior': { files: ['despejado.gif'], counter: 0 },
+                'nubosidad parcial': { files: ['parcial.gif', 'nubosidad_parcial_2.gif', 'nubosidad_parcial_3.gif'], counter: 0 },
+                'escasa nubosidad': { files: ['escasa_nubosidad.gif'], counter: 0 },
+                'nublado': { files: ['nublado.gif'], counter: 0 },
+                'precipitaciones débiles': { files: ['precipitaciones_debiles.gif'], counter: 0 },
+                'lluvia': { files: ['lluvia.gif', 'lluvia_2.gif'], counter: 0 },
+                'nieve': { files: ['nieve.gif'], counter: 0 }
+            };
+
+            const inlandStationCodes = ["320049", "320124", "320051"]; // Petorca, Quillota, Los Libertadores
+
+            Object.keys(gifMap).forEach(key => gifMap[key].counter = 0);
+
+            const getWeatherBackground = (station, hour) => {
+                const inlandStationCodes = ["320049", "320124", "320051"]; // Petorca, Quillota, Los Libertadores
+                const condition = station.tiempo_presente || '';
+                const isNight = hour < 7 || hour > 19;
+                const c = condition.toLowerCase();
+                let categoryKey = null;
+
+                // 1. Determinar la categoría del tiempo
+                if (c.includes('despejado')) {
+                    // Lógica geográfica: elige un set de GIFs distinto si es una estación interior
+                    categoryKey = inlandStationCodes.includes(station.codigo) ? 'despejado_interior' : 'despejado_costa';
+                }
+                else if (c.includes('nubosidad parcial')) categoryKey = 'nubosidad parcial';
+                else if (c.includes('escasa nubosidad')) categoryKey = 'escasa nubosidad';
+                else if (c.includes('nublado') || c.includes('cubierto')) categoryKey = 'nublado';
+                else if (c.includes('precipitaciones débiles')) categoryKey = 'precipitaciones débiles';
+                else if (c.includes('lluvia') || c.includes('precipitacion')) categoryKey = 'lluvia';
+                else if (c.includes('nieve')) categoryKey = 'nieve';
+                
+                // 2. Si se encontró una categoría, rotar el GIF
+                if (categoryKey) {
+                    const gifData = gifMap[categoryKey];
+                    const fileIndex = gifData.counter % gifData.files.length;
+                    let finalGif = gifData.files[fileIndex];
+                    gifData.counter++; // Incrementar para la próxima vez
+
+                    // 3. Comprobar si hay una versión nocturna
+                    if (isNight) {
+                        const nightVersion = finalGif.replace('.gif', '_noche.gif');
+                        const nightFiles = ['despejado_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'lluvia_noche_2.gif'];
+                        if (nightFiles.includes(nightVersion)) {
+                            finalGif = nightVersion;
+                        }
+                    }
+                    return finalGif;
+                }
+
+                return ''; // No devuelve fondo si no hay condición
+            };
+
+            const currentHour = new Date().getHours();
 
             weatherContainer.innerHTML = weatherData.map(station => {
+                const backgroundFile = getWeatherBackground(station, currentHour);
+                const backgroundStyle = backgroundFile ? `background-image: url('assets/${backgroundFile}');` : '';                
                 let passStatusText = '';
                 let passStatusWord = '';
                 let statusClass = 'status-no-informado';
-                if (station.nombre === 'Los Libertadores, Los Andes') {
-                    const status = (data.estado_pasos_fronterizos.find(p => p.nombre_paso === 'Los Libertadores') || {}).condicion || 'No informado';
+                if (station.nombre === 'Los Libertadores') {
+                    const status = (fullData.estado_pasos_fronterizos.find(p => p.nombre_paso === 'Los Libertadores') || {}).condicion || 'No informado';
                     passStatusText = 'Paso: ';
                     passStatusWord = status;
                     if (status.toLowerCase().includes('habilitado')) statusClass = 'status-habilitado';
@@ -483,13 +586,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 return `
-                    <div class="weather-station-box">
-                        <h4>${station.nombre}</h4>
-                        <p><strong>Temp:</strong> ${station.temperatura}°C</p>
-                        <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p> <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
-                        <div class="weather-box-footer">
-                            <span class="pass-status">${passStatusText}<span class="${statusClass}">${passStatusWord}</span></span>
-                            <span class="station-update-time">Act: ${station.hora_actualizacion}h</span>
+                    <div class="weather-station-box" style="${backgroundStyle}" data-station-code="${station.codigo}">
+                        <div class="weather-overlay">
+                            <h4>${station.nombre}</h4>                            
+                            <p><strong>Temp:</strong> ${station.temperatura}°C</p>
+                            <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
+                            <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
+                            <div class="weather-box-footer">
+                                <span class="pass-status">${passStatusText}<span class="${statusClass}">${passStatusWord}</span></span>
+                                <span class="station-update-time">Act: ${station.hora_actualizacion}h</span>
+                            </div>
                         </div>
                     </div>`;
             }).join('');
@@ -1571,7 +1677,14 @@ document.addEventListener('DOMContentLoaded', () => {
             cambios.sort((a, b) => a.severidad - b.severidad);
 
             const eventoMasGrave = cambios[0];
-            let sonido = `assets/notificacion_${eventoMasGrave.estado}.mp3`;
+            let sonido;
+            if (eventoMasGrave.estado === 'emergencia') {
+                sonido = 'assets/alerta_maxima.mp3';
+            } else if (eventoMasGrave.estado === 'alerta' || eventoMasGrave.estado === 'preemergencia') {
+                sonido = 'assets/calidad_del_aire.mp3';
+            } else {
+                sonido = 'assets/notificacion_normal.mp3'; // Sonido por defecto si es necesario
+            }
 
             let mensajeVoz = "";
             if (eventoMasGrave.tipo === 'calidad_aire') {
@@ -1580,7 +1693,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     mensajeVoz += " Se debe activar protocolo de contaminación.";
                 }
             } else { // Recordatorio
-                sonido = 'assets/notificacion_regular.mp3'; // Un sonido sutil para recordatorios
+                sonido = 'assets/calidad_del_aire.mp3'; // Un sonido sutil para recordatorios
                 mensajeVoz = `Recordatorio: la estación ${eventoMasGrave.nombre} se mantiene en estado de ${eventoMasGrave.estado}.`;
             }
 
@@ -1609,12 +1722,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Solo notificar si hay un cambio real
         if (estadoNuevo && estadoNuevo !== estadoAnterior) {
             let mensajeVoz = '';
-            let sonido = 'assets/notificacion_regular.mp3';
+            let sonido = 'assets/notificacion_normal.mp3';
 
             // Notificación de ALERTA solo si se CIERRA o entra en un estado anómalo
             if (estadoNuevo.toLowerCase().includes('cerrado') || estadoNuevo.toLowerCase().includes('suspendido')) {
                 mensajeVoz = `¡Atención! El estado del Complejo Fronterizo Los Libertadores ha cambiado a: ${estadoNuevo}.`;
-                sonido = 'assets/notificacion_alerta.mp3';
+                sonido = 'assets/notificacion_normal.mp3';
             }
             // Notificación INFORMATIVA si vuelve a estar Habilitado
             else if (estadoNuevo.toLowerCase().includes('habilitado')) {
@@ -1636,7 +1749,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (tiempoDesdeUltimaNotificacion > dosHoras) {
                 const mensajeVoz = `El Complejo Fronterizo Los Libertadores se encuentra ${estadoNuevo}.`;
-                lanzarNotificacion('assets/notificacion_regular.mp3', mensajeVoz);
+                lanzarNotificacion('assets/notificacion_normnal.mp3', mensajeVoz);
 
                 // Aquí está la corrección clave: actualizamos el objeto completo
                 memoriaNotificaciones.pasoFronterizo['Los Libertadores'] = { estado: estadoNuevo, ultimaNotificacion: ahora };
@@ -1695,13 +1808,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const listaTexto = construirMensajeLista(estacionesFuertes);
             const mensajeVoz = `Atención, se registran precipitaciones en ${listaTexto}`;
             // Usamos el sonido de alerta principal para lluvias fuertes
-            lanzarNotificacion('assets/notificacion_precipitacion.mp3', mensajeVoz);
+            lanzarNotificacion('assets/precipitaciones.mp3', mensajeVoz);
 
         } else if (estacionesDebiles.length > 0) {
             const listaTexto = construirMensajeLista(estacionesDebiles);
             const mensajeVoz = `Se registran precipitaciones débiles en ${listaTexto}`;
             // Usamos un sonido más sutil para lluvias débiles
-            lanzarNotificacion('assets/notificacion_alerta.mp3', mensajeVoz);
+            lanzarNotificacion('assets/precipitaciones.mp3', mensajeVoz);
         }
     }
 

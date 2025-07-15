@@ -160,19 +160,83 @@ document.addEventListener('DOMContentLoaded', () => {
         const sidebarRight = document.getElementById('weather-sidebar-right');
         sidebarLeft.innerHTML = '';
         sidebarRight.innerHTML = '';
+    
+        const gifMap = {
+            'despejado_costa': { files: ['despejado_2.gif'], counter: 0 },
+            'despejado_interior': { files: ['despejado.gif'], counter: 0 },
+            'nubosidad parcial': { files: ['parcial.gif', 'nubosidad_parcial_2.gif', 'nubosidad_parcial_3.gif'], counter: 0 },
+            'escasa nubosidad': { files: ['escasa_nubosidad.gif'], counter: 0 },
+            'nublado': { files: ['nublado.gif'], counter: 0 },
+            'precipitaciones débiles': { files: ['precipitaciones_debiles.gif'], counter: 0 },
+            'lluvia': { files: ['lluvia.gif', 'lluvia_2.gif'], counter: 0 },
+            'nieve': { files: ['nieve.gif'], counter: 0 }
+        };        
+
+        Object.keys(gifMap).forEach(key => gifMap[key].counter = 0);
+
+        const getWeatherBackground = (station, hour) => {
+                const inlandStationCodes = ["320049", "320124", "320051"];
+                const condition = station.tiempo_presente || '';
+                const isNight = hour < 7 || hour > 19;
+                const c = condition.toLowerCase();
+                let categoryKey = null;
+
+                // 1. Determinar la categoría del tiempo
+                if (c.includes('despejado')) {
+                    // Lógica geográfica: elige un set de GIFs distinto si es una estación interior
+                    categoryKey = inlandStationCodes.includes(station.codigo) ? 'despejado_interior' : 'despejado_costa';
+                }
+                else if (c.includes('nubosidad parcial')) categoryKey = 'nubosidad parcial';
+                else if (c.includes('escasa nubosidad')) categoryKey = 'escasa nubosidad';
+                else if (c.includes('nublado') || c.includes('cubierto')) categoryKey = 'nublado';
+                else if (c.includes('precipitaciones débiles')) categoryKey = 'precipitaciones débiles';
+                else if (c.includes('lluvia') || c.includes('precipitacion')) categoryKey = 'lluvia';
+                else if (c.includes('nieve')) categoryKey = 'nieve';
+                
+                // 2. Si se encontró una categoría, rotar el GIF
+                if (categoryKey) {
+                    const gifData = gifMap[categoryKey];
+                    const fileIndex = gifData.counter % gifData.files.length;
+                    let finalGif = gifData.files[fileIndex];
+                    gifData.counter++; // Incrementar para la próxima vez
+
+                    // 3. Comprobar si hay una versión nocturna
+                    if (isNight) {
+                        const nightVersion = finalGif.replace('.gif', '_noche.gif');
+                        const nightFiles = ['despejado_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'lluvia_noche_2.gif'];
+                        if (nightFiles.includes(nightVersion)) {
+                            finalGif = nightVersion;
+                        }
+                    }
+                    return finalGif;
+                }
+
+                return '';
+            };
+
+
+        const currentHour = new Date().getHours();        
+        
 
         weatherData.forEach((station, index) => {
             const stationBox = document.createElement('div');
             stationBox.className = 'weather-station-box';
-                        
+
+            const backgroundFile = getWeatherBackground(station, currentHour);
+            if (backgroundFile) {
+                stationBox.style.backgroundImage = `url('assets/${backgroundFile}')`;
+            }
+
             stationBox.innerHTML = `
-                <h4>${station.nombre}</h4>
-                <p><strong>Temperatura:</strong> ${station.temperatura}°C</p>
-                <p><strong>Humedad:</strong> ${station.humedad}%</p>
-                <p><strong>Viento:</strong> ${station.viento_direccion} a ${station.viento_velocidad}</p>
-                <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
-                <p class="station-update-time">Últ. act: ${station.hora_actualizacion} h.</p>
-                <p class="station-source">Fuente: EMA DMC</p>`;        
+                <div class="weather-overlay">
+                    <h4>${station.nombre}</h4>                    
+                    <p><strong>Temperatura:</strong> ${station.temperatura}°C</p>
+                    <p><strong>Humedad:</strong> ${station.humedad}%</p>
+                    <p><strong>Viento:</strong> ${station.viento_direccion} a ${station.viento_velocidad}</p>
+                    <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
+                    <p class="station-update-time">Últ. act: ${station.hora_actualizacion} h.</p>
+                    <p class="station-source">Fuente: EMA DMC</p>
+                </div>`;                        
 
             // Divide las estaciones entre la barra izquierda y derecha
             if (index < 4) {
@@ -602,7 +666,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const textoFinal = boletinCompleto.filter(Boolean).join(" ... ");
         
-        const sonidoNotificacion = new Audio('assets/notificacion_boletin.mp3');
+        const sonidoNotificacion = new Audio('assets/notificacion_normal.mp3');
         sonidoNotificacion.play();
         sonidoNotificacion.onended = () => {
             if (hora === 12 && minuto === 0) {

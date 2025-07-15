@@ -195,7 +195,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             mensaje_voz = f"El puerto {puerto} ahora se encuentra {estado} y su condicion es {condicion}."
             
             # Usaremos el sonido de alerta general para esta notificación
-            sonido = "assets/notificacion_alerta.mp3"
+            sonido = "assets/notificacion_normal.mp3"
 
             return {"sonido": sonido, "mensaje": mensaje_voz}
 
@@ -259,16 +259,16 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             mensaje_voz = f"Boletín de información de tsunami, emitido por el Pacific Tsunami Warning Center. "
             mensaje_voz += f"Se ha registrado un sismo de magnitud {magnitude} en la región de {location}. "
 
-            sonido = "assets/notificacion_alerta_maxima.mp3" # Sonido para boletines PTWC
+            sonido = "assets/sismo.mp3" # Sonido para boletines PTWC
 
             if event_code_value in ["Advisory", "Watch", "Warning"]:
                 mensaje_voz += "¡Atención! El boletín contiene acciones recomendadas importantes. Por favor, revise el sitio web oficial del Pacific Tsunami Warning Center para obtener los detalles oficiales."
-                sonido = "assets/notificacion_alerta_maxima.mp3"
+                sonido = "assets/sismo.mp3"
             elif event_code_value == "Information":
                 mensaje_voz += "No se espera un impacto de tsunami. No se requiere tomar ninguna acción."
             else: # Casos no reconocidos o cancelaciones
                 mensaje_voz += "¡Atención! Se ha recibido un boletín de tsunami con información relevante que requiere su atención. Revise el sitio web oficial del Pacific Tsunami Warning Center para obtener los detalles."
-                sonido = "assets/notificacion_alerta_maxima.mp3"
+                sonido = "assets/sismo.mp3"
 
             print(f"[TSUNAMI_CHECK] Mensaje de voz generado: '{mensaje_voz}'")
 
@@ -323,7 +323,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                            f"localizado en {place}. Se recomienda "
                            f"mantenerse informado a través de los canales oficiales")
                                      
-            sonido = "assets/notificacion_alerta_maxima.mp3"
+            sonido = "assets/geofon.mp3"
 
             print(f"[GEOFON_CHECK] Mensaje de voz generado: '{mensaje_voz}'")
 
@@ -392,6 +392,20 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
+            # Diccionario con el total de clientes eléctricos por comuna.
+            # Fuente: Estimaciones basadas en reportes de la CNE y distribuidoras.
+            CLIENTES_POR_COMUNA = {
+                'Valparaíso': 135000, 'Viña del Mar': 160000, 'Concón': 30000, 'Quintero': 28000, 'Puchuncaví': 16000, 'Casablanca': 18000, 'Juan Fernández': 600,
+                'Isla de Pascua': 3500,
+                'Quillota': 40000, 'La Calera': 25000, 'La Cruz': 15000, 'Hijuelas': 12000, 'Nogales': 13000,
+                'San Antonio': 50000, 'Cartagena': 15000, 'El Tabo': 12000, 'El Quisco': 14000, 'Algarrobo': 13000, 'Santo Domingo': 10000,
+                'San Felipe': 35000, 'Catemu': 8000, 'Llaillay': 12000, 'Panquehue': 5000, 'Putaendo': 9000, 'Santa María': 8000,
+                'Los Andes': 45000, 'Calle Larga': 8000, 'Rinconada': 7000, 'San Esteban': 10000,
+                'La Ligua': 20000, 'Cabildo': 12000, 'Papudo': 8000, 'Petorca': 7000, 'Zapallar': 9000,
+                'Quilpué': 70000, 'Villa Alemana': 60000, 'Limache': 25000, 'Olmué': 15000
+            }
+            CLIENTES_POR_COMUNA_NORMALIZED = {_normalize_str(k): v for k, v in CLIENTES_POR_COMUNA.items()}
+
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
             headers = {
                 'authority': 'apps.sec.cl',
@@ -423,26 +437,54 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             else:
                 print(f"INFO [SEC]: Petición exitosa. Se recibieron {len(all_outages_data)} registros.")
             
-            PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
-            outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
+            PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]            
+            outages_by_province_ordered = {
+                province: {'total': 0, 'comunas': {}} for province in PROVINCE_ORDER
+            }
             total_affected_region = 0
 
             for outage in all_outages_data:
                 if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
-                    commune = _normalize_str(outage.get('NOMBRE_COMUNA', ''))
-                    province = PROVINCIA_MAP_NORMALIZED.get(commune)
+                    commune_name = outage.get('NOMBRE_COMUNA', '')
+                    commune_normalized = _normalize_str(commune_name)
+                    province = PROVINCIA_MAP_NORMALIZED.get(commune_normalized)
+                    
                     if province in outages_by_province_ordered:
                         clients = int(outage.get('CLIENTES_AFECTADOS', 0))
-                        outages_by_province_ordered[province] += clients
+                        
+                        # Sumar al total de la provincia
+                        outages_by_province_ordered[province]['total'] += clients
                         total_affected_region += clients
+                        
+                        # Agregar o sumar al desglose por comuna
+                        comuna_storage = outages_by_province_ordered[province]['comunas']
+                        total_clientes_comuna = CLIENTES_POR_COMUNA_NORMALIZED.get(commune_normalized, 0)
+                        porcentaje_afectado = round((clients / total_clientes_comuna * 100), 2) if total_clientes_comuna > 0 else 0
 
-            ordered_provinces_list = [{"provincia": name, "cantidad": count} for name, count in outages_by_province_ordered.items()]
+                        if commune_name not in comuna_storage:
+                            comuna_storage[commune_name] = {'cantidad': 0, 'porcentaje': 0.0}
+                        
+                        comuna_storage[commune_name]['cantidad'] += clients
+                        # Recalculamos el porcentaje con el total acumulado
+                        comuna_storage[commune_name]['porcentaje'] = round((comuna_storage[commune_name]['cantidad'] / total_clientes_comuna * 100), 2) if total_clientes_comuna > 0 else 0
+
+            # Convertir el diccionario de comunas a una lista ordenada
+            final_breakdown = []
+            for province_name, data in outages_by_province_ordered.items():                
+                comunas_list = [{'comuna': k, 'cantidad': v['cantidad'], 'porcentaje': v['porcentaje']} for k, v in data['comunas'].items()]             
+                comunas_list.sort(key=lambda x: x['cantidad'], reverse=True) # Ordenar de mayor a menor                
+                final_breakdown.append({
+                    "provincia": province_name,
+                    "total_afectados": data['total'],
+                    "comunas": comunas_list
+                })
+
             percentage_affected = round((total_affected_region / TOTAL_CLIENTES_REGION * 100), 2) if TOTAL_CLIENTES_REGION > 0 else 0
 
             return {
                 "total_afectados_region": total_affected_region,
                 "porcentaje_afectado": percentage_affected,
-                "desglose_provincias": ordered_provinces_list
+                "desglose_provincias": final_breakdown # Se devuelve la nueva estructura
             }
 
         except Exception as e:
@@ -690,131 +732,110 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             
             # --- RUTA PARA ESTACIONES METEOROLOGICAS (BANNER SUPERIOR) ---
             elif requested_path == '/api/weather':
-                # --- Lógica de Caché de 90 segundos ---
                 cache_key = 'weather'
                 current_time = datetime.now().timestamp()
-                
+
                 if cache_key in self.server.cache and self.server.cache[cache_key]['expires'] > current_time:
                     print(f"[{PID}] Sirviendo /api/weather DESDE CACHÉ.")
-                    cached_data = self.server.cache[cache_key]['data']
                     self._set_headers(200, 'application/json')
-                    self.wfile.write(json.dumps(cached_data, ensure_ascii=False).encode('utf-8'))
+                    self.wfile.write(json.dumps(self.server.cache[cache_key]['data'], ensure_ascii=False).encode('utf-8'))
                     return
+
+                print(f"[{PID}] Sirviendo /api/weather DESDE API EXTERNA (actualizando caché con inferencia de tiempo).")
                 
-                print(f"[{PID}] Sirviendo /api/weather DESDE API EXTERNA (actualizando caché).")
-                # --- Fin Lógica de Caché ---
-                
-                # --- IMPORTACIONES PARA CONVERSIONES ---                 
-                import pytz 
-                import re   # Para la función de velocidad del viento
-
-                # --- CONVERTIR GRADOS A PUNTOS CARDINALES ---
-                def degrees_to_cardinal(d):
-                    try:
-                        d = float(str(d).replace('°', '').strip())
-                        dirs = ["N", "NE", "E", "SE", "S", "SO", "O", "NO", "N"]
-                        ix = round(((d % 360) / 45))
-                        return dirs[ix]
-                    except (ValueError, TypeError):
-                        return "---"
-
-                def format_wind_speed_to_kmh(speed_str):
-                    try:
-                        speed_str = str(speed_str).strip().lower()
-                        value_str = re.sub(r'[^0-9.]', '', speed_str)
-                        value = float(value_str)
-
-                        if "kt" in speed_str or "nudos" in speed_str:
-                            kmh = value * 1.852
-                            return f"{kmh:.1f} km/h"
-                        return f"{value:.1f} km/h"
-                    except (ValueError, TypeError):
-                        return "---"
-                
-                def convert_utc_to_local_time_str(utc_datetime_str):
-                    try:
-                        utc_dt = datetime.strptime(utc_datetime_str, '%Y-%m-%d %H:%M:%S')
-                        utc_timezone = pytz.timezone('UTC')
-                        utc_dt = utc_timezone.localize(utc_dt)
-                        chile_timezone = pytz.timezone('America/Santiago')
-                        chile_dt = utc_dt.astimezone(chile_timezone)
-                        return chile_dt.strftime('%H:%M')
-                    except (ValueError, TypeError, AttributeError):
-                        return "HH:MM"
-                # --- FIN DE FUNCIONES DE CONVERSION ---
-
                 try:
-                    DMC_HOME_URL = "https://climatologia.meteochile.gob.cl/"
-                    DMC_API_URL = "https://climatologia.meteochile.gob.cl/application/servicios/getDatosRecientesRedEma"
-                    DMC_USUARIO = "feliperamosz@gmail.com" 
-                    DMC_TOKEN = "00746c9061f597a2a41401a9" 
+                    # --- INICIO DE LA NUEVA LÓGICA SIMPLIFICADA ---
+                    import pytz
+                    import re
 
-                    session = requests.Session() 
-                    session.headers.update({
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-                        'Referer': DMC_HOME_URL
-                    })
-                    
-                    session.get(DMC_HOME_URL, timeout=15)
+                    API_DATOS_RECIENTES = "https://climatologia.meteochile.gob.cl/application/servicios/getDatosRecientesRedEma"
+                    DMC_USUARIO = "feliperamosz@gmail.com"
+                    DMC_TOKEN = "00746c9061f597a2a41401a9"
+                    params = {'usuario': DMC_USUARIO, 'token': DMC_TOKEN}
 
-                    params = {'usuario': DMC_USUARIO, 'token': DMC_TOKEN} 
-                    response = session.get(DMC_API_URL, params=params, timeout=15) 
-                    response.raise_for_status()
-                    response.encoding = 'utf-8'
-
-                    json_response = response.json()
-                    stations_list = json_response.get('datosEstaciones', [])
-                    
                     STATIONS_MAP = {
                         "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
-                        "320041": "Torquemada", "330161": "Lo Zárate, San Antonio",
-                        "320124": "L. Agricola, Quillota", "320051": "Los Libertadores, Los Andes",
-                        "330031": "Isla Juan Fernández", "270001": "Isla de Pascua" 
+                        "330006": "J. Botánico", "330161": "San Antonio",
+                        "320124": "L. Agricola, Quillota", "320051": "Los Libertadores",
+                        "330031": "Juan Fernández", "270001": "Rapa Nui"
                     }
-                    
-                    found_stations = {}
-                    for station_data in stations_list:
-                        estacion_info = station_data.get('estacion', {})
-                        codigo = estacion_info.get('codigoNacional')
-                        if codigo in STATIONS_MAP:
-                            found_stations[codigo] = station_data
 
-                    weather_data = []
+                    # Función para inferir el tiempo presente
+                    def _inferir_tiempo_presente(precip_str, temp_str):
+                        try:
+                            precip = float(str(precip_str).replace('mm', '').strip())
+                            temp = float(str(temp_str).replace('°C', '').strip())
+
+                            if precip > 4.0:
+                                return "Nieve" if temp < 2.0 else "Lluvia"
+                            elif precip > 0.1: 
+                                return "Precipitaciones Débiles"
+                                                 
+                            # Si no llueve, decidimos entre Despejado y Parcial según la temperatura
+                            if temp < 17.0:
+                                return "Nubosidad Parcial"
+                            else:
+                                return "Despejado"                            
+                        except (ValueError, TypeError):
+                            return "S/I"
+
+                    # Obtener datos de la única API necesaria
+                    response = requests.get(API_DATOS_RECIENTES, params=params, timeout=15)
+                    response.raise_for_status()
+                    datos_recientes_por_estacion = {
+                        str(station.get('estacion', {}).get('codigoNacional')): station
+                        for station in response.json().get('datosEstaciones', [])
+                    }
+
+                    # Funciones auxiliares
+                    def degrees_to_cardinal(d):
+                        try:
+                            d = float(str(d).replace('°', '').strip())
+                            dirs = ["N", "NE", "E", "SE", "S", "SO", "O", "NO", "N"]
+                            return dirs[round(((d % 360) / 45))]
+                        except: return "---"
+                    def format_wind_speed_to_kmh(speed_str):
+                        try:
+                            value = float(re.sub(r'[^0-9.]', '', str(speed_str)))
+                            return f"{value * 1.852:.1f} km/h" if "kt" in str(speed_str).lower() else f"{value:.1f} km/h"
+                        except: return "---"
+                    def convert_utc_to_local_time_str(utc_datetime_str):
+                        try:
+                            utc_dt = pytz.utc.localize(datetime.strptime(utc_datetime_str, '%Y-%m-%d %H:%M:%S'))
+                            return utc_dt.astimezone(pytz.timezone('America/Santiago')).strftime('%H:%M')
+                        except: return "HH:MM"
+
+                    # Procesar y unificar datos
+                    weather_data_final = []
                     for codigo, nombre in STATIONS_MAP.items():
-                        station_data = found_stations.get(codigo)
-                        
-                        if station_data and station_data.get('datos'):
-                            latest_reading = station_data['datos'][0]
-                            utc_time_str = latest_reading.get('momento', '')
-                            local_update_time = convert_utc_to_local_time_str(utc_time_str)
-
-                            weather_data.append({
+                        datos_recientes = datos_recientes_por_estacion.get(codigo)
+                        if datos_recientes and datos_recientes.get('datos'):
+                            latest = datos_recientes['datos'][0]
+                            temp = str(latest.get('temperatura', 'N/A'))
+                            precip = str(latest.get('aguaCaida24Horas', '0'))
+                            
+                            weather_data_final.append({
+                                'codigo': codigo,
                                 'nombre': nombre,
-                                'temperatura': str(latest_reading.get('temperatura', 'N/A')).replace('°C', '').strip(),
-                                'humedad': str(latest_reading.get('humedadRelativa', 'N/A')).replace('%', '').strip(),
-                                'viento_direccion': degrees_to_cardinal(latest_reading.get('direccionDelViento')),
-                                'viento_velocidad': format_wind_speed_to_kmh(latest_reading.get('fuerzaDelViento')),
-                                'precipitacion_24h': str(latest_reading.get('aguaCaida24Horas', 'N/A')).replace('mm', '').strip(),
-                                'hora_actualizacion': local_update_time
+                                'tiempo_presente': _inferir_tiempo_presente(precip, temp),
+                                'temperatura': temp.replace('°C', '').strip(),
+                                'humedad': str(latest.get('humedadRelativa', 'N/A')).replace('%', '').strip(),
+                                'viento_direccion': degrees_to_cardinal(latest.get('direccionDelViento')),
+                                'viento_velocidad': format_wind_speed_to_kmh(latest.get('fuerzaDelViento')),
+                                'precipitacion_24h': precip.replace('mm', '').strip(),
+                                'hora_actualizacion': convert_utc_to_local_time_str(latest.get('momento', ''))
                             })
                         else:
-                            weather_data.append({
-                                'nombre': nombre, 'temperatura': 'Sin datos', 'humedad': '---',
-                                'viento_direccion': '---', 'viento_velocidad': '---',
+                            weather_data_final.append({
+                                'codigo': codigo, 'nombre': nombre, 'tiempo_presente': 'Offline', 'temperatura': 'Sin datos',
+                                'humedad': '---', 'viento_direccion': '---', 'viento_velocidad': '---',
                                 'precipitacion_24h': '---', 'hora_actualizacion': 'Offline'
                             })
                     
-                    print(f"Visor configurado para {len(weather_data)} estaciones.")
-                    
-                    # --- Lógica de Caché: Guardar el resultado ---
-                    self.server.cache[cache_key] = {
-                        'data': weather_data,
-                        'expires': current_time + 90 # Expira en 90 segundos
-                    }
-
+                    self.server.cache[cache_key] = {'data': weather_data_final, 'expires': current_time + 90}
                     self._set_headers(200, 'application/json')
-                    self.wfile.write(json.dumps(weather_data, ensure_ascii=False).encode('utf-8'))
-
+                    self.wfile.write(json.dumps(weather_data_final, ensure_ascii=False).encode('utf-8'))
+                    # --- FIN DE LA NUEVA LÓGICA SIMPLIFICADA ---
                 except Exception as e:
                     import traceback
                     print(f"Error inesperado al procesar datos del tiempo: {e}")
@@ -843,11 +864,11 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     
                     STATIONS_MAP = {
                         "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
-                        "330161": "Lo Zárate, San Antonio", "320124": "L. Agricola, Quillota",
-                        "330031": "Isla Juan Fernández", "270001": "Isla de Pascua",
+                        "330161": "San Antonio", "320124": "L. Agricola, Quillota",
+                        "330031": "Juan Fernández", "270001": "Rapa Nui",
                         "320063": "Zapallar, Catapilco", 
                         "320045": "Llay Llay", "330030": "Santo Domingo",
-                        "320121": "Putaendo", "320051": "Los Libertadores, Los Andes",
+                        "320121": "Putaendo", "320051": "Los Libertadores",
                         "320123": "San Esteban", "330121": "Curacaví"
                     }
                     

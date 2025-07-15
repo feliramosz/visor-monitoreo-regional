@@ -66,6 +66,11 @@ async function hablar(texto) {
     enunciado.lang = 'es-CL';
     enunciado.rate = 0.95;
 
+    enunciado.onend = function() {
+        const audioCierre = new Audio('assets/cierre_boletin.mp3');
+        audioCierre.play();
+    };
+
     window.speechSynthesis.speak(enunciado);
 }
 
