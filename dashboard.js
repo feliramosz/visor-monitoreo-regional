@@ -509,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('Error de red al obtener clima');
             const weatherData = await response.json();
             
-            // *** NUEVO: Guardar datos del clima para notificaciones ***
+            // *** Guardar datos del clima para notificaciones ***
             if (lastData) {
                 lastData.weather_data = weatherData;
             }
@@ -518,14 +518,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isNight = hour < 7 || hour > 19;
                 const c = condition.toLowerCase();
 
-                if (c.includes('despejado')) return isNight ? 'despejado_noche.gif' : 'despejado.gif';
-                if (c.includes('escasa nubosidad')) return isNight ? 'escasa_nubosidad_noche.gif' : 'escasa_nubosidad.gif';
-                if (c.includes('parcialmente nublado')) return isNight ? 'parcial.gif' : 'parcial.gif';
-                if (c.includes('nublado')) return isNight ? 'nublado_noche.gif' : 'nublado.gif';
-                if (c.includes('cubierto')) return isNight ? 'nublado_noche.gif' : 'nublado.gif';
-                if (c.includes('lluvia') || c.includes('precipitacion')) return isNight ? 'lluvia_noche.gif' : 'lluvia.gif';
-                if (c.includes('nieve')) return isNight ? 'nieve_noche.gif' : 'nieve.gif';
-                return ''; // Sin fondo si no coincide
+                if (c.includes('despejado')) {
+                    return isNight ? 'despejado_noche.gif' : 'despejado.gif';
+                }
+                if (c.includes('escasa nubosidad')) {
+                    return isNight ? 'escasa_nubosidad_noche.gif' : 'escasa_nubosidad.gif';
+                }
+                if (c.includes('parcialmente nublado') || c.includes('nubosidad parcial')) {                    
+                    return 'parcial.gif';
+                }
+                if (c.includes('nublado') || c.includes('cubierto')) {
+                    return isNight ? 'nublado_noche.gif' : 'nublado.gif';
+                }
+                if (c.includes('lluvia') || c.includes('precipitacion')) {
+                    return isNight ? 'lluvia_noche.gif' : 'lluvia.gif';
+                }
+                if (c.includes('nieve')) {
+                    return isNight ? 'nieve_noche.gif' : 'nieve.gif';
+                }
+                
+                return ''; 
             };
 
             const currentHour = new Date().getHours();

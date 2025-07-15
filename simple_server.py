@@ -741,55 +741,51 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self.wfile.write(json.dumps(self.server.cache[cache_key]['data'], ensure_ascii=False).encode('utf-8'))
                     return
 
-                print(f"[{PID}] Sirviendo /api/weather DESDE API EXTERNA (actualizando caché).")
+                print(f"[{PID}] Sirviendo /api/weather DESDE API EXTERNA (actualizando caché con inferencia de tiempo).")
                 
                 try:
-                    # --- INICIO DE LA NUEVA LÓGICA ---
+                    # --- INICIO DE LA NUEVA LÓGICA SIMPLIFICADA ---
                     import pytz
                     import re
 
+                    API_DATOS_RECIENTES = "https://climatologia.meteochile.gob.cl/application/servicios/getDatosRecientesRedEma"
                     DMC_USUARIO = "feliperamosz@gmail.com"
                     DMC_TOKEN = "00746c9061f597a2a41401a9"
                     params = {'usuario': DMC_USUARIO, 'token': DMC_TOKEN}
-                    
-                    # URLs de las APIs
-                    API_DATOS_RECIENTES = "https://climatologia.meteochile.gob.cl/application/servicios/getDatosRecientesRedEma"
-                    
-                    # URL dinámica para el boletín diario
-                    hoy = datetime.now(pytz.timezone('America/Santiago'))
-                    API_BOLETIN_DIARIO = f"https://climatologia.meteochile.gob.cl/application/geoservicios/getBoletinClimatologicoDiarioGeo/{hoy.strftime('%Y/%m/%d')}"
 
-                    # Mapa de estaciones que nos interesan
                     STATIONS_MAP = {
                         "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
                         "320041": "Torquemada", "330161": "Lo Zárate, San Antonio",
                         "320124": "L. Agricola, Quillota", "320051": "Los Libertadores, Los Andes",
                         "330031": "Isla Juan Fernández", "270001": "Isla de Pascua"
                     }
-                    
-                    # 1. Obtener "tiempoPresente" del boletín diario
-                    tiempo_presente_por_estacion = {}
-                    try:
-                        response_boletin = requests.get(API_BOLETIN_DIARIO, params=params, timeout=15)
-                        response_boletin.raise_for_status()
-                        boletin_data = response_boletin.json().get('features', [])
-                        for feature in boletin_data:
-                            props = feature.get('properties', {})
-                            codigo = str(props.get('codigoNacional'))
-                            if codigo in STATIONS_MAP:
-                                tiempo_presente_por_estacion[codigo] = props.get('tiempoPresente', 'S/I')
-                    except Exception as e:
-                        print(f"ADVERTENCIA: No se pudo obtener el boletín diario. 'tiempoPresente' no estará disponible. Causa: {e}")
 
-                    # 2. Obtener datos recientes (temperatura, viento, etc.)
-                    response_recientes = requests.get(API_DATOS_RECIENTES, params=params, timeout=15)
-                    response_recientes.raise_for_status()
+                    # Función para inferir el tiempo presente
+                    def _inferir_tiempo_presente(precip_str, temp_str):
+                        try:
+                            precip = float(str(precip_str).replace('mm', '').strip())
+                            temp = float(str(temp_str).replace('°C', '').strip())
+
+                            if precip > 0.1:
+                                return "Nieve" if temp < 2.0 else "Lluvia"
+                                                 
+                            # Si no llueve, decidimos entre Despejado y Parcial según la temperatura
+                            if temp < 17.0:
+                                return "Nubosidad Parcial"
+                            else:
+                                return "Despejado"                            
+                        except (ValueError, TypeError):
+                            return "S/I"
+
+                    # Obtener datos de la única API necesaria
+                    response = requests.get(API_DATOS_RECIENTES, params=params, timeout=15)
+                    response.raise_for_status()
                     datos_recientes_por_estacion = {
                         str(station.get('estacion', {}).get('codigoNacional')): station
-                        for station in response_recientes.json().get('datosEstaciones', [])
+                        for station in response.json().get('datosEstaciones', [])
                     }
 
-                    # Funciones auxiliares (las mismas que antes)
+                    # Funciones auxiliares
                     def degrees_to_cardinal(d):
                         try:
                             d = float(str(d).replace('°', '').strip())
@@ -807,21 +803,24 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             return utc_dt.astimezone(pytz.timezone('America/Santiago')).strftime('%H:%M')
                         except: return "HH:MM"
 
-                    # 3. Unificar todos los datos
+                    # Procesar y unificar datos
                     weather_data_final = []
                     for codigo, nombre in STATIONS_MAP.items():
                         datos_recientes = datos_recientes_por_estacion.get(codigo)
                         if datos_recientes and datos_recientes.get('datos'):
                             latest = datos_recientes['datos'][0]
+                            temp = str(latest.get('temperatura', 'N/A'))
+                            precip = str(latest.get('aguaCaida24Horas', '0'))
+                            
                             weather_data_final.append({
                                 'codigo': codigo,
                                 'nombre': nombre,
-                                'tiempo_presente': tiempo_presente_por_estacion.get(codigo, 'S/I'),
-                                'temperatura': str(latest.get('temperatura', 'N/A')).replace('°C', '').strip(),
+                                'tiempo_presente': _inferir_tiempo_presente(precip, temp),
+                                'temperatura': temp.replace('°C', '').strip(),
                                 'humedad': str(latest.get('humedadRelativa', 'N/A')).replace('%', '').strip(),
                                 'viento_direccion': degrees_to_cardinal(latest.get('direccionDelViento')),
                                 'viento_velocidad': format_wind_speed_to_kmh(latest.get('fuerzaDelViento')),
-                                'precipitacion_24h': str(latest.get('aguaCaida24Horas', 'N/A')).replace('mm', '').strip(),
+                                'precipitacion_24h': precip.replace('mm', '').strip(),
                                 'hora_actualizacion': convert_utc_to_local_time_str(latest.get('momento', ''))
                             })
                         else:
@@ -834,7 +833,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self.server.cache[cache_key] = {'data': weather_data_final, 'expires': current_time + 90}
                     self._set_headers(200, 'application/json')
                     self.wfile.write(json.dumps(weather_data_final, ensure_ascii=False).encode('utf-8'))
-
+                    # --- FIN DE LA NUEVA LÓGICA SIMPLIFICADA ---
                 except Exception as e:
                     import traceback
                     print(f"Error inesperado al procesar datos del tiempo: {e}")

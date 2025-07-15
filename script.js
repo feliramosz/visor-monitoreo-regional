@@ -165,14 +165,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const isNight = hour < 7 || hour > 19;
             const c = condition.toLowerCase();
 
-            if (c.includes('despejado')) return isNight ? 'despejado_noche.gif' : 'despejado.gif';
-            if (c.includes('escasa nubosidad')) return isNight ? 'escasa_nubosidad_noche.gif' : 'escasa_nubosidad.gif';
-            if (c.includes('parcialmente nublado')) return isNight ? 'parcial.gif' : 'parcial.gif';
-            if (c.includes('nublado')) return isNight ? 'nublado_noche.gif' : 'nublado.gif';
-            if (c.includes('cubierto')) return isNight ? 'nublado_noche.gif' : 'nublado.gif';
-            if (c.includes('lluvia') || c.includes('precipitacion')) return isNight ? 'lluvia_noche.gif' : 'lluvia.gif';
-            if (c.includes('nieve')) return isNight ? 'nieve_noche.gif' : 'nieve.gif';
-            return '';
+            if (c.includes('despejado')) {
+                return isNight ? 'despejado_noche.gif' : 'despejado.gif';
+            }
+            if (c.includes('escasa nubosidad')) {
+                return isNight ? 'escasa_nubosidad_noche.gif' : 'escasa_nubosidad.gif';
+            }
+            if (c.includes('parcialmente nublado') || c.includes('nubosidad parcial')) {
+                // Para este caso, día y noche usan el mismo GIF según tu lista de archivos.
+                return 'parcial.gif';
+            }
+            if (c.includes('nublado') || c.includes('cubierto')) {
+                return isNight ? 'nublado_noche.gif' : 'nublado.gif';
+            }
+            if (c.includes('lluvia') || c.includes('precipitacion')) {
+                return isNight ? 'lluvia_noche.gif' : 'lluvia.gif';
+            }
+            if (c.includes('nieve')) {
+                return isNight ? 'nieve_noche.gif' : 'nieve.gif';
+            }
+            
+            // Si ninguna condición coincide, no se aplica ningún fondo.
+            return ''; 
         };
         const currentHour = new Date().getHours();        
         
