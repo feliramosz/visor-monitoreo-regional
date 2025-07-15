@@ -195,7 +195,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             mensaje_voz = f"El puerto {puerto} ahora se encuentra {estado} y su condicion es {condicion}."
             
             # Usaremos el sonido de alerta general para esta notificación
-            sonido = "assets/notificacion_alerta.mp3"
+            sonido = "assets/notificacion_normal.mp3"
 
             return {"sonido": sonido, "mensaje": mensaje_voz}
 

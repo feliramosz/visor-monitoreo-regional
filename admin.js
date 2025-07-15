@@ -934,7 +934,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         else saludoFinal = "buenas noches.";
         boletinCompleto.push(`Finaliza el boletín informativo de las ${horaFormato} horas, ${saludoFinal}`);
         const textoFinal = boletinCompleto.filter(Boolean).join(" ... ");
-        const sonidoNotificacion = new Audio('assets/notificacion_boletin.mp3');
+        const sonidoNotificacion = new Audio('assets/notificacion_normal.mp3');
         sonidoNotificacion.play();
         sonidoNotificacion.onended = () => {
             hablar(textoFinal);
@@ -995,19 +995,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             let sonido, mensaje;
             switch(type) {
                 case 'regular':
-                    sonido = 'assets/notificacion_regular.mp3';
+                    sonido = 'assets/calidad_del_aire.mp3';
                     mensaje = 'Prueba de notificación. La estación ha pasado a estado regular.';
                     break;
                 case 'alerta':
-                    sonido = 'assets/notificacion_alerta.mp3';
+                    sonido = 'assets/calidad_del_aire.mp3';
                     mensaje = 'Prueba de notificación. Atención, la estación ha cambiado a estado de alerta.';
                     break;
                 case 'emergencia':
-                    sonido = 'assets/notificacion_emergencia.mp3';
+                    sonido = 'assets/alerta_maxima.mp3';
                     mensaje = 'Prueba de notificación. Atención, la estación ha cambiado a estado de emergencia, se debe activar protocolo.';
                     break;
                 case 'precipitacion':
-                    sonido = 'assets/notificacion_precipitacion.mp3';
+                    sonido = 'assets/precipitaciones.mp3';
                     mensaje = 'Prueba de notificación. A esta hora se registran precipitaciones.';
                     break;
             }
