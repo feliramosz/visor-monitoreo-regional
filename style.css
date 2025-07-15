@@ -2496,3 +2496,95 @@ footer {
     font-style: italic;
     color: #6c757d;
 }
+
+/* --- ESTILOS PARA EL POPUP DE DESGLOSE COMUNAL (SEC) --- */
+.sec-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000; /* Asegura que esté por encima de todo */
+    backdrop-filter: blur(5px);
+}
+
+.sec-modal-content {
+    background-color: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    width: 90%;
+    max-width: 500px;
+    animation: slide-down 0.4s ease-out;
+}
+
+.sec-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.sec-modal-header h4 {
+    margin: 0;
+    font-size: 1.4em;
+    color: #004d99;
+}
+
+.sec-modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.sec-modal-close-btn:hover {
+    color: #333;
+}
+
+.sec-modal-body {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.sec-communes-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.sec-communes-table th,
+.sec-communes-table td {
+    padding: 10px;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: left;
+}
+
+.sec-communes-table th {
+    font-weight: bold;
+    background-color: #f8f9fa;
+}
+
+.province-row:hover {
+    background-color: #e9ecef; /* Efecto hover para las filas clickeables */
+}
+
+@keyframes slide-down {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

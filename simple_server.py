@@ -423,26 +423,46 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             else:
                 print(f"INFO [SEC]: Petición exitosa. Se recibieron {len(all_outages_data)} registros.")
             
-            PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]
-            outages_by_province_ordered = {province: 0 for province in PROVINCE_ORDER}
+            PROVINCE_ORDER = ["San Antonio", "Valparaíso", "Quillota", "San Felipe", "Los Andes", "Petorca", "Marga Marga", "Isla de Pascua"]            
+            outages_by_province_ordered = {
+                province: {'total': 0, 'comunas': {}} for province in PROVINCE_ORDER
+            }
             total_affected_region = 0
 
             for outage in all_outages_data:
                 if 'valparaiso' in outage.get('NOMBRE_REGION', '').lower():
-                    commune = _normalize_str(outage.get('NOMBRE_COMUNA', ''))
-                    province = PROVINCIA_MAP_NORMALIZED.get(commune)
+                    commune_name = outage.get('NOMBRE_COMUNA', '')
+                    commune_normalized = _normalize_str(commune_name)
+                    province = PROVINCIA_MAP_NORMALIZED.get(commune_normalized)
+                    
                     if province in outages_by_province_ordered:
                         clients = int(outage.get('CLIENTES_AFECTADOS', 0))
-                        outages_by_province_ordered[province] += clients
+                        
+                        # Sumar al total de la provincia
+                        outages_by_province_ordered[province]['total'] += clients
                         total_affected_region += clients
+                        
+                        # Agregar o sumar al desglose por comuna
+                        comuna_storage = outages_by_province_ordered[province]['comunas']
+                        comuna_storage[commune_name] = comuna_storage.get(commune_name, 0) + clients
 
-            ordered_provinces_list = [{"provincia": name, "cantidad": count} for name, count in outages_by_province_ordered.items()]
+            # Convertir el diccionario de comunas a una lista ordenada
+            final_breakdown = []
+            for province_name, data in outages_by_province_ordered.items():
+                comunas_list = [{'comuna': k, 'cantidad': v} for k, v in data['comunas'].items()]
+                comunas_list.sort(key=lambda x: x['cantidad'], reverse=True) # Ordenar de mayor a menor
+                final_breakdown.append({
+                    "provincia": province_name,
+                    "total_afectados": data['total'],
+                    "comunas": comunas_list
+                })
+
             percentage_affected = round((total_affected_region / TOTAL_CLIENTES_REGION * 100), 2) if TOTAL_CLIENTES_REGION > 0 else 0
 
             return {
                 "total_afectados_region": total_affected_region,
                 "porcentaje_afectado": percentage_affected,
-                "desglose_provincias": ordered_provinces_list
+                "desglose_provincias": final_breakdown # Se devuelve la nueva estructura
             }
 
         except Exception as e:

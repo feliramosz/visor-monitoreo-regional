@@ -333,9 +333,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <thead>
                         <tr><th>CLIENTES AFECTADOS POR PROVINCIA</th><th>CANTIDAD</th></tr>
                     </thead>
-                    <tbody>
+                    <tbody id="sec-provinces-tbody">
                         ${data.desglose_provincias.map(item => `
-                            <tr><td>Provincia de ${item.provincia}</td><td>${item.cantidad.toLocaleString('es-CL')}</td></tr>
+                            <tr class="province-row" data-province='${JSON.stringify(item)}' style="${item.total_afectados > 0 ? 'cursor: pointer;' : ''}">
+                                <td>Provincia de ${item.provincia}</td>
+                                <td>${item.total_afectados.toLocaleString('es-CL')}</td>
+                            </tr>
                         `).join('')}
                     </tbody>
                 </table>
@@ -355,6 +358,41 @@ document.addEventListener('DOMContentLoaded', () => {
             // --- FIN DE LA MODIFICACIÓN ---
 
             container.innerHTML = tableHtml;
+
+            const modal = document.getElementById('sec-commune-modal');
+            const modalTitle = document.getElementById('sec-modal-title');
+            const modalBody = document.getElementById('sec-modal-body');
+            const closeModalBtn = document.getElementById('sec-modal-close');
+
+            document.querySelectorAll('.province-row').forEach(row => {
+                row.addEventListener('click', () => {
+                    const provinceData = JSON.parse(row.dataset.province);
+                    if (provinceData.total_afectados === 0) return; // No hacer nada si no hay afectados
+
+                    modalTitle.textContent = `Desglose para la Provincia de ${provinceData.provincia}`;
+                    
+                    if (provinceData.comunas && provinceData.comunas.length > 0) {
+                        modalBody.innerHTML = `
+                            <table class="sec-communes-table">
+                                <thead><tr><th>Comuna</th><th>Clientes Afectados</th></tr></thead>
+                                <tbody>
+                                    ${provinceData.comunas.map(c => `<tr><td>${c.comuna}</td><td>${c.cantidad.toLocaleString('es-CL')}</td></tr>`).join('')}
+                                </tbody>
+                            </table>`;
+                    } else {
+                        modalBody.innerHTML = '<p>No hay desglose por comuna disponible para esta provincia.</p>';
+                    }
+                    modal.style.display = 'flex';
+                });
+            });
+
+            const closeModal = () => { modal.style.display = 'none'; };
+            closeModalBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) { // Cierra solo si se hace clic en el fondo
+                    closeModal();
+                }
+            });
 
             const timestampContainer = document.getElementById('sec-update-time');
             if (timestampContainer) {
