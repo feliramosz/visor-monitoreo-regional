@@ -755,9 +755,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
                     STATIONS_MAP = {
                         "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
-                        "320041": "Torquemada", "330161": "Lo Zárate, San Antonio",
-                        "320124": "L. Agricola, Quillota", "320051": "Los Libertadores, Los Andes",
-                        "330031": "Isla Juan Fernández", "270001": "Isla de Pascua"
+                        "330006": "J. Botánico", "330161": "Lo Zárate, San Antonio",
+                        "320124": "L. Agricola, Quillota", "320051": "Los Libertadores",
+                        "330031": "Juan Fernández", "270001": "Rapa Nui"
                     }
 
                     # Función para inferir el tiempo presente
@@ -766,8 +766,10 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             precip = float(str(precip_str).replace('mm', '').strip())
                             temp = float(str(temp_str).replace('°C', '').strip())
 
-                            if precip > 0.1:
+                            if precip > 5.0:
                                 return "Nieve" if temp < 2.0 else "Lluvia"
+                            elif precip > 0.1: 
+                                return "Precipitaciones Débiles"
                                                  
                             # Si no llueve, decidimos entre Despejado y Parcial según la temperatura
                             if temp < 17.0:
@@ -863,10 +865,10 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     STATIONS_MAP = {
                         "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
                         "330161": "Lo Zárate, San Antonio", "320124": "L. Agricola, Quillota",
-                        "330031": "Isla Juan Fernández", "270001": "Isla de Pascua",
+                        "330031": "Juan Fernández", "270001": "Rapa Nui",
                         "320063": "Zapallar, Catapilco", 
                         "320045": "Llay Llay", "330030": "Santo Domingo",
-                        "320121": "Putaendo", "320051": "Los Libertadores, Los Andes",
+                        "320121": "Putaendo", "320051": "Los Libertadores",
                         "320123": "San Esteban", "330121": "Curacaví"
                     }
                     

@@ -1486,8 +1486,10 @@ main.dashboard-grid {
 
 .pass-status {
     font-weight: bold;
-    font-size: 0.9em;
-    color: #343a40; /* Color por defecto para "Paso: " */
+    font-size: 0.9em;    
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 2px 5px;
+    border-radius: 3px;    
 }
 
 /* Clases para colorear solo la palabra del estado */
@@ -2605,7 +2607,7 @@ footer {
     position: relative;
     z-index: 2;
     background-color: transparent; /* Se quita el fondo del contenedor principal */
-    padding: 10px;
+    padding: 2px 10px;
     border-radius: 6px;
     height: 100%;
     box-sizing: border-box;

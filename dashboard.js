@@ -514,30 +514,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 lastData.weather_data = weatherData;
             }
             
+            const gifMap = {
+                'despejado': { files: ['despejado.gif', 'despejado_2.gif'], counter: 0 },
+                'nubosidad parcial': { files: ['parcial.gif', 'nubosidad_parcial_2.gif', 'nubosidad_parcial_3.gif'], counter: 0 },
+                'escasa nubosidad': { files: ['escasa_nubosidad.gif'], counter: 0 },
+                'nublado': { files: ['nublado.gif'], counter: 0 },
+                'precipitaciones débiles': { files: ['precipitaciones_debiles.gif'], counter: 0 },
+                'lluvia': { files: ['lluvia.gif', 'lluvia_2.gif'], counter: 0 },
+                'nieve': { files: ['nieve.gif'], counter: 0 }
+            };
+
+            // Reiniciar contadores en cada actualización para un refresco consistente
+            Object.keys(gifMap).forEach(key => gifMap[key].counter = 0);
+
             const getWeatherBackground = (condition, hour) => {
                 const isNight = hour < 7 || hour > 19;
                 const c = condition.toLowerCase();
+                let category = null;
+                let finalGif = '';
 
-                if (c.includes('despejado')) {
-                    return isNight ? 'despejado_noche.gif' : 'despejado.gif';
+                // Determinar la categoría del tiempo
+                if (c.includes('despejado')) category = 'despejado';
+                else if (c.includes('nubosidad parcial')) category = 'nubosidad parcial';
+                else if (c.includes('escasa nubosidad')) category = 'escasa nubosidad';
+                else if (c.includes('nublado') || c.includes('cubierto')) category = 'nublado';
+                else if (c.includes('precipitaciones débiles')) category = 'precipitaciones débiles';
+                else if (c.includes('lluvia') || c.includes('precipitacion')) category = 'lluvia';
+                else if (c.includes('nieve')) category = 'nieve'; 
+
+                if (category) {
+                    const gifData = gifMap[category];
+                    const fileIndex = gifData.counter % gifData.files.length;
+                    finalGif = gifData.files[fileIndex];
+                    gifData.counter++;
+                    
+                    if (isNight) {
+                        const nightVersion = finalGif.replace('.gif', '_noche.gif');                        
+                        const nightFiles = ['despejado_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'lluvia_noche_2.gif'];
+                        if (nightFiles.includes(nightVersion)) {
+                            finalGif = nightVersion;
+                        }
+                    }
                 }
-                if (c.includes('escasa nubosidad')) {
-                    return isNight ? 'escasa_nubosidad_noche.gif' : 'escasa_nubosidad.gif';
-                }
-                if (c.includes('parcialmente nublado') || c.includes('nubosidad parcial')) {                    
-                    return 'parcial.gif';
-                }
-                if (c.includes('nublado') || c.includes('cubierto')) {
-                    return isNight ? 'nublado_noche.gif' : 'nublado.gif';
-                }
-                if (c.includes('lluvia') || c.includes('precipitacion')) {
-                    return isNight ? 'lluvia_noche.gif' : 'lluvia.gif';
-                }
-                if (c.includes('nieve')) {
-                    return isNight ? 'nieve_noche.gif' : 'nieve.gif';
-                }
-                
-                return ''; 
+
+                return finalGif;
             };
 
             const currentHour = new Date().getHours();
