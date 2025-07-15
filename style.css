@@ -2632,15 +2632,15 @@ footer {
 }
 
 .weather-overlay h4 {
-    color: #003366; /* Un azul más oscuro para el título */
-    font-size: 1.1em; /* Reducción ligera del tamaño de la fuente */
-    margin-bottom: 8px; /* Ajuste del margen inferior */
-    background-color: rgba(255, 255, 255, 0.7); /* Fondo blanco semitransparente */
-    padding: 3px 8px;
+    color: #003366;
+    font-size: 0.9em; 
+    margin-bottom: 5px;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 2px 6px;
     border-radius: 4px;
     display: inline-block;
-    text-shadow: 1px 1px 2px #333; /* Sombra oscura para contraste con fondo claro */
-    color: #000; /* Texto negro */
+    text-shadow: 1px 1px 2px #333;
+    color: #000;
 }
 
 /* El footer dentro del overlay no necesita fondo extra */
