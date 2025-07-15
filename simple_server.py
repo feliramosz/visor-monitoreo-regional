@@ -259,16 +259,16 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             mensaje_voz = f"Boletín de información de tsunami, emitido por el Pacific Tsunami Warning Center. "
             mensaje_voz += f"Se ha registrado un sismo de magnitud {magnitude} en la región de {location}. "
 
-            sonido = "assets/notificacion_alerta_maxima.mp3" # Sonido para boletines PTWC
+            sonido = "assets/sismo.mp3" # Sonido para boletines PTWC
 
             if event_code_value in ["Advisory", "Watch", "Warning"]:
                 mensaje_voz += "¡Atención! El boletín contiene acciones recomendadas importantes. Por favor, revise el sitio web oficial del Pacific Tsunami Warning Center para obtener los detalles oficiales."
-                sonido = "assets/notificacion_alerta_maxima.mp3"
+                sonido = "assets/sismo.mp3"
             elif event_code_value == "Information":
                 mensaje_voz += "No se espera un impacto de tsunami. No se requiere tomar ninguna acción."
             else: # Casos no reconocidos o cancelaciones
                 mensaje_voz += "¡Atención! Se ha recibido un boletín de tsunami con información relevante que requiere su atención. Revise el sitio web oficial del Pacific Tsunami Warning Center para obtener los detalles."
-                sonido = "assets/notificacion_alerta_maxima.mp3"
+                sonido = "assets/sismo.mp3"
 
             print(f"[TSUNAMI_CHECK] Mensaje de voz generado: '{mensaje_voz}'")
 
@@ -323,7 +323,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                            f"localizado en {place}. Se recomienda "
                            f"mantenerse informado a través de los canales oficiales")
                                      
-            sonido = "assets/notificacion_alerta_maxima.mp3"
+            sonido = "assets/geofon.mp3"
 
             print(f"[GEOFON_CHECK] Mensaje de voz generado: '{mensaje_voz}'")
 

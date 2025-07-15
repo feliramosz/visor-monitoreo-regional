@@ -602,7 +602,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const textoFinal = boletinCompleto.filter(Boolean).join(" ... ");
         
-        const sonidoNotificacion = new Audio('assets/notificacion_boletin.mp3');
+        const sonidoNotificacion = new Audio('assets/notificacion_normal.mp3');
         sonidoNotificacion.play();
         sonidoNotificacion.onended = () => {
             if (hora === 12 && minuto === 0) {

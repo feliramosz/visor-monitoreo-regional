@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const textoFinal = boletinCompleto.filter(Boolean).join(" ... ");
         
-        const sonidoNotificacion = new Audio('assets/notificacion_boletin.mp3');
+        const sonidoNotificacion = new Audio('assets/notificacion_normal.mp3');
         sonidoNotificacion.play();
         sonidoNotificacion.onended = () => {
             if (hora === 12 && minuto === 0) {
@@ -297,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const mensajeVoz = `El puerto ${nombrePuerto} ahora se encuentra ${estadoNuevo} y su condicion es ${condicionNueva}.`;
 
                 // Lanza la notificación con un sonido de alerta
-                lanzarNotificacion('assets/notificacion_alerta.mp3', mensajeVoz);
+                lanzarNotificacion('assets/notificacion_normal.mp3', mensajeVoz);
 
                 // Actualiza la memoria con el nuevo estado para no volver a notificar
                 memoriaNotificaciones.puertos[nombrePuerto] = { estado: estadoNuevo, condicion: condicionNueva };
@@ -1571,7 +1571,14 @@ document.addEventListener('DOMContentLoaded', () => {
             cambios.sort((a, b) => a.severidad - b.severidad);
 
             const eventoMasGrave = cambios[0];
-            let sonido = `assets/notificacion_${eventoMasGrave.estado}.mp3`;
+            let sonido;
+            if (eventoMasGrave.estado === 'emergencia') {
+                sonido = 'assets/alerta_maxima.mp3';
+            } else if (eventoMasGrave.estado === 'alerta' || eventoMasGrave.estado === 'preemergencia') {
+                sonido = 'assets/calidad_del_aire.mp3';
+            } else {
+                sonido = 'assets/notificacion_normal.mp3'; // Sonido por defecto si es necesario
+            }
 
             let mensajeVoz = "";
             if (eventoMasGrave.tipo === 'calidad_aire') {
@@ -1695,13 +1702,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const listaTexto = construirMensajeLista(estacionesFuertes);
             const mensajeVoz = `Atención, se registran precipitaciones en ${listaTexto}`;
             // Usamos el sonido de alerta principal para lluvias fuertes
-            lanzarNotificacion('assets/notificacion_precipitacion.mp3', mensajeVoz);
+            lanzarNotificacion('assets/precipitaciones.mp3', mensajeVoz);
 
         } else if (estacionesDebiles.length > 0) {
             const listaTexto = construirMensajeLista(estacionesDebiles);
             const mensajeVoz = `Se registran precipitaciones débiles en ${listaTexto}`;
             // Usamos un sonido más sutil para lluvias débiles
-            lanzarNotificacion('assets/notificacion_alerta.mp3', mensajeVoz);
+            lanzarNotificacion('assets/precipitaciones.mp3', mensajeVoz);
         }
     }
 
