@@ -2607,7 +2607,7 @@ footer {
     position: relative;
     z-index: 2;
     background-color: transparent; /* Se quita el fondo del contenedor principal */
-    padding: 0.5px 5px;
+    padding: 0.1px 5px;
     border-radius: 6px;
     height: 100%;
     box-sizing: border-box;
@@ -2620,7 +2620,7 @@ footer {
 .weather-overlay p {
     color: #000; /* Texto negro */
     background-color: rgba(255, 255, 255, 0.7); /* Fondo blanco semitransparente */
-    padding: 3px 8px;
+    padding: 1px 8px;
     border-radius: 4px;
     display: inline-block;
     margin-bottom: 2px;
@@ -2638,7 +2638,7 @@ footer {
     font-size: 0.9em; 
     margin-bottom: 5px;
     background-color: rgba(255, 255, 255, 0.7);
-    padding: 2px 6px;
+    padding: 1px 6px;
     border-radius: 4px;
     display: inline-block;
     text-shadow: 1px 1px 2px #333;
@@ -2653,5 +2653,5 @@ footer {
 
 .weather-station-box[data-station-code="320051"] .weather-overlay h4 {
     font-size: 0.8em; /* Tamaño de fuente aún más pequeño */
-    padding: 3px 5px; /* Un poco menos de espaciado para compactar */
+    padding: 1px 5px; /* Un poco menos de espaciado para compactar */
 }
