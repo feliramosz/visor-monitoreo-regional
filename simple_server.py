@@ -392,6 +392,20 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             }
             PROVINCIA_MAP_NORMALIZED = {_normalize_str(k): v for k, v in PROVINCIA_MAP.items()}
 
+            # Diccionario con el total de clientes eléctricos por comuna.
+            # Fuente: Estimaciones basadas en reportes de la CNE y distribuidoras.
+            CLIENTES_POR_COMUNA = {
+                'Valparaíso': 135000, 'Viña del Mar': 160000, 'Concón': 30000, 'Quintero': 28000, 'Puchuncaví': 16000, 'Casablanca': 18000, 'Juan Fernández': 600,
+                'Isla de Pascua': 3500,
+                'Quillota': 40000, 'La Calera': 25000, 'La Cruz': 15000, 'Hijuelas': 12000, 'Nogales': 13000,
+                'San Antonio': 50000, 'Cartagena': 15000, 'El Tabo': 12000, 'El Quisco': 14000, 'Algarrobo': 13000, 'Santo Domingo': 10000,
+                'San Felipe': 35000, 'Catemu': 8000, 'Llaillay': 12000, 'Panquehue': 5000, 'Putaendo': 9000, 'Santa María': 8000,
+                'Los Andes': 45000, 'Calle Larga': 8000, 'Rinconada': 7000, 'San Esteban': 10000,
+                'La Ligua': 20000, 'Cabildo': 12000, 'Papudo': 8000, 'Petorca': 7000, 'Zapallar': 9000,
+                'Quilpué': 70000, 'Villa Alemana': 60000, 'Limache': 25000, 'Olmué': 15000
+            }
+            CLIENTES_POR_COMUNA_NORMALIZED = {_normalize_str(k): v for k, v in CLIENTES_POR_COMUNA.items()}
+
             SEC_API_URL = "https://apps.sec.cl/INTONLINEv1/ClientesAfectados/GetPorFecha"
             headers = {
                 'authority': 'apps.sec.cl',
@@ -444,13 +458,21 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         
                         # Agregar o sumar al desglose por comuna
                         comuna_storage = outages_by_province_ordered[province]['comunas']
-                        comuna_storage[commune_name] = comuna_storage.get(commune_name, 0) + clients
+                        total_clientes_comuna = CLIENTES_POR_COMUNA_NORMALIZED.get(commune_normalized, 0)
+                        porcentaje_afectado = round((clients / total_clientes_comuna * 100), 2) if total_clientes_comuna > 0 else 0
+
+                        if commune_name not in comuna_storage:
+                            comuna_storage[commune_name] = {'cantidad': 0, 'porcentaje': 0.0}
+                        
+                        comuna_storage[commune_name]['cantidad'] += clients
+                        # Recalculamos el porcentaje con el total acumulado
+                        comuna_storage[commune_name]['porcentaje'] = round((comuna_storage[commune_name]['cantidad'] / total_clientes_comuna * 100), 2) if total_clientes_comuna > 0 else 0
 
             # Convertir el diccionario de comunas a una lista ordenada
             final_breakdown = []
-            for province_name, data in outages_by_province_ordered.items():
-                comunas_list = [{'comuna': k, 'cantidad': v} for k, v in data['comunas'].items()]
-                comunas_list.sort(key=lambda x: x['cantidad'], reverse=True) # Ordenar de mayor a menor
+            for province_name, data in outages_by_province_ordered.items():                
+                comunas_list = [{'comuna': k, 'cantidad': v['cantidad'], 'porcentaje': v['porcentaje']} for k, v in data['comunas'].items()]             
+                comunas_list.sort(key=lambda x: x['cantidad'], reverse=True) # Ordenar de mayor a menor                
                 final_breakdown.append({
                     "provincia": province_name,
                     "total_afectados": data['total'],

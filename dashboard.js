@@ -374,11 +374,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (provinceData.comunas && provinceData.comunas.length > 0) {
                         modalBody.innerHTML = `
                             <table class="sec-communes-table">
-                                <thead><tr><th>Comuna</th><th>Clientes Afectados</th></tr></thead>
+                                <thead><tr><th>Comuna</th><th>Clientes Afectados</th><th>% Afectación</th></tr></thead>
                                 <tbody>
-                                    ${provinceData.comunas.map(c => `<tr><td>${c.comuna}</td><td>${c.cantidad.toLocaleString('es-CL')}</td></tr>`).join('')}
+                                    ${provinceData.comunas.map(c => `
+                                        <tr>
+                                            <td>${c.comuna}</td>
+                                            <td>${c.cantidad.toLocaleString('es-CL')}</td>
+                                            <td>${c.porcentaje}%</td>
+                                        </tr>
+                                    `).join('')}
                                 </tbody>
-                            </table>`;
+                                </table>`;
                     } else {
                         modalBody.innerHTML = '<p>No hay desglose por comuna disponible para esta provincia.</p>';
                     }
