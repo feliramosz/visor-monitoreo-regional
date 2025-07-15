@@ -202,8 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             stationBox.innerHTML = `
                 <div class="weather-overlay">
-                    <h4>${station.nombre}</h4>
-                    <p><strong>${station.tiempo_presente}</strong></p>
+                    <h4>${station.nombre}</h4>                    
                     <p><strong>Temperatura:</strong> ${station.temperatura}°C</p>
                     <p><strong>Humedad:</strong> ${station.humedad}%</p>
                     <p><strong>Viento:</strong> ${station.viento_direccion} a ${station.viento_velocidad}</p>

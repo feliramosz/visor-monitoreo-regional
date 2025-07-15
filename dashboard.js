@@ -559,8 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return `
                     <div class="weather-station-box" style="${backgroundStyle}" data-station-code="${station.codigo}">
                         <div class="weather-overlay">
-                            <h4>${station.nombre}</h4>
-                            <p><strong>${station.tiempo_presente}</strong></p>
+                            <h4>${station.nombre}</h4>                            
                             <p><strong>Temp:</strong> ${station.temperatura}°C</p>
                             <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
                             <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
