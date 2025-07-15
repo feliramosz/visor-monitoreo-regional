@@ -466,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = weatherSlideHTML + hydroAndTurnosSlideHTML;
         
         // Puebla el contenido de cada slide
-        renderWeatherSlide(data);
+        renderWeatherSlide(lastData)
         renderStaticHydroSlide(data);
         fetchAndDisplayTurnos();
 
@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Obtiene los datos del clima y los renderiza en la slide de clima.
      */
-    async function renderWeatherSlide(data) {
+    async function renderWeatherSlide(fullData) {
         const weatherContainer = document.getElementById('weather-slide');
         if (!weatherContainer) return;
 
@@ -515,7 +515,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             const gifMap = {
-                'despejado': { files: ['despejado.gif', 'despejado_2.gif'], counter: 0 },
+                'despejado_costa': { files: ['despejado_2.gif'], counter: 0 },
+                'despejado_interior': { files: ['despejado.gif'], counter: 0 },
                 'nubosidad parcial': { files: ['parcial.gif', 'nubosidad_parcial_2.gif', 'nubosidad_parcial_3.gif'], counter: 0 },
                 'escasa nubosidad': { files: ['escasa_nubosidad.gif'], counter: 0 },
                 'nublado': { files: ['nublado.gif'], counter: 0 },
@@ -524,52 +525,54 @@ document.addEventListener('DOMContentLoaded', () => {
                 'nieve': { files: ['nieve.gif'], counter: 0 }
             };
 
-            // Reiniciar contadores en cada actualización para un refresco consistente
+            const inlandStationCodes = ["320049", "320124", "320051"]; // Petorca, Quillota, Los Libertadores
+
             Object.keys(gifMap).forEach(key => gifMap[key].counter = 0);
 
-            const getWeatherBackground = (condition, hour) => {
+            const getWeatherBackground = (station, hour) => {
+                const condition = station.tiempo_presente || '';
                 const isNight = hour < 7 || hour > 19;
                 const c = condition.toLowerCase();
-                let category = null;
-                let finalGif = '';
+                let categoryKey = null;
 
-                // Determinar la categoría del tiempo
-                if (c.includes('despejado')) category = 'despejado';
-                else if (c.includes('nubosidad parcial')) category = 'nubosidad parcial';
-                else if (c.includes('escasa nubosidad')) category = 'escasa nubosidad';
-                else if (c.includes('nublado') || c.includes('cubierto')) category = 'nublado';
-                else if (c.includes('precipitaciones débiles')) category = 'precipitaciones débiles';
-                else if (c.includes('lluvia') || c.includes('precipitacion')) category = 'lluvia';
-                else if (c.includes('nieve')) category = 'nieve'; 
-
-                if (category) {
-                    const gifData = gifMap[category];
+                if (c.includes('despejado')) {
+                    categoryKey = inlandStationCodes.includes(station.codigo) ? 'despejado_interior' : 'despejado_costa';
+                }
+                else if (c.includes('nubosidad parcial')) categoryKey = 'nubosidad parcial';
+                else if (c.includes('escasa nubosidad')) categoryKey = 'escasa nubosidad';
+                else if (c.includes('nublado') || c.includes('cubierto')) categoryKey = 'nublado';
+                else if (c.includes('precipitaciones débiles')) categoryKey = 'precipitaciones débiles';
+                else if (c.includes('lluvia') || c.includes('precipitacion')) categoryKey = 'lluvia';
+                else if (c.includes('nieve')) categoryKey = 'nieve';
+                
+                if (categoryKey) {
+                    const gifData = gifMap[categoryKey];
                     const fileIndex = gifData.counter % gifData.files.length;
-                    finalGif = gifData.files[fileIndex];
+                    let finalGif = gifData.files[fileIndex];
                     gifData.counter++;
-                    
+
                     if (isNight) {
-                        const nightVersion = finalGif.replace('.gif', '_noche.gif');                        
+                        const nightVersion = finalGif.replace('.gif', '_noche.gif');
                         const nightFiles = ['despejado_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'lluvia_noche_2.gif'];
                         if (nightFiles.includes(nightVersion)) {
                             finalGif = nightVersion;
                         }
                     }
+                    return finalGif;
                 }
-
-                return finalGif;
+                return '';
             };
 
             const currentHour = new Date().getHours();
 
             weatherContainer.innerHTML = weatherData.map(station => {
-                const backgroundFile = getWeatherBackground(station.tiempo_presente || '', currentHour);
+                const backgroundFile = getWeatherBackground(station, currentHour);
                 const backgroundStyle = backgroundFile ? `background-image: url('assets/${backgroundFile}');` : '';                
                 let passStatusText = '';
                 let passStatusWord = '';
                 let statusClass = 'status-no-informado';
-                if (station.nombre === 'Los Libertadores, Los Andes') {
-                    const status = (data.estado_pasos_fronterizos.find(p => p.nombre_paso === 'Los Libertadores') || {}).condicion || 'No informado';
+                if (station.nombre === 'Los Libertadores') {
+                    const status = (fullData.estado_pasos_fronterizos.find(p => p.nombre_paso === 'Los Libertadores') || {}).condicion || 'No informado';
                     passStatusText = 'Paso: ';
                     passStatusWord = status;
                     if (status.toLowerCase().includes('habilitado')) statusClass = 'status-habilitado';
