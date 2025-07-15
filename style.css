@@ -2591,7 +2591,7 @@ footer {
 
 /* --- ESTILOS PARA FONDOS DINÁMICOS DE ESTACIONES METEOROLÓGICAS --- */
 .weather-station-box {
-    position: relative;
+    position: relative; /* Necesario para posicionar el overlay */
     background-size: cover;
     background-position: center;
     transition: background-image 0.5s ease-in-out;
@@ -2601,7 +2601,7 @@ footer {
 .weather-overlay {
     position: relative;
     z-index: 2;
-    background-color: transparent;
+    background-color: transparent; /* Se quita el fondo del contenedor principal */
     padding: 10px;
     border-radius: 6px;
     height: 100%;
@@ -2613,24 +2613,26 @@ footer {
 /* Estilo de "resaltador" para cada línea de texto individual */
 .weather-overlay h4,
 .weather-overlay p {
-    color: #FFFFFF;
-    background-color: rgba(0, 0, 0, 0.5);
+    color: #FFFFFF; /* Texto blanco para que contraste sobre el fondo oscuro */
+    background-color: rgb(255, 255, 255); /* Fondo negro semitransparente */
     padding: 3px 8px;
     border-radius: 4px;
-    display: inline-block;
+    display: inline-block; /* Importante: hace que el fondo se ajuste al ancho del texto */
     margin-bottom: 6px; /* Espacio entre las líneas */
     text-shadow: 1px 1px 2px #000;
 }
 
+/* El texto en negrita no necesita fondo ni estilos extra */
 .weather-overlay strong {
     background-color: transparent;
     text-shadow: none;
 }
 
 .weather-overlay h4 {
-    color: #003366;
+    color: #003366; /* Un azul más oscuro para el título */
 }
 
+/* El footer dentro del overlay no necesita fondo extra */
 .weather-overlay .weather-box-footer {
     background-color: transparent;
     border-top: 1px solid rgba(0, 0, 0, 0.1);
