@@ -488,7 +488,10 @@ footer {
 .station-update-time {
     font-size: 0.8em;
     font-style: italic;
-    color: #6c757d;
+    color: #333;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 2px 5px;
+    border-radius: 3px;
     text-align: right;
     margin-top: 10px;
     border-top: 1px solid #eee;
@@ -2613,13 +2616,13 @@ footer {
 /* Estilo de "resaltador" para cada línea de texto individual */
 .weather-overlay h4,
 .weather-overlay p {
-    color: #FFFFFF; /* Texto blanco para que contraste sobre el fondo oscuro */
-    background-color: rgb(255, 255, 255); /* Fondo negro semitransparente */
+    color: #000; /* Texto negro */
+    background-color: rgba(255, 255, 255, 0.7); /* Fondo blanco semitransparente */
     padding: 3px 8px;
     border-radius: 4px;
-    display: inline-block; /* Importante: hace que el fondo se ajuste al ancho del texto */
-    margin-bottom: 6px; /* Espacio entre las líneas */
-    text-shadow: 1px 1px 2px #000;
+    display: inline-block;
+    margin-bottom: 6px;
+    text-shadow: 1px 1px 2px #333; /* Sombra oscura */
 }
 
 /* El texto en negrita no necesita fondo ni estilos extra */
@@ -2630,6 +2633,14 @@ footer {
 
 .weather-overlay h4 {
     color: #003366; /* Un azul más oscuro para el título */
+    font-size: 1.1em; /* Reducción ligera del tamaño de la fuente */
+    margin-bottom: 8px; /* Ajuste del margen inferior */
+    background-color: rgba(255, 255, 255, 0.7); /* Fondo blanco semitransparente */
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    text-shadow: 1px 1px 2px #333; /* Sombra oscura para contraste con fondo claro */
+    color: #000; /* Texto negro */
 }
 
 /* El footer dentro del overlay no necesita fondo extra */
