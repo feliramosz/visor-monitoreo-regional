@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };        
 
         Object.keys(gifMap).forEach(key => gifMap[key].counter = 0);
-        
+
         const getWeatherBackground = (station, hour) => {
                 const inlandStationCodes = ["320049", "320124", "320051"];
                 const condition = station.tiempo_presente || '';
@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const stationBox = document.createElement('div');
             stationBox.className = 'weather-station-box';
 
-            const backgroundFile = getWeatherBackground(station.tiempo_presente || '', currentHour);
+            const backgroundFile = getWeatherBackground(station, currentHour);
             if (backgroundFile) {
                 stationBox.style.backgroundImage = `url('assets/${backgroundFile}')`;
             }
