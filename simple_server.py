@@ -755,7 +755,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
                     STATIONS_MAP = {
                         "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
-                        "330006": "J. Botánico", "330161": "Lo Zárate, San Antonio",
+                        "330006": "J. Botánico", "330161": "San Antonio",
                         "320124": "L. Agricola, Quillota", "320051": "Los Libertadores",
                         "330031": "Juan Fernández", "270001": "Rapa Nui"
                     }
@@ -864,7 +864,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     
                     STATIONS_MAP = {
                         "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
-                        "330161": "Lo Zárate, San Antonio", "320124": "L. Agricola, Quillota",
+                        "330161": "San Antonio", "320124": "L. Agricola, Quillota",
                         "330031": "Juan Fernández", "270001": "Rapa Nui",
                         "320063": "Zapallar, Catapilco", 
                         "320045": "Llay Llay", "330030": "Santo Domingo",
