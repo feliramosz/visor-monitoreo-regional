@@ -530,12 +530,15 @@ document.addEventListener('DOMContentLoaded', () => {
             Object.keys(gifMap).forEach(key => gifMap[key].counter = 0);
 
             const getWeatherBackground = (station, hour) => {
+                const inlandStationCodes = ["320049", "320124", "320051"]; // Petorca, Quillota, Los Libertadores
                 const condition = station.tiempo_presente || '';
                 const isNight = hour < 7 || hour > 19;
                 const c = condition.toLowerCase();
                 let categoryKey = null;
 
+                // 1. Determinar la categoría del tiempo
                 if (c.includes('despejado')) {
+                    // Lógica geográfica: elige un set de GIFs distinto si es una estación interior
                     categoryKey = inlandStationCodes.includes(station.codigo) ? 'despejado_interior' : 'despejado_costa';
                 }
                 else if (c.includes('nubosidad parcial')) categoryKey = 'nubosidad parcial';
@@ -545,12 +548,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (c.includes('lluvia') || c.includes('precipitacion')) categoryKey = 'lluvia';
                 else if (c.includes('nieve')) categoryKey = 'nieve';
                 
+                // 2. Si se encontró una categoría, rotar el GIF
                 if (categoryKey) {
                     const gifData = gifMap[categoryKey];
                     const fileIndex = gifData.counter % gifData.files.length;
                     let finalGif = gifData.files[fileIndex];
-                    gifData.counter++;
+                    gifData.counter++; // Incrementar para la próxima vez
 
+                    // 3. Comprobar si hay una versión nocturna
                     if (isNight) {
                         const nightVersion = finalGif.replace('.gif', '_noche.gif');
                         const nightFiles = ['despejado_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'lluvia_noche_2.gif'];
@@ -560,7 +565,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     return finalGif;
                 }
-                return '';
+
+                return ''; // No devuelve fondo si no hay condición
             };
 
             const currentHour = new Date().getHours();

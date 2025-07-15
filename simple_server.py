@@ -766,9 +766,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             precip = float(str(precip_str).replace('mm', '').strip())
                             temp = float(str(temp_str).replace('°C', '').strip())
 
-                            if precip > 5.0:
+                            if precip > 4.0:
                                 return "Nieve" if temp < 2.0 else "Lluvia"
-                            elif precip > 4.0: 
+                            elif precip > 0.1: 
                                 return "Precipitaciones Débiles"
                                                  
                             # Si no llueve, decidimos entre Despejado y Parcial según la temperatura
