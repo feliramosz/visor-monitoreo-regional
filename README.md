@@ -1,6 +1,6 @@
 # Sistema de Monitoreo Regional - SENAPRED Valparaíso
 
-_Última actualización: 12 de julio de 2025_
+_Última actualización: 15 de julio de 2025_
 
 ![Estado](https://img.shields.io/badge/estado-en_producción-green)
 ![Python](https://img.shields.io/badge/python-3.x-blue.svg)
@@ -21,7 +21,7 @@ Cuenta con un panel de administración protegido por un sistema de login y roles
 El sistema ha sido migrado de un entorno local a un servidor de producción dedicado, asegurando alta disponibilidad y un rendimiento robusto.
 
 -   **Infraestructura**: Desplegado en un Servidor Privado Virtual (VPS) con **Ubuntu Linux**.
--   **Entornos Separados**: El sistema opera con dos entornos paralelos: un entorno de **Staging** para pruebas y validación (`staging.esrvalparaiso.cl`) y un entorno de **Producción** para el uso final (`www.esrvalparaiso.cl`). Cada entorno cuenta con su propia base de datos y configuración aislada.
+-   **Entornos Separados**: El sistema opera con dos entornos paralelos: un entorno de **Staging** para pruebas y validación y un entorno de **Producción** para el uso final. Cada entorno cuenta con su propia base de datos y configuración aislada.
 -   **Servidor Web**: **Nginx** actúa como un proxy inverso, gestionando el tráfico público para ambos entornos, sirviendo los archivos estáticos y manejando las conexiones seguras.
 -   **Seguridad**: La comunicación está cifrada mediante un certificado **SSL/TLS (HTTPS)** gestionado por Let's Encrypt. Todas las vistas de la aplicación requieren autenticación.
 -   **Aplicación Backend**: El servidor `simple_server.py` se ejecuta como un **servicio de systemd** para cada entorno (`senapred-prod.service` y `senapred-staging.service`), lo que garantiza que las aplicaciones se inicien automáticamente y se reinicien en caso de fallo.
@@ -35,12 +35,12 @@ El sistema ha sido migrado de un entorno local a un servidor de producción dedi
 Se ha implementado un flujo de trabajo profesional que automatiza el despliegue a los entornos de Staging y Producción, basado en un sistema de ramas en Git para garantizar la estabilidad.
 
 1.  **Ramas Principales**:
-    * **`develop`**: Es la rama principal de desarrollo. Todos los cambios nuevos se integran aquí. Cualquier `push` a esta rama despliega automáticamente los cambios al **entorno de Staging** (`staging.esrvalparaiso.cl`).
-    * **`main`**: Es la rama que refleja el código en producción. Está protegida y solo puede ser actualizada mediante una Pull Request desde `develop`. Cualquier cambio en esta rama despliega automáticamente al **entorno de Producción** (`www.esrvalparaiso.cl`).
+    * **`develop`**: Es la rama principal de desarrollo. Todos los cambios nuevos se integran aquí. Cualquier `push` a esta rama despliega automáticamente los cambios al **entorno de Staging**.
+    * **`main`**: Es la rama que refleja el código en producción. Está protegida y solo puede ser actualizada mediante una Pull Request desde `develop`. Cualquier cambio en esta rama despliega automáticamente al **entorno de Producción**.
 
 2.  **Proceso de Desarrollo y Prueba**:
     * Los cambios se realizan en VS Code en una rama de característica basada en `develop`.
-    * Una vez listos para probar, se suben a la rama `develop` (`git push origin develop`).
+    * Una vez listos para probar, se suben a la rama `develop`.
     * **GitHub Actions** (`.github/workflows/deploy.yml`) detecta el cambio y ejecuta un script en el servidor para desplegar la nueva versión en el sitio de Staging.
     * Se realizan pruebas y validaciones exhaustivas en el entorno de Staging para asegurar que todo funcione correctamente.
 
@@ -74,15 +74,16 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 -   **Panel de Administración Centralizado**: Una interfaz (`admin.html`) que permite a los operadores autorizados editar datos, gestionar el panel de "Novedades", subir imágenes para slides dinámicas y controlar la configuración global de visualización del dashboard.
 -   **Visualización de Turnos en Tiempo Real**: El dashboard muestra automáticamente al **Profesional a llamado** y a los **Operadores de Turno** según la hora y fecha actual, gestionado a través de un archivo `turnos.json` centralizado.
 -   **Visualización Avanzada de Datos**:
+    -   **Fondos Meteorológicos Dinámicos**: Los paneles de las estaciones meteorológicas en ambos visores (`index.html` y `dashboard.html`) ahora muestran fondos animados (GIFs) que reflejan el estado del tiempo inferido (Despejado, Lluvia, Nieve, etc.). La lógica distingue entre día y noche y aplica una selección de imágenes geográficamente consciente para estaciones costeras e interiores.
     -   **Medidores tipo 'velocímetro'**: Componentes visuales personalizados para mostrar datos hidrométricos (nivel y caudal).
     -   **Carruseles de Información Dinámica**: El dashboard cuenta con múltiples carruseles automáticos y personalizables para presentar la información de forma cíclica.
 -   **Gestión de Usuarios y Auditoría (Solo Administradores)**:
     -   **Gestión de Usuarios desde la Interfaz**: Los administradores pueden crear, editar y eliminar cuentas de usuario.
     -   **Log de Actividad del Sistema**: El sistema registra todas las acciones importantes (inicios de sesión, cambios de datos, etc.) con **usuario, fecha, hora y dirección IP**.
 -   **Integración de APIs Externas**: Consume y muestra datos en tiempo real de la DMC, SINCA, CSN, SHOA, Waze for Cities y SEC.
-    -   **Conexión a API de SEC**: Implementado un método robusto para la consulta de clientes sin suministro eléctrico directamente desde la API de la Superintendencia de Electricidad y Combustibles, asegurando la visualización automática de los datos.
+    -   **Conexión a API de SEC**: Implementado un método robusto para la consulta de clientes sin suministro eléctrico directamente desde la API de la Superintendencia de Electricidad y Combustibles. La visualización incluye un **desglose interactivo por comunas** que muestra la cantidad y el porcentaje de clientes afectados.
 -   **Múltiples Vistas de Despliegue**: `index.html` para visualización general, `dashboard.html` como panel de operaciones avanzado, y `admin.html`/`login.html` para gestión.
--   **Mejoras de Experiencia de Usuario (UX)**: Controles de visualización locales, paginación automática de novedades y priorización de alertas.
+-   **Mejoras de Experiencia de Usuario (UX)**: Controles de visualización locales, paginación automática de novedades y optimización de la interfaz para mayor claridad.
 -   **Gestión de Turnos:**
     -   Panel para la planificación visual de turnos mensuales en una vista de calendario.
     -   Sistema de asignación "click-to-assign" para operadores y profesionales a llamado.
@@ -102,13 +103,18 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 -   **Implementado un Sistema de Autenticación y Control de Acceso por Roles.**
 -   **Añadida Gestión de Usuarios y Log de Auditoría desde la Interfaz.**
 -   **Desarrollado un Dashboard de Operaciones Avanzado y Sincronización en Tiempo Real.**
+-   **Implementada visualización meteorológica con fondos dinámicos** y geolocalizados.
+-   **Mejorada la visualización de datos SEC** con desglose comunal interactivo y porcentajes de afectación.
 -   **Añadido Módulo de Monitoreo Hidrométrico Avanzado con medidores personalizados.**
 -   **Añadida Visualización de Personal de Turno en Tiempo Real**, basado en un calendario configurable.
 -   **Implementado Sistema de Boletines Informativos por Voz**, con activaciones programadas y contenido dinámico.
 -   **Implementado Sistema de Notificaciones de Eventos por Voz**, con alertas priorizadas, recordatorios inteligentes y controles de activación.
 -   **Añadido monitoreo de boletines de tsunami del PTWC y GEOFON** con análisis de datos y plantillas de voz en español.
+-   **Optimización de la interfaz de usuario** en los paneles de `index.html` y `dashboard.html`.
 -   **Solucionado problema de inestabilidad del servidor** mediante la implementación de un servidor multihilo.
 -   **Solucionado problema de conexión con la API de la SEC**, implementando una lógica de petición y procesamiento de datos robusta.
+
+---
 
 ## 📝 Próximos Pasos y Tareas Pendientes
 -   **Sistema de Notificaciones del Sistema:** Implementar alertas si el `cron job` de descarga de informes falla.
