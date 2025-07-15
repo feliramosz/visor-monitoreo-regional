@@ -732,130 +732,108 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             
             # --- RUTA PARA ESTACIONES METEOROLOGICAS (BANNER SUPERIOR) ---
             elif requested_path == '/api/weather':
-                # --- Lógica de Caché de 90 segundos ---
                 cache_key = 'weather'
                 current_time = datetime.now().timestamp()
-                
+
                 if cache_key in self.server.cache and self.server.cache[cache_key]['expires'] > current_time:
                     print(f"[{PID}] Sirviendo /api/weather DESDE CACHÉ.")
-                    cached_data = self.server.cache[cache_key]['data']
                     self._set_headers(200, 'application/json')
-                    self.wfile.write(json.dumps(cached_data, ensure_ascii=False).encode('utf-8'))
+                    self.wfile.write(json.dumps(self.server.cache[cache_key]['data'], ensure_ascii=False).encode('utf-8'))
                     return
-                
+
                 print(f"[{PID}] Sirviendo /api/weather DESDE API EXTERNA (actualizando caché).")
-                # --- Fin Lógica de Caché ---
                 
-                # --- IMPORTACIONES PARA CONVERSIONES ---                 
-                import pytz 
-                import re   # Para la función de velocidad del viento
-
-                # --- CONVERTIR GRADOS A PUNTOS CARDINALES ---
-                def degrees_to_cardinal(d):
-                    try:
-                        d = float(str(d).replace('°', '').strip())
-                        dirs = ["N", "NE", "E", "SE", "S", "SO", "O", "NO", "N"]
-                        ix = round(((d % 360) / 45))
-                        return dirs[ix]
-                    except (ValueError, TypeError):
-                        return "---"
-
-                def format_wind_speed_to_kmh(speed_str):
-                    try:
-                        speed_str = str(speed_str).strip().lower()
-                        value_str = re.sub(r'[^0-9.]', '', speed_str)
-                        value = float(value_str)
-
-                        if "kt" in speed_str or "nudos" in speed_str:
-                            kmh = value * 1.852
-                            return f"{kmh:.1f} km/h"
-                        return f"{value:.1f} km/h"
-                    except (ValueError, TypeError):
-                        return "---"
-                
-                def convert_utc_to_local_time_str(utc_datetime_str):
-                    try:
-                        utc_dt = datetime.strptime(utc_datetime_str, '%Y-%m-%d %H:%M:%S')
-                        utc_timezone = pytz.timezone('UTC')
-                        utc_dt = utc_timezone.localize(utc_dt)
-                        chile_timezone = pytz.timezone('America/Santiago')
-                        chile_dt = utc_dt.astimezone(chile_timezone)
-                        return chile_dt.strftime('%H:%M')
-                    except (ValueError, TypeError, AttributeError):
-                        return "HH:MM"
-                # --- FIN DE FUNCIONES DE CONVERSION ---
-
                 try:
-                    DMC_HOME_URL = "https://climatologia.meteochile.gob.cl/"
-                    DMC_API_URL = "https://climatologia.meteochile.gob.cl/application/servicios/getDatosRecientesRedEma"
-                    DMC_USUARIO = "feliperamosz@gmail.com" 
-                    DMC_TOKEN = "00746c9061f597a2a41401a9" 
+                    # --- INICIO DE LA NUEVA LÓGICA ---
+                    import pytz
+                    import re
 
-                    session = requests.Session() 
-                    session.headers.update({
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-                        'Referer': DMC_HOME_URL
-                    })
+                    DMC_USUARIO = "feliperamosz@gmail.com"
+                    DMC_TOKEN = "00746c9061f597a2a41401a9"
+                    params = {'usuario': DMC_USUARIO, 'token': DMC_TOKEN}
                     
-                    session.get(DMC_HOME_URL, timeout=15)
-
-                    params = {'usuario': DMC_USUARIO, 'token': DMC_TOKEN} 
-                    response = session.get(DMC_API_URL, params=params, timeout=15) 
-                    response.raise_for_status()
-                    response.encoding = 'utf-8'
-
-                    json_response = response.json()
-                    stations_list = json_response.get('datosEstaciones', [])
+                    # URLs de las APIs
+                    API_DATOS_RECIENTES = "https://climatologia.meteochile.gob.cl/application/servicios/getDatosRecientesRedEma"
                     
+                    # URL dinámica para el boletín diario
+                    hoy = datetime.now(pytz.timezone('America/Santiago'))
+                    API_BOLETIN_DIARIO = f"https://climatologia.meteochile.gob.cl/application/geoservicios/getBoletinClimatologicoDiarioGeo/{hoy.strftime('%Y/%m/%d')}"
+
+                    # Mapa de estaciones que nos interesan
                     STATIONS_MAP = {
                         "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
                         "320041": "Torquemada", "330161": "Lo Zárate, San Antonio",
                         "320124": "L. Agricola, Quillota", "320051": "Los Libertadores, Los Andes",
-                        "330031": "Isla Juan Fernández", "270001": "Isla de Pascua" 
+                        "330031": "Isla Juan Fernández", "270001": "Isla de Pascua"
                     }
                     
-                    found_stations = {}
-                    for station_data in stations_list:
-                        estacion_info = station_data.get('estacion', {})
-                        codigo = estacion_info.get('codigoNacional')
-                        if codigo in STATIONS_MAP:
-                            found_stations[codigo] = station_data
+                    # 1. Obtener "tiempoPresente" del boletín diario
+                    tiempo_presente_por_estacion = {}
+                    try:
+                        response_boletin = requests.get(API_BOLETIN_DIARIO, params=params, timeout=15)
+                        response_boletin.raise_for_status()
+                        boletin_data = response_boletin.json().get('features', [])
+                        for feature in boletin_data:
+                            props = feature.get('properties', {})
+                            codigo = str(props.get('codigoNacional'))
+                            if codigo in STATIONS_MAP:
+                                tiempo_presente_por_estacion[codigo] = props.get('tiempoPresente', 'S/I')
+                    except Exception as e:
+                        print(f"ADVERTENCIA: No se pudo obtener el boletín diario. 'tiempoPresente' no estará disponible. Causa: {e}")
 
-                    weather_data = []
+                    # 2. Obtener datos recientes (temperatura, viento, etc.)
+                    response_recientes = requests.get(API_DATOS_RECIENTES, params=params, timeout=15)
+                    response_recientes.raise_for_status()
+                    datos_recientes_por_estacion = {
+                        str(station.get('estacion', {}).get('codigoNacional')): station
+                        for station in response_recientes.json().get('datosEstaciones', [])
+                    }
+
+                    # Funciones auxiliares (las mismas que antes)
+                    def degrees_to_cardinal(d):
+                        try:
+                            d = float(str(d).replace('°', '').strip())
+                            dirs = ["N", "NE", "E", "SE", "S", "SO", "O", "NO", "N"]
+                            return dirs[round(((d % 360) / 45))]
+                        except: return "---"
+                    def format_wind_speed_to_kmh(speed_str):
+                        try:
+                            value = float(re.sub(r'[^0-9.]', '', str(speed_str)))
+                            return f"{value * 1.852:.1f} km/h" if "kt" in str(speed_str).lower() else f"{value:.1f} km/h"
+                        except: return "---"
+                    def convert_utc_to_local_time_str(utc_datetime_str):
+                        try:
+                            utc_dt = pytz.utc.localize(datetime.strptime(utc_datetime_str, '%Y-%m-%d %H:%M:%S'))
+                            return utc_dt.astimezone(pytz.timezone('America/Santiago')).strftime('%H:%M')
+                        except: return "HH:MM"
+
+                    # 3. Unificar todos los datos
+                    weather_data_final = []
                     for codigo, nombre in STATIONS_MAP.items():
-                        station_data = found_stations.get(codigo)
-                        
-                        if station_data and station_data.get('datos'):
-                            latest_reading = station_data['datos'][0]
-                            utc_time_str = latest_reading.get('momento', '')
-                            local_update_time = convert_utc_to_local_time_str(utc_time_str)
-
-                            weather_data.append({
+                        datos_recientes = datos_recientes_por_estacion.get(codigo)
+                        if datos_recientes and datos_recientes.get('datos'):
+                            latest = datos_recientes['datos'][0]
+                            weather_data_final.append({
+                                'codigo': codigo,
                                 'nombre': nombre,
-                                'temperatura': str(latest_reading.get('temperatura', 'N/A')).replace('°C', '').strip(),
-                                'humedad': str(latest_reading.get('humedadRelativa', 'N/A')).replace('%', '').strip(),
-                                'viento_direccion': degrees_to_cardinal(latest_reading.get('direccionDelViento')),
-                                'viento_velocidad': format_wind_speed_to_kmh(latest_reading.get('fuerzaDelViento')),
-                                'precipitacion_24h': str(latest_reading.get('aguaCaida24Horas', 'N/A')).replace('mm', '').strip(),
-                                'hora_actualizacion': local_update_time
+                                'tiempo_presente': tiempo_presente_por_estacion.get(codigo, 'S/I'),
+                                'temperatura': str(latest.get('temperatura', 'N/A')).replace('°C', '').strip(),
+                                'humedad': str(latest.get('humedadRelativa', 'N/A')).replace('%', '').strip(),
+                                'viento_direccion': degrees_to_cardinal(latest.get('direccionDelViento')),
+                                'viento_velocidad': format_wind_speed_to_kmh(latest.get('fuerzaDelViento')),
+                                'precipitacion_24h': str(latest.get('aguaCaida24Horas', 'N/A')).replace('mm', '').strip(),
+                                'hora_actualizacion': convert_utc_to_local_time_str(latest.get('momento', ''))
                             })
                         else:
-                            weather_data.append({
-                                'nombre': nombre, 'temperatura': 'Sin datos', 'humedad': '---',
-                                'viento_direccion': '---', 'viento_velocidad': '---',
+                            weather_data_final.append({
+                                'codigo': codigo, 'nombre': nombre, 'tiempo_presente': 'Offline', 'temperatura': 'Sin datos',
+                                'humedad': '---', 'viento_direccion': '---', 'viento_velocidad': '---',
                                 'precipitacion_24h': '---', 'hora_actualizacion': 'Offline'
                             })
                     
-                    print(f"Visor configurado para {len(weather_data)} estaciones.")
-                    
-                    # --- Lógica de Caché: Guardar el resultado ---
-                    self.server.cache[cache_key] = {
-                        'data': weather_data,
-                        'expires': current_time + 90 # Expira en 90 segundos
-                    }
-
+                    self.server.cache[cache_key] = {'data': weather_data_final, 'expires': current_time + 90}
                     self._set_headers(200, 'application/json')
-                    self.wfile.write(json.dumps(weather_data, ensure_ascii=False).encode('utf-8'))
+                    self.wfile.write(json.dumps(weather_data_final, ensure_ascii=False).encode('utf-8'))
 
                 except Exception as e:
                     import traceback

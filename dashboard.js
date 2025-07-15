@@ -513,8 +513,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if (lastData) {
                 lastData.weather_data = weatherData;
             }
+            
+            const getWeatherBackground = (condition, hour) => {
+                const isNight = hour < 7 || hour > 19;
+                const c = condition.toLowerCase();
+
+                if (c.includes('despejado')) return isNight ? 'despejado_noche.gif' : 'despejado.gif';
+                if (c.includes('escasa nubosidad')) return isNight ? 'escasa_nubosidad_noche.gif' : 'escasa_nubosidad.gif';
+                if (c.includes('parcialmente nublado')) return isNight ? 'parcial.gif' : 'parcial.gif';
+                if (c.includes('nublado')) return isNight ? 'nublado_noche.gif' : 'nublado.gif';
+                if (c.includes('cubierto')) return isNight ? 'nublado_noche.gif' : 'nublado.gif';
+                if (c.includes('lluvia') || c.includes('precipitacion')) return isNight ? 'lluvia_noche.gif' : 'lluvia.gif';
+                if (c.includes('nieve')) return isNight ? 'nieve_noche.gif' : 'nieve.gif';
+                return ''; // Sin fondo si no coincide
+            };
+
+            const currentHour = new Date().getHours();
 
             weatherContainer.innerHTML = weatherData.map(station => {
+                const backgroundFile = getWeatherBackground(station.tiempo_presente || '', currentHour);
+                const backgroundStyle = backgroundFile ? `background-image: url('assets/${backgroundFile}');` : '';                
                 let passStatusText = '';
                 let passStatusWord = '';
                 let statusClass = 'status-no-informado';
@@ -527,13 +545,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 return `
-                    <div class="weather-station-box">
-                        <h4>${station.nombre}</h4>
-                        <p><strong>Temp:</strong> ${station.temperatura}°C</p>
-                        <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p> <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
-                        <div class="weather-box-footer">
-                            <span class="pass-status">${passStatusText}<span class="${statusClass}">${passStatusWord}</span></span>
-                            <span class="station-update-time">Act: ${station.hora_actualizacion}h</span>
+                    <div class="weather-station-box" style="${backgroundStyle}" data-station-code="${station.codigo}">
+                        <div class="weather-overlay">
+                            <h4>${station.nombre}</h4>
+                            <p><strong>${station.tiempo_presente}</strong></p>
+                            <p><strong>Temp:</strong> ${station.temperatura}°C</p>
+                            <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
+                            <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
+                            <div class="weather-box-footer">
+                                <span class="pass-status">${passStatusText}<span class="${statusClass}">${passStatusWord}</span></span>
+                                <span class="station-update-time">Act: ${station.hora_actualizacion}h</span>
+                            </div>
                         </div>
                     </div>`;
             }).join('');

@@ -160,19 +160,43 @@ document.addEventListener('DOMContentLoaded', () => {
         const sidebarRight = document.getElementById('weather-sidebar-right');
         sidebarLeft.innerHTML = '';
         sidebarRight.innerHTML = '';
+    
+        const getWeatherBackground = (condition, hour) => {
+            const isNight = hour < 7 || hour > 19;
+            const c = condition.toLowerCase();
+
+            if (c.includes('despejado')) return isNight ? 'despejado_noche.gif' : 'despejado.gif';
+            if (c.includes('escasa nubosidad')) return isNight ? 'escasa_nubosidad_noche.gif' : 'escasa_nubosidad.gif';
+            if (c.includes('parcialmente nublado')) return isNight ? 'parcial.gif' : 'parcial.gif';
+            if (c.includes('nublado')) return isNight ? 'nublado_noche.gif' : 'nublado.gif';
+            if (c.includes('cubierto')) return isNight ? 'nublado_noche.gif' : 'nublado.gif';
+            if (c.includes('lluvia') || c.includes('precipitacion')) return isNight ? 'lluvia_noche.gif' : 'lluvia.gif';
+            if (c.includes('nieve')) return isNight ? 'nieve_noche.gif' : 'nieve.gif';
+            return '';
+        };
+        const currentHour = new Date().getHours();        
+        
 
         weatherData.forEach((station, index) => {
             const stationBox = document.createElement('div');
             stationBox.className = 'weather-station-box';
-                        
+
+            const backgroundFile = getWeatherBackground(station.tiempo_presente || '', currentHour);
+            if (backgroundFile) {
+                stationBox.style.backgroundImage = `url('assets/${backgroundFile}')`;
+            }
+
             stationBox.innerHTML = `
-                <h4>${station.nombre}</h4>
-                <p><strong>Temperatura:</strong> ${station.temperatura}°C</p>
-                <p><strong>Humedad:</strong> ${station.humedad}%</p>
-                <p><strong>Viento:</strong> ${station.viento_direccion} a ${station.viento_velocidad}</p>
-                <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
-                <p class="station-update-time">Últ. act: ${station.hora_actualizacion} h.</p>
-                <p class="station-source">Fuente: EMA DMC</p>`;        
+                <div class="weather-overlay">
+                    <h4>${station.nombre}</h4>
+                    <p><strong>${station.tiempo_presente}</strong></p>
+                    <p><strong>Temperatura:</strong> ${station.temperatura}°C</p>
+                    <p><strong>Humedad:</strong> ${station.humedad}%</p>
+                    <p><strong>Viento:</strong> ${station.viento_direccion} a ${station.viento_velocidad}</p>
+                    <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
+                    <p class="station-update-time">Últ. act: ${station.hora_actualizacion} h.</p>
+                    <p class="station-source">Fuente: EMA DMC</p>
+                </div>`;                        
 
             // Divide las estaciones entre la barra izquierda y derecha
             if (index < 4) {

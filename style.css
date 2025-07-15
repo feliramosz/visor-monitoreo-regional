@@ -2588,3 +2588,42 @@ footer {
         transform: translateY(0);
     }
 }
+
+/* --- ESTILOS PARA FONDOS DINÁMICOS DE ESTACIONES METEOROLÓGICAS --- */
+.weather-station-box {
+    position: relative; /* Necesario para posicionar el overlay */
+    background-size: cover;
+    background-position: center;
+    transition: background-image 0.5s ease-in-out;
+}
+
+/* Capa semitransparente para mejorar la legibilidad del texto */
+.weather-overlay {
+    position: relative;
+    z-index: 2;
+    background-color: rgba(255, 255, 255, 0.85); /* Fondo blanco con 85% de opacidad */
+    padding: 10px;
+    border-radius: 6px;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ajustes al texto para que resalte sobre la capa semitransparente */
+.weather-overlay h4,
+.weather-overlay p,
+.weather-overlay strong {
+    color: #000; /* Texto negro para máximo contraste */
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.7); /* Sombra clara para "levantar" el texto */
+}
+
+.weather-overlay h4 {
+    color: #003366; /* Un azul más oscuro para el título */
+}
+
+/* El footer dentro del overlay no necesita fondo extra */
+.weather-overlay .weather-box-footer {
+    background-color: transparent;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
