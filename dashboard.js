@@ -246,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sonidoNotificacion.play();
         sonidoNotificacion.onended = () => {
             if (hora === 12 && minuto === 0) {
-                const audioIntro = new Audio('assets/boletin_intro.mp3');
+                const audioIntro = new Audio('assets/notificacion_normal.mp3');
                 audioIntro.play();
                 audioIntro.onended = () => {
                     hablar(textoFinal);
@@ -1587,7 +1587,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     mensajeVoz += " Se debe activar protocolo de contaminación.";
                 }
             } else { // Recordatorio
-                sonido = 'assets/notificacion_regular.mp3'; // Un sonido sutil para recordatorios
+                sonido = 'assets/calidad_del_aire.mp3'; // Un sonido sutil para recordatorios
                 mensajeVoz = `Recordatorio: la estación ${eventoMasGrave.nombre} se mantiene en estado de ${eventoMasGrave.estado}.`;
             }
 
@@ -1616,12 +1616,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Solo notificar si hay un cambio real
         if (estadoNuevo && estadoNuevo !== estadoAnterior) {
             let mensajeVoz = '';
-            let sonido = 'assets/notificacion_regular.mp3';
+            let sonido = 'assets/notificacion_normal.mp3';
 
             // Notificación de ALERTA solo si se CIERRA o entra en un estado anómalo
             if (estadoNuevo.toLowerCase().includes('cerrado') || estadoNuevo.toLowerCase().includes('suspendido')) {
                 mensajeVoz = `¡Atención! El estado del Complejo Fronterizo Los Libertadores ha cambiado a: ${estadoNuevo}.`;
-                sonido = 'assets/notificacion_alerta.mp3';
+                sonido = 'assets/notificacion_normal.mp3';
             }
             // Notificación INFORMATIVA si vuelve a estar Habilitado
             else if (estadoNuevo.toLowerCase().includes('habilitado')) {
@@ -1643,7 +1643,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (tiempoDesdeUltimaNotificacion > dosHoras) {
                 const mensajeVoz = `El Complejo Fronterizo Los Libertadores se encuentra ${estadoNuevo}.`;
-                lanzarNotificacion('assets/notificacion_regular.mp3', mensajeVoz);
+                lanzarNotificacion('assets/notificacion_normnal.mp3', mensajeVoz);
 
                 // Aquí está la corrección clave: actualizamos el objeto completo
                 memoriaNotificaciones.pasoFronterizo['Los Libertadores'] = { estado: estadoNuevo, ultimaNotificacion: ahora };
