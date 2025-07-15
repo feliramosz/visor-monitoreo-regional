@@ -161,6 +161,19 @@ document.addEventListener('DOMContentLoaded', () => {
         sidebarLeft.innerHTML = '';
         sidebarRight.innerHTML = '';
     
+        const gifMap = {
+            'despejado_costa': { files: ['despejado_2.gif'], counter: 0 },
+            'despejado_interior': { files: ['despejado.gif'], counter: 0 },
+            'nubosidad parcial': { files: ['parcial.gif', 'nubosidad_parcial_2.gif', 'nubosidad_parcial_3.gif'], counter: 0 },
+            'escasa nubosidad': { files: ['escasa_nubosidad.gif'], counter: 0 },
+            'nublado': { files: ['nublado.gif'], counter: 0 },
+            'precipitaciones débiles': { files: ['precipitaciones_debiles.gif'], counter: 0 },
+            'lluvia': { files: ['lluvia.gif', 'lluvia_2.gif'], counter: 0 },
+            'nieve': { files: ['nieve.gif'], counter: 0 }
+        };        
+
+        Object.keys(gifMap).forEach(key => gifMap[key].counter = 0);
+        
         const getWeatherBackground = (station, hour) => {
                 const inlandStationCodes = ["320049", "320124", "320051"];
                 const condition = station.tiempo_presente || '';
