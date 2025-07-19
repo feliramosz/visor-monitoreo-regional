@@ -2748,7 +2748,7 @@ footer {
 }
 
 .empty-panel-logo-container img {
-    max-width: 225px; /* Tamaño máximo del logo */
-    max-height: 225px;
+    max-width: 500px; /* Tamaño máximo del logo */
+    max-height: 500px;
     opacity: 0.25; /* Semitransparencia */
 }
