@@ -1,15 +1,28 @@
 # -*- coding: utf-8 -*-
-import requests
 import re
-from bs4 import BeautifulSoup
+import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-def obtener_datos_dga_final():
+def configurar_driver():
+    """Configura el navegador Chrome para ejecutarse en segundo plano en el servidor."""
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+    driver = webdriver.Chrome(options=options)
+    return driver
+
+def obtener_datos_dga_selenium():
     """
-    Versión final que añade el encabezado 'Referer' para asegurar
-    una respuesta completa del servidor de la DGA.
+    Utiliza Selenium con los códigos de estación correctos para extraer los datos de caudal.
     """
     DGA_URL = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
 
+    # --- CÓDIGOS DE ESTACIÓN CORREGIDOS ---
     codigos_estaciones = {
         "05410002-7": "Aconcagua en Chacabuquito",
         "05410024-8": "Aconcagua San Felipe 2",
@@ -17,57 +30,38 @@ def obtener_datos_dga_final():
     }
 
     datos_extraidos = {}
+    driver = None
 
     try:
-        print("Paso 1: Obteniendo ViewState...")
-        session = requests.Session()
-        # --- CAMBIO CLAVE: Añadimos el encabezado 'Referer' ---
-        session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Referer': DGA_URL 
-        })
+        driver = configurar_driver()
+        print("Paso 1: Abriendo página de la DGA en un navegador virtual...")
+        driver.get(DGA_URL)
 
-        respuesta_inicial = session.get(DGA_URL, timeout=20)
-        respuesta_inicial.raise_for_status()
-
-        soup = BeautifulSoup(respuesta_inicial.content, 'lxml')
-
-        view_state_input = soup.find('input', {'name': 'javax.faces.ViewState'})
-
-        if not view_state_input:
-            raise ValueError("No se pudo encontrar el 'ViewState'.")
-
-        view_state = view_state_input.get('value')
-        print(" -> ViewState obtenido con éxito.")
+        # Esperamos a que un elemento clave de la página esté presente
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.ID, "mainForm:toolbarMapa"))
+        )
+        print(" -> Página cargada y JavaScript ejecutado.")
 
         for codigo, nombre in codigos_estaciones.items():
-            print(f"\nPaso 2: Consultando estación '{nombre}'...")
+            print(f"\nPaso 2: Solicitando datos para la estación '{nombre}' ({codigo})...")
 
-            payload = {
-                'javax.faces.partial.ajax': 'true',
-                'javax.faces.source': 'medicionesByTypeFunctions:j_idt162',
-                'javax.faces.partial.execute': 'medicionesByTypeFunctions:j_idt162 @component',
-                'javax.faces.partial.render': '@component',
-                'javax.faces.ViewState': view_state,
-                'param1': codigo,
-                'param2': 'Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas'
-            }
+            # Ejecutamos la función JavaScript de la página para pedir los datos
+            script_js = f"getParametersMeditionsByStationType('{codigo}', 'Fluviometricas');"
+            driver.execute_script(script_js)
 
-            respuesta_ajax = session.post(DGA_URL, data=payload, timeout=20)
-            respuesta_ajax.raise_for_status()
+            # Damos un par de segundos para que el servidor responda
+            time.sleep(2)
 
-            print("Paso 3: Analizando respuesta XML y extrayendo caudal...")
+            # Esperamos a que el panel del pop-up se actualice
+            popup_div = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, "medicionesByTypeFunctions:infoWindowPopUp"))
+            )
 
-            soup_respuesta = BeautifulSoup(respuesta_ajax.content, 'lxml-xml')
-            update_tag = soup_respuesta.find('update', {'id': 'medicionesByTypeFunctions:infoWindowPopUp'})
+            response_html = popup_div.get_attribute('innerHTML')
 
-            if not update_tag or not update_tag.string:
-                datos_extraidos[nombre] = None
-                print(" -> FALLO: La respuesta del servidor no contiene la sección de datos esperada.")
-                continue
-
-            cdata_content = update_tag.string
-            caudal_match = re.search(r'var ultimoCaudalReg = "([^"]+)"', cdata_content)
+            print("Paso 3: Analizando respuesta y extrayendo caudal...")
+            caudal_match = re.search(r'var ultimoCaudalReg = "([^"]+)"', response_html)
 
             if caudal_match and caudal_match.group(1):
                 caudal_str = caudal_match.group(1).replace(",", ".")
@@ -77,15 +71,18 @@ def obtener_datos_dga_final():
                 datos_extraidos[nombre] = None
                 print(" -> No se encontró el valor de caudal en la respuesta.")
 
-        return datos_extraidos
-
     except Exception as e:
-        print(f"\nERROR durante la prueba: {e}")
-        return {}
+        print(f"\nERROR durante la prueba con Selenium: {e}")
+
+    finally:
+        if driver:
+            driver.quit() # Siempre cerramos el navegador virtual
+
+    return datos_extraidos
 
 if __name__ == "__main__":
-    print("--- INICIANDO PRUEBA FINAL (CON HEADER REFERER) ---")
-    datos_en_vivo = obtener_datos_dga_final()
+    print("--- INICIANDO PRUEBA CON SELENIUM Y CÓDIGOS CORREGIDOS ---")
+    datos_en_vivo = obtener_datos_dga_selenium()
 
     if datos_en_vivo and any(c is not None for c in datos_en_vivo.values()):
         print("\n=============================================================")
