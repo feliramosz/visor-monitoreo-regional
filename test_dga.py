@@ -5,8 +5,8 @@ from bs4 import BeautifulSoup
 
 def obtener_datos_dga_definitivo():
     """
-    Versión corregida que simula la interacción con el mapa de la DGA
-    para extraer datos de caudal en tiempo real.
+    Versión final que simula la interacción con el mapa de la DGA
+    utilizando el payload exacto capturado del navegador.
     """
     DGA_URL = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
 
@@ -22,7 +22,10 @@ def obtener_datos_dga_definitivo():
         print("Paso 1: Obteniendo clave de sesión (ViewState)...")
         session = requests.Session()
         session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/xml, text/xml, */*; q=0.01',
+            'Faces-Request': 'partial/ajax',
+            'X-Requested-With': 'XMLHttpRequest'
         })
 
         respuesta_inicial = session.get(DGA_URL, timeout=20)
@@ -35,15 +38,17 @@ def obtener_datos_dga_definitivo():
         for codigo, nombre in codigos_estaciones.items():
             print(f"\nPaso 2: Consultando estación '{nombre}'...")
 
-            # Payload corregido para simular el click en el mapa
+            # Payload final y preciso, construido a partir de tu captura
             payload = {
                 'javax.faces.partial.ajax': 'true',
                 'javax.faces.source': 'medicionesByTypeFunctions:j_idt162',
-                'javax.faces.partial.execute': '@all',
-                'javax.faces.partial.render': 'medicionesByTypeFunctions:infoWindowPopUp',
+                'javax.faces.partial.execute': 'medicionesByTypeFunctions:j_idt162 @component',
+                'javax.faces.partial.render': '@component',
                 'javax.faces.ViewState': view_state,
                 'param1': codigo,
-                'param2': 'Fluviometricas' # Se asume este tipo para obtener el caudal
+                'param2': 'Fluviometricas', # Enviamos el tipo de dato que nos interesa
+                'medicionesByTypeFunctions': 'medicionesByTypeFunctions',
+                'medicionesByTypeFunctions:j_idt162': 'medicionesByTypeFunctions:j_idt162'
             }
 
             respuesta_ajax = session.post(DGA_URL, data=payload, timeout=20)
