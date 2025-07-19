@@ -1,144 +1,118 @@
+# -*- coding: utf-8 -*-
 import requests
 import re
+from bs4 import BeautifulSoup
+import json
 
-def obtener_datos_dga_api():
-    url = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
-        "Accept": "*/*",
-        "Accept-Encoding": "gzip, deflate, br, zstd",
-        "Accept-Language": "es-ES,es;q=0.9",
-        "Origin": "https://snia.mop.gob.cl",
-        "Referer": "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml",
-        "Sec-Fetch-Dest": "empty",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Site": "same-origin"
-    }
+def obtener_datos_dga_final():
+    DGA_URL = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
+
     codigos_estaciones = {
-        "05410002-7": {"nombre": "Aconcagua en Chacabuquito", "param2": "RIO ACONCAGUA EN CHACABUQUITO"},
-        "05410024-8": {"nombre": "Aconcagua San Felipe 2", "param2": "ACONCAGUA SAN FELIPE 2"},
-        "05414004-5": {"nombre": "Putaendo Resguardo Los Patos", "param2": "PUTAENDO RESGUARDO LOS PATOS"}
+        "05410002-7": "Aconcagua en Chacabuquito",
+        "05410024-8": "Aconcagua San Felipe 2",
+        "05414004-5": "Putaendo Resguardo Los Patos"
     }
+
     datos_extraidos = {}
 
-    # Crear una sesión para mantener cookies
-    session = requests.Session()
+    try:
+        print("Paso 1: Obteniendo ViewState...")
+        session = requests.Session()
+        session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/xml, text/xml, */*; q=0.01',
+            'Faces-Request': 'partial/ajax',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Referer': DGA_URL
+        })
 
-    # Obtener ViewState y cookies
-    print("Obteniendo ViewState y cookies...")
-    response = session.get(url, headers=headers)
-    view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', response.text)
-    if not view_state_match:
-        print("Error: No se pudo obtener el ViewState.")
+        respuesta_inicial = session.get(DGA_URL, timeout=20)
+        respuesta_inicial.raise_for_status()
+
+        soup = BeautifulSoup(respuesta_inicial.content, 'lxml')
+        view_state_input = soup.find('input', {'name': 'javax.faces.ViewState'})
+
+        if not view_state_input:
+            raise ValueError("No se pudo encontrar el 'ViewState'.")
+
+        view_state = view_state_input.get('value')
+        print(f" -> ViewState obtenido: {view_state}")
+
+        for codigo, nombre in codigos_estaciones.items():
+            print(f"\nPaso 2: Consultando estación '{nombre}'...")
+
+            # Payload para obtener los parámetros de la estación (pre-consulta)
+            payload_params = {
+                'javax.faces.partial.ajax': 'true',
+                'javax.faces.source': 'medicionesByTypeFunctions:j_idt162',
+                'javax.faces.partial.execute': 'medicionesByTypeFunctions:j_idt162',
+                'javax.faces.partial.render': 'medicionesByTypeFunctions:infoWindowPopUp',
+                'javax.faces.ViewState': view_state,
+                'param1': codigo,
+                'param2': 'Fluviometricas'
+            }
+
+            # Se realiza una primera petición para establecer el 'estado' de la estación en el servidor
+            session.post(DGA_URL, data=payload_params, timeout=20)
+
+            # Payload para solicitar el gráfico, que contiene el dato que necesitamos
+            payload_grafico = {
+                'javax.faces.partial.ajax': 'true',
+                'javax.faces.source': 'graficoMedicionesPopUp:j_idt158',
+                'javax.faces.partial.execute': 'graficoMedicionesPopUp:j_idt158',
+                'javax.faces.partial.render': 'graficoMedicionesPopUp:graficoPopUp',
+                'javax.faces.ViewState': view_state,
+                'param1': codigo,
+                'param2': nombre
+            }
+
+            respuesta_ajax = session.post(DGA_URL, data=payload_grafico, timeout=20)
+            respuesta_ajax.raise_for_status()
+
+            print("Paso 3: Analizando respuesta y extrayendo caudal...")
+
+            soup_respuesta = BeautifulSoup(respuesta_ajax.content, 'lxml-xml')
+            update_tag = soup_respuesta.find('update', {'id': 'graficoMedicionesPopUp:graficoPopUp'})
+
+            if not update_tag or not update_tag.string:
+                datos_extraidos[nombre] = None
+                print(" -> FALLO: La respuesta del servidor no contiene la sección de datos esperada.")
+                continue
+
+            cdata_content = update_tag.string
+            # Buscamos en el JSON anidado dentro del script
+            json_match = re.search(r'new GraficoPopUp\("([^"]+)", (\[.+\]), "([^"]+)"', cdata_content)
+
+            if json_match:
+                try:
+                    mediciones_json = json.loads(json_match.group(2))
+                    # Buscamos el parámetro "Caudal"
+                    for medicion in mediciones_json:
+                        if medicion.get("parametro", {}).get("glsParametro") == "Caudal":
+                            caudal_val = medicion.get("valorMedicion")
+                            datos_extraidos[nombre] = float(caudal_val)
+                            print(f" -> ¡ÉXITO! Caudal encontrado: {caudal_val} m³/s")
+                            break
+                    else: # Si el for termina sin encontrar el caudal
+                        datos_extraidos[nombre] = None
+                        print(" -> No se encontró el parámetro 'Caudal' en los datos.")
+                except (json.JSONDecodeError, ValueError, TypeError) as e:
+                    datos_extraidos[nombre] = None
+                    print(f" -> Error procesando los datos JSON: {e}")
+            else:
+                datos_extraidos[nombre] = None
+                print(" -> No se encontró el bloque de datos del gráfico en la respuesta.")
+
         return datos_extraidos
-    view_state = view_state_match.group(1)
-    print(f"ViewState obtenido: {view_state}")
 
-    for codigo, info in codigos_estaciones.items():
-        nombre = info["nombre"]
-        param2 = info["param2"]
+    except Exception as e:
+        print(f"\nERROR durante la prueba: {e}")
+        return {}
 
-        # Primer intento: Componente graficoMedicionesForm
-        print(f"\nSolicitando datos para {nombre} ({codigo}) con graficoMedicionesForm...")
-        payload = {
-            "graficoMedicionesForm": "graficoMedicionesForm",
-            "javax.faces.ViewState": view_state,
-            "javax.faces.source": "graficoMedicionesForm:j_idt132",
-            "javax.faces.partial.execute": "graficoMedicionesForm:j_idt132 @component",
-            "javax.faces.partial.render": "@component",
-            "param1": codigo,
-            "param2": param2,
-            "param3": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas",
-            "org.richfaces.ajax.component": "graficoMedicionesForm:j_idt132",
-            "graficoMedicionesForm:j_idt132": "graficoMedicionesForm:j_idt132",
-            "AJAX:EVENTS_COUNT": "1",
-            "javax.faces.partial.ajax": "true"
-        }
-
-        try:
-            response = session.post(url, data=payload, headers=headers)
-            print(f"Respuesta del servidor (status {response.status_code}) para graficoMedicionesForm:")
-            print(response.text[:1000] + "..." if len(response.text) > 1000 else response.text)
-
-            if response.status_code == 200:
-                response_text = response.text
-                # Buscamos el caudal en el response
-                caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', response_text)
-                if not caudal_match:
-                    caudal_match = re.search(r'Caudal \(m3/seg\).*?>\s*([\d,\.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
-
-                if caudal_match and caudal_match.group(1):
-                    caudal_str = caudal_match.group(1).replace(",", ".")
-                    try:
-                        caudal = float(caudal_str)
-                        datos_extraidos[nombre] = caudal
-                        print(f" -> ¡ÉXITO! {nombre}: {caudal} m³/s")
-                        continue  # Si encontramos el caudal, pasamos a la siguiente estación
-                    except ValueError:
-                        datos_extraidos[nombre] = None
-                        print(f" -> Error: No se pudo convertir '{caudal_str}' a número para {nombre}.")
-                else:
-                    datos_extraidos[nombre] = None
-                    print(f" -> No se encontró el valor de caudal para {nombre} en graficoMedicionesForm. ultimoCaudalReg='{caudal_match.group(1) if caudal_match else ''}'")
-            else:
-                datos_extraidos[nombre] = None
-                print(f" -> Error {response.status_code} para {nombre} en graficoMedicionesForm.")
-        except Exception as e:
-            datos_extraidos[nombre] = None
-            print(f" -> Error al procesar {nombre} en graficoMedicionesForm: {e}")
-
-        # Segundo intento: Componente medicionesByTypeFunctions (respaldo)
-        print(f"\nReintentando para {nombre} ({codigo}) con medicionesByTypeFunctions...")
-        payload = {
-            "medicionesByTypeFunctions": "medicionesByTypeFunctions",
-            "javax.faces.ViewState": view_state,
-            "javax.faces.source": "medicionesByTypeFunctions:j_idt162",
-            "javax.faces.partial.execute": "medicionesByTypeFunctions:j_idt162 @component",
-            "javax.faces.partial.render": "@component",
-            "param1": codigo,
-            "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas",
-            "org.richfaces.ajax.component": "medicionesByTypeFunctions:j_idt162",
-            "medicionesByTypeFunctions:j_idt162": "medicionesByTypeFunctions:j_idt162",
-            "AJAX:EVENTS_COUNT": "1",
-            "javax.faces.partial.ajax": "true"
-        }
-
-        try:
-            response = session.post(url, data=payload, headers=headers)
-            print(f"Respuesta del servidor (status {response.status_code}) para medicionesByTypeFunctions:")
-            print(response.text[:1000] + "..." if len(response.text) > 1000 else response.text)
-
-            if response.status_code == 200:
-                response_text = response.text
-                caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', response_text)
-                if not caudal_match:
-                    caudal_match = re.search(r'Caudal \(m3/seg\).*?>\s*([\d,\.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
-
-                if caudal_match and caudal_match.group(1):
-                    caudal_str = caudal_match.group(1).replace(",", ".")
-                    try:
-                        caudal = float(caudal_str)
-                        datos_extraidos[nombre] = caudal
-                        print(f" -> ¡ÉXITO! {nombre}: {caudal} m³/s")
-                    except ValueError:
-                        datos_extraidos[nombre] = None
-                        print(f" -> Error: No se pudo convertir '{caudal_str}' a número para {nombre}.")
-                else:
-                    datos_extraidos[nombre] = None
-                    print(f" -> No se encontró el valor de caudal para {nombre} en medicionesByTypeFunctions. ultimoCaudalReg='{caudal_match.group(1) if caudal_match else ''}'")
-            else:
-                datos_extraidos[nombre] = None
-                print(f" -> Error {response.status_code} para {nombre} en medicionesByTypeFunctions.")
-        except Exception as e:
-            datos_extraidos[nombre] = None
-            print(f" -> Error al procesar {nombre} en medicionesByTypeFunctions: {e}")
-
-    return datos_extraidos
-
+# --- Ejecución Principal ---
 if __name__ == "__main__":
-    print("--- INICIANDO PRUEBA CON API ---")
-    datos_en_vivo = obtener_datos_dga_api()
+    print("--- INICIANDO PRUEBA FINAL (VERSIÓN CORREGIDA) ---")
+    datos_en_vivo = obtener_datos_dga_final()
 
     if datos_en_vivo and any(c is not None for c in datos_en_vivo.values()):
         print("\n=============================================================")
