@@ -21,18 +21,12 @@ def configurar_driver():
     return driver
 
 def obtener_datos_dga_selenium():
-    """
-    Utiliza Selenium con una espera inteligente para asegurar que los datos
-    del pop-up se hayan cargado antes de leerlos.
-    """
     DGA_URL = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
-
     codigos_estaciones = {
         "05410002-7": "Aconcagua en Chacabuquito",
         "05410024-8": "Aconcagua San Felipe 2",
         "05414004-5": "Putaendo Resguardo Los Patos"
     }
-
     datos_extraidos = {}
     driver = None
 
@@ -51,31 +45,44 @@ def obtener_datos_dga_selenium():
 
             script_js = f"getParametersMeditionsByStationType('{codigo}', 'Fluviometricas');"
             driver.execute_script(script_js)
+            print(" -> Script JS ejecutado. Esperando la respuesta del servidor...")
 
-            # --- CAMBIO CLAVE: Espera Inteligente ---
-            # Esperamos hasta 20 segundos a que el texto "Caudal (m3/seg)" aparezca DENTRO del pop-up.
-            # Esto garantiza que la información ya se cargó.
-            WebDriverWait(driver, 20).until(
-                EC.text_to_be_present_in_element(
-                    (By.ID, "medicionesByTypeFunctions:infoWindowPopUp_body"), 'Caudal (m3/seg)'
-                )
-            )
-            print(" -> Contenido del pop-up cargado.")
+            # --- INICIO DE DEPURACIÓN DETALLADA ---
+            try:
+                print(" -> A. Definiendo el localizador y la condición de espera...")
+                # Usamos un selector CSS, que es más robusto con caracteres especiales como ':'
+                locator = (By.CSS_SELECTOR, "div[id='medicionesByTypeFunctions:infoWindowPopUp_body']")
+                condition = EC.text_to_be_present_in_element(locator, 'Caudal (m3/seg)')
 
-            # Ahora que sabemos que el contenido está, lo leemos
-            popup_div = driver.find_element(By.ID, "medicionesByTypeFunctions:infoWindowPopUp")
-            response_html = popup_div.get_attribute('innerHTML')
+                print(" -> B. Iniciando la espera inteligente (hasta 20 segundos)...")
+                WebDriverWait(driver, 20).until(condition)
 
-            print("Paso 3: Analizando respuesta y extrayendo caudal...")
-            caudal_match = re.search(r'var ultimoCaudalReg = "([^"]+)"', response_html)
+                print(" -> C. ¡Éxito! El texto 'Caudal (m3/seg)' fue encontrado en el pop-up.")
 
-            if caudal_match and caudal_match.group(1):
-                caudal_str = caudal_match.group(1).replace(",", ".")
-                datos_extraidos[nombre] = float(caudal_str)
-                print(f" -> ¡ÉXITO! Caudal encontrado: {caudal_str} m³/s")
-            else:
-                datos_extraidos[nombre] = None
-                print(" -> No se encontró el valor de caudal en la respuesta.")
+                popup_div = driver.find_element(By.ID, "medicionesByTypeFunctions:infoWindowPopUp")
+                response_html = popup_div.get_attribute('innerHTML')
+
+                print("Paso 3: Analizando respuesta y extrayendo caudal...")
+                caudal_match = re.search(r'var ultimoCaudalReg = "([^"]+)"', response_html)
+
+                if caudal_match and caudal_match.group(1):
+                    caudal_str = caudal_match.group(1).replace(",", ".")
+                    datos_extraidos[nombre] = float(caudal_str)
+                    print(f" -> ¡ÉXITO! Caudal encontrado: {caudal_str} m³/s")
+                else:
+                    datos_extraidos[nombre] = None
+                    print(" -> No se encontró el valor de caudal en la respuesta.")
+
+            except Exception as e_wait:
+                print(f" -> ERROR: La espera inteligente falló. Causa: {e_wait}")
+                # Si la espera falla, intentamos obtener el código fuente de la página para ver qué hay
+                try:
+                    print("\n--- CÓDIGO FUENTE DE LA PÁGINA EN EL MOMENTO DEL ERROR ---")
+                    print(driver.page_source)
+                    print("--- FIN CÓDIGO FUENTE ---\n")
+                except:
+                    print(" -> No se pudo obtener el código fuente de la página.")
+            # --- FIN DE DEPURACIÓN DETALLADA ---
 
     except Exception as e:
         print(f"\nERROR durante la prueba con Selenium: {e}")
@@ -87,7 +94,7 @@ def obtener_datos_dga_selenium():
     return datos_extraidos
 
 if __name__ == "__main__":
-    print("--- INICIANDO PRUEBA FINAL CON ESPERA INTELIGENTE ---")
+    print("--- INICIANDO PRUEBA FINAL (CON DEPURACIÓN DETALLADA) ---")
     datos_en_vivo = obtener_datos_dga_selenium()
 
     if datos_en_vivo and any(c is not None for c in datos_en_vivo.values()):
