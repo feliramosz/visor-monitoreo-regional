@@ -20,18 +20,25 @@ def configurar_driver():
     driver = webdriver.Chrome(service=service, options=options)
     return driver
 
-def obtener_datos_dga_debug_final():
+def obtener_datos_dga_selenium():
     """
-    Versión de depuración para imprimir el contenido del pop-up que obtiene Selenium.
+    Utiliza Selenium con una espera inteligente para asegurar que los datos
+    del pop-up se hayan cargado antes de leerlos.
     """
     DGA_URL = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
-    codigo_estacion = "05410002-7"
-    nombre_estacion = "Aconcagua en Chacabuquito"
+
+    codigos_estaciones = {
+        "05410002-7": "Aconcagua en Chacabuquito",
+        "05410024-8": "Aconcagua San Felipe 2",
+        "05414004-5": "Putaendo Resguardo Los Patos"
+    }
+
+    datos_extraidos = {}
     driver = None
 
     try:
         driver = configurar_driver()
-        print("Paso 1: Abriendo página de la DGA...")
+        print("Paso 1: Abriendo página de la DGA en un navegador virtual...")
         driver.get(DGA_URL)
 
         WebDriverWait(driver, 20).until(
@@ -39,33 +46,36 @@ def obtener_datos_dga_debug_final():
         )
         print(" -> Página cargada con éxito.")
 
-        print(f"\nPaso 2: Solicitando datos para la estación '{nombre_estacion}'...")
+        for codigo, nombre in codigos_estaciones.items():
+            print(f"\nPaso 2: Solicitando datos para la estación '{nombre}' ({codigo})...")
 
-        script_js = f"getParametersMeditionsByStationType('{codigo_estacion}', 'Fluviometricas');"
-        driver.execute_script(script_js)
+            script_js = f"getParametersMeditionsByStationType('{codigo}', 'Fluviometricas');"
+            driver.execute_script(script_js)
 
-        # Aumentamos la espera para asegurar que el contenido se cargue
-        time.sleep(3) 
+            # --- CAMBIO CLAVE: Espera Inteligente ---
+            # Esperamos hasta 20 segundos a que el texto "Caudal (m3/seg)" aparezca DENTRO del pop-up.
+            # Esto garantiza que la información ya se cargó.
+            WebDriverWait(driver, 20).until(
+                EC.text_to_be_present_in_element(
+                    (By.ID, "medicionesByTypeFunctions:infoWindowPopUp_body"), 'Caudal (m3/seg)'
+                )
+            )
+            print(" -> Contenido del pop-up cargado.")
 
-        popup_div = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "medicionesByTypeFunctions:infoWindowPopUp"))
-        )
+            # Ahora que sabemos que el contenido está, lo leemos
+            popup_div = driver.find_element(By.ID, "medicionesByTypeFunctions:infoWindowPopUp")
+            response_html = popup_div.get_attribute('innerHTML')
 
-        response_html = popup_div.get_attribute('innerHTML')
+            print("Paso 3: Analizando respuesta y extrayendo caudal...")
+            caudal_match = re.search(r'var ultimoCaudalReg = "([^"]+)"', response_html)
 
-        # --- IMPRESIÓN DE LA RESPUESTA PARA ANÁLISIS ---
-        print("\n==================== HTML DEL POPUP (INICIO) ====================")
-        print(response_html)
-        print("==================== HTML DEL POPUP (FIN) =====================\n")
-
-        print("Paso 3: Analizando el HTML impreso arriba...")
-        caudal_match = re.search(r'var ultimoCaudalReg = "([^"]+)"', response_html)
-
-        if caudal_match and caudal_match.group(1):
-            print(f" -> ¡ÉXITO! Se encontró un valor de caudal.")
-        else:
-            print(" -> FALLO: No se encontró 'ultimoCaudalReg' en la respuesta.")
-
+            if caudal_match and caudal_match.group(1):
+                caudal_str = caudal_match.group(1).replace(",", ".")
+                datos_extraidos[nombre] = float(caudal_str)
+                print(f" -> ¡ÉXITO! Caudal encontrado: {caudal_str} m³/s")
+            else:
+                datos_extraidos[nombre] = None
+                print(" -> No se encontró el valor de caudal en la respuesta.")
 
     except Exception as e:
         print(f"\nERROR durante la prueba con Selenium: {e}")
@@ -74,5 +84,20 @@ def obtener_datos_dga_debug_final():
         if driver:
             driver.quit()
 
+    return datos_extraidos
+
 if __name__ == "__main__":
-    obtener_datos_dga_debug_final()
+    print("--- INICIANDO PRUEBA FINAL CON ESPERA INTELIGENTE ---")
+    datos_en_vivo = obtener_datos_dga_selenium()
+
+    if datos_en_vivo and any(c is not None for c in datos_en_vivo.values()):
+        print("\n=============================================================")
+        print("✅ ¡Prueba exitosa! Estos son los caudales encontrados:")
+        print("=============================================================")
+        for estacion, caudal in datos_en_vivo.items():
+            if caudal is not None:
+                print(f"  - {estacion}: {caudal} m³/s")
+            else:
+                print(f"  - {estacion}: No se pudo obtener el dato.")
+    else:
+        print("\n❌ La prueba falló. No se pudieron obtener datos.")
