@@ -757,7 +757,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                         "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
                         "330006": "J. Botánico", "330161": "San Antonio",
                         "320124": "L. Agricola, Quillota", "320051": "Los Libertadores",
-                        "330031": "Juan Fernández", "270001": "Rapa Nui"
+                        "330031": "Juan Fernández", "270001": "Rapa Nui", "320041": "Torquemada"
                     }
 
                     # Función para inferir el tiempo presente
