@@ -19,9 +19,18 @@ def obtener_datos_dga_api(max_retries=3):
         "Sec-Fetch-Site": "same-origin"
     }
     codigos_estaciones = {
-        "05410002-7": {"nombre": "Aconcagua en Chacabuquito", "param2": "RIO ACONCAGUA EN CHACABUQUITO"},
-        "05410024-8": {"nombre": "Aconcagua San Felipe 2", "param2": "ACONCAGUA SAN FELIPE 2"},
-        "05414004-5": {"nombre": "Putaendo Resguardo Los Patos", "param2": "PUTAENDO RESGUARDO LOS PATOS"}
+        "05410002-7": {
+            "nombre": "Aconcagua en Chacabuquito",
+            "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"
+        },
+        "05410024-8": {
+            "nombre": "Aconcagua San Felipe 2",
+            "param2": "Fluviometricas"
+        },
+        "05414001-0": {
+            "nombre": "Putaendo Resguardo Los Patos",
+            "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"
+        }
     }
     datos_extraidos = []
 
@@ -41,18 +50,18 @@ def obtener_datos_dga_api(max_retries=3):
     # Componentes a probar
     componentes = [
         {
+            "nombre": "medicionesByTypeFunctions",
+            "source": "medicionesByTypeFunctions:j_idt162",
+            "execute": "medicionesByTypeFunctions:j_idt162 @component",
+            "render": "@component",
+            "extra_params": {}
+        },
+        {
             "nombre": "graficoMedicionesForm",
             "source": "graficoMedicionesForm:j_idt132",
             "execute": "graficoMedicionesForm:j_idt132 @component",
             "render": "@component",
             "extra_params": {"param3": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"}
-        },
-        {
-            "nombre": "medicionesByTypeFunctions",
-            "source": "medicionesByTypeFunctions:j_idt162",
-            "execute": "medicionesByTypeFunctions:j_idt162 @component",
-            "render": "@component",
-            "extra_params": {"param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"}
         },
         {
             "nombre": "graficoMedicionesPopUp",
@@ -80,7 +89,7 @@ def obtener_datos_dga_api(max_retries=3):
                     "javax.faces.partial.execute": componente["execute"],
                     "javax.faces.partial.render": componente["render"],
                     "param1": codigo,
-                    "param2": param2 if componente_nombre != "medicionesByTypeFunctions" else componente["extra_params"]["param2"],
+                    "param2": param2,
                     "org.richfaces.ajax.component": componente["source"],
                     componente["source"]: componente["source"],
                     "AJAX:EVENTS_COUNT": "1",
