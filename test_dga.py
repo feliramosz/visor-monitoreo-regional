@@ -5,8 +5,8 @@ from bs4 import BeautifulSoup
 
 def obtener_datos_dga_definitivo():
     """
-    Versión final que simula la interacción con el mapa de la DGA
-    utilizando el payload exacto capturado del navegador.
+    Versión final que utiliza el parser lxml para interpretar correctamente
+    la página de la DGA y extraer los datos de caudal.
     """
     DGA_URL = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
 
@@ -22,23 +22,27 @@ def obtener_datos_dga_definitivo():
         print("Paso 1: Obteniendo clave de sesión (ViewState)...")
         session = requests.Session()
         session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'application/xml, text/xml, */*; q=0.01',
-            'Faces-Request': 'partial/ajax',
-            'X-Requested-With': 'XMLHttpRequest'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
 
         respuesta_inicial = session.get(DGA_URL, timeout=20)
         respuesta_inicial.raise_for_status()
 
-        soup = BeautifulSoup(respuesta_inicial.text, 'html.parser')
-        view_state = soup.find('input', {'name': 'javax.faces.ViewState'}).get('value')
-        print(" -> ViewState obtenido.")
+        # --- CAMBIO CLAVE: Usamos 'lxml' para analizar la página ---
+        soup = BeautifulSoup(respuesta_inicial.text, 'lxml')
+
+        view_state_input = soup.find('input', {'name': 'javax.faces.ViewState'})
+
+        # --- Añadimos una verificación para dar un error más claro ---
+        if not view_state_input:
+            raise ValueError("No se pudo encontrar el 'ViewState' en la página. La estructura del sitio puede haber cambiado.")
+
+        view_state = view_state_input.get('value')
+        print(" -> ViewState obtenido con éxito.")
 
         for codigo, nombre in codigos_estaciones.items():
             print(f"\nPaso 2: Consultando estación '{nombre}'...")
 
-            # Payload final y preciso, construido a partir de tu captura
             payload = {
                 'javax.faces.partial.ajax': 'true',
                 'javax.faces.source': 'medicionesByTypeFunctions:j_idt162',
@@ -46,9 +50,7 @@ def obtener_datos_dga_definitivo():
                 'javax.faces.partial.render': '@component',
                 'javax.faces.ViewState': view_state,
                 'param1': codigo,
-                'param2': 'Fluviometricas', # Enviamos el tipo de dato que nos interesa
-                'medicionesByTypeFunctions': 'medicionesByTypeFunctions',
-                'medicionesByTypeFunctions:j_idt162': 'medicionesByTypeFunctions:j_idt162'
+                'param2': 'Fluviometricas'
             }
 
             respuesta_ajax = session.post(DGA_URL, data=payload, timeout=20)
@@ -73,7 +75,7 @@ def obtener_datos_dga_definitivo():
 
 # --- Ejecución Principal del Script ---
 if __name__ == "__main__":
-    print("--- INICIANDO PRUEBA DEFINITIVA DE EXTRACCIÓN DE DATOS DGA ---")
+    print("--- INICIANDO PRUEBA DEFINITIVA CON LECTOR XML ---")
     datos_en_vivo = obtener_datos_dga_definitivo()
 
     if datos_en_vivo and any(c is not None for c in datos_en_vivo.values()):
