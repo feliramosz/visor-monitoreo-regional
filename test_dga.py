@@ -5,39 +5,37 @@ from bs4 import BeautifulSoup
 
 def obtener_datos_dga_final():
     """
-    Versión final que clona la petición del navegador de forma exacta,
-    incluyendo todos los parámetros del payload y el parser XML correcto.
+    Versión final (sin Selenium) que usa el payload completo y los 
+    códigos de estación corregidos.
     """
     DGA_URL = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
 
+    # --- CÓDIGOS DE ESTACIÓN CORREGIDOS POR TI ---
     codigos_estaciones = {
-        "05410001-K": "Aconcagua en Chacabuquito",
-        "05520002-4": "Aconcagua San Felipe 2",
-        "05502001-3": "Putaendo Resguardo Los Patos"
+        "05410002-7": "Aconcagua en Chacabuquito",
+        "05410024-8": "Aconcagua San Felipe 2",
+        "05414004-5": "Putaendo Resguardo Los Patos"
     }
 
     datos_extraidos = {}
 
     try:
-        print("Paso 1: Obteniendo ViewState...")
+        print("Paso 1: Obteniendo ViewState desde la página HTML...")
         session = requests.Session()
         session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'application/xml, text/xml, */*; q=0.01',
-            'Faces-Request': 'partial/ajax',
-            'X-Requested-With': 'XMLHttpRequest'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
 
         respuesta_inicial = session.get(DGA_URL, timeout=20)
         respuesta_inicial.raise_for_status()
 
-        # Usamos 'lxml' que es más robusto para este tipo de página
+        # Usamos 'lxml' para leer la página inicial (HTML)
         soup = BeautifulSoup(respuesta_inicial.content, 'lxml')
 
         view_state_input = soup.find('input', {'name': 'javax.faces.ViewState'})
 
         if not view_state_input:
-            raise ValueError("No se pudo encontrar el 'ViewState'.")
+            raise ValueError("No se pudo encontrar el 'ViewState' en la página inicial.")
 
         view_state = view_state_input.get('value')
         print(" -> ViewState obtenido con éxito.")
@@ -45,28 +43,26 @@ def obtener_datos_dga_final():
         for codigo, nombre in codigos_estaciones.items():
             print(f"\nPaso 2: Consultando estación '{nombre}' con payload completo...")
 
-            # --- PAYLOAD CORREGIDO Y COMPLETO ---
             payload = {
-                'medicionesByTypeFunctions': 'medicionesByTypeFunctions',
-                'javax.faces.ViewState': view_state,
+                'javax.faces.partial.ajax': 'true',
                 'javax.faces.source': 'medicionesByTypeFunctions:j_idt162',
                 'javax.faces.partial.execute': 'medicionesByTypeFunctions:j_idt162 @component',
                 'javax.faces.partial.render': '@component',
+                'javax.faces.ViewState': view_state,
                 'param1': codigo,
                 'param2': 'Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas',
                 'org.richfaces.ajax.component': 'medicionesByTypeFunctions:j_idt162',
                 'medicionesByTypeFunctions:j_idt162': 'medicionesByTypeFunctions:j_idt162',
-                'AJAX:EVENTS_COUNT': '1',
-                'javax.faces.partial.ajax': 'true'
+                'AJAX:EVENTS_COUNT': '1'
             }
 
             respuesta_ajax = session.post(DGA_URL, data=payload, timeout=20)
             respuesta_ajax.raise_for_status()
 
-            print("Paso 3: Analizando respuesta XML...")
+            print("Paso 3: Analizando respuesta XML y extrayendo caudal...")
 
-            # --- Usamos el parser XML correcto para la respuesta ---
-            soup_respuesta = BeautifulSoup(respuesta_ajax.content, features="xml")
+            # Usamos 'lxml-xml' para leer la respuesta de la consulta (XML)
+            soup_respuesta = BeautifulSoup(respuesta_ajax.content, 'lxml-xml')
             update_tag = soup_respuesta.find('update', {'id': 'medicionesByTypeFunctions:infoWindowPopUp'})
 
             if not update_tag or not update_tag.string:
@@ -93,7 +89,7 @@ def obtener_datos_dga_final():
 
 # --- Ejecución Principal ---
 if __name__ == "__main__":
-    print("--- INICIANDO PRUEBA FINAL (VERSIÓN 3) ---")
+    print("--- INICIANDO PRUEBA (SIN SELENIUM) CON CÓDIGOS CORREGIDOS ---")
     datos_en_vivo = obtener_datos_dga_final()
 
     if datos_en_vivo and any(c is not None for c in datos_en_vivo.values()):
