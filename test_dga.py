@@ -3,21 +3,17 @@ import requests
 import re
 from bs4 import BeautifulSoup
 
-def obtener_datos_dga_final():
+def obtener_datos_dga_debug():
     """
-    Versión final (sin Selenium) que usa el payload completo y los 
-    códigos de estación corregidos.
+    Versión de depuración final para capturar la respuesta exacta del servidor.
     """
     DGA_URL = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
 
-    # --- CÓDIGOS DE ESTACIÓN CORREGIDOS POR TI ---
     codigos_estaciones = {
         "05410002-7": "Aconcagua en Chacabuquito",
         "05410024-8": "Aconcagua San Felipe 2",
         "05414004-5": "Putaendo Resguardo Los Patos"
     }
-
-    datos_extraidos = {}
 
     try:
         print("Paso 1: Obteniendo ViewState desde la página HTML...")
@@ -29,77 +25,43 @@ def obtener_datos_dga_final():
         respuesta_inicial = session.get(DGA_URL, timeout=20)
         respuesta_inicial.raise_for_status()
 
-        # Usamos 'lxml' para leer la página inicial (HTML)
         soup = BeautifulSoup(respuesta_inicial.content, 'lxml')
-
         view_state_input = soup.find('input', {'name': 'javax.faces.ViewState'})
 
         if not view_state_input:
-            raise ValueError("No se pudo encontrar el 'ViewState' en la página inicial.")
+            raise ValueError("No se pudo encontrar el 'ViewState'.")
 
         view_state = view_state_input.get('value')
         print(" -> ViewState obtenido con éxito.")
 
-        for codigo, nombre in codigos_estaciones.items():
-            print(f"\nPaso 2: Consultando estación '{nombre}' con payload completo...")
+        # Probamos solo con la primera estación para mantener la salida manejable
+        codigo, nombre = next(iter(codigos_estaciones.items()))
 
-            payload = {
-                'javax.faces.partial.ajax': 'true',
-                'javax.faces.source': 'medicionesByTypeFunctions:j_idt162',
-                'javax.faces.partial.execute': 'medicionesByTypeFunctions:j_idt162 @component',
-                'javax.faces.partial.render': '@component',
-                'javax.faces.ViewState': view_state,
-                'param1': codigo,
-                'param2': 'Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas',
-                'org.richfaces.ajax.component': 'medicionesByTypeFunctions:j_idt162',
-                'medicionesByTypeFunctions:j_idt162': 'medicionesByTypeFunctions:j_idt162',
-                'AJAX:EVENTS_COUNT': '1'
-            }
+        print(f"\nPaso 2: Consultando estación '{nombre}' con payload completo...")
 
-            respuesta_ajax = session.post(DGA_URL, data=payload, timeout=20)
-            respuesta_ajax.raise_for_status()
+        payload = {
+            'javax.faces.partial.ajax': 'true',
+            'javax.faces.source': 'medicionesByTypeFunctions:j_idt162',
+            'javax.faces.partial.execute': 'medicionesByTypeFunctions:j_idt162 @component',
+            'javax.faces.partial.render': '@component',
+            'javax.faces.ViewState': view_state,
+            'param1': codigo,
+            'param2': 'Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas',
+            'org.richfaces.ajax.component': 'medicionesByTypeFunctions:j_idt162',
+            'medicionesByTypeFunctions:j_idt162': 'medicionesByTypeFunctions:j_idt162',
+            'AJAX:EVENTS_COUNT': '1'
+        }
 
-            print("Paso 3: Analizando respuesta XML y extrayendo caudal...")
+        respuesta_ajax = session.post(DGA_URL, data=payload, timeout=20)
+        respuesta_ajax.raise_for_status()
 
-            # Usamos 'lxml-xml' para leer la respuesta de la consulta (XML)
-            soup_respuesta = BeautifulSoup(respuesta_ajax.content, 'lxml-xml')
-            update_tag = soup_respuesta.find('update', {'id': 'medicionesByTypeFunctions:infoWindowPopUp'})
-
-            if not update_tag or not update_tag.string:
-                datos_extraidos[nombre] = None
-                print(" -> FALLO: La respuesta del servidor no contiene la sección de datos esperada.")
-                continue
-
-            cdata_content = update_tag.string
-            caudal_match = re.search(r'var ultimoCaudalReg = "([^"]+)"', cdata_content)
-
-            if caudal_match and caudal_match.group(1):
-                caudal_str = caudal_match.group(1).replace(",", ".")
-                datos_extraidos[nombre] = float(caudal_str)
-                print(f" -> ¡ÉXITO! Caudal encontrado: {caudal_str} m³/s")
-            else:
-                datos_extraidos[nombre] = None
-                print(" -> No se encontró el valor de caudal en la respuesta.")
-
-        return datos_extraidos
+        # --- IMPRESIÓN DE LA RESPUESTA PARA ANÁLISIS ---
+        print("\n==================== RESPUESTA DEL SERVIDOR (INICIO) ====================")
+        print(respuesta_ajax.text)
+        print("==================== RESPUESTA DEL SERVIDOR (FIN) =====================\n")
 
     except Exception as e:
         print(f"\nERROR durante la prueba: {e}")
-        return {}
 
-# --- Ejecución Principal ---
 if __name__ == "__main__":
-    print("--- INICIANDO PRUEBA (SIN SELENIUM) CON CÓDIGOS CORREGIDOS ---")
-    datos_en_vivo = obtener_datos_dga_final()
-
-    if datos_en_vivo and any(c is not None for c in datos_en_vivo.values()):
-        print("\n=============================================================")
-        print("✅ ¡Prueba exitosa! Estos son los caudales encontrados:")
-        print("=============================================================")
-        for estacion, caudal in datos_en_vivo.items():
-            if caudal is not None:
-                print(f"  - {estacion}: {caudal} m³/s")
-            else:
-                print(f"  - {estacion}: No se pudo obtener el dato.")
-    else:
-        print("\n❌ La prueba falló. No se pudieron obtener datos.")
+    obtener_datos_dga_debug()
