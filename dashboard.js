@@ -101,12 +101,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (controls.showAlertsSlide.checked) {
             finalHTML += `<div id="alertas-slide" class="central-slide">
-                              <div id="panel-alertas" class="dashboard-panel"><h3>Alertas Vigentes</h3><div id="alertas-list-container"></div></div>
-                              <div id="panel-avisos" class="dashboard-panel">
-                                  <div id="panel-avisos-header"><h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span>/<span data-title-key="alertas">Alertas</span>/<span data-title-key="alarmas">Alarmas</span>/<span data-title-key="marejadas">Marejadas</span></h3><button id="aviso-pause-play-btn" style="display: none;">||</button></div>
-                                  <div id="avisos-list-container"></div>
-                              </div>
-                          </div>`;
+                            <div id="panel-alertas" class="dashboard-panel">
+                                <h3>Alertas Vigentes</h3>
+                                <div class="empty-panel-logo-container" style="display: none;"><img src="assets/logo_sena_3.gif" alt="Sin Información"></div>
+                                <div id="alertas-list-container"></div>
+                            </div>
+                            <div id="panel-avisos" class="dashboard-panel">
+                                <div id="panel-avisos-header"><h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span>/<span data-title-key="alertas">Alertas</span>/<span data-title-key="alarmas">Alarmas</span>/<span data-title-key="marejadas">Marejadas</span></h3><button id="aviso-pause-play-btn" style="display: none;">||</button></div>
+                                <div class="empty-panel-logo-container" style="display: none;"><img src="assets/logo_sena_3.gif" alt="Sin Información"></div>
+                                <div id="avisos-list-container"></div>
+                            </div>
+                        </div>`;
             slidesToRotate.push('alertas-slide');
         }
 
@@ -306,16 +311,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Lógica de la SEC
-    async function fetchAndRenderSecSlide() {
+    async function fetchAndRenderSecSlide(testData = null) {
         const container = document.getElementById('sec-data-container');
         if (!container) return;
 
-        try {
-            const response = await fetch('/api/clientes_afectados');
-            const data = await response.json();
+        // Definición de comunas urbanas y rurales (solo las urbanas principales)
+        const urbanCommunes = ['Valparaíso', 'Viña del Mar', 'Quilpué', 'Villa Alemana', 'San Antonio', 'Los Andes', 'San Felipe', 'Quillota', 'La Calera', 'Concón'];
 
+        try {
+            // Usa datos de prueba si se proporcionan, de lo contrario, los busca en la API
+            const data = testData || await (await fetch('/api/clientes_afectados')).json();
             if (data.error) throw new Error(data.error);
 
+            const provincesWithAlerts = new Set();
+
+            // 1. Determinar qué provincias tienen comunas que superan los umbrales
+            data.desglose_provincias.forEach(province => {
+                if (province.comunas && province.comunas.length > 0) {
+                    province.comunas.forEach(commune => {
+                        const isUrban = urbanCommunes.includes(commune.comuna);
+                        const threshold = isUrban ? 50 : 20; // 50% para urbanas, 20% para rurales
+                        if (parseFloat(commune.porcentaje) >= threshold) {
+                            provincesWithAlerts.add(province.provincia);
+                        }
+                    });
+                }
+            });
+
+            // 2. Construir el HTML de la tabla de provincias, aplicando la clase de alerta si es necesario
             let tableHtml = `
                 <table class="sec-table">
                     <tbody>
@@ -334,31 +357,45 @@ document.addEventListener('DOMContentLoaded', () => {
                         <tr><th>CLIENTES AFECTADOS POR PROVINCIA</th><th>CANTIDAD</th></tr>
                     </thead>
                     <tbody id="sec-provinces-tbody">
-                        ${data.desglose_provincias.map(item => `
-                            <tr class="province-row" data-province='${JSON.stringify(item)}' style="${item.total_afectados > 0 ? 'cursor: pointer;' : ''}">
+                        ${data.desglose_provincias.map(item => {
+                            const alertClass = provincesWithAlerts.has(item.provincia) ? 'pulse-alert-sec' : '';
+                            return `
+                            <tr class="province-row ${alertClass}" data-province='${JSON.stringify(item)}' style="${item.total_afectados > 0 ? 'cursor: pointer;' : ''}">
                                 <td>Provincia de ${item.provincia}</td>
                                 <td>${item.total_afectados.toLocaleString('es-CL')}</td>
                             </tr>
-                        `).join('')}
+                        `}).join('')}
                     </tbody>
                 </table>
             `;
 
-            // --- INICIO DE LA MODIFICACIÓN: Lógica del GIF condicional ---
-            const gifNormal = 'https://media.baamboozle.com/uploads/images/804667/86ec0e19-47c5-4e57-8f2e-7752a8c3c33d.gif';
-            const gifAlerta = 'https://images.squarespace-cdn.com/content/v1/5d75891a7cccee2f7f911d76/1613049092180-DMW5H5WPJJC5CQBUAAVZ/Broken-Bulb.gif';
-
-            const gifUrl = data.total_afectados_region > 0 ? gifAlerta : gifNormal;
-
             tableHtml += `
-                <div class="sec-gif-container">
-                    <img src="${gifUrl}" alt="Estado de la red eléctrica">
+                <div class="sec-gauge-container">
+                    <div class="sec-gauge-track">
+                        <div class="sec-gauge-level" style="background-color: #a5d6a7;"></div>
+                        <div class="sec-gauge-level" style="background-color: #c5e1a5;"></div>
+                        <div class="sec-gauge-level" style="background-color: #e6ee9c;"></div>
+                        <div class="sec-gauge-level" style="background-color: #fff59d;"></div>
+                        <div class="sec-gauge-level" style="background-color: #ffe082;"></div>
+                        <div class="sec-gauge-level" style="background-color: #ffcc80;"></div>
+                        <div class="sec-gauge-level" style="background-color: #ffab91;"></div>
+                        <div class="sec-gauge-level" style="background-color: #ef9a9a;"></div>
+                        <div class="sec-gauge-level" style="background-color: #e57373;"></div>
+                        <div class="sec-gauge-level" style="background-color: #ef5350;"></div>
+                    </div>
+                    <div class="sec-gauge-ticks">
+                        <span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span><span>60</span><span>70</span><span>80</span><span>90</span><span>100</span>
+                    </div>
+                    <div id="sec-gauge-needle-container" class="sec-gauge-needle-container">
+                        <div class="sec-gauge-needle"></div>
+                    </div>
                 </div>
+                <div style="text-align: center; font-weight: bold; font-size: 0.9em; color: #555; margin-top: -5px;">% Afectación Regional</div>
             `;
-            // --- FIN DE LA MODIFICACIÓN ---
 
             container.innerHTML = tableHtml;
 
+            // 3. Lógica del pop-up (modal), aplicando la clase de alerta a las comunas correspondientes
             const modal = document.getElementById('sec-commune-modal');
             const modalTitle = document.getElementById('sec-modal-title');
             const modalBody = document.getElementById('sec-modal-body');
@@ -367,24 +404,28 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.province-row').forEach(row => {
                 row.addEventListener('click', () => {
                     const provinceData = JSON.parse(row.dataset.province);
-                    if (provinceData.total_afectados === 0) return; // No hacer nada si no hay afectados
+                    if (provinceData.total_afectados === 0) return;
 
                     modalTitle.textContent = `Desglose para la Provincia de ${provinceData.provincia}`;
-                    
+
                     if (provinceData.comunas && provinceData.comunas.length > 0) {
                         modalBody.innerHTML = `
                             <table class="sec-communes-table">
                                 <thead><tr><th>Comuna</th><th>Clientes Afectados</th><th>% Afectación</th></tr></thead>
                                 <tbody>
-                                    ${provinceData.comunas.map(c => `
-                                        <tr>
+                                    ${provinceData.comunas.map(c => {
+                                        const isUrban = urbanCommunes.includes(c.comuna);
+                                        const threshold = isUrban ? 50 : 20;
+                                        const alertClass = parseFloat(c.porcentaje) >= threshold ? 'pulse-alert-sec' : '';
+                                        return `
+                                        <tr class="${alertClass}">
                                             <td>${c.comuna}</td>
                                             <td>${c.cantidad.toLocaleString('es-CL')}</td>
                                             <td>${c.porcentaje}%</td>
                                         </tr>
-                                    `).join('')}
+                                    `}).join('')}
                                 </tbody>
-                                </table>`;
+                            </table>`;
                     } else {
                         modalBody.innerHTML = '<p>No hay desglose por comuna disponible para esta provincia.</p>';
                     }
@@ -395,9 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const closeModal = () => { modal.style.display = 'none'; };
             closeModalBtn.addEventListener('click', closeModal);
             modal.addEventListener('click', (event) => {
-                if (event.target === modal) { // Cierra solo si se hace clic en el fondo
-                    closeModal();
-                }
+                if (event.target === modal) { closeModal(); }
             });
 
             const timestampContainer = document.getElementById('sec-update-time');
@@ -508,12 +547,46 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(WEATHER_API_URL);
             if (!response.ok) throw new Error('Error de red al obtener clima');
             const weatherData = await response.json();
-            
-            // *** Guardar datos del clima para notificaciones ***
+
             if (lastData) {
                 lastData.weather_data = weatherData;
             }
-            
+
+            // --- INICIO DE LA NUEVA LÓGICA DE RESPALDO ---
+
+            // 1. Encontrar las estaciones de interés
+            const jBotanico = weatherData.find(s => s.codigo === '330006');
+            const torquemada = weatherData.find(s => s.codigo === '320041');
+
+            // 2. Verificar si están online (se considera online si tiene hora de actualización)
+            const jBotanicoOnline = jBotanico && jBotanico.hora_actualizacion !== 'Offline';
+            const torquemadaOnline = torquemada && torquemada.hora_actualizacion !== 'Offline';
+
+            // 3. Decidir qué estación mostrar en el tercer lugar
+            let thirdStation;
+            if (jBotanicoOnline) {
+                thirdStation = jBotanico;
+            } else if (torquemadaOnline) {
+                thirdStation = torquemada;
+            } else {
+                // Si ambas están offline, se crea un objeto placeholder
+                thirdStation = {
+                    codigo: 'offline-placeholder',
+                    nombre: 'Estación J. Botánico / Torquemada',
+                    temperatura: '---',
+                    precipitacion_24h: '---',
+                    viento_velocidad: '---',
+                    viento_direccion: '',
+                    hora_actualizacion: 'Sin conexión'
+                };
+            }
+
+            // 4. Construir el array final de estaciones a mostrar
+            const stationsToDisplay = weatherData.filter(s => s.codigo !== '330006' && s.codigo !== '320041');
+            stationsToDisplay.splice(2, 0, thirdStation); // Insertar la estación elegida en la 3ra posición
+
+            // --- FIN DE LA NUEVA LÓGICA ---
+
             const gifMap = {
                 'despejado_costa': { files: ['despejado_2.gif'], counter: 0 },
                 'despejado_interior': { files: ['despejado.gif'], counter: 0 },
@@ -525,55 +598,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 'nieve': { files: ['nieve.gif'], counter: 0 }
             };
 
-            const inlandStationCodes = ["320049", "320124", "320051"]; // Petorca, Quillota, Los Libertadores
-
-            Object.keys(gifMap).forEach(key => gifMap[key].counter = 0);
-
             const getWeatherBackground = (station, hour) => {
-                const inlandStationCodes = ["320049", "320124", "320051"]; // Petorca, Quillota, Los Libertadores
-                const condition = station.tiempo_presente || '';
-                const isNight = hour < 7 || hour > 19;
-                const c = condition.toLowerCase();
-                let categoryKey = null;
-
-                // 1. Determinar la categoría del tiempo
-                if (c.includes('despejado')) {
-                    // Lógica geográfica: elige un set de GIFs distinto si es una estación interior
-                    categoryKey = inlandStationCodes.includes(station.codigo) ? 'despejado_interior' : 'despejado_costa';
-                }
-                else if (c.includes('nubosidad parcial')) categoryKey = 'nubosidad parcial';
-                else if (c.includes('escasa nubosidad')) categoryKey = 'escasa nubosidad';
-                else if (c.includes('nublado') || c.includes('cubierto')) categoryKey = 'nublado';
-                else if (c.includes('precipitaciones débiles')) categoryKey = 'precipitaciones débiles';
-                else if (c.includes('lluvia') || c.includes('precipitacion')) categoryKey = 'lluvia';
-                else if (c.includes('nieve')) categoryKey = 'nieve';
-                
-                // 2. Si se encontró una categoría, rotar el GIF
-                if (categoryKey) {
-                    const gifData = gifMap[categoryKey];
-                    const fileIndex = gifData.counter % gifData.files.length;
-                    let finalGif = gifData.files[fileIndex];
-                    gifData.counter++; // Incrementar para la próxima vez
-
-                    // 3. Comprobar si hay una versión nocturna
-                    if (isNight) {
-                        const nightVersion = finalGif.replace('.gif', '_noche.gif');
-                        const nightFiles = ['despejado_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'lluvia_noche_2.gif'];
-                        if (nightFiles.includes(nightVersion)) {
-                            finalGif = nightVersion;
-                        }
+            // ... (esta función interna no cambia) ...
+            const inlandStationCodes = ["320049", "320124", "320051"]; // Petorca, Quillota, Los Libertadores
+            const condition = station.tiempo_presente || '';
+            const isNight = hour < 7 || hour > 19;
+            const c = condition.toLowerCase();
+            let categoryKey = null;
+            if (c.includes('despejado')) {
+                categoryKey = inlandStationCodes.includes(station.codigo) ? 'despejado_interior' : 'despejado_costa';
+            } else if (c.includes('nubosidad parcial')) categoryKey = 'nubosidad parcial';
+            else if (c.includes('escasa nubosidad')) categoryKey = 'escasa nubosidad';
+            else if (c.includes('nublado') || c.includes('cubierto')) categoryKey = 'nublado';
+            else if (c.includes('precipitaciones débiles')) categoryKey = 'precipitaciones débiles';
+            else if (c.includes('lluvia') || c.includes('precipitacion')) categoryKey = 'lluvia';
+            else if (c.includes('nieve')) categoryKey = 'nieve';
+            if (categoryKey) {
+                const gifData = gifMap[categoryKey];
+                const fileIndex = gifData.counter % gifData.files.length;
+                let finalGif = gifData.files[fileIndex];
+                gifData.counter++;
+                if (isNight) {
+                    const nightVersion = finalGif.replace('.gif', '_noche.gif');
+                    const nightFiles = ['despejado_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'lluvia_noche_2.gif'];
+                    if (nightFiles.includes(nightVersion)) {
+                        finalGif = nightVersion;
                     }
-                    return finalGif;
                 }
-
-                return ''; // No devuelve fondo si no hay condición
+                return finalGif;
+            }
+            return '';
             };
 
             const currentHour = new Date().getHours();
 
-            weatherContainer.innerHTML = weatherData.map(station => {
-                const backgroundFile = getWeatherBackground(station, currentHour);
-                const backgroundStyle = backgroundFile ? `background-image: url('assets/${backgroundFile}');` : '';                
+            // 5. Renderizar el HTML usando el nuevo array "stationsToDisplay"
+            weatherContainer.innerHTML = stationsToDisplay.map(station => {
+                let backgroundStyle;
+                // Si es el placeholder, usar la imagen de respaldo
+                if (station.codigo === 'offline-placeholder') {
+                    backgroundStyle = `background-image: url('assets/imagen_offline.png');`;
+                } else {
+                    const backgroundFile = getWeatherBackground(station, currentHour);
+                    backgroundStyle = backgroundFile ? `background-image: url('assets/${backgroundFile}');` : '';
+                }
+
                 let passStatusText = '';
                 let passStatusWord = '';
                 let statusClass = 'status-no-informado';
@@ -922,12 +991,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Panel de Emergencias
-        if (showEmergenciasCheck.checked && emergencias.length > 0) {
-            paginateItems(emergencias, 3).forEach((page, index, pages) => {
-                const slideId = `emergencias-slide-${index}`;
-                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><h3>Informes Emitidos (24h) ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div class="table-container"><table class="compact-table table-layout-auto"><thead><tr><th>N°</th><th>Fecha/Hora</th><th>Evento/Lugar</th><th>Resumen</th></tr></thead><tbody></tbody></table></div></div></div>`;
-                slidesToRotate.push({ id: slideId, type: 'emergencia', content: page });
-            });
+        if (showEmergenciasCheck.checked) {
+            if (emergencias.length > 0) {
+                paginateItems(emergencias, 3).forEach((page, index, pages) => {
+                    const slideId = `emergencias-slide-${index}`;
+                    slidesHTML += `<div id="${slideId}" class="right-column-slide">
+                                    <div class="dashboard-panel full-height">
+                                        <h3>Informes Emitidos (24h) ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3>
+                                        <div class="table-container">
+                                            <table class="compact-table table-layout-auto">
+                                                <thead><tr><th>N°</th><th>Fecha/Hora</th><th>Evento/Lugar</th><th>Resumen</th></tr></thead>
+                                                <tbody></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>`;
+                    slidesToRotate.push({ id: slideId, type: 'emergencia', content: page });
+                });
+            } else {
+                // Si no hay emergencias, crea un slide con el logo
+                const slideId = 'emergencias-slide-empty';
+                slidesHTML += `<div id="${slideId}" class="right-column-slide">
+                                <div class="dashboard-panel full-height">
+                                    <h3>Informes Emitidos (24h)</h3>
+                                    <div class="empty-panel-logo-container" style="display: flex;"><img src="assets/logo_sena_3.gif" alt="Sin Información"></div>
+                                </div>
+                            </div>`;
+                slidesToRotate.push({ id: slideId, type: 'emergencia_empty' });
+            }
         }
 
         // Panel de Waze
@@ -1090,7 +1181,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderAlertasList(container, items, noItemsText) {
-        if (items && items.length > 0) {         
+    const panel = container.closest('.dashboard-panel');
+    const logoContainer = panel.querySelector('.empty-panel-logo-container');
+
+    if (items && items.length > 0) {
+        if(logoContainer) logoContainer.style.display = 'none';
+        container.style.display = 'block';         
 
             // 1. Definimos el orden de prioridad. Menor número = mayor prioridad.
             const priorityOrder = {
@@ -1125,7 +1221,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 return `<li class="${itemClass}">${item.nivel_alerta}, ${item.evento}, ${item.cobertura}.</li>`;
             }).join('');
             container.innerHTML = `<ul class="dashboard-list">${listHtml}</ul>`;
-        } else { container.innerHTML = noItemsText; }
+        } else {        
+        container.style.display = 'none';
+        if(logoContainer) logoContainer.style.display = 'flex';
+        container.innerHTML = '';
+    }
         
         checkAndApplyVerticalScroll(container);
     }
@@ -1133,12 +1233,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Sistema de Carrusel de Avisos ---
     function setupAvisosCarousel(container, titleContainer, items, noItemsText) {
         if (!container || !titleContainer) return 0;
-        
+
+        const panel = container.closest('.dashboard-panel');
+        const logoContainer = panel.querySelector('.empty-panel-logo-container');
         const pauseBtn = document.getElementById('aviso-pause-play-btn');
         clearInterval(avisosCarouselInterval);
 
         groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
         if (items && items.length > 0) {
+            // Hay datos: Oculta el logo y muestra el contenedor de la lista
+            if(logoContainer) logoContainer.style.display = 'none';
+            container.style.display = 'block';
+
             items.forEach(item => {
                 const titleText = (item.aviso_alerta_alarma || '').toLowerCase();
                 if (titleText.includes('marejada')) groups.marejadas.push(item);
@@ -1146,6 +1252,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (titleText.includes('alerta')) groups.alertas.push(item);
                 else groups.avisos.push(item);
             });
+        } else {
+            // No hay datos: Muestra el logo y oculta el contenedor de la lista
+            container.style.display = 'none';
+            if(logoContainer) logoContainer.style.display = 'flex';
+            container.innerHTML = '';
+            if (pauseBtn) pauseBtn.style.display = 'none';
+            return 0;
         }
 
         avisoPages = [];
@@ -1166,7 +1279,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Asignamos la navegación por clic a los títulos
         titleContainer.querySelectorAll('span').forEach(span => {
             const key = span.dataset.titleKey;
             if (groups[key] && groups[key].length > 0) {
@@ -1193,17 +1305,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).join('');
                 return `<div class="aviso-slide"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
             }).join('');
-            
+
             if (pauseBtn) pauseBtn.style.display = avisoPages.length > 1 ? 'block' : 'none';
-            
+
             currentAvisoPage = 0;
             showAvisoPage(currentAvisoPage);
             if (avisoPages.length > 1 && !isAvisoCarouselPaused) {
                 avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
             }
-        } else {
-            container.innerHTML = noItemsText || '<p>No hay avisos meteorológicos.</p>';
-            if (pauseBtn) pauseBtn.style.display = 'none';
         }
         return avisoPages.length;
     }
@@ -1554,6 +1663,53 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("Actualizando todos los datos meteorológicos (banner y mapa)...");
         renderWeatherSlide(lastData);
         fetchAndRenderPrecipitationData();
+    }
+
+    // --- Lógica para escuchar cambios desde otras pestañas ---
+    window.addEventListener('storage', (event) => {
+        // Se activa cuando un cambio en localStorage ocurre en otra pestaña
+        if (event.key === 'data_updated') {
+            console.log('Dashboard: Se detectó un cambio de datos. Actualizando...');
+            // Llama a la función principal para recargar y renderizar todos los datos
+            fetchAndRenderMainData();
+        }
+        // NUEVO: Escucha la señal para la prueba de alerta SEC
+        if (event.key === 'test_sec_alert_trigger') {
+            console.log('Dashboard: Recibida señal de prueba para Alerta SEC.');
+            runSecAlertTest();
+        }
+    });
+
+    // NUEVO: Función que genera datos falsos y llama al renderizado
+    function runSecAlertTest() {
+        const fakeData = {
+            "total_afectados_region": 13550,
+            "porcentaje_afectado": 1.63,
+            "desglose_provincias": [
+                { "provincia": "San Antonio", "total_afectados": 0, "comunas": [] },
+                {
+                    "provincia": "Valparaíso",
+                    "total_afectados": 78000,
+                    "comunas": [
+                        { "comuna": "Valparaíso", "cantidad": 78000, "porcentaje": 57.78 } // URBANA > 50%
+                    ]
+                },
+                { "provincia": "Quillota", "total_afectados": 0, "comunas": [] },
+                { "provincia": "San Felipe", "total_afectados": 0, "comunas": [] },
+                { "provincia": "Los Andes", "total_afectados": 0, "comunas": [] },
+                {
+                    "provincia": "Petorca",
+                    "total_afectados": 1450,
+                    "comunas": [
+                        { "comuna": "Petorca", "cantidad": 1450, "porcentaje": 20.71 } // RURAL > 20%
+                    ]
+                },
+                { "provincia": "Marga Marga", "total_afectados": 0, "comunas": [] },
+                { "provincia": "Isla de Pascua", "total_afectados": 0, "comunas": [] }
+            ]
+        };
+        // Llama a la función de renderizado pasándole los datos falsos
+        fetchAndRenderSecSlide(fakeData);
     }
 
     async function initializeApp() {

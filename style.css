@@ -2655,3 +2655,100 @@ footer {
     font-size: 0.8em; /* Tamaño de fuente aún más pequeño */
     padding: 1px 5px; /* Un poco menos de espaciado para compactar */
 }
+
+/* --- ESTILOS PARA ALERTA VISUAL SEC --- */
+@keyframes pulse-red-yellow {
+    0%, 100% {
+        background-color: #f8d7da; /* Rojo claro de alerta */
+        color: #721c24;
+    }
+    50% {
+        background-color: #fff3cd; /* Amarillo claro de alerta */
+        color: #856404;
+    }
+}
+
+.pulse-alert-sec {
+    animation: pulse-red-yellow 1.5s infinite;
+    font-weight: bold;
+    border: 2px dashed #856404;
+}
+
+/* --- ESTILOS PARA MEDIDOR DE AFECTACIÓN SEC --- */
+.sec-gauge-container {
+    width: 100%;
+    max-width: 450px; /* Ancho máximo del medidor */
+    margin: 25px auto 10px auto; /* Centrado y con margen */
+    position: relative;
+    padding-bottom: 15px; /* Espacio para la aguja */
+}
+
+.sec-gauge-track {
+    display: flex;
+    width: 100%;
+    height: 25px;
+    border-radius: 12.5px;
+    overflow: hidden;
+    border: 1px solid #b8b8b8;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.sec-gauge-level {
+    width: 10%; /* Cada nivel es un 10% del total */
+    height: 100%;
+}
+
+.sec-gauge-ticks {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 2px 0 2px;
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #333;
+}
+
+.sec-gauge-needle-container {
+    position: absolute;
+    bottom: 10px;
+    /* La posición 'left' será controlada por JavaScript */
+    left: 0%;     
+    height: 100%;
+    transition: left 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Transición con efecto de rebote */
+    z-index: 2;
+}
+
+.sec-gauge-needle {
+    width: 0; 
+    height: 0;     
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 15px solid #343a40;
+    position: absolute;
+    top: 25px;
+    transform: translateX(-50%);
+}
+
+/* --- ESTILOS PARA LOGO SENAPRED EN PANELES VACÍOS --- */
+.dashboard-panel {
+    /* Esta propiedad es necesaria para que el logo se pueda centrar dentro del panel */
+    position: relative;
+}
+
+.empty-panel-logo-container {
+    display: flex; /* Oculto por defecto, se mostrará con JS */
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding-top: 30px; /* Empuja el logo un poco hacia abajo del título */
+    box-sizing: border-box;
+}
+
+.empty-panel-logo-container img {
+    max-width: 900px; /* Tamaño máximo del logo */
+    max-height: 900px;
+    opacity: 0.25; /* Semitransparencia */
+}
