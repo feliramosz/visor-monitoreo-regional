@@ -1,9 +1,10 @@
 import requests
 import re
 import json
+import time
 from datetime import datetime
 
-def obtener_datos_dga_api(max_retries=2):
+def obtener_datos_dga_api(max_retries=3):
     url = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
     headers = {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -37,59 +38,93 @@ def obtener_datos_dga_api(max_retries=2):
     view_state = view_state_match.group(1)
     print(f"ViewState obtenido: {view_state}")
 
+    # Componentes a probar
+    componentes = [
+        {
+            "nombre": "graficoMedicionesForm",
+            "source": "graficoMedicionesForm:j_idt132",
+            "execute": "graficoMedicionesForm:j_idt132 @component",
+            "render": "@component",
+            "extra_params": {"param3": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"}
+        },
+        {
+            "nombre": "medicionesByTypeFunctions",
+            "source": "medicionesByTypeFunctions:j_idt162",
+            "execute": "medicionesByTypeFunctions:j_idt162 @component",
+            "render": "@component",
+            "extra_params": {"param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"}
+        },
+        {
+            "nombre": "graficoMedicionesPopUp",
+            "source": "graficoMedicionesPopUp:j_idt158",
+            "execute": "graficoMedicionesPopUp:j_idt158 @component",
+            "render": "@component",
+            "extra_params": {}
+        }
+    ]
+
     for codigo, info in codigos_estaciones.items():
         nombre = info["nombre"]
         param2 = info["param2"]
         caudal = None
         fecha_actualizacion = None
 
-        for attempt in range(max_retries):
-            print(f"\nSolicitando datos para {nombre} ({codigo}) - Intento {attempt + 1}/{max_retries}...")
-            payload = {
-                "graficoMedicionesForm": "graficoMedicionesForm",
-                "javax.faces.ViewState": view_state,
-                "javax.faces.source": "graficoMedicionesForm:j_idt132",
-                "javax.faces.partial.execute": "graficoMedicionesForm:j_idt132 @component",
-                "javax.faces.partial.render": "@component",
-                "param1": codigo,
-                "param2": param2,
-                "param3": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas",
-                "org.richfaces.ajax.component": "graficoMedicionesForm:j_idt132",
-                "graficoMedicionesForm:j_idt132": "graficoMedicionesForm:j_idt132",
-                "AJAX:EVENTS_COUNT": "1",
-                "javax.faces.partial.ajax": "true"
-            }
+        for componente in componentes:
+            componente_nombre = componente["nombre"]
+            for attempt in range(max_retries):
+                print(f"\nSolicitando datos para {nombre} ({codigo}) con {componente_nombre} - Intento {attempt + 1}/{max_retries}...")
+                payload = {
+                    componente_nombre: componente_nombre,
+                    "javax.faces.ViewState": view_state,
+                    "javax.faces.source": componente["source"],
+                    "javax.faces.partial.execute": componente["execute"],
+                    "javax.faces.partial.render": componente["render"],
+                    "param1": codigo,
+                    "param2": param2 if componente_nombre != "medicionesByTypeFunctions" else componente["extra_params"]["param2"],
+                    "org.richfaces.ajax.component": componente["source"],
+                    componente["source"]: componente["source"],
+                    "AJAX:EVENTS_COUNT": "1",
+                    "javax.faces.partial.ajax": "true"
+                }
+                # Agregar param3 solo para graficoMedicionesForm
+                if componente_nombre == "graficoMedicionesForm":
+                    payload["param3"] = componente["extra_params"]["param3"]
 
-            try:
-                response = session.post(url, data=payload, headers=headers)
-                print(f"Respuesta del servidor (status {response.status_code}):")
-                print(response.text[:1000] + "..." if len(response.text) > 1000 else response.text)
+                try:
+                    response = session.post(url, data=payload, headers=headers)
+                    print(f"Respuesta del servidor (status {response.status_code}):")
+                    print(response.text[:1000] + "..." if len(response.text) > 1000 else response.text)
 
-                if response.status_code == 200:
-                    response_text = response.text
-                    # Buscamos el caudal
-                    caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', response_text)
-                    if not caudal_match:
-                        caudal_match = re.search(r'Caudal \(m3/seg\).*?>\s*([\d,\.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
+                    if response.status_code == 200:
+                        response_text = response.text
+                        # Buscamos el caudal
+                        caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', response_text)
+                        if not caudal_match:
+                            caudal_match = re.search(r'Caudal \(m3/seg\).*?>\s*([\d,\.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
 
-                    # Buscamos la fecha de actualización
-                    fecha_match = re.search(r'Fecha y hora de actualización:</b>\s*([^<]+)</p>', response_text)
+                        # Buscamos la fecha de actualización
+                        fecha_match = re.search(r'Fecha y hora de actualización:</b>\s*([^<]+)</p>', response_text)
 
-                    if caudal_match and caudal_match.group(1):
-                        caudal_str = caudal_match.group(1).replace(",", ".")
-                        try:
-                            caudal = float(caudal_str)
-                            fecha_actualizacion = fecha_match.group(1).strip() if fecha_match else "No disponible"
-                            print(f" -> ¡ÉXITO! {nombre}: {caudal} m³/s (Fecha: {fecha_actualizacion})")
-                            break  # Salimos del bucle de reintentos si encontramos el caudal
-                        except ValueError:
-                            print(f" -> Error: No se pudo convertir '{caudal_str}' a número para {nombre}.")
+                        if caudal_match and caudal_match.group(1):
+                            caudal_str = caudal_match.group(1).replace(",", ".")
+                            try:
+                                caudal = float(caudal_str)
+                                fecha_actualizacion = fecha_match.group(1).strip() if fecha_match else "No disponible"
+                                print(f" -> ¡ÉXITO! {nombre}: {caudal} m³/s (Fecha: {fecha_actualizacion})")
+                                break  # Salimos del bucle de reintentos si encontramos el caudal
+                            except ValueError:
+                                print(f" -> Error: No se pudo convertir '{caudal_str}' a número para {nombre}.")
+                        else:
+                            print(f" -> No se encontró el valor de caudal para {nombre} en {componente_nombre}. ultimoCaudalReg='{caudal_match.group(1) if caudal_match else ''}'")
                     else:
-                        print(f" -> No se encontró el valor de caudal para {nombre}. ultimoCaudalReg='{caudal_match.group(1) if caudal_match else ''}'")
-                else:
-                    print(f" -> Error {response.status_code} para {nombre}.")
-            except Exception as e:
-                print(f" -> Error al procesar {nombre}: {e}")
+                        print(f" -> Error {response.status_code} para {nombre} en {componente_nombre}.")
+                except Exception as e:
+                    print(f" -> Error al procesar {nombre} en {componente_nombre}: {e}")
+
+                time.sleep(1)  # Retraso para evitar bloqueos del servidor
+
+            if caudal is not None:
+                break  # Salimos del bucle de componentes si encontramos el caudal
 
         datos_extraidos.append({
             "estacion": nombre,
