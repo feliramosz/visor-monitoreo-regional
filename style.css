@@ -2727,3 +2727,28 @@ footer {
     top: 25px;
     transform: translateX(-50%);
 }
+
+/* --- ESTILOS PARA LOGO SENAPRED EN PANELES VACÍOS --- */
+.dashboard-panel {
+    /* Esta propiedad es necesaria para que el logo se pueda centrar dentro del panel */
+    position: relative;
+}
+
+.empty-panel-logo-container {
+    display: flex; /* Oculto por defecto, se mostrará con JS */
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding-top: 30px; /* Empuja el logo un poco hacia abajo del título */
+    box-sizing: border-box;
+}
+
+.empty-panel-logo-container img {
+    max-width: 150px; /* Tamaño máximo del logo */
+    max-height: 150px;
+    opacity: 0.25; /* Semitransparencia */
+}

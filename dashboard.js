@@ -101,12 +101,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (controls.showAlertsSlide.checked) {
             finalHTML += `<div id="alertas-slide" class="central-slide">
-                              <div id="panel-alertas" class="dashboard-panel"><h3>Alertas Vigentes</h3><div id="alertas-list-container"></div></div>
-                              <div id="panel-avisos" class="dashboard-panel">
-                                  <div id="panel-avisos-header"><h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span>/<span data-title-key="alertas">Alertas</span>/<span data-title-key="alarmas">Alarmas</span>/<span data-title-key="marejadas">Marejadas</span></h3><button id="aviso-pause-play-btn" style="display: none;">||</button></div>
-                                  <div id="avisos-list-container"></div>
-                              </div>
-                          </div>`;
+                            <div id="panel-alertas" class="dashboard-panel">
+                                <h3>Alertas Vigentes</h3>
+                                <div class="empty-panel-logo-container" style="display: none;"><img src="assets/logo_sena_3.gif" alt="Sin Información"></div>
+                                <div id="alertas-list-container"></div>
+                            </div>
+                            <div id="panel-avisos" class="dashboard-panel">
+                                <div id="panel-avisos-header"><h3 class="dynamic-title"><span data-title-key="avisos">Avisos</span>/<span data-title-key="alertas">Alertas</span>/<span data-title-key="alarmas">Alarmas</span>/<span data-title-key="marejadas">Marejadas</span></h3><button id="aviso-pause-play-btn" style="display: none;">||</button></div>
+                                <div class="empty-panel-logo-container" style="display: none;"><img src="assets/logo_sena_3.gif" alt="Sin Información"></div>
+                                <div id="avisos-list-container"></div>
+                            </div>
+                        </div>`;
             slidesToRotate.push('alertas-slide');
         }
 
@@ -986,12 +991,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Panel de Emergencias
-        if (showEmergenciasCheck.checked && emergencias.length > 0) {
-            paginateItems(emergencias, 3).forEach((page, index, pages) => {
-                const slideId = `emergencias-slide-${index}`;
-                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><h3>Informes Emitidos (24h) ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div class="table-container"><table class="compact-table table-layout-auto"><thead><tr><th>N°</th><th>Fecha/Hora</th><th>Evento/Lugar</th><th>Resumen</th></tr></thead><tbody></tbody></table></div></div></div>`;
-                slidesToRotate.push({ id: slideId, type: 'emergencia', content: page });
-            });
+        if (showEmergenciasCheck.checked) {
+            if (emergencias.length > 0) {
+                paginateItems(emergencias, 3).forEach((page, index, pages) => {
+                    const slideId = `emergencias-slide-${index}`;
+                    slidesHTML += `<div id="${slideId}" class="right-column-slide">
+                                    <div class="dashboard-panel full-height">
+                                        <h3>Informes Emitidos (24h) ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3>
+                                        <div class="table-container">
+                                            <table class="compact-table table-layout-auto">
+                                                <thead><tr><th>N°</th><th>Fecha/Hora</th><th>Evento/Lugar</th><th>Resumen</th></tr></thead>
+                                                <tbody></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>`;
+                    slidesToRotate.push({ id: slideId, type: 'emergencia', content: page });
+                });
+            } else {
+                // Si no hay emergencias, crea un slide con el logo
+                const slideId = 'emergencias-slide-empty';
+                slidesHTML += `<div id="${slideId}" class="right-column-slide">
+                                <div class="dashboard-panel full-height">
+                                    <h3>Informes Emitidos (24h)</h3>
+                                    <div class="empty-panel-logo-container" style="display: flex;"><img src="assets/logo_sena_3.gif" alt="Sin Información"></div>
+                                </div>
+                            </div>`;
+                slidesToRotate.push({ id: slideId, type: 'emergencia_empty' });
+            }
         }
 
         // Panel de Waze
@@ -1154,7 +1181,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderAlertasList(container, items, noItemsText) {
-        if (items && items.length > 0) {         
+    const panel = container.closest('.dashboard-panel');
+    const logoContainer = panel.querySelector('.empty-panel-logo-container');
+
+    if (items && items.length > 0) {
+        if(logoContainer) logoContainer.style.display = 'none';
+        container.style.display = 'block';         
 
             // 1. Definimos el orden de prioridad. Menor número = mayor prioridad.
             const priorityOrder = {
@@ -1189,7 +1221,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 return `<li class="${itemClass}">${item.nivel_alerta}, ${item.evento}, ${item.cobertura}.</li>`;
             }).join('');
             container.innerHTML = `<ul class="dashboard-list">${listHtml}</ul>`;
-        } else { container.innerHTML = noItemsText; }
+        } else {        
+        container.style.display = 'none';
+        if(logoContainer) logoContainer.style.display = 'flex';
+        container.innerHTML = '';
+    }
         
         checkAndApplyVerticalScroll(container);
     }
@@ -1197,12 +1233,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Sistema de Carrusel de Avisos ---
     function setupAvisosCarousel(container, titleContainer, items, noItemsText) {
         if (!container || !titleContainer) return 0;
-        
+
+        const panel = container.closest('.dashboard-panel');
+        const logoContainer = panel.querySelector('.empty-panel-logo-container');
         const pauseBtn = document.getElementById('aviso-pause-play-btn');
         clearInterval(avisosCarouselInterval);
 
         groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
         if (items && items.length > 0) {
+            // Hay datos: Oculta el logo y muestra el contenedor de la lista
+            if(logoContainer) logoContainer.style.display = 'none';
+            container.style.display = 'block';
+
             items.forEach(item => {
                 const titleText = (item.aviso_alerta_alarma || '').toLowerCase();
                 if (titleText.includes('marejada')) groups.marejadas.push(item);
@@ -1210,6 +1252,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (titleText.includes('alerta')) groups.alertas.push(item);
                 else groups.avisos.push(item);
             });
+        } else {
+            // No hay datos: Muestra el logo y oculta el contenedor de la lista
+            container.style.display = 'none';
+            if(logoContainer) logoContainer.style.display = 'flex';
+            container.innerHTML = '';
+            if (pauseBtn) pauseBtn.style.display = 'none';
+            return 0;
         }
 
         avisoPages = [];
@@ -1230,7 +1279,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Asignamos la navegación por clic a los títulos
         titleContainer.querySelectorAll('span').forEach(span => {
             const key = span.dataset.titleKey;
             if (groups[key] && groups[key].length > 0) {
@@ -1257,17 +1305,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).join('');
                 return `<div class="aviso-slide"><ul class="dashboard-list">${listItemsHtml}</ul></div>`;
             }).join('');
-            
+
             if (pauseBtn) pauseBtn.style.display = avisoPages.length > 1 ? 'block' : 'none';
-            
+
             currentAvisoPage = 0;
             showAvisoPage(currentAvisoPage);
             if (avisoPages.length > 1 && !isAvisoCarouselPaused) {
                 avisosCarouselInterval = setInterval(nextAvisoPage, avisoPageDuration);
             }
-        } else {
-            container.innerHTML = noItemsText || '<p>No hay avisos meteorológicos.</p>';
-            if (pauseBtn) pauseBtn.style.display = 'none';
         }
         return avisoPages.length;
     }
