@@ -202,49 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.speechSynthesis.speak(enunciado);
     }
     
-    /**
-     * Reemplaza una imagen GIF animada con un canvas que muestra el último cuadro
-     * para evitar que la animación se repita.
-     * @param {HTMLElement} container - El contenedor del logo (ej. .empty-panel-logo-container)
-     */
-    function playAndFreezeGif(container) {
-        if (!container) return;
-
-        // Limpia cualquier contenido previo (como un canvas ya congelado)
-        container.innerHTML = '';
-
-        // Crea un nuevo elemento de imagen cada vez para asegurar que la animación se reinicie
-        const img = document.createElement('img');
-        img.alt = 'Sin Información';
-        img.className = 'senapred-logo-gif'; // Asegúrate que esta clase exista en tu CSS si tienes estilos específicos
-
-        // Se añade un parámetro único a la URL para forzar la recarga del GIF
-        img.src = `assets/logo_sena_3.gif?t=${Date.now()}`;
-
-        container.appendChild(img);
-
-        // La animación del GIF dura aproximadamente 2.5 segundos.
-        // Después de ese tiempo, lo congelaremos.
-        setTimeout(() => {
-            try {
-                // Comprueba si la imagen todavía existe en el DOM antes de intentar reemplazarla
-                if (!img.parentNode) return;
-
-                const canvas = document.createElement('canvas');
-                canvas.width = img.clientWidth; // Usa el tamaño renderizado
-                canvas.height = img.clientHeight;
-                canvas.getContext('2d').drawImage(img, 0, 0, img.clientWidth, img.clientHeight);
-
-                // Copia las clases para mantener los estilos (aunque no tengamos específicos ahora)
-                canvas.className = img.className; 
-                img.parentNode.replaceChild(canvas, img);
-            } catch (e) {
-                console.error("Error al congelar el GIF:", e);
-                // Si hay un error, simplemente dejamos el GIF animado.
-            }
-        }, 2500); // 2500ms = 2.5 segundos
-    }
-
     // Objeto para almacenar las horas y minutos de los boletines
         const momentosBoletin = [
         { hora: 8, minuto: 55 },
@@ -1026,14 +983,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades ${pages.length > 1 ? `(${index + 1}/${pages.length})` : ''}</h3><div id="informe-correlativo"><span>N° de último informe ${novedadesData.numero_informe_manual || '---'}</span></div></div><div class="list-container"><ul class="dashboard-list"></ul></div></div></div>`;
                     slidesToRotate.push({ id: slideId, type: 'novedad', content: page });
                 });
-            } else {
+            } else {                
                 const slideId = 'novedades-slide-empty';
-                slidesHTML += `<div id="${slideId}" class="right-column-slide">
-                                <div class="dashboard-panel full-height">
-                                    <div class="novedades-header"><h3>Novedades</h3>...</div>
-                                    <div class="empty-panel-logo-container" style="display: flex;"><img src="assets/logo_sena_3.gif" alt="Sin Información"></div>
-                                </div>
-                            </div>`;
+                slidesHTML += `<div id="${slideId}" class="right-column-slide"><div class="dashboard-panel full-height"><div class="novedades-header"><h3>Novedades</h3><div id="informe-correlativo"><span>N° de último informe ${novedadesData.numero_informe_manual || '---'}</span></div></div><div class="list-container"><p class="no-items-placeholder">No hay novedades registradas.</p></div></div></div>`;
                 slidesToRotate.push({ id: slideId, type: 'novedad_empty' });
             }
         }
@@ -1056,7 +1008,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>`;
                     slidesToRotate.push({ id: slideId, type: 'emergencia', content: page });
                 });
-            } else {                
+            } else {
+                // Si no hay emergencias, crea un slide con el logo
                 const slideId = 'emergencias-slide-empty';
                 slidesHTML += `<div id="${slideId}" class="right-column-slide">
                                 <div class="dashboard-panel full-height">
@@ -1228,12 +1181,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderAlertasList(container, items, noItemsText) {
-        const panel = container.closest('.dashboard-panel');
-        const logoContainer = panel.querySelector('.empty-panel-logo-container');
+    const panel = container.closest('.dashboard-panel');
+    const logoContainer = panel.querySelector('.empty-panel-logo-container');
 
-        if (items && items.length > 0) {
-            if(logoContainer) logoContainer.style.display = 'none';
-            container.style.display = 'block';         
+    if (items && items.length > 0) {
+        if(logoContainer) logoContainer.style.display = 'none';
+        container.style.display = 'block';         
 
             // 1. Definimos el orden de prioridad. Menor número = mayor prioridad.
             const priorityOrder = {
@@ -1268,14 +1221,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 return `<li class="${itemClass}">${item.nivel_alerta}, ${item.evento}, ${item.cobertura}.</li>`;
             }).join('');
             container.innerHTML = `<ul class="dashboard-list">${listHtml}</ul>`;
-        } else { 
-            container.style.display = 'none';
-            if(logoContainer) {
-                logoContainer.style.display = 'flex';
-                playAndFreezeGif(logoContainer);
-            }
-            container.innerHTML = '';
-        }
+        } else {        
+        container.style.display = 'none';
+        if(logoContainer) logoContainer.style.display = 'flex';
+        container.innerHTML = '';
+    }
         
         checkAndApplyVerticalScroll(container);
     }
@@ -1289,7 +1239,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const pauseBtn = document.getElementById('aviso-pause-play-btn');
         clearInterval(avisosCarouselInterval);
 
+        groups = { avisos: [], alertas: [], alarmas: [], marejadas: [] };
         if (items && items.length > 0) {
+            // Hay datos: Oculta el logo y muestra el contenedor de la lista
             if(logoContainer) logoContainer.style.display = 'none';
             container.style.display = 'block';
 
@@ -1301,15 +1253,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 else groups.avisos.push(item);
             });
         } else {
+            // No hay datos: Muestra el logo y oculta el contenedor de la lista
             container.style.display = 'none';
-            if(logoContainer) {
-                logoContainer.style.display = 'flex';
-                playAndFreezeGif(logoContainer);
-            }
+            if(logoContainer) logoContainer.style.display = 'flex';
             container.innerHTML = '';
-                if (pauseBtn) pauseBtn.style.display = 'none';
-                return 0;
-            }
+            if (pauseBtn) pauseBtn.style.display = 'none';
+            return 0;
+        }
 
         avisoPages = [];
         const ITEMS_PER_PAGE = 5;
