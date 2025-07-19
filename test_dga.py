@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
-# Importaciones necesarias (solo se necesita requests)
 import requests
+import re
+from bs4 import BeautifulSoup
 
-def obtener_datos_dga_api():
+def obtener_datos_dga_definitivo():
     """
-    Consulta la API JSON oficial de la DGA para obtener datos de caudal en vivo.
+    Versión corregida que simula la interacción con el mapa de la DGA
+    para extraer datos de caudal en tiempo real.
     """
-    # URL del endpoint de la API oficial
-    DGA_API_URL = "https://snia.mop.gob.cl/dga/rest/datos"
+    DGA_URL = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
 
-    # Códigos de las estaciones que nos interesan
     codigos_estaciones = {
         "05410001-K": "Aconcagua en Chacabuquito",
         "05520002-4": "Aconcagua San Felipe 2",
@@ -19,38 +19,46 @@ def obtener_datos_dga_api():
     datos_extraidos = {}
 
     try:
-        # Se prepara la solicitud para pedir el último dato de Caudal (código de parámetro "12")
-        print("Paso 1: Preparando consulta a la API oficial de la DGA...")
-        payload = {
-            "estaciones": list(codigos_estaciones.keys()),
-            "parametros": "12", # El código "12" corresponde a Caudal
-            "tipo": "crudos"    # "crudos" significa el último dato registrado
-        }
+        print("Paso 1: Obteniendo clave de sesión (ViewState)...")
+        session = requests.Session()
+        session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
 
-        print("Paso 2: Realizando petición...")
-        respuesta = requests.post(DGA_API_URL, json=payload, timeout=20)
-        respuesta.raise_for_status() # Lanza un error si la petición falla (ej. 404, 500)
-        respuesta_api = respuesta.json()
-        print(" -> Petición exitosa.")
+        respuesta_inicial = session.get(DGA_URL, timeout=20)
+        respuesta_inicial.raise_for_status()
 
-        print("Paso 3: Procesando datos recibidos...")
-        if respuesta_api and "datos" in respuesta_api and respuesta_api["datos"]:
-            for medicion in respuesta_api["datos"][0]["series"]:
-                codigo_estacion = medicion.get("estacion", {}).get("codigo")
-                nombre_estacion = codigos_estaciones.get(codigo_estacion)
+        soup = BeautifulSoup(respuesta_inicial.text, 'html.parser')
+        view_state = soup.find('input', {'name': 'javax.faces.ViewState'}).get('value')
+        print(" -> ViewState obtenido.")
 
-                if nombre_estacion and medicion.get("eventos"):
-                    # El último valor registrado está al final de la lista de eventos
-                    ultimo_valor = medicion["eventos"][-1].get("valor")
-                    try:
-                        datos_extraidos[nombre_estacion] = float(ultimo_valor)
-                    except (ValueError, TypeError):
-                        datos_extraidos[nombre_estacion] = None
-
-        # Aseguramos que todas las estaciones tengan una entrada en el resultado final
         for codigo, nombre in codigos_estaciones.items():
-            if nombre not in datos_extraidos:
+            print(f"\nPaso 2: Consultando estación '{nombre}'...")
+
+            # Payload corregido para simular el click en el mapa
+            payload = {
+                'javax.faces.partial.ajax': 'true',
+                'javax.faces.source': 'medicionesByTypeFunctions:j_idt162',
+                'javax.faces.partial.execute': '@all',
+                'javax.faces.partial.render': 'medicionesByTypeFunctions:infoWindowPopUp',
+                'javax.faces.ViewState': view_state,
+                'param1': codigo,
+                'param2': 'Fluviometricas' # Se asume este tipo para obtener el caudal
+            }
+
+            respuesta_ajax = session.post(DGA_URL, data=payload, timeout=20)
+            respuesta_ajax.raise_for_status()
+
+            print("Paso 3: Analizando respuesta y extrayendo caudal...")
+            caudal_match = re.search(r'var ultimoCaudalReg = "([^"]+)"', respuesta_ajax.text)
+
+            if caudal_match:
+                caudal_str = caudal_match.group(1).replace(",", ".")
+                datos_extraidos[nombre] = float(caudal_str)
+                print(f" -> ¡Éxito! Caudal encontrado: {caudal_str} m³/s")
+            else:
                 datos_extraidos[nombre] = None
+                print(" -> No se encontró el valor de caudal en la respuesta.")
 
         return datos_extraidos
 
@@ -60,18 +68,17 @@ def obtener_datos_dga_api():
 
 # --- Ejecución Principal del Script ---
 if __name__ == "__main__":
-    print("--- INICIANDO PRUEBA CON LA API OFICIAL DE LA DGA ---")
-    datos_en_vivo = obtener_datos_dga_api()
+    print("--- INICIANDO PRUEBA DEFINITIVA DE EXTRACCIÓN DE DATOS DGA ---")
+    datos_en_vivo = obtener_datos_dga_definitivo()
 
-    # Comprueba si se obtuvo al menos un dato válido
-    if datos_en_vivo and any(caudal is not None for caudal in datos_en_vivo.values()):
+    if datos_en_vivo and any(c is not None for c in datos_en_vivo.values()):
         print("\n=============================================================")
-        print("✅ ¡Prueba finalizada! Estos son los caudales encontrados:")
+        print("✅ ¡Prueba exitosa! Estos son los caudales encontrados:")
         print("=============================================================")
         for estacion, caudal in datos_en_vivo.items():
             if caudal is not None:
                 print(f"  - {estacion}: {caudal} m³/s")
             else:
-                print(f"  - {estacion}: No se devolvió un valor para esta estación.")
+                print(f"  - {estacion}: No se pudo obtener el dato.")
     else:
-        print("\n❌ La prueba falló. La API no devolvió datos de caudal para las estaciones solicitadas.")
+        print("\n❌ La prueba falló. No se pudieron obtener datos.")
