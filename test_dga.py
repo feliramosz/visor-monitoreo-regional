@@ -5,8 +5,8 @@ from bs4 import BeautifulSoup
 
 def obtener_datos_dga_final():
     """
-    Versión final que clona la petición del navegador de forma exacta,
-    incluyendo todos los parámetros del payload y el parser XML correcto.
+    Versión final que usa el parser HTML para la página inicial y
+    el parser XML para la respuesta AJAX, asegurando compatibilidad en ambos pasos.
     """
     DGA_URL = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
 
@@ -19,24 +19,22 @@ def obtener_datos_dga_final():
     datos_extraidos = {}
 
     try:
-        print("Paso 1: Obteniendo ViewState...")
+        print("Paso 1: Obteniendo ViewState desde la página HTML...")
         session = requests.Session()
         session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'application/xml, text/xml, */*; q=0.01',
-            'Faces-Request': 'partial/ajax',
-            'X-Requested-With': 'XMLHttpRequest'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         })
 
         respuesta_inicial = session.get(DGA_URL, timeout=20)
         respuesta_inicial.raise_for_status()
 
-        soup = BeautifulSoup(respuesta_inicial.content, 'lxml-xml')
+        # --- CAMBIO 1: Usamos 'lxml' (parser HTML) para la página inicial ---
+        soup = BeautifulSoup(respuesta_inicial.content, 'lxml')
 
         view_state_input = soup.find('input', {'name': 'javax.faces.ViewState'})
 
         if not view_state_input:
-            raise ValueError("No se pudo encontrar el 'ViewState'.")
+            raise ValueError("No se pudo encontrar el 'ViewState' en la página inicial.")
 
         view_state = view_state_input.get('value')
         print(" -> ViewState obtenido con éxito.")
@@ -44,7 +42,6 @@ def obtener_datos_dga_final():
         for codigo, nombre in codigos_estaciones.items():
             print(f"\nPaso 2: Consultando estación '{nombre}' con payload completo...")
 
-            # --- CORRECCIÓN CLAVE: Payload idéntico al capturado en el navegador ---
             payload = {
                 'javax.faces.partial.ajax': 'true',
                 'javax.faces.source': 'medicionesByTypeFunctions:j_idt162',
@@ -52,7 +49,6 @@ def obtener_datos_dga_final():
                 'javax.faces.partial.render': '@component',
                 'javax.faces.ViewState': view_state,
                 'param1': codigo,
-                # Usamos el valor largo y completo para 'param2' que capturaste
                 'param2': 'Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas',
                 'org.richfaces.ajax.component': 'medicionesByTypeFunctions:j_idt162',
                 'medicionesByTypeFunctions:j_idt162': 'medicionesByTypeFunctions:j_idt162',
@@ -62,8 +58,9 @@ def obtener_datos_dga_final():
             respuesta_ajax = session.post(DGA_URL, data=payload, timeout=20)
             respuesta_ajax.raise_for_status()
 
-            print("Paso 3: Analizando respuesta...")
+            print("Paso 3: Analizando respuesta XML y extrayendo caudal...")
 
+            # --- CAMBIO 2: Usamos 'lxml-xml' (parser XML) para la respuesta AJAX ---
             soup_respuesta = BeautifulSoup(respuesta_ajax.content, 'lxml-xml')
             update_tag = soup_respuesta.find('update')
 
@@ -75,7 +72,7 @@ def obtener_datos_dga_final():
             cdata_content = update_tag.string
             caudal_match = re.search(r'var ultimoCaudalReg = "([^"]+)"', cdata_content)
 
-            if caudal_match:
+            if caudal_match and caudal_match.group(1):
                 caudal_str = caudal_match.group(1).replace(",", ".")
                 datos_extraidos[nombre] = float(caudal_str)
                 print(f" -> ¡ÉXITO! Caudal encontrado: {caudal_str} m³/s")
@@ -91,7 +88,7 @@ def obtener_datos_dga_final():
 
 # --- Ejecución Principal ---
 if __name__ == "__main__":
-    print("--- INICIANDO PRUEBA FINAL (VERSIÓN CORREGIDA) ---")
+    print("--- INICIANDO PRUEBA FINAL (CON PARSERS CORREGIDOS) ---")
     datos_en_vivo = obtener_datos_dga_final()
 
     if datos_en_vivo and any(c is not None for c in datos_en_vivo.values()):
