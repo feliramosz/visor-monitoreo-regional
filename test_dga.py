@@ -11,7 +11,7 @@ def obtener_datos_dga():
     """
     DGA_URL = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
 
-    # Códigos de las estaciones que nos interesan
+    # Códigos de las estaciones
     codigos_estaciones = {
         "05410001-K": "Aconcagua en Chacabuquito",
         "05520002-4": "Aconcagua San Felipe 2",
