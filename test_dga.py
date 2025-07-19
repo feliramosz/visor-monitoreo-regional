@@ -4,6 +4,19 @@ import json
 import time
 from datetime import datetime
 
+def obtener_view_state(session, url, headers):
+    try:
+        response = session.get(url, headers=headers, timeout=10)
+        view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', response.text)
+        if view_state_match:
+            return view_state_match.group(1)
+        else:
+            print("Error: No se pudo obtener el ViewState.")
+            return None
+    except Exception as e:
+        print(f"Error al obtener ViewState: {e}")
+        return None
+
 def obtener_datos_dga_api(max_retries=3):
     url = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
     headers = {
@@ -33,19 +46,13 @@ def obtener_datos_dga_api(max_retries=3):
         }
     }
     datos_extraidos = []
-
-    # Crear una sesión para mantener cookies
     session = requests.Session()
 
-    # Obtener ViewState y cookies
+    # Obtener ViewState inicial
     print("Obteniendo ViewState y cookies...")
-    response = session.get(url, headers=headers)
-    view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', response.text)
-    if not view_state_match:
-        print("Error: No se pudo obtener el ViewState.")
+    view_state = obtener_view_state(session, url, headers)
+    if not view_state:
         return datos_extraidos
-    view_state = view_state_match.group(1)
-    print(f"ViewState obtenido: {view_state}")
 
     # Componentes a probar
     componentes = [
@@ -57,18 +64,11 @@ def obtener_datos_dga_api(max_retries=3):
             "extra_params": {}
         },
         {
-            "nombre": "searchForm",
-            "source": "searchForm:parametroInput",
-            "execute": "searchForm:parametroInput @component",
+            "nombre": "graficoMedicionesPopUp",
+            "source": "graficoMedicionesPopUp:j_idt158",
+            "execute": "graficoMedicionesPopUp:j_idt158 @component",
             "render": "@component",
-            "extra_params": {"searchForm:parametroInput": "1"}  # Nivel de Agua
-        },
-        {
-            "nombre": "graficoMedicionesForm",
-            "source": "graficoMedicionesForm:j_idt132",
-            "execute": "graficoMedicionesForm:j_idt132 @component",
-            "render": "@component",
-            "extra_params": {"param3": "Nivel de Agua"}
+            "extra_params": {"param2": "1"}  # Nivel de Agua
         }
     ]
 
@@ -95,18 +95,13 @@ def obtener_datos_dga_api(max_retries=3):
                     "AJAX:EVENTS_COUNT": "1",
                     "javax.faces.partial.ajax": "true"
                 }
-                # Agregar parámetros específicos
                 if componente_nombre == "medicionesByTypeFunctions":
                     payload["param2"] = param2
-                elif componente_nombre == "searchForm":
-                    payload["searchForm:parametroInput"] = componente["extra_params"]["searchForm:parametroInput"]
-                    payload["searchForm:tipoEstacionInput"] = "1"  # Fluviométricas
-                elif componente_nombre == "graficoMedicionesForm":
-                    payload["param2"] = param2
-                    payload["param3"] = componente["extra_params"]["param3"]
+                elif componente_nombre == "graficoMedicionesPopUp":
+                    payload["param2"] = componente["extra_params"]["param2"]
 
                 try:
-                    response = session.post(url, data=payload, headers=headers)
+                    response = session.post(url, data=payload, headers=headers, timeout=10)
                     print(f"Respuesta del servidor (status {response.status_code}):")
                     print(response.text[:1000] + "..." if len(response.text) > 1000 else response.text)
 
@@ -119,16 +114,15 @@ def obtener_datos_dga_api(max_retries=3):
                             if not caudal_match:
                                 caudal_match = re.search(r'Caudal \(m3/seg\).*?>\s*([\d,\.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
 
-                        # Buscar altura (Nivel de Agua)
+                        # Buscar altura
                         altura_match = None
-                        if componente_nombre in ["searchForm", "graficoMedicionesForm"]:
+                        if componente_nombre == "graficoMedicionesPopUp":
                             altura_match = re.search(r'var ultimoNivelReg = "([^"]*)"', response_text)
                             if not altura_match:
                                 altura_match = re.search(r'Nivel de Agua \(m\).*?>\s*([\d,\.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
                             if not altura_match:
                                 altura_match = re.search(r'Altura \(m\).*?>\s*([\d,\.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
                             if not altura_match:
-                                # Buscar en alertas
                                 alerta_match = re.search(r'marker\.parametro\.codigo \+ "\-" \+ marker\.parametro\.glsParametro \+ "[^"]*" \+ "([^"]*)"', response_text)
                                 if alerta_match and '"1-Nivel de Agua"' in response_text:
                                     altura_match = re.search(r'marker\.valorMedicion \+ "[^"]*" \+ "([^"]*)"', response_text)
@@ -136,7 +130,9 @@ def obtener_datos_dga_api(max_retries=3):
                         # Buscar fecha
                         fecha_match = re.search(r'Fecha y hora de actualización:</b>\s*([^<]+)</p>', response_text)
                         if not fecha_match:
-                            fecha_match = re.search(r'marker\.fecha \+ "[^"]*" \+ "([^"]*)"', response_text)
+                            fecha_match = re.search(r'"fecha":"([^"]*)"', response_text)
+                            if not fecha_match:
+                                fecha_match = re.search(r'marker\.fecha \+ "[^"]*" \+ "([^"]*)"', response_text)
 
                         if caudal_match and caudal_match.group(1) and componente_nombre == "medicionesByTypeFunctions":
                             caudal_str = caudal_match.group(1).replace(",", ".")
@@ -156,7 +152,7 @@ def obtener_datos_dga_api(max_retries=3):
 
                         fecha_actualizacion = fecha_match.group(1).strip() if fecha_match and fecha_match.group(1) != "'+marker.fecha+'" else "No disponible"
 
-                        if (caudal is not None and componente_nombre == "medicionesByTypeFunctions") or (altura is not None and componente_nombre in ["searchForm", "graficoMedicionesForm"]):
+                        if (caudal is not None and componente_nombre == "medicionesByTypeFunctions") or (altura is not None and componente_nombre == "graficoMedicionesPopUp"):
                             print(f" -> ¡ÉXITO! {nombre}: Caudal {caudal if caudal is not None else 'No disponible'} m³/s, Altura {altura if altura is not None else 'No disponible'} m (Fecha: {fecha_actualizacion})")
                             break  # Salimos del bucle de reintentos
 
@@ -164,10 +160,19 @@ def obtener_datos_dga_api(max_retries=3):
                             print(f" -> No se encontraron datos para {nombre} en {componente_nombre}. ultimoCaudalReg='{caudal_match.group(1) if caudal_match else ''}', altura='{altura_match.group(1) if altura_match else ''}'")
                     else:
                         print(f" -> Error {response.status_code} para {nombre} en {componente_nombre}.")
-                except Exception as e:
+                        if response.status_code == 502:
+                            print(" -> Reintentando con nuevo ViewState...")
+                            view_state = obtener_view_state(session, url, headers)
+                            if not view_state:
+                                break
+                except requests.exceptions.RequestException as e:
                     print(f" -> Error al procesar {nombre} en {componente_nombre}: {e}")
-
-                time.sleep(1)  # Retraso para evitar bloqueos
+                    if attempt < max_retries - 1:
+                        print(" -> Reintentando con nuevo ViewState...")
+                        view_state = obtener_view_state(session, url, headers)
+                        if not view_state:
+                            break
+                time.sleep(2)  # Retraso mayor para evitar bloqueos
 
             if caudal is not None and altura is not None:
                 break  # Salimos del bucle de componentes si encontramos ambos
