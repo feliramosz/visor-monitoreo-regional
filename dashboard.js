@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="sec-gauge-level" style="background-color: #ef5350;"></div>
                     </div>
                     <div class="sec-gauge-ticks">
-                        <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                        <span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span><span>60</span><span>70</span><span>80</span><span>90</span><span>100</span>
                     </div>
                     <div id="sec-gauge-needle-container" class="sec-gauge-needle-container">
                         <div class="sec-gauge-needle"></div>
