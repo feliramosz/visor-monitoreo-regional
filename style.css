@@ -2655,3 +2655,21 @@ footer {
     font-size: 0.8em; /* Tamaño de fuente aún más pequeño */
     padding: 1px 5px; /* Un poco menos de espaciado para compactar */
 }
+
+/* --- ESTILOS PARA ALERTA VISUAL SEC --- */
+@keyframes pulse-red-yellow {
+    0%, 100% {
+        background-color: #f8d7da; /* Rojo claro de alerta */
+        color: #721c24;
+    }
+    50% {
+        background-color: #fff3cd; /* Amarillo claro de alerta */
+        color: #856404;
+    }
+}
+
+.pulse-alert-sec {
+    animation: pulse-red-yellow 1.5s infinite;
+    font-weight: bold;
+    border: 2px dashed #856404;
+}

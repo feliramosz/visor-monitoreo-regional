@@ -1094,6 +1094,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // --- Botón para probar Alerta Visual SEC ---
+    const testSecAlertBtn = document.getElementById('testSecAlertBtn');
+    if (testSecAlertBtn) {
+        testSecAlertBtn.addEventListener('click', () => {
+            // Establece una clave en localStorage con la fecha actual para asegurar que se detecte como un cambio
+            localStorage.setItem('test_sec_alert_trigger', Date.now());
+            // Muestra un mensaje de confirmación en el panel de admin
+            showMessage('Señal de prueba de Alerta SEC enviada al Dashboard.', 'success');
+        });
+    }
+
     // --- Lógica para la sección "Mis Turnos" ---
     // Variables de estado para esta sección
     let inicialesUsuarioLogueado = '';

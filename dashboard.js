@@ -306,16 +306,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Lógica de la SEC
-    async function fetchAndRenderSecSlide() {
+    async function fetchAndRenderSecSlide(testData = null) {
         const container = document.getElementById('sec-data-container');
         if (!container) return;
 
-        try {
-            const response = await fetch('/api/clientes_afectados');
-            const data = await response.json();
+        // Definición de comunas urbanas y rurales (solo las urbanas principales)
+        const urbanCommunes = ['Valparaíso', 'Viña del Mar', 'Quilpué', 'Villa Alemana', 'San Antonio', 'Los Andes', 'San Felipe', 'Quillota', 'La Calera', 'Concón'];
 
+        try {
+            // Usa datos de prueba si se proporcionan, de lo contrario, los busca en la API
+            const data = testData || await (await fetch('/api/clientes_afectados')).json();
             if (data.error) throw new Error(data.error);
 
+            const provincesWithAlerts = new Set();
+
+            // 1. Determinar qué provincias tienen comunas que superan los umbrales
+            data.desglose_provincias.forEach(province => {
+                if (province.comunas && province.comunas.length > 0) {
+                    province.comunas.forEach(commune => {
+                        const isUrban = urbanCommunes.includes(commune.comuna);
+                        const threshold = isUrban ? 50 : 20; // 50% para urbanas, 20% para rurales
+                        if (parseFloat(commune.porcentaje) >= threshold) {
+                            provincesWithAlerts.add(province.provincia);
+                        }
+                    });
+                }
+            });
+
+            // 2. Construir el HTML de la tabla de provincias, aplicando la clase de alerta si es necesario
             let tableHtml = `
                 <table class="sec-table">
                     <tbody>
@@ -334,31 +352,26 @@ document.addEventListener('DOMContentLoaded', () => {
                         <tr><th>CLIENTES AFECTADOS POR PROVINCIA</th><th>CANTIDAD</th></tr>
                     </thead>
                     <tbody id="sec-provinces-tbody">
-                        ${data.desglose_provincias.map(item => `
-                            <tr class="province-row" data-province='${JSON.stringify(item)}' style="${item.total_afectados > 0 ? 'cursor: pointer;' : ''}">
+                        ${data.desglose_provincias.map(item => {
+                            const alertClass = provincesWithAlerts.has(item.provincia) ? 'pulse-alert-sec' : '';
+                            return `
+                            <tr class="province-row ${alertClass}" data-province='${JSON.stringify(item)}' style="${item.total_afectados > 0 ? 'cursor: pointer;' : ''}">
                                 <td>Provincia de ${item.provincia}</td>
                                 <td>${item.total_afectados.toLocaleString('es-CL')}</td>
                             </tr>
-                        `).join('')}
+                        `}).join('')}
                     </tbody>
                 </table>
             `;
 
-            // --- INICIO DE LA MODIFICACIÓN: Lógica del GIF condicional ---
-            const gifNormal = 'https://media.baamboozle.com/uploads/images/804667/86ec0e19-47c5-4e57-8f2e-7752a8c3c33d.gif';
             const gifAlerta = 'https://images.squarespace-cdn.com/content/v1/5d75891a7cccee2f7f911d76/1613049092180-DMW5H5WPJJC5CQBUAAVZ/Broken-Bulb.gif';
-
+            const gifNormal = 'https://media.baamboozle.com/uploads/images/804667/86ec0e19-47c5-4e57-8f2e-7752a8c3c33d.gif';
             const gifUrl = data.total_afectados_region > 0 ? gifAlerta : gifNormal;
-
-            tableHtml += `
-                <div class="sec-gif-container">
-                    <img src="${gifUrl}" alt="Estado de la red eléctrica">
-                </div>
-            `;
-            // --- FIN DE LA MODIFICACIÓN ---
+            tableHtml += `<div class="sec-gif-container"><img src="${gifUrl}" alt="Estado de la red eléctrica"></div>`;
 
             container.innerHTML = tableHtml;
 
+            // 3. Lógica del pop-up (modal), aplicando la clase de alerta a las comunas correspondientes
             const modal = document.getElementById('sec-commune-modal');
             const modalTitle = document.getElementById('sec-modal-title');
             const modalBody = document.getElementById('sec-modal-body');
@@ -367,24 +380,28 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.province-row').forEach(row => {
                 row.addEventListener('click', () => {
                     const provinceData = JSON.parse(row.dataset.province);
-                    if (provinceData.total_afectados === 0) return; // No hacer nada si no hay afectados
+                    if (provinceData.total_afectados === 0) return;
 
                     modalTitle.textContent = `Desglose para la Provincia de ${provinceData.provincia}`;
-                    
+
                     if (provinceData.comunas && provinceData.comunas.length > 0) {
                         modalBody.innerHTML = `
                             <table class="sec-communes-table">
                                 <thead><tr><th>Comuna</th><th>Clientes Afectados</th><th>% Afectación</th></tr></thead>
                                 <tbody>
-                                    ${provinceData.comunas.map(c => `
-                                        <tr>
+                                    ${provinceData.comunas.map(c => {
+                                        const isUrban = urbanCommunes.includes(c.comuna);
+                                        const threshold = isUrban ? 50 : 20;
+                                        const alertClass = parseFloat(c.porcentaje) >= threshold ? 'pulse-alert-sec' : '';
+                                        return `
+                                        <tr class="${alertClass}">
                                             <td>${c.comuna}</td>
                                             <td>${c.cantidad.toLocaleString('es-CL')}</td>
                                             <td>${c.porcentaje}%</td>
                                         </tr>
-                                    `).join('')}
+                                    `}).join('')}
                                 </tbody>
-                                </table>`;
+                            </table>`;
                     } else {
                         modalBody.innerHTML = '<p>No hay desglose por comuna disponible para esta provincia.</p>';
                     }
@@ -395,9 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const closeModal = () => { modal.style.display = 'none'; };
             closeModalBtn.addEventListener('click', closeModal);
             modal.addEventListener('click', (event) => {
-                if (event.target === modal) { // Cierra solo si se hace clic en el fondo
-                    closeModal();
-                }
+                if (event.target === modal) { closeModal(); }
             });
 
             const timestampContainer = document.getElementById('sec-update-time');
@@ -1554,6 +1569,53 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("Actualizando todos los datos meteorológicos (banner y mapa)...");
         renderWeatherSlide(lastData);
         fetchAndRenderPrecipitationData();
+    }
+
+    // --- Lógica para escuchar cambios desde otras pestañas ---
+    window.addEventListener('storage', (event) => {
+        // Se activa cuando un cambio en localStorage ocurre en otra pestaña
+        if (event.key === 'data_updated') {
+            console.log('Dashboard: Se detectó un cambio de datos. Actualizando...');
+            // Llama a la función principal para recargar y renderizar todos los datos
+            fetchAndRenderMainData();
+        }
+        // NUEVO: Escucha la señal para la prueba de alerta SEC
+        if (event.key === 'test_sec_alert_trigger') {
+            console.log('Dashboard: Recibida señal de prueba para Alerta SEC.');
+            runSecAlertTest();
+        }
+    });
+
+    // NUEVO: Función que genera datos falsos y llama al renderizado
+    function runSecAlertTest() {
+        const fakeData = {
+            "total_afectados_region": 13550,
+            "porcentaje_afectado": 1.63,
+            "desglose_provincias": [
+                { "provincia": "San Antonio", "total_afectados": 0, "comunas": [] },
+                {
+                    "provincia": "Valparaíso",
+                    "total_afectados": 78000,
+                    "comunas": [
+                        { "comuna": "Valparaíso", "cantidad": 78000, "porcentaje": 57.78 } // URBANA > 50%
+                    ]
+                },
+                { "provincia": "Quillota", "total_afectados": 0, "comunas": [] },
+                { "provincia": "San Felipe", "total_afectados": 0, "comunas": [] },
+                { "provincia": "Los Andes", "total_afectados": 0, "comunas": [] },
+                {
+                    "provincia": "Petorca",
+                    "total_afectados": 1450,
+                    "comunas": [
+                        { "comuna": "Petorca", "cantidad": 1450, "porcentaje": 20.71 } // RURAL > 20%
+                    ]
+                },
+                { "provincia": "Marga Marga", "total_afectados": 0, "comunas": [] },
+                { "provincia": "Isla de Pascua", "total_afectados": 0, "comunas": [] }
+            ]
+        };
+        // Llama a la función de renderizado pasándole los datos falsos
+        fetchAndRenderSecSlide(fakeData);
     }
 
     async function initializeApp() {
