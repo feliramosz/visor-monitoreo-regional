@@ -2711,8 +2711,7 @@ footer {
     position: absolute;
     bottom: 10px;
     /* La posición 'left' será controlada por JavaScript */
-    left: 0%; 
-    width: 0px; /* No necesita ancho */
+    left: 0%;     
     height: 100%;
     transition: left 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Transición con efecto de rebote */
     z-index: 2;
@@ -2720,12 +2719,11 @@ footer {
 
 .sec-gauge-needle {
     width: 0; 
-    height: 0; 
-    /* Triángulo que apunta hacia arriba */
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-bottom: 20px solid #343a40; /* Color de la aguja */
+    height: 0;     
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 15px solid #343a40;
     position: absolute;
-    top: -20px; /* Posiciona la punta de la aguja sobre la barra */
+    top: 25px;
     transform: translateX(-50%);
 }

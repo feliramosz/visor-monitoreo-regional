@@ -385,6 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="sec-gauge-needle"></div>
                     </div>
                 </div>
+                <div style="text-align: center; font-weight: bold; font-size: 0.9em; color: #555; margin-top: -5px;">% Afectación Regional</div>
             `;
 
             container.innerHTML = tableHtml;
