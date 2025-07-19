@@ -2673,3 +2673,59 @@ footer {
     font-weight: bold;
     border: 2px dashed #856404;
 }
+
+/* --- ESTILOS PARA MEDIDOR DE AFECTACIÓN SEC --- */
+.sec-gauge-container {
+    width: 100%;
+    max-width: 450px; /* Ancho máximo del medidor */
+    margin: 25px auto 10px auto; /* Centrado y con margen */
+    position: relative;
+    padding-bottom: 15px; /* Espacio para la aguja */
+}
+
+.sec-gauge-track {
+    display: flex;
+    width: 100%;
+    height: 25px;
+    border-radius: 12.5px;
+    overflow: hidden;
+    border: 1px solid #b8b8b8;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.sec-gauge-level {
+    width: 10%; /* Cada nivel es un 10% del total */
+    height: 100%;
+}
+
+.sec-gauge-ticks {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 2px 0 2px;
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #333;
+}
+
+.sec-gauge-needle-container {
+    position: absolute;
+    bottom: 10px;
+    /* La posición 'left' será controlada por JavaScript */
+    left: 0%; 
+    width: 0px; /* No necesita ancho */
+    height: 100%;
+    transition: left 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Transición con efecto de rebote */
+    z-index: 2;
+}
+
+.sec-gauge-needle {
+    width: 0; 
+    height: 0; 
+    /* Triángulo que apunta hacia arriba */
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 20px solid #343a40; /* Color de la aguja */
+    position: absolute;
+    top: -20px; /* Posiciona la punta de la aguja sobre la barra */
+    transform: translateX(-50%);
+}

@@ -364,10 +364,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 </table>
             `;
 
-            const gifAlerta = 'https://images.squarespace-cdn.com/content/v1/5d75891a7cccee2f7f911d76/1613049092180-DMW5H5WPJJC5CQBUAAVZ/Broken-Bulb.gif';
-            const gifNormal = 'https://media.baamboozle.com/uploads/images/804667/86ec0e19-47c5-4e57-8f2e-7752a8c3c33d.gif';
-            const gifUrl = data.total_afectados_region > 0 ? gifAlerta : gifNormal;
-            tableHtml += `<div class="sec-gif-container"><img src="${gifUrl}" alt="Estado de la red eléctrica"></div>`;
+            tableHtml += `
+                <div class="sec-gauge-container">
+                    <div class="sec-gauge-track">
+                        <div class="sec-gauge-level" style="background-color: #a5d6a7;"></div>
+                        <div class="sec-gauge-level" style="background-color: #c5e1a5;"></div>
+                        <div class="sec-gauge-level" style="background-color: #e6ee9c;"></div>
+                        <div class="sec-gauge-level" style="background-color: #fff59d;"></div>
+                        <div class="sec-gauge-level" style="background-color: #ffe082;"></div>
+                        <div class="sec-gauge-level" style="background-color: #ffcc80;"></div>
+                        <div class="sec-gauge-level" style="background-color: #ffab91;"></div>
+                        <div class="sec-gauge-level" style="background-color: #ef9a9a;"></div>
+                        <div class="sec-gauge-level" style="background-color: #e57373;"></div>
+                        <div class="sec-gauge-level" style="background-color: #ef5350;"></div>
+                    </div>
+                    <div class="sec-gauge-ticks">
+                        <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+                    </div>
+                    <div id="sec-gauge-needle-container" class="sec-gauge-needle-container">
+                        <div class="sec-gauge-needle"></div>
+                    </div>
+                </div>
+            `;
 
             container.innerHTML = tableHtml;
 
