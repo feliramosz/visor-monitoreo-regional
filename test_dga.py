@@ -10,7 +10,7 @@ from selenium.webdriver.chrome.service import Service
 def configurar_driver():
     """Configura el navegador Chrome para ejecutarse en segundo plano en el servidor."""
     options = webdriver.ChromeOptions()
-    options.binary_location = "/usr/bin/google-chrome-stable"
+    options.binary_location = "/opt/google/chrome/google-chrome"
 
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
