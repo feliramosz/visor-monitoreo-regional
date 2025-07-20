@@ -41,15 +41,21 @@ def obtener_datos_dga_api(max_retries=3):
     codigos_estaciones = {
         "05410002-7": {
             "nombre": "Aconcagua en Chacabuquito",
-            "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"
+            "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas",
+            "grafico_source": "graficoMedicionesForm:j_idt132",
+            "j_idt145_index": "1"
         },
         "05410024-8": {
             "nombre": "Aconcagua San Felipe 2",
-            "param2": "Fluviometricas"
+            "param2": "Fluviometricas",
+            "grafico_source": "graficoMedicionesForm:buttonGraficar",
+            "j_idt145_index": "1"
         },
         "05414001-0": {
             "nombre": "Putaendo Resguardo Los Patos",
-            "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"
+            "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas",
+            "grafico_source": "graficoMedicionesForm:j_idt132",
+            "j_idt145_index": "2"
         }
     }
     datos_extraidos = []
@@ -69,6 +75,8 @@ def obtener_datos_dga_api(max_retries=3):
     for codigo, info in codigos_estaciones.items():
         nombre = info["nombre"]
         param2 = info["param2"]
+        grafico_source = info["grafico_source"]
+        j_idt145_index = info["j_idt145_index"]
         caudal = None
         altura = None
         fecha_actualizacion = None
@@ -120,34 +128,42 @@ def obtener_datos_dga_api(max_retries=3):
             time.sleep(2)
             continue
 
-        # Paso 2: Obtener altura y fecha con graficoMedicionesForm:buttonGraficar
+        # Paso 2: Obtener altura y fecha con graficoMedicionesForm
         for attempt in range(max_retries):
-            print(f"\nSolicitando altura para {nombre} ({codigo}) con graficoMedicionesForm:buttonGraficar - Intento {attempt + 1}/{max_retries}...")
+            print(f"\nSolicitando altura para {nombre} ({codigo}) con {grafico_source} - Intento {attempt + 1}/{max_retries}...")
             payload = {
                 "graficoMedicionesForm": "graficoMedicionesForm",
                 "javax.faces.ViewState": view_state,
-                "graficoMedicionesForm:j_idt144:0:j_idt145": "on",
-                "graficoMedicionesForm:j_idt144:1:j_idt145": "on",
-                "javax.faces.source": "graficoMedicionesForm:buttonGraficar",
+                f"graficoMedicionesForm:j_idt144:0:j_idt145": "on",
+                f"graficoMedicionesForm:j_idt144:{j_idt145_index}:j_idt145": "on",
+                "javax.faces.source": grafico_source,
                 "javax.faces.partial.event": "click",
-                "javax.faces.partial.execute": "graficoMedicionesForm:buttonGraficar @component",
+                "javax.faces.partial.execute": f"{grafico_source} @component",
                 "javax.faces.partial.render": "@component",
-                "org.richfaces.ajax.component": "graficoMedicionesForm:buttonGraficar",
-                "graficoMedicionesForm:buttonGraficar": "graficoMedicionesForm:buttonGraficar",
+                "org.richfaces.ajax.component": grafico_source,
+                grafico_source: grafico_source,
                 "AJAX:EVENTS_COUNT": "1",
                 "javax.faces.partial.ajax": "true"
             }
+            # Agregar parámetros adicionales para Chacabuquito y Resguardo Los Patos
+            if grafico_source == "graficoMedicionesForm:j_idt132":
+                payload.update({
+                    "param1": codigo,
+                    "param2": nombre.upper(),
+                    "param3": param2
+                })
+
             try:
                 response = session.post(url, data=payload, headers=headers, timeout=90)
                 print(f"Respuesta del servidor (status {response.status_code}, longitud: {len(response.text)} caracteres):")
                 
-                # Guardar response completo para depuración si no se encuentra el JSON
+                # Guardar response completo para depuración
                 if response.status_code == 200:
                     response_text = response.text
                     with open(f"response_{nombre.replace(' ', '_')}_{attempt + 1}.txt", "w", encoding="utf-8") as f:
                         f.write(response_text)
                     print(f"Response guardado en response_{nombre.replace(' ', '_')}_{attempt + 1}.txt")
-                    print(response_text[:2000] + "..." if len(response_text) > 2000 else response_text)
+                    print(response_text[:5000] + "..." if len(response_text) > 5000 else response_text)
 
                     # Extraer JSON embebido en var graficoBottom
                     json_match = re.search(r'var graficoBottom = new Grafico\("[^"]+",\s*(\[.*\])\);?', response_text, re.DOTALL)
@@ -191,14 +207,14 @@ def obtener_datos_dga_api(max_retries=3):
                         print(f" -> ¡ÉXITO! {nombre}: Caudal {caudal if caudal is not None else 'No disponible'} m³/s, Altura {altura} m (Fecha: {fecha_actualizacion if fecha_actualizacion else 'No disponible'})")
                         break
                 else:
-                    print(f" -> Error {response.status_code} para {nombre} en graficoMedicionesForm:buttonGraficar.")
+                    print(f" -> Error {response.status_code} para {nombre} en {grafico_source}.")
                     if response.status_code == 502:
                         print(" -> Reintentando con nuevo ViewState...")
                         view_state = obtener_view_state(session, url, headers, max_retries)
                         if not view_state:
                             break
             except requests.exceptions.RequestException as e:
-                print(f" -> Error al procesar {nombre} en graficoMedicionesForm:buttonGraficar: {e}")
+                print(f" -> Error al procesar {nombre} en {grafico_source}: {e}")
                 if attempt < max_retries - 1:
                     print(" -> Reintentando con nuevo ViewState...")
                     view_state = obtener_view_state(session, url, headers, max_retries)
