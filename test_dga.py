@@ -8,7 +8,7 @@ def obtener_view_state(session, url, headers, max_retries=3):
     for attempt in range(max_retries):
         print(f"Intentando obtener ViewState - Intento {attempt + 1}/{max_retries}...")
         try:
-            response = session.get(url, headers=headers, timeout=30)
+            response = session.get(url, headers=headers, timeout=60)
             if response.status_code == 200:
                 view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', response.text)
                 if view_state_match:
@@ -73,58 +73,52 @@ def obtener_datos_dga_api(max_retries=3):
         altura = None
         fecha_actualizacion = None
 
-        # Paso 1: Obtener caudal con medicionesByTypeFunctions
-        for attempt in range(max_retries):
-            print(f"\nSolicitando caudal para {nombre} ({codigo}) con medicionesByTypeFunctions - Intento {attempt + 1}/{max_retries}...")
-            payload = {
-                "medicionesByTypeFunctions": "medicionesByTypeFunctions",
-                "javax.faces.ViewState": view_state,
-                "javax.faces.source": "medicionesByTypeFunctions:j_idt162",
-                "javax.faces.partial.execute": "medicionesByTypeFunctions:j_idt162 @component",
-                "javax.faces.partial.render": "@component",
-                "param1": codigo,
-                "param2": param2,
-                "org.richfaces.ajax.component": "medicionesByTypeFunctions:j_idt162",
-                "medicionesByTypeFunctions:j_idt162": "medicionesByTypeFunctions:j_idt162",
-                "AJAX:EVENTS_COUNT": "1",
-                "javax.faces.partial.ajax": "true"
-            }
-            try:
-                response = session.post(url, data=payload, headers=headers, timeout=30)
-                print(f"Respuesta del servidor (status {response.status_code}):")
-                print(response.text[:1000] + "..." if len(response.text) > 1000 else response.text)
+        # Paso 1: Establecer contexto de estación con medicionesByTypeFunctions
+        print(f"\nEstableciendo contexto para {nombre} ({codigo}) con medicionesByTypeFunctions...")
+        payload_contexto = {
+            "medicionesByTypeFunctions": "medicionesByTypeFunctions",
+            "javax.faces.ViewState": view_state,
+            "javax.faces.source": "medicionesByTypeFunctions:j_idt162",
+            "javax.faces.partial.execute": "medicionesByTypeFunctions:j_idt162 @component",
+            "javax.faces.partial.render": "@component",
+            "param1": codigo,
+            "param2": param2,
+            "org.richfaces.ajax.component": "medicionesByTypeFunctions:j_idt162",
+            "medicionesByTypeFunctions:j_idt162": "medicionesByTypeFunctions:j_idt162",
+            "AJAX:EVENTS_COUNT": "1",
+            "javax.faces.partial.ajax": "true"
+        }
+        try:
+            response = session.post(url, data=payload_contexto, headers=headers, timeout=60)
+            print(f"Respuesta del servidor (status {response.status_code}):")
+            print(response.text[:1000] + "..." if len(response.text) > 1000 else response.text)
 
-                if response.status_code == 200:
-                    response_text = response.text
-                    caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', response_text)
-                    if not caudal_match:
-                        caudal_match = re.search(r'Caudal \(m3/seg\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
+            if response.status_code == 200:
+                response_text = response.text
+                caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', response_text)
+                if not caudal_match:
+                    caudal_match = re.search(r'Caudal \(m3/seg\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
 
-                    if caudal_match and caudal_match.group(1):
-                        caudal_str = caudal_match.group(1).replace(",", ".")
-                        try:
-                            caudal = float(caudal_str)
-                            print(f" -> Caudal encontrado: {nombre}: {caudal} m³/s")
-                            break
-                        except ValueError:
-                            print(f" -> Error: No se pudo convertir '{caudal_str}' a número para caudal de {nombre}.")
-                    else:
-                        print(f" -> No se encontró caudal para {nombre}. ultimoCaudalReg='{caudal_match.group(1) if caudal_match else ''}'")
+                if caudal_match and caudal_match.group(1):
+                    caudal_str = caudal_match.group(1).replace(",", ".")
+                    try:
+                        caudal = float(caudal_str)
+                        print(f" -> Caudal encontrado: {nombre}: {caudal} m³/s")
+                    except ValueError:
+                        print(f" -> Error: No se pudo convertir '{caudal_str}' a número para caudal de {nombre}.")
                 else:
-                    print(f" -> Error {response.status_code} para {nombre} en medicionesByTypeFunctions.")
-                    if response.status_code == 502:
-                        print(" -> Reintentando con nuevo ViewState...")
-                        view_state = obtener_view_state(session, url, headers, max_retries)
-                        if not view_state:
-                            break
-            except requests.exceptions.RequestException as e:
-                print(f" -> Error al procesar {nombre} en medicionesByTypeFunctions: {e}")
-                if attempt < max_retries - 1:
+                    print(f" -> No se encontró caudal para {nombre}. ultimoCaudalReg='{caudal_match.group(1) if caudal_match else ''}'")
+            else:
+                print(f" -> Error {response.status_code} para {nombre} en medicionesByTypeFunctions.")
+                if response.status_code == 502:
                     print(" -> Reintentando con nuevo ViewState...")
                     view_state = obtener_view_state(session, url, headers, max_retries)
                     if not view_state:
-                        break
+                        continue
+        except requests.exceptions.RequestException as e:
+            print(f" -> Error al procesar {nombre} en medicionesByTypeFunctions: {e}")
             time.sleep(2)
+            continue
 
         # Paso 2: Obtener altura y fecha con graficoMedicionesForm:buttonGraficar
         for attempt in range(max_retries):
@@ -144,39 +138,52 @@ def obtener_datos_dga_api(max_retries=3):
                 "javax.faces.partial.ajax": "true"
             }
             try:
-                response = session.post(url, data=payload, headers=headers, timeout=30)
+                response = session.post(url, data=payload, headers=headers, timeout=60)
                 print(f"Respuesta del servidor (status {response.status_code}):")
                 print(response.text[:1000] + "..." if len(response.text) > 1000 else response.text)
 
                 if response.status_code == 200:
                     response_text = response.text
-                    # Buscar altura
-                    altura_match = None
-                    if '"medicion":' in response_text:
-                        altura_match = re.search(r'"medicion":([\d.]+)', response_text)
-                    if not altura_match:
+                    # Extraer JSON embebido en var graficoBottom
+                    json_match = re.search(r'var graficoBottom = new Grafico\("[^"]+",\s*(\[.*?\])\)', response_text, re.DOTALL)
+                    if json_match:
+                        try:
+                            json_data = json.loads(json_match.group(1))
+                            if json_data and isinstance(json_data, list) and len(json_data) > 0:
+                                # Tomar la última medición
+                                ultima_medicion = json_data[-1]
+                                altura = ultima_medicion.get("medicion")
+                                fecha_actualizacion = ultima_medicion.get("fecha")
+                                if altura is not None:
+                                    print(f" -> Altura encontrada: {nombre}: {altura} m")
+                                    print(f" -> Fecha encontrada: {nombre}: {fecha_actualizacion}")
+                                else:
+                                    print(f" -> No se encontró 'medicion' en el JSON para {nombre}. JSON: {json_data[:200]}...")
+                            else:
+                                print(f" -> JSON vacío o inválido para {nombre}. JSON: {json_match.group(1)[:200]}...")
+                        except json.JSONDecodeError as e:
+                            print(f" -> Error al parsear JSON para {nombre}: {e}. Response: {response_text[:1000]}...")
+                    else:
+                        # Fallback a búsqueda en HTML
                         altura_match = re.search(r'Nivel de Agua \(m\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
-                    if not altura_match:
-                        altura_match = re.search(r'Altura \(m\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
-
-                    # Buscar fecha
-                    fecha_match = re.search(r'"fecha":"([^"]*)"', response_text)
-                    if not fecha_match:
+                        if not altura_match:
+                            altura_match = re.search(r'Altura \(m\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
                         fecha_match = re.search(r'Fecha y hora de actualización:</b>\s*([^<]+)</p>', response_text)
 
-                    if altura_match:
-                        altura_str = altura_match.group(1).replace(",", ".")
-                        try:
-                            altura = float(altura_str)
-                            print(f" -> Altura encontrada: {nombre}: {altura} m")
-                        except ValueError:
-                            print(f" -> Error: No se pudo convertir '{altura_str}' a número para altura de {nombre}.")
-                    else:
-                        print(f" -> No se encontró altura para {nombre}. Response: {response_text[:200]}...")
+                        if altura_match:
+                            altura_str = altura_match.group(1).replace(",", ".")
+                            try:
+                                altura = float(altura_str)
+                                print(f" -> Altura encontrada en HTML: {nombre}: {altura} m")
+                            except ValueError:
+                                print(f" -> Error: No se pudo convertir '{altura_str}' a número para altura de {nombre}.")
+                        else:
+                            print(f" -> No se encontró altura para {nombre}. Response: {response_text[:1000]}...")
 
-                    fecha_actualizacion = fecha_match.group(1).strip() if fecha_match else "No disponible"
+                        fecha_actualizacion = fecha_match.group(1).strip() if fecha_match else None
+
                     if altura is not None:
-                        print(f" -> ¡ÉXITO! {nombre}: Caudal {caudal if caudal is not None else 'No disponible'} m³/s, Altura {altura} m (Fecha: {fecha_actualizacion})")
+                        print(f" -> ¡ÉXITO! {nombre}: Caudal {caudal if caudal is not None else 'No disponible'} m³/s, Altura {altura} m (Fecha: {fecha_actualizacion if fecha_actualizacion else 'No disponible'})")
                         break
                 else:
                     print(f" -> Error {response.status_code} para {nombre} en graficoMedicionesForm:buttonGraficar.")
@@ -256,7 +263,7 @@ if __name__ == "__main__":
         print("=============================================================")
         for dato in datos_en_vivo:
             if dato["caudal"] is not None or dato["altura"] is not None:
-                print(f"  - {dato['estacion']} ({dato['codigo']}): Caudal {dato['caudal'] if dato['caudal'] is not None else 'No disponible'} m³/s, Altura {dato['altura'] if dato['altura'] is not None else 'No disponible'} m (Fecha: {dato['fecha_actualizacion']})")
+                print(f"  - {dato['estacion']} ({dato['codigo']}): Caudal {dato['caudal'] if dato['caudal'] is not None else 'No disponible'} m³/s, Altura {dato['altura'] if dato['altura'] is not None else 'No disponible'} m (Fecha: {dato['fecha_actualizacion'] if dato['fecha_actualizacion'] else 'No disponible'})")
             else:
                 print(f"  - {dato['estacion']} ({dato['codigo']}): No se pudieron obtener datos.")
         
