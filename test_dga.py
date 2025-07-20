@@ -4,18 +4,25 @@ import json
 import time
 from datetime import datetime
 
-def obtener_view_state(session, url, headers):
-    try:
-        response = session.get(url, headers=headers, timeout=10)
-        view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', response.text)
-        if view_state_match:
-            return view_state_match.group(1)
-        else:
-            print("Error: No se pudo obtener el ViewState.")
-            return None
-    except Exception as e:
-        print(f"Error al obtener ViewState: {e}")
-        return None
+def obtener_view_state(session, url, headers, max_retries=3):
+    for attempt in range(max_retries):
+        print(f"Intentando obtener ViewState - Intento {attempt + 1}/{max_retries}...")
+        try:
+            response = session.get(url, headers=headers, timeout=30)
+            if response.status_code == 200:
+                view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', response.text)
+                if view_state_match:
+                    print(f"ViewState obtenido: {view_state_match.group(1)}")
+                    return view_state_match.group(1)
+                else:
+                    print("Error: No se encontró ViewState en la respuesta.")
+            else:
+                print(f"Error {response.status_code} al obtener ViewState.")
+        except requests.exceptions.RequestException as e:
+            print(f"Error al obtener ViewState: {e}")
+        time.sleep(2)
+    print("Error: No se pudo obtener el ViewState tras varios intentos.")
+    return None
 
 def obtener_datos_dga_api(max_retries=3):
     url = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
@@ -50,8 +57,13 @@ def obtener_datos_dga_api(max_retries=3):
 
     # Obtener ViewState inicial
     print("Obteniendo ViewState y cookies...")
-    view_state = obtener_view_state(session, url, headers)
+    view_state = obtener_view_state(session, url, headers, max_retries)
     if not view_state:
+        print("Sugerencias:")
+        print("1. Verifica tu conexión a internet.")
+        print("2. Asegúrate de que https://snia.mop.gob.cl sea accesible desde tu navegador.")
+        print("3. Prueba ejecutar el script más tarde (puede ser un problema temporal del servidor).")
+        print("4. Como alternativa, descarga el reporte Excel 'Altura y Caudal Instantáneo' desde el portal.")
         return datos_extraidos
 
     for codigo, info in codigos_estaciones.items():
@@ -78,7 +90,7 @@ def obtener_datos_dga_api(max_retries=3):
                 "javax.faces.partial.ajax": "true"
             }
             try:
-                response = session.post(url, data=payload, headers=headers, timeout=10)
+                response = session.post(url, data=payload, headers=headers, timeout=30)
                 print(f"Respuesta del servidor (status {response.status_code}):")
                 print(response.text[:1000] + "..." if len(response.text) > 1000 else response.text)
 
@@ -86,7 +98,7 @@ def obtener_datos_dga_api(max_retries=3):
                     response_text = response.text
                     caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', response_text)
                     if not caudal_match:
-                        caudal_match = re.search(r'Caudal \(m3/seg\).*?>\s*([\d,\.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
+                        caudal_match = re.search(r'Caudal \(m3/seg\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
 
                     if caudal_match and caudal_match.group(1):
                         caudal_str = caudal_match.group(1).replace(",", ".")
@@ -102,14 +114,14 @@ def obtener_datos_dga_api(max_retries=3):
                     print(f" -> Error {response.status_code} para {nombre} en medicionesByTypeFunctions.")
                     if response.status_code == 502:
                         print(" -> Reintentando con nuevo ViewState...")
-                        view_state = obtener_view_state(session, url, headers)
+                        view_state = obtener_view_state(session, url, headers, max_retries)
                         if not view_state:
                             break
             except requests.exceptions.RequestException as e:
                 print(f" -> Error al procesar {nombre} en medicionesByTypeFunctions: {e}")
                 if attempt < max_retries - 1:
                     print(" -> Reintentando con nuevo ViewState...")
-                    view_state = obtener_view_state(session, url, headers)
+                    view_state = obtener_view_state(session, url, headers, max_retries)
                     if not view_state:
                         break
             time.sleep(2)
@@ -132,25 +144,27 @@ def obtener_datos_dga_api(max_retries=3):
                 "javax.faces.partial.ajax": "true"
             }
             try:
-                response = session.post(url, data=payload, headers=headers, timeout=10)
+                response = session.post(url, data=payload, headers=headers, timeout=30)
                 print(f"Respuesta del servidor (status {response.status_code}):")
                 print(response.text[:1000] + "..." if len(response.text) > 1000 else response.text)
 
                 if response.status_code == 200:
                     response_text = response.text
                     # Buscar altura
-                    altura_match = re.search(r'"medicion":([\d.]+)', response_text)
+                    altura_match = None
+                    if '"medicion":' in response_text:
+                        altura_match = re.search(r'"medicion":([\d.]+)', response_text)
                     if not altura_match:
-                        altura_match = re.search(r'Nivel de Agua \(m\).*?>\s*([\d,\.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
+                        altura_match = re.search(r'Nivel de Agua \(m\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
                     if not altura_match:
-                        altura_match = re.search(r'Altura \(m\).*?>\s*([\d,\.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
+                        altura_match = re.search(r'Altura \(m\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
 
                     # Buscar fecha
                     fecha_match = re.search(r'"fecha":"([^"]*)"', response_text)
                     if not fecha_match:
                         fecha_match = re.search(r'Fecha y hora de actualización:</b>\s*([^<]+)</p>', response_text)
 
-                    if altura_match and altura_match.group(1):
+                    if altura_match:
                         altura_str = altura_match.group(1).replace(",", ".")
                         try:
                             altura = float(altura_str)
@@ -158,7 +172,7 @@ def obtener_datos_dga_api(max_retries=3):
                         except ValueError:
                             print(f" -> Error: No se pudo convertir '{altura_str}' a número para altura de {nombre}.")
                     else:
-                        print(f" -> No se encontró altura para {nombre}.")
+                        print(f" -> No se encontró altura para {nombre}. Response: {response_text[:200]}...")
 
                     fecha_actualizacion = fecha_match.group(1).strip() if fecha_match else "No disponible"
                     if altura is not None:
@@ -168,14 +182,14 @@ def obtener_datos_dga_api(max_retries=3):
                     print(f" -> Error {response.status_code} para {nombre} en graficoMedicionesForm:buttonGraficar.")
                     if response.status_code == 502:
                         print(" -> Reintentando con nuevo ViewState...")
-                        view_state = obtener_view_state(session, url, headers)
+                        view_state = obtener_view_state(session, url, headers, max_retries)
                         if not view_state:
                             break
             except requests.exceptions.RequestException as e:
                 print(f" -> Error al procesar {nombre} en graficoMedicionesForm:buttonGraficar: {e}")
                 if attempt < max_retries - 1:
                     print(" -> Reintentando con nuevo ViewState...")
-                    view_state = obtener_view_state(session, url, headers)
+                    view_state = obtener_view_state(session, url, headers, max_retries)
                     if not view_state:
                         break
             time.sleep(2)
@@ -191,11 +205,9 @@ def obtener_datos_dga_api(max_retries=3):
     return datos_extraidos
 
 def generar_json_y_html(datos):
-    # Generar JSON
     with open("caudales.json", "w", encoding="utf-8") as f:
         json.dump(datos, f, ensure_ascii=False, indent=4)
 
-    # Generar HTML
     html = """
     <!DOCTYPE html>
     <html>
@@ -248,8 +260,12 @@ if __name__ == "__main__":
             else:
                 print(f"  - {dato['estacion']} ({dato['codigo']}): No se pudieron obtener datos.")
         
-        # Generar JSON y HTML para el visor
         generar_json_y_html(datos_en_vivo)
         print("\nArchivos generados: 'caudales.json' y 'caudales.html'")
     else:
         print("\n❌ La prueba falló. No se pudieron obtener datos.")
+        print("Sugerencias:")
+        print("1. Verifica tu conexión a internet.")
+        print("2. Asegúrate de que https://snia.mop.gob.cl sea accesible desde tu navegador.")
+        print("3. Prueba ejecutar el script más tarde (puede ser un problema temporal del servidor).")
+        print("4. Como alternativa, descarga el reporte Excel 'Altura y Caudal Instantáneo' desde el portal.")
