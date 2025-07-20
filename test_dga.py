@@ -15,8 +15,6 @@ def obtener_view_state(session, url, headers, max_retries=3):
                 if view_state_match:
                     print(f"ViewState obtenido.")
                     return view_state_match.group(1)
-                else:
-                    print("Error: No se encontró ViewState en la respuesta.")
             else:
                 print(f"Error {response.status_code} al obtener ViewState.")
         except requests.exceptions.RequestException as e:
@@ -75,11 +73,10 @@ def obtener_datos_dga_api(max_retries=3):
 
         print(f"\n--- Procesando: {nombre} ({codigo}) ---")
         
-        # PASO ÚNICO: Seleccionar la estación y extraer TODOS los datos de su respuesta.
         seleccion_response = simular_seleccion_estacion(session, url, headers, view_state, codigo, nombre, param2, max_retries)
         
         if seleccion_response:
-            # 1. Extraer Caudal
+            # Extraer Caudal
             caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', seleccion_response)
             if caudal_match and caudal_match.group(1):
                 try:
@@ -87,21 +84,28 @@ def obtener_datos_dga_api(max_retries=3):
                     print(f" -> Caudal encontrado: {caudal} m³/s")
                 except ValueError: pass
 
-            # 2. Extraer Altura (buscando en el HTML generado por JavaScript)
-            altura_match = re.search(r"Nivel de Agua \(m\).*?'><b>:<\/b><\/div><div[^>]+>([\d,.]+)<\/div>", seleccion_response)
-            if altura_match:
-                try:
-                    altura = float(altura_match.group(1).replace(",", "."))
-                    print(f" -> Altura encontrada: {altura} m")
-                except ValueError: pass
+            # <<< INICIO DE LA CORRECCIÓN FINAL >>>
+            # Extraer Altura y Fecha buscando directamente en el HTML que genera el script
             
-            # 3. Extraer Fecha (buscando en el HTML generado por JavaScript)
-            fecha_match = re.search(r"Fecha y hora de actualización:<\/b> '\+markers\[\d+\]\.fecha\+'", seleccion_response)
+            # Patrón para encontrar la fecha de actualización
+            fecha_match = re.search(r"<b>Fecha y hora de actualización:</b> ' \+ markers\[\d+\]\.fecha \+ '", seleccion_response)
             if fecha_match:
+                # Si encuentra el patrón, busca el valor de la fecha real en la definición del 'marker'
                 marker_fecha_match = re.search(r"markers\[\d+\]\.fecha='([^']+)'", seleccion_response)
                 if marker_fecha_match:
                     fecha_actualizacion = marker_fecha_match.group(1).strip()
                     print(f" -> Fecha encontrada: {fecha_actualizacion}")
+
+            # Patrón para encontrar la altura (Nivel de Agua)
+            altura_match = re.search(r"Nivel de Agua \(m\)(?:<\/b><\/div><div[^>]+><b>:<\/b><\/div><div[^>]+>|.*?'><b>:<\/b><\/div><div[^>]+><b>)([\d,\.]+)<\/b><\/div>)", seleccion_response, re.DOTALL)
+            if altura_match:
+                try:
+                    altura_str = altura_match.group(1).replace(",",".")
+                    altura = float(altura_str)
+                    print(f" -> Altura encontrada: {altura} m")
+                except ValueError:
+                    print(f" -> Error al convertir altura: {altura_str}")
+            # <<< FIN DE LA CORRECCIÓN FINAL >>>
 
             # Actualizar ViewState para la siguiente iteración
             vs_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', seleccion_response)
@@ -139,8 +143,8 @@ def generar_json_y_html(datos):
         json.dump(datos, f, ensure_ascii=False, indent=4)
     html = f"""
     <!DOCTYPE html><html><head><title>Caudales y Alturas Hidrométricas</title>
-    <style>table {{ border-collapse: collapse; width: 100%; }} th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }} th {{ background-color: #f2f2f2; }}</style>
-    </head><body><h1>Caudales y Alturas de Estaciones Hidrométricas</h1><table><tr><th>Estación</th><th>Caudal (m³/s)</th><th>Altura (m)</th><th>Fecha de Actualización</th></tr>
+    <style>table {{ border-collapse: collapse; width: 100%; max-width: 800px; margin: auto; }} th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }} th {{ background-color: #f2f2f2; }}</style>
+    </head><body><h1 style="text-align: center;">Caudales y Alturas de Estaciones Hidrométricas</h1><table><tr><th>Estación</th><th>Caudal (m³/s)</th><th>Altura (m)</th><th>Fecha de Actualización</th></tr>
     """
     for dato in datos:
         html += f"""<tr><td>{dato['estacion']}</td><td>{dato['caudal'] if dato['caudal'] is not None else 'No disponible'}</td><td>{dato['altura'] if dato['altura'] is not None else 'No disponible'}</td><td>{dato['fecha_actualizacion'] if dato['fecha_actualizacion'] else 'No disponible'}</td></tr>"""
@@ -151,7 +155,7 @@ def generar_json_y_html(datos):
 if __name__ == "__main__":
     print("--- INICIANDO PRUEBA CON API ---")
     datos_en_vivo = obtener_datos_dga_api()
-    if not datos_en_vivo or not any(d["caudal"] and d["altura"] for d in datos_en_vivo):
+    if not datos_en_vivo or not any(d["caudal"] and d.get("altura") for d in datos_en_vivo):
         print("\nAPI no entregó todos los datos. Probando con reporte Excel como respaldo...")
         datos_excel = descargar_reporte_excel()
         if datos_excel:
