@@ -76,22 +76,21 @@ def obtener_datos_dga_api(max_retries=3):
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Site": "same-origin"
     }
-    # Simplificamos la configuración, solo necesitamos el source del botón del gráfico
     codigos_estaciones = {
         "05410002-7": {
             "nombre": "Aconcagua en Chacabuquito",
             "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas",
-            "grafico_source": "graficoMedicionesForm:j_idt132" # Fuente para el popup
+            "grafico_source": "graficoMedicionesForm:j_idt132"
         },
         "05410024-8": {
             "nombre": "Aconcagua San Felipe 2",
             "param2": "Fluviometricas",
-            "grafico_source": "graficoMedicionesForm:buttonGraficar" # Fuente para el panel inferior
+            "grafico_source": "graficoMedicionesForm:buttonGraficar"
         },
         "05414001-0": {
             "nombre": "Putaendo Resguardo Los Patos",
             "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas",
-            "grafico_source": "graficoMedicionesForm:j_idt132" # Fuente para el popup
+            "grafico_source": "graficoMedicionesForm:j_idt132"
         }
     }
     datos_extraidos = []
@@ -109,7 +108,6 @@ def obtener_datos_dga_api(max_retries=3):
         grafico_source = info["grafico_source"]
         caudal, altura, fecha_actualizacion = None, None, None
 
-        # Paso 1: Simular selección de estación para actualizar el estado del servidor
         print(f"\n--- Procesando: {nombre} ({codigo}) ---")
         seleccion_response = simular_seleccion_estacion(session, url, headers, view_state, codigo, nombre, param2, max_retries)
         
@@ -117,7 +115,6 @@ def obtener_datos_dga_api(max_retries=3):
             print(f"No se pudo seleccionar la estación {nombre}. Saltando a la siguiente.")
             continue
         
-        # Extraer el ViewState actualizado de la respuesta de selección
         view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', seleccion_response)
         if view_state_match:
             view_state = view_state_match.group(1)
@@ -125,13 +122,12 @@ def obtener_datos_dga_api(max_retries=3):
         else:
             print(" -> ADVERTENCIA: No se pudo actualizar el ViewState. La siguiente petición podría fallar.")
 
-        # Paso 2: Solicitar el gráfico con la carga útil (payload) correcta
         print(f"Solicitando datos del gráfico para {nombre}...")
         payload_grafico = {
             "graficoMedicionesForm": "graficoMedicionesForm",
             "javax.faces.ViewState": view_state,
-            "graficoMedicionesForm:j_idt144:0:j_idt145": "on",  # Checkbox Caudal
-            "graficoMedicionesForm:j_idt144:1:j_idt145": "on",  # Checkbox Nivel de Agua
+            "graficoMedicionesForm:j_idt144:0:j_idt145": "on",
+            "graficoMedicionesForm:j_idt144:1:j_idt145": "on",
             "javax.faces.source": grafico_source,
             "javax.faces.partial.event": "click",
             "javax.faces.partial.execute": f"{grafico_source} @component",
@@ -142,21 +138,36 @@ def obtener_datos_dga_api(max_retries=3):
             "javax.faces.partial.ajax": "true"
         }
         
+        # <<< INICIO DEL CAMBIO IMPORTANTE >>>
+        # Si la fuente es 'j_idt132' (un pop-up), necesitamos añadir parámetros extra
+        # que identifican la estación que acabamos de seleccionar.
+        if grafico_source == "graficoMedicionesForm:j_idt132":
+            print(" -> Es una estación de tipo pop-up, añadiendo parámetros extra...")
+            payload_grafico.update({
+                "param1": codigo,
+                "param2": nombre.upper(),
+                "param3": param2
+            })
+        # <<< FIN DEL CAMBIO IMPORTANTE >>>
+
         try:
             response_grafico = session.post(url, data=payload_grafico, headers=headers, timeout=120)
             if response_grafico.status_code == 200:
                 print(" -> Respuesta del gráfico recibida correctamente.")
+                # Guardar la respuesta para depuración
+                with open(f"response_grafico_{nombre.replace(' ', '_')}.txt", "w", encoding="utf-8") as f:
+                    f.write(response_grafico.text)
+
                 json_match = re.search(r'var graficoBottom = new Grafico\("[^"]+",\s*(\[.*?\])\);', response_grafico.text, re.DOTALL)
                 if json_match:
                     print(" -> 'var graficoBottom' encontrado. Extrayendo datos...")
                     try:
                         json_data = json.loads(json_match.group(1))
                         
-                        # Buscar la última medición de cada parámetro
                         latest_nivel = None
                         latest_caudal = None
 
-                        for record in reversed(json_data): # Iterar desde el final para encontrar los últimos
+                        for record in reversed(json_data):
                             parametro = record.get("parametro", {}).get("glsParametro", "").strip()
                             if "Nivel de Agua" in parametro and latest_nivel is None:
                                 latest_nivel = record
@@ -168,13 +179,16 @@ def obtener_datos_dga_api(max_retries=3):
                         if latest_nivel:
                             altura = latest_nivel.get("medicion")
                             fecha_actualizacion = latest_nivel.get("fecha")
-                            print(f" -> Altura encontrada: {altura} m (Fecha: {fecha_actualizacion})")
+                            print(f" -> ¡ÉXITO! Altura encontrada: {altura} m (Fecha: {fecha_actualizacion})")
                         else:
                             print(" -> No se encontraron datos de 'Nivel de Agua' en el JSON.")
                         
                         if latest_caudal:
                             caudal = latest_caudal.get("medicion")
-                            print(f" -> Caudal encontrado: {caudal} m³/s")
+                            # Si no teníamos fecha de la altura, usamos la del caudal
+                            if fecha_actualizacion is None:
+                                fecha_actualizacion = latest_caudal.get("fecha")
+                            print(f" -> ¡ÉXITO! Caudal encontrado: {caudal} m³/s")
                         else:
                             print(" -> No se encontraron datos de 'Caudal' en el JSON.")
 
