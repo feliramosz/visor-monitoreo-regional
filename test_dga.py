@@ -8,7 +8,7 @@ def obtener_view_state(session, url, headers, max_retries=3):
     for attempt in range(max_retries):
         print(f"Intentando obtener ViewState - Intento {attempt + 1}/{max_retries}...")
         try:
-            response = session.get(url, headers=headers, timeout=90)
+            response = session.get(url, headers=headers, timeout=120)
             if response.status_code == 200:
                 view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', response.text)
                 if view_state_match:
@@ -97,7 +97,7 @@ def obtener_datos_dga_api(max_retries=3):
             "javax.faces.partial.ajax": "true"
         }
         try:
-            response = session.post(url, data=payload_contexto, headers=headers, timeout=90)
+            response = session.post(url, data=payload_contexto, headers=headers, timeout=120)
             print(f"Respuesta del servidor (status {response.status_code}):")
             print(response.text[:1000] + "..." if len(response.text) > 1000 else response.text)
 
@@ -145,7 +145,6 @@ def obtener_datos_dga_api(max_retries=3):
                 "AJAX:EVENTS_COUNT": "1",
                 "javax.faces.partial.ajax": "true"
             }
-            # Agregar parámetros adicionales para Chacabuquito y Resguardo Los Patos
             if grafico_source == "graficoMedicionesForm:j_idt132":
                 payload.update({
                     "param1": codigo,
@@ -154,7 +153,7 @@ def obtener_datos_dga_api(max_retries=3):
                 })
 
             try:
-                response = session.post(url, data=payload, headers=headers, timeout=90)
+                response = session.post(url, data=payload, headers=headers, timeout=120)
                 print(f"Respuesta del servidor (status {response.status_code}, longitud: {len(response.text)} caracteres):")
                 
                 # Guardar response completo para depuración
@@ -163,10 +162,21 @@ def obtener_datos_dga_api(max_retries=3):
                     with open(f"response_{nombre.replace(' ', '_')}_{attempt + 1}.txt", "w", encoding="utf-8") as f:
                         f.write(response_text)
                     print(f"Response guardado en response_{nombre.replace(' ', '_')}_{attempt + 1}.txt")
-                    print(response_text[:5000] + "..." if len(response_text) > 5000 else response_text)
+
+                    # Ignorar los primeros 5000 caracteres
+                    response_text_tail = response_text[5000:] if len(response_text) > 5000 else response_text
+                    print(f"Procesando {len(response_text_tail)} caracteres (después de ignorar los primeros 5000)...")
+
+                    # Buscar var graficoBottom
+                    grafico_bottom_search = re.search(r'var graficoBottom', response_text_tail)
+                    if grafico_bottom_search:
+                        print(f" -> 'var graficoBottom' encontrado en la posición {grafico_bottom_search.start() + 5000} del response completo.")
+                    else:
+                        print(f" -> 'var graficoBottom' NO encontrado en el response. Mostrando últimos 10000 caracteres para depuración:")
+                        print(response_text[-10000:] if len(response_text) > 10000 else response_text)
 
                     # Extraer JSON embebido en var graficoBottom
-                    json_match = re.search(r'var graficoBottom = new Grafico\("[^"]+",\s*(\[.*\])\);?', response_text, re.DOTALL)
+                    json_match = re.search(r'var graficoBottom = new Grafico\("[^"]+",\s*(\[.*?\])\);', response_text_tail, re.DOTALL)
                     if json_match:
                         try:
                             json_data = json.loads(json_match.group(1))
@@ -183,7 +193,7 @@ def obtener_datos_dga_api(max_retries=3):
                             else:
                                 print(f" -> JSON vacío o inválido para {nombre}. JSON: {json_match.group(1)[:200]}...")
                         except json.JSONDecodeError as e:
-                            print(f" -> Error al parsear JSON para {nombre}: {e}. Response guardado para depuración.")
+                            print(f" -> Error al parsear JSON para {nombre}: {e}. JSON: {json_match.group(1)[:200]}...")
                     else:
                         # Fallback a búsqueda en HTML
                         altura_match = re.search(r'Nivel de Agua \(m\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
