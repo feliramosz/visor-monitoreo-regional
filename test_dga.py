@@ -149,6 +149,10 @@ def obtener_datos_dga_api(max_retries=3):
                     fecha_match = re.search(r'"fecha":"([^"]*)"', response_text)
                     if not fecha_match:
                         fecha_match = re.search(r'Fecha y hora de actualización:</b>\s*([^<]+)</p>', response_text)
+                        if not fecha_match:
+                            fecha_match = re.search(r'"fecha":"([^"]*)"', response_text)
+                            if not fecha_match:
+                                fecha_match = re.search(r'marker\.fecha \+ "[^"]*" \+ "([^"]*)"', response_text)
 
                     if altura_match and altura_match.group(1):
                         altura_str = altura_match.group(1).replace(",", ".")
