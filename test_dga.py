@@ -8,7 +8,7 @@ def obtener_view_state(session, url, headers, max_retries=3):
     for attempt in range(max_retries):
         print(f"Intentando obtener ViewState - Intento {attempt + 1}/{max_retries}...")
         try:
-            response = session.get(url, headers=headers, timeout=60)
+            response = session.get(url, headers=headers, timeout=90)
             if response.status_code == 200:
                 view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', response.text)
                 if view_state_match:
@@ -89,7 +89,7 @@ def obtener_datos_dga_api(max_retries=3):
             "javax.faces.partial.ajax": "true"
         }
         try:
-            response = session.post(url, data=payload_contexto, headers=headers, timeout=60)
+            response = session.post(url, data=payload_contexto, headers=headers, timeout=90)
             print(f"Respuesta del servidor (status {response.status_code}):")
             print(response.text[:1000] + "..." if len(response.text) > 1000 else response.text)
 
@@ -138,14 +138,19 @@ def obtener_datos_dga_api(max_retries=3):
                 "javax.faces.partial.ajax": "true"
             }
             try:
-                response = session.post(url, data=payload, headers=headers, timeout=60)
-                print(f"Respuesta del servidor (status {response.status_code}):")
-                print(response.text[:2000] + "..." if len(response.text) > 2000 else response.text)
-
+                response = session.post(url, data=payload, headers=headers, timeout=90)
+                print(f"Respuesta del servidor (status {response.status_code}, longitud: {len(response.text)} caracteres):")
+                
+                # Guardar response completo para depuración si no se encuentra el JSON
                 if response.status_code == 200:
                     response_text = response.text
+                    with open(f"response_{nombre.replace(' ', '_')}_{attempt + 1}.txt", "w", encoding="utf-8") as f:
+                        f.write(response_text)
+                    print(f"Response guardado en response_{nombre.replace(' ', '_')}_{attempt + 1}.txt")
+                    print(response_text[:2000] + "..." if len(response_text) > 2000 else response_text)
+
                     # Extraer JSON embebido en var graficoBottom
-                    json_match = re.search(r'var graficoBottom = new Grafico\("[^"]+",\s*(\[.*\])\)', response_text, re.DOTALL)
+                    json_match = re.search(r'var graficoBottom = new Grafico\("[^"]+",\s*(\[.*\])\);?', response_text, re.DOTALL)
                     if json_match:
                         try:
                             json_data = json.loads(json_match.group(1))
@@ -162,7 +167,7 @@ def obtener_datos_dga_api(max_retries=3):
                             else:
                                 print(f" -> JSON vacío o inválido para {nombre}. JSON: {json_match.group(1)[:200]}...")
                         except json.JSONDecodeError as e:
-                            print(f" -> Error al parsear JSON para {nombre}: {e}. Response: {response_text[:2000]}...")
+                            print(f" -> Error al parsear JSON para {nombre}: {e}. Response guardado para depuración.")
                     else:
                         # Fallback a búsqueda en HTML
                         altura_match = re.search(r'Nivel de Agua \(m\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
@@ -178,7 +183,7 @@ def obtener_datos_dga_api(max_retries=3):
                             except ValueError:
                                 print(f" -> Error: No se pudo convertir '{altura_str}' a número para altura de {nombre}.")
                         else:
-                            print(f" -> No se encontró altura para {nombre}. Response: {response_text[:2000]}...")
+                            print(f" -> No se encontró altura para {nombre}. Response guardado para depuración.")
 
                         fecha_actualizacion = fecha_match.group(1).strip() if fecha_match else None
 
