@@ -77,21 +77,9 @@ def obtener_datos_dga_api(max_retries=3):
         "Sec-Fetch-Site": "same-origin"
     }
     codigos_estaciones = {
-        "05410002-7": {
-            "nombre": "Aconcagua en Chacabuquito",
-            "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas",
-            "grafico_source": "graficoMedicionesForm:j_idt132"
-        },
-        "05410024-8": {
-            "nombre": "Aconcagua San Felipe 2",
-            "param2": "Fluviometricas",
-            "grafico_source": "graficoMedicionesForm:buttonGraficar"
-        },
-        "05414001-0": {
-            "nombre": "Putaendo Resguardo Los Patos",
-            "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas",
-            "grafico_source": "graficoMedicionesForm:j_idt132"
-        }
+        "05410002-7": {"nombre": "Aconcagua en Chacabuquito", "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"},
+        "05410024-8": {"nombre": "Aconcagua San Felipe 2", "param2": "Fluviometricas"},
+        "05414001-0": {"nombre": "Putaendo Resguardo Los Patos", "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"}
     }
     datos_extraidos = []
     session = requests.Session()
@@ -105,86 +93,59 @@ def obtener_datos_dga_api(max_retries=3):
     for codigo, info in codigos_estaciones.items():
         nombre = info["nombre"]
         param2 = info["param2"]
-        grafico_source = info["grafico_source"]
         caudal, altura, fecha_actualizacion = None, None, None
 
         print(f"\n--- Procesando: {nombre} ({codigo}) ---")
         
-        # Paso 1: Seleccionar estación e INTENTAR OBTENER CAUDAL (Fallback)
-        # <<< CORRECCIÓN AQUÍ: El nombre de la función ahora es el correcto >>>
+        # Paso ÚNICO: Seleccionar la estación y extraer TODOS los datos de su respuesta.
         seleccion_response = simular_seleccion_estacion(session, url, headers, view_state, codigo, nombre, param2, max_retries)
         
         if seleccion_response:
-            caudal_match_js = re.search(r'var ultimoCaudalReg = "([^"]*)"', seleccion_response)
-            if caudal_match_js and caudal_match_js.group(1):
+            # 1. Extraer Caudal desde la variable JS
+            caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', seleccion_response)
+            if caudal_match and caudal_match.group(1):
                 try:
-                    caudal = float(caudal_match_js.group(1).replace(",", "."))
-                    print(f" -> Caudal (inicial) encontrado: {caudal} m³/s")
+                    caudal = float(caudal_match.group(1).replace(",", "."))
+                    print(f" -> Caudal encontrado: {caudal} m³/s")
                 except ValueError:
-                    pass
+                    print(f" -> Error al convertir caudal: {caudal_match.group(1)}")
             
+            # 2. Extraer Altura desde la variable JS
+            altura_match = re.search(r'var ultimoNivelReg = "([^"]*)"', seleccion_response)
+            if altura_match and altura_match.group(1):
+                try:
+                    altura = float(altura_match.group(1).replace(",", "."))
+                    print(f" -> Altura encontrada: {altura} m")
+                except ValueError:
+                    print(f" -> Error al convertir altura: {altura_match.group(1)}")
+
+            # 3. Extraer Fecha desde la variable JS
+            fecha_match = re.search(r'var ultimaFechaReg = "([^"]*)"', seleccion_response)
+            if fecha_match and fecha_match.group(1):
+                fecha_actualizacion = fecha_match.group(1).strip()
+                print(f" -> Fecha encontrada: {fecha_actualizacion}")
+
+            # Actualizar ViewState para la siguiente iteración, crucial para mantener la sesión
             view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', seleccion_response)
             if view_state_match:
                 view_state = view_state_match.group(1)
-                print(" -> ViewState actualizado para la petición del gráfico.")
-            else:
-                print(" -> ADVERTENCIA: No se pudo actualizar el ViewState.")
         else:
-            print(f" -> Fallo en la selección de estación para {nombre}. Se reintentará obtener un nuevo ViewState general.")
-            view_state = obtener_view_state(session, url, headers, 1)
+            print(f" -> Fallo en la selección de estación para {nombre}. Se intentará recuperar la sesión.")
+            view_state = obtener_view_state(session, url, headers, 1) # Intento rápido de recuperación
             if not view_state:
-                print(" -> No se pudo recuperar la sesión, saltando estación.")
-                datos_extraidos.append({"estacion": nombre, "codigo": codigo, "caudal": None, "altura": None, "fecha_actualizacion": "Fallo en selección"})
-                continue
+                print(" -> No se pudo recuperar la sesión. Abortando el resto de las estaciones.")
+                break
 
-        # Paso 2: Solicitar el gráfico para obtener datos completos (Altura y Caudal preciso)
-        print(f"Solicitando datos del gráfico para {nombre}...")
-        payload_grafico = {
-            "graficoMedicionesForm": "graficoMedicionesForm", "javax.faces.ViewState": view_state,
-            "graficoMedicionesForm:j_idt144:0:j_idt145": "on", "graficoMedicionesForm:j_idt144:1:j_idt145": "on",
-            "javax.faces.source": grafico_source, "javax.faces.partial.event": "click",
-            "javax.faces.partial.execute": f"{grafico_source} @component", "javax.faces.partial.render": "@component",
-            "org.richfaces.ajax.component": grafico_source, grafico_source: grafico_source,
-            "AJAX:EVENTS_COUNT": "1", "javax.faces.partial.ajax": "true"
-        }
-        
-        if grafico_source == "graficoMedicionesForm:j_idt132":
-            print(" -> Añadiendo parámetros extra para estación tipo pop-up...")
-            payload_grafico.update({"param1": codigo, "param2": nombre.upper(), "param3": param2})
-
-        try:
-            response_grafico = session.post(url, data=payload_grafico, headers=headers, timeout=120)
-            if response_grafico.status_code == 200:
-                json_match = re.search(r'var graficoBottom = new Grafico\("[^"]+",\s*(\[.*?\])\);', response_grafico.text, re.DOTALL)
-                if json_match:
-                    print(" -> 'var graficoBottom' encontrado. Extrayendo datos...")
-                    json_data = json.loads(json_match.group(1))
-                    
-                    latest_nivel, latest_caudal = None, None
-                    for record in reversed(json_data):
-                        parametro = record.get("parametro", {}).get("glsParametro", "").strip()
-                        if "Nivel de Agua" in parametro and latest_nivel is None: latest_nivel = record
-                        if "Caudal" in parametro and latest_caudal is None: latest_caudal = record
-                        if latest_nivel and latest_caudal: break
-                    
-                    if latest_nivel:
-                        altura = latest_nivel.get("medicion")
-                        fecha_actualizacion = latest_nivel.get("fecha")
-                        print(f" -> ¡ÉXITO! Altura final: {altura} m (Fecha: {fecha_actualizacion})")
-                    if latest_caudal:
-                        caudal = latest_caudal.get("medicion")
-                        if fecha_actualizacion is None: fecha_actualizacion = latest_caudal.get("fecha")
-                        print(f" -> ¡ÉXITO! Caudal final: {caudal} m³/s")
-                else:
-                    print(" -> 'var graficoBottom' no encontrado en la respuesta del gráfico.")
-            else:
-                print(f" -> Error {response_grafico.status_code} al solicitar datos del gráfico.")
-        except Exception as e:
-            print(f" -> Excepción al procesar el gráfico: {e}")
-        
-        datos_extraidos.append({"estacion": nombre, "codigo": codigo, "caudal": caudal, "altura": altura, "fecha_actualizacion": fecha_actualizacion})
+        datos_extraidos.append({
+            "estacion": nombre,
+            "codigo": codigo,
+            "caudal": caudal,
+            "altura": altura,
+            "fecha_actualizacion": fecha_actualizacion
+        })
 
     return datos_extraidos
+
 
 def descargar_reporte_excel():
     print("Descargando reporte Excel 'Altura y Caudal Instantáneo'...")
