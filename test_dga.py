@@ -140,12 +140,12 @@ def obtener_datos_dga_api(max_retries=3):
             try:
                 response = session.post(url, data=payload, headers=headers, timeout=60)
                 print(f"Respuesta del servidor (status {response.status_code}):")
-                print(response.text[:1000] + "..." if len(response.text) > 1000 else response.text)
+                print(response.text[:2000] + "..." if len(response.text) > 2000 else response.text)
 
                 if response.status_code == 200:
                     response_text = response.text
                     # Extraer JSON embebido en var graficoBottom
-                    json_match = re.search(r'var graficoBottom = new Grafico\("[^"]+",\s*(\[.*?\])\)', response_text, re.DOTALL)
+                    json_match = re.search(r'var graficoBottom = new Grafico\("[^"]+",\s*(\[.*\])\)', response_text, re.DOTALL)
                     if json_match:
                         try:
                             json_data = json.loads(json_match.group(1))
@@ -158,11 +158,11 @@ def obtener_datos_dga_api(max_retries=3):
                                     print(f" -> Altura encontrada: {nombre}: {altura} m")
                                     print(f" -> Fecha encontrada: {nombre}: {fecha_actualizacion}")
                                 else:
-                                    print(f" -> No se encontró 'medicion' en el JSON para {nombre}. JSON: {json_data[:200]}...")
+                                    print(f" -> No se encontró 'medicion' en el JSON para {nombre}. JSON: {json_match.group(1)[:200]}...")
                             else:
                                 print(f" -> JSON vacío o inválido para {nombre}. JSON: {json_match.group(1)[:200]}...")
                         except json.JSONDecodeError as e:
-                            print(f" -> Error al parsear JSON para {nombre}: {e}. Response: {response_text[:1000]}...")
+                            print(f" -> Error al parsear JSON para {nombre}: {e}. Response: {response_text[:2000]}...")
                     else:
                         # Fallback a búsqueda en HTML
                         altura_match = re.search(r'Nivel de Agua \(m\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
@@ -178,7 +178,7 @@ def obtener_datos_dga_api(max_retries=3):
                             except ValueError:
                                 print(f" -> Error: No se pudo convertir '{altura_str}' a número para altura de {nombre}.")
                         else:
-                            print(f" -> No se encontró altura para {nombre}. Response: {response_text[:1000]}...")
+                            print(f" -> No se encontró altura para {nombre}. Response: {response_text[:2000]}...")
 
                         fecha_actualizacion = fecha_match.group(1).strip() if fecha_match else None
 
