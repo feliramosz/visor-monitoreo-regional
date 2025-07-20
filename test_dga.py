@@ -15,8 +15,6 @@ def obtener_view_state(session, url, headers, max_retries=3):
                 if view_state_match:
                     print(f"ViewState obtenido.")
                     return view_state_match.group(1)
-                else:
-                    print("Error: No se encontró ViewState en la respuesta.")
             else:
                 print(f"Error {response.status_code} al obtener ViewState.")
         except requests.exceptions.RequestException as e:
@@ -42,6 +40,9 @@ def simular_seleccion_estacion(session, url, headers, view_state, codigo, nombre
         try:
             response = session.post(url, data=payload_seleccion, headers=headers, timeout=120)
             if response.status_code == 200:
+                # Guardar la respuesta para poder analizarla manualmente si algo falla
+                with open(f"seleccion_{nombre.replace(' ', '_')}.txt", "w", encoding="utf-8") as f:
+                    f.write(response.text)
                 return response.text
         except requests.exceptions.RequestException as e:
             print(f"Error al seleccionar estación {nombre}: {e}")
@@ -86,23 +87,20 @@ def obtener_datos_dga_api(max_retries=3):
                     print(f" -> Caudal encontrado: {caudal} m³/s")
                 except ValueError: pass
 
-            # 2. Extraer Altura
-            altura_match = re.search(r"Nivel de Agua \(m\).*?<\/b><\/div><div[^>]+><b>:<\/b><\/div><div[^>]+>([\d,\.]+)<\/div>", seleccion_response, re.DOTALL)
+            # 2. Extraer Altura y Fecha (buscando directamente en el HTML que se genera en la respuesta)
+            # Este patrón busca "Nivel de Agua (m)" y luego el valor numérico en el siguiente bloque de texto
+            altura_match = re.search(r'><b>Nivel de Agua \(m\)<\/b><\/div><div[^>]+><b>:<\/b><\/div><div[^>]+>([\d,.]+)<\/div>', seleccion_response, re.DOTALL)
             if altura_match:
                 try:
-                    altura_str = altura_match.group(1).replace(",",".")
-                    altura = float(altura_str)
+                    altura = float(altura_match.group(1).replace(",", "."))
                     print(f" -> Altura encontrada: {altura} m")
-                except ValueError:
-                    print(f" -> Error al convertir altura: {altura_str}")
-            
-            # 3. Extraer Fecha
-            fecha_match = re.search(r"<b>Fecha y hora de actualización:</b> ' \+ markers\[\d+\]\.fecha \+ '", seleccion_response)
+                except ValueError: pass
+
+            # Este patrón busca el valor de la fecha que se asigna a 'markers[...].fecha'
+            fecha_match = re.search(r"markers\[\d+\]\.fecha='([^']+)'", seleccion_response)
             if fecha_match:
-                marker_fecha_match = re.search(r"markers\[\d+\]\.fecha='([^']+)'", seleccion_response)
-                if marker_fecha_match:
-                    fecha_actualizacion = marker_fecha_match.group(1).strip()
-                    print(f" -> Fecha encontrada: {fecha_actualizacion}")
+                fecha_actualizacion = fecha_match.group(1).strip()
+                print(f" -> Fecha encontrada: {fecha_actualizacion}")
             
             # Actualizar ViewState para la siguiente iteración
             vs_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', seleccion_response)
@@ -152,7 +150,7 @@ def generar_json_y_html(datos):
 if __name__ == "__main__":
     print("--- INICIANDO PRUEBA CON API ---")
     datos_en_vivo = obtener_datos_dga_api()
-    if not datos_en_vivo or not any(d["caudal"] and d.get("altura") for d in datos_en_vivo):
+    if not datos_en_vivo or not any(d.get("caudal") and d.get("altura") for d in datos_en_vivo):
         print("\nAPI no entregó todos los datos. Probando con reporte Excel como respaldo...")
         datos_excel = descargar_reporte_excel()
         if datos_excel:
