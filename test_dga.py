@@ -97,43 +97,58 @@ def obtener_datos_dga_api(max_retries=3):
 
         print(f"\n--- Procesando: {nombre} ({codigo}) ---")
         
-        # Paso ÚNICO: Seleccionar la estación y extraer TODOS los datos de su respuesta.
         seleccion_response = simular_seleccion_estacion(session, url, headers, view_state, codigo, nombre, param2, max_retries)
         
         if seleccion_response:
-            # 1. Extraer Caudal desde la variable JS
+            # MÉTODO 1: Buscar variables JavaScript directas
             caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', seleccion_response)
             if caudal_match and caudal_match.group(1):
                 try:
                     caudal = float(caudal_match.group(1).replace(",", "."))
-                    print(f" -> Caudal encontrado: {caudal} m³/s")
-                except ValueError:
-                    print(f" -> Error al convertir caudal: {caudal_match.group(1)}")
-            
-            # 2. Extraer Altura desde la variable JS
+                    print(f" -> Caudal (JS) encontrado: {caudal} m³/s")
+                except ValueError: pass
+
             altura_match = re.search(r'var ultimoNivelReg = "([^"]*)"', seleccion_response)
             if altura_match and altura_match.group(1):
                 try:
                     altura = float(altura_match.group(1).replace(",", "."))
-                    print(f" -> Altura encontrada: {altura} m")
-                except ValueError:
-                    print(f" -> Error al convertir altura: {altura_match.group(1)}")
+                    print(f" -> Altura (JS) encontrada: {altura} m")
+                except ValueError: pass
 
-            # 3. Extraer Fecha desde la variable JS
             fecha_match = re.search(r'var ultimaFechaReg = "([^"]*)"', seleccion_response)
             if fecha_match and fecha_match.group(1):
                 fecha_actualizacion = fecha_match.group(1).strip()
-                print(f" -> Fecha encontrada: {fecha_actualizacion}")
+                print(f" -> Fecha (JS) encontrada: {fecha_actualizacion}")
 
-            # Actualizar ViewState para la siguiente iteración, crucial para mantener la sesión
+            # <<< INICIO DEL CAMBIO IMPORTANTE >>>
+            # MÉTODO 2 (FALLBACK): Si no se encontraron los datos, buscar en el HTML del pop-up
+            if altura is None:
+                altura_html_match = re.search(r"Nivel de Agua \(m\).*?<b>:<\/b><\/div><div style=.*?color: black.*?'>([\d,.]+)<\/div>", seleccion_response, re.DOTALL)
+                if altura_html_match:
+                    try:
+                        altura = float(altura_html_match.group(1).replace(",", "."))
+                        print(f" -> Altura (HTML) encontrada: {altura} m")
+                    except ValueError:
+                        print(f" -> Error al convertir altura desde HTML: {altura_html_match.group(1)}")
+            
+            if fecha_actualizacion is None:
+                fecha_html_match = re.search(r"Fecha y hora de actualización:<\/b> '.*?marker.fecha.*?'", seleccion_response)
+                if fecha_html_match:
+                     # Esta fecha viene dentro de una variable JS, por lo que extraemos el valor asociado a marker.fecha que está en otra parte
+                    marker_fecha_match = re.search(r"markers\[\d+\]\.fecha='([^']+)';", seleccion_response)
+                    if marker_fecha_match:
+                        fecha_actualizacion = marker_fecha_match.group(1).strip()
+                        print(f" -> Fecha (HTML) encontrada: {fecha_actualizacion}")
+            # <<< FIN DEL CAMBIO IMPORTANTE >>>
+
             view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', seleccion_response)
             if view_state_match:
                 view_state = view_state_match.group(1)
         else:
-            print(f" -> Fallo en la selección de estación para {nombre}. Se intentará recuperar la sesión.")
-            view_state = obtener_view_state(session, url, headers, 1) # Intento rápido de recuperación
+            print(f" -> Fallo en la selección de estación para {nombre}.")
+            view_state = obtener_view_state(session, url, headers, 1)
             if not view_state:
-                print(" -> No se pudo recuperar la sesión. Abortando el resto de las estaciones.")
+                print(" -> No se pudo recuperar la sesión. Abortando.")
                 break
 
         datos_extraidos.append({
