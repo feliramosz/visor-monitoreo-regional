@@ -76,170 +76,116 @@ def obtener_datos_dga_api(max_retries=3):
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Site": "same-origin"
     }
+    # Simplificamos la configuración, solo necesitamos el source del botón del gráfico
     codigos_estaciones = {
         "05410002-7": {
             "nombre": "Aconcagua en Chacabuquito",
             "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas",
-            "grafico_source": "graficoMedicionesForm:j_idt132",
-            "j_idt145_index": "1"
+            "grafico_source": "graficoMedicionesForm:j_idt132" # Fuente para el popup
         },
         "05410024-8": {
             "nombre": "Aconcagua San Felipe 2",
             "param2": "Fluviometricas",
-            "grafico_source": "graficoMedicionesForm:buttonGraficar",
-            "j_idt145_index": "1"
+            "grafico_source": "graficoMedicionesForm:buttonGraficar" # Fuente para el panel inferior
         },
         "05414001-0": {
             "nombre": "Putaendo Resguardo Los Patos",
             "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas",
-            "grafico_source": "graficoMedicionesForm:j_idt132",
-            "j_idt145_index": "2"
+            "grafico_source": "graficoMedicionesForm:j_idt132" # Fuente para el popup
         }
     }
     datos_extraidos = []
     session = requests.Session()
 
-    # Obtener ViewState inicial
     print("Obteniendo ViewState y cookies...")
     view_state = obtener_view_state(session, url, headers, max_retries)
     if not view_state:
-        print("Sugerencias:")
-        print("1. Verifica tu conexión a internet.")
-        print("2. Asegúrate de que https://snia.mop.gob.cl sea accesible desde tu navegador.")
-        print("3. Prueba ejecutar el script más tarde (puede ser un problema temporal del servidor).")
-        print("4. Como alternativa, descarga el reporte Excel 'Altura y Caudal Instantáneo' desde el portal.")
+        print("No se pudo obtener el ViewState inicial. Abortando.")
         return datos_extraidos
 
     for codigo, info in codigos_estaciones.items():
         nombre = info["nombre"]
         param2 = info["param2"]
         grafico_source = info["grafico_source"]
-        j_idt145_index = info["j_idt145_index"]
-        caudal = None
-        altura = None
-        fecha_actualizacion = None
+        caudal, altura, fecha_actualizacion = None, None, None
 
-        # Paso 1: Simular selección de estación
+        # Paso 1: Simular selección de estación para actualizar el estado del servidor
+        print(f"\n--- Procesando: {nombre} ({codigo}) ---")
         seleccion_response = simular_seleccion_estacion(session, url, headers, view_state, codigo, nombre, param2, max_retries)
-        if not seleccion_response:
-            print(f"No se pudo seleccionar la estación {nombre}. Intentando continuar...")
         
-        # Extraer caudal desde la selección
-        if seleccion_response:
-            caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', seleccion_response)
-            if not caudal_match:
-                caudal_match = re.search(r'Caudal \(m3/seg\).*?>\s*([\d,.]+)\s*</div>', seleccion_response, re.IGNORECASE | re.DOTALL)
-            if caudal_match and caudal_match.group(1):
-                caudal_str = caudal_match.group(1).replace(",", ".")
-                try:
-                    caudal = float(caudal_str)
-                    print(f" -> Caudal encontrado: {nombre}: {caudal} m³/s")
-                except ValueError:
-                    print(f" -> Error: No se pudo convertir '{caudal_str}' a número para caudal de {nombre}.")
-            else:
-                print(f" -> No se encontró caudal para {nombre}.")
+        if not seleccion_response:
+            print(f"No se pudo seleccionar la estación {nombre}. Saltando a la siguiente.")
+            continue
+        
+        # Extraer el ViewState actualizado de la respuesta de selección
+        view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', seleccion_response)
+        if view_state_match:
+            view_state = view_state_match.group(1)
+            print(" -> ViewState actualizado para la petición del gráfico.")
+        else:
+            print(" -> ADVERTENCIA: No se pudo actualizar el ViewState. La siguiente petición podría fallar.")
 
-        # Paso 2: Obtener altura y fecha con graficoMedicionesForm
-        for attempt in range(max_retries):
-            print(f"\nSolicitando altura para {nombre} ({codigo}) con {grafico_source} - Intento {attempt + 1}/{max_retries}...")
-            payload = {
-                "graficoMedicionesForm": "graficoMedicionesForm",
-                "javax.faces.ViewState": view_state,
-                f"graficoMedicionesForm:j_idt144:0:j_idt145": "on",
-                f"graficoMedicionesForm:j_idt144:{j_idt145_index}:j_idt145": "on",
-                "javax.faces.source": grafico_source,
-                "javax.faces.partial.event": "click",
-                "javax.faces.partial.execute": f"{grafico_source} @component",
-                "javax.faces.partial.render": "@component",
-                "org.richfaces.ajax.component": grafico_source,
-                grafico_source: grafico_source,
-                "AJAX:EVENTS_COUNT": "1",
-                "javax.faces.partial.ajax": "true"
-            }
-            if grafico_source == "graficoMedicionesForm:j_idt132":
-                payload.update({
-                    "param1": codigo,
-                    "param2": nombre.upper(),
-                    "param3": param2
-                })
+        # Paso 2: Solicitar el gráfico con la carga útil (payload) correcta
+        print(f"Solicitando datos del gráfico para {nombre}...")
+        payload_grafico = {
+            "graficoMedicionesForm": "graficoMedicionesForm",
+            "javax.faces.ViewState": view_state,
+            "graficoMedicionesForm:j_idt144:0:j_idt145": "on",  # Checkbox Caudal
+            "graficoMedicionesForm:j_idt144:1:j_idt145": "on",  # Checkbox Nivel de Agua
+            "javax.faces.source": grafico_source,
+            "javax.faces.partial.event": "click",
+            "javax.faces.partial.execute": f"{grafico_source} @component",
+            "javax.faces.partial.render": "@component",
+            "org.richfaces.ajax.component": grafico_source,
+            grafico_source: grafico_source,
+            "AJAX:EVENTS_COUNT": "1",
+            "javax.faces.partial.ajax": "true"
+        }
+        
+        try:
+            response_grafico = session.post(url, data=payload_grafico, headers=headers, timeout=120)
+            if response_grafico.status_code == 200:
+                print(" -> Respuesta del gráfico recibida correctamente.")
+                json_match = re.search(r'var graficoBottom = new Grafico\("[^"]+",\s*(\[.*?\])\);', response_grafico.text, re.DOTALL)
+                if json_match:
+                    print(" -> 'var graficoBottom' encontrado. Extrayendo datos...")
+                    try:
+                        json_data = json.loads(json_match.group(1))
+                        
+                        # Buscar la última medición de cada parámetro
+                        latest_nivel = None
+                        latest_caudal = None
 
-            try:
-                response = session.post(url, data=payload, headers=headers, timeout=120)
-                print(f"Respuesta del servidor (status {response.status_code}, longitud: {len(response.text)} caracteres):")
-                
-                # Guardar response completo para depuración
-                if response.status_code == 200:
-                    response_text = response.text
-                    with open(f"response_{nombre.replace(' ', '_')}_{attempt + 1}.txt", "w", encoding="utf-8") as f:
-                        f.write(response_text)
-                    print(f"Response guardado en response_{nombre.replace(' ', '_')}_{attempt + 1}.txt")
-
-                    # Buscar var graficoBottom
-                    grafico_bottom_search = re.search(r'var graficoBottom', response_text)
-                    if grafico_bottom_search:
-                        print(f" -> 'var graficoBottom' encontrado en la posición {grafico_bottom_search.start()} del response.")
-                        json_match = re.search(r'var graficoBottom = new Grafico\("[^"]+",\s*(\[.*?\])\);', response_text, re.DOTALL)
-                        if json_match:
-                            try:
-                                json_data = json.loads(json_match.group(1))
-                                if json_data and isinstance(json_data, list) and len(json_data) > 0:
-                                    ultima_medicion = json_data[-1]
-                                    altura = ultima_medicion.get("medicion")
-                                    fecha_actualizacion = ultima_medicion.get("fecha")
-                                    if altura is not None:
-                                        print(f" -> Altura encontrada: {nombre}: {altura} m")
-                                        print(f" -> Fecha encontrada: {nombre}: {fecha_actualizacion}")
-                                    else:
-                                        print(f" -> No se encontró 'medicion' en el JSON para {nombre}.")
-                                else:
-                                    print(f" -> JSON vacío o inválido para {nombre}.")
-                            except json.JSONDecodeError as e:
-                                print(f" -> Error al parsear JSON para {nombre}: {e}. JSON: {json_match.group(1)[:200]}...")
+                        for record in reversed(json_data): # Iterar desde el final para encontrar los últimos
+                            parametro = record.get("parametro", {}).get("glsParametro", "").strip()
+                            if "Nivel de Agua" in parametro and latest_nivel is None:
+                                latest_nivel = record
+                            if "Caudal" in parametro and latest_caudal is None:
+                                latest_caudal = record
+                            if latest_nivel and latest_caudal:
+                                break
+                        
+                        if latest_nivel:
+                            altura = latest_nivel.get("medicion")
+                            fecha_actualizacion = latest_nivel.get("fecha")
+                            print(f" -> Altura encontrada: {altura} m (Fecha: {fecha_actualizacion})")
                         else:
-                            print(f" -> No se encontró JSON en var graficoBottom para {nombre}.")
-                    else:
-                        print(f" -> 'var graficoBottom' NO encontrado en el response. Buscando altura en el pop-up...")
-
-                        # Fallback: Buscar altura y fecha en el pop-up
-                        altura_match = re.search(r'Nivel de Agua \(m\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
-                        if not altura_match:
-                            altura_match = re.search(r'Altura \(m\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
-                        fecha_match = re.search(r'Fecha y hora de actualización:</b>\s*([^<]+)</p>', response_text)
-
-                        if altura_match:
-                            altura_str = altura_match.group(1).replace(",", ".")
-                            try:
-                                altura = float(altura_str)
-                                print(f" -> Altura encontrada en HTML: {nombre}: {altura} m")
-                            except ValueError:
-                                print(f" -> Error: No se pudo convertir '{altura_str}' a número para altura de {nombre}.")
+                            print(" -> No se encontraron datos de 'Nivel de Agua' en el JSON.")
+                        
+                        if latest_caudal:
+                            caudal = latest_caudal.get("medicion")
+                            print(f" -> Caudal encontrado: {caudal} m³/s")
                         else:
-                            print(f" -> No se encontró altura para {nombre} en el HTML.")
+                            print(" -> No se encontraron datos de 'Caudal' en el JSON.")
 
-                        fecha_actualizacion = fecha_match.group(1).strip() if fecha_match else None
-                        if fecha_actualizacion:
-                            print(f" -> Fecha encontrada en HTML: {nombre}: {fecha_actualizacion}")
-
-                    if altura is not None:
-                        print(f" -> ¡ÉXITO! {nombre}: Caudal {caudal if caudal is not None else 'No disponible'} m³/s, Altura {altura} m (Fecha: {fecha_actualizacion if fecha_actualizacion else 'No disponible'})")
-                        break
+                    except json.JSONDecodeError:
+                        print(" -> Error: No se pudo decodificar el JSON de los datos del gráfico.")
                 else:
-                    print(f" -> Error {response.status_code} para {nombre} en {grafico_source}.")
-                    if response.status_code == 502:
-                        print(" -> Reintentando con nuevo ViewState...")
-                        view_state = obtener_view_state(session, url, headers, max_retries)
-                        if not view_state:
-                            break
-                        payload["javax.faces.ViewState"] = view_state
-            except requests.exceptions.RequestException as e:
-                print(f" -> Error al procesar {nombre} en {grafico_source}: {e}")
-                if attempt < max_retries - 1:
-                    print(" -> Reintentando con nuevo ViewState...")
-                    view_state = obtener_view_state(session, url, headers, max_retries)
-                    if not view_state:
-                        break
-                    payload["javax.faces.ViewState"] = view_state
-            time.sleep(2)
+                    print(" -> Error: No se encontró 'var graficoBottom' en la respuesta del gráfico.")
+            else:
+                print(f" -> Error {response_grafico.status_code} al solicitar los datos del gráfico.")
+        except requests.exceptions.RequestException as e:
+            print(f" -> Excepción al solicitar datos del gráfico: {e}")
 
         datos_extraidos.append({
             "estacion": nombre,
