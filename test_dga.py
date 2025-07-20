@@ -110,10 +110,9 @@ def obtener_datos_dga_api(max_retries=3):
 
         print(f"\n--- Procesando: {nombre} ({codigo}) ---")
         
-        # <<< INICIO DE LÓGICA COMBINADA >>>
-        
         # Paso 1: Seleccionar estación e INTENTAR OBTENER CAUDAL (Fallback)
-        seleccion_response = simular_seleccion_acion(session, url, headers, view_state, codigo, nombre, param2, max_retries)
+        # <<< CORRECCIÓN AQUÍ: El nombre de la función ahora es el correcto >>>
+        seleccion_response = simular_seleccion_estacion(session, url, headers, view_state, codigo, nombre, param2, max_retries)
         
         if seleccion_response:
             caudal_match_js = re.search(r'var ultimoCaudalReg = "([^"]*)"', seleccion_response)
@@ -132,7 +131,7 @@ def obtener_datos_dga_api(max_retries=3):
                 print(" -> ADVERTENCIA: No se pudo actualizar el ViewState.")
         else:
             print(f" -> Fallo en la selección de estación para {nombre}. Se reintentará obtener un nuevo ViewState general.")
-            view_state = obtener_view_state(session, url, headers, 1) # Intento rápido de recuperación
+            view_state = obtener_view_state(session, url, headers, 1)
             if not view_state:
                 print(" -> No se pudo recuperar la sesión, saltando estación.")
                 datos_extraidos.append({"estacion": nombre, "codigo": codigo, "caudal": None, "altura": None, "fecha_actualizacion": "Fallo en selección"})
@@ -184,7 +183,6 @@ def obtener_datos_dga_api(max_retries=3):
             print(f" -> Excepción al procesar el gráfico: {e}")
         
         datos_extraidos.append({"estacion": nombre, "codigo": codigo, "caudal": caudal, "altura": altura, "fecha_actualizacion": fecha_actualizacion})
-        # <<< FIN DE LÓGICA COMBINADA >>>
 
     return datos_extraidos
 
