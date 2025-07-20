@@ -2,6 +2,7 @@ import requests
 import re
 import json
 import time
+import pandas as pd
 from datetime import datetime
 
 def obtener_view_state(session, url, headers, max_retries=3):
@@ -22,6 +23,43 @@ def obtener_view_state(session, url, headers, max_retries=3):
             print(f"Error al obtener ViewState: {e}")
         time.sleep(2)
     print("Error: No se pudo obtener el ViewState tras varios intentos.")
+    return None
+
+def simular_seleccion_estacion(session, url, headers, view_state, codigo, nombre, param2, max_retries=3):
+    print(f"Simulando selección de estación para {nombre} ({codigo})...")
+    payload_seleccion = {
+        "medicionesByTypeFunctions": "medicionesByTypeFunctions",
+        "javax.faces.ViewState": view_state,
+        "javax.faces.source": "medicionesByTypeFunctions:j_idt162",
+        "javax.faces.partial.execute": "medicionesByTypeFunctions:j_idt162 @component",
+        "javax.faces.partial.render": "@component",
+        "param1": codigo,
+        "param2": param2,
+        "org.richfaces.ajax.component": "medicionesByTypeFunctions:j_idt162",
+        "medicionesByTypeFunctions:j_idt162": "medicionesByTypeFunctions:j_idt162",
+        "AJAX:EVENTS_COUNT": "1",
+        "javax.faces.partial.ajax": "true"
+    }
+    for attempt in range(max_retries):
+        try:
+            response = session.post(url, data=payload_seleccion, headers=headers, timeout=120)
+            print(f"Respuesta de selección (status {response.status_code}, longitud: {len(response.text)} caracteres):")
+            if response.status_code == 200:
+                with open(f"seleccion_{nombre.replace(' ', '_')}_{attempt + 1}.txt", "w", encoding="utf-8") as f:
+                    f.write(response.text)
+                print(f"Response de selección guardado en seleccion_{nombre.replace(' ', '_')}_{attempt + 1}.txt")
+                return response.text
+            else:
+                print(f"Error {response.status_code} al seleccionar estación {nombre}.")
+                if response.status_code == 502:
+                    print("Reintentando con nuevo ViewState...")
+                    view_state = obtener_view_state(session, url, headers, max_retries)
+                    if not view_state:
+                        return None
+                    payload_seleccion["javax.faces.ViewState"] = view_state
+        except requests.exceptions.RequestException as e:
+            print(f"Error al seleccionar estación {nombre}: {e}")
+        time.sleep(2)
     return None
 
 def obtener_datos_dga_api(max_retries=3):
@@ -81,52 +119,25 @@ def obtener_datos_dga_api(max_retries=3):
         altura = None
         fecha_actualizacion = None
 
-        # Paso 1: Establecer contexto de estación con medicionesByTypeFunctions
-        print(f"\nEstableciendo contexto para {nombre} ({codigo}) con medicionesByTypeFunctions...")
-        payload_contexto = {
-            "medicionesByTypeFunctions": "medicionesByTypeFunctions",
-            "javax.faces.ViewState": view_state,
-            "javax.faces.source": "medicionesByTypeFunctions:j_idt162",
-            "javax.faces.partial.execute": "medicionesByTypeFunctions:j_idt162 @component",
-            "javax.faces.partial.render": "@component",
-            "param1": codigo,
-            "param2": param2,
-            "org.richfaces.ajax.component": "medicionesByTypeFunctions:j_idt162",
-            "medicionesByTypeFunctions:j_idt162": "medicionesByTypeFunctions:j_idt162",
-            "AJAX:EVENTS_COUNT": "1",
-            "javax.faces.partial.ajax": "true"
-        }
-        try:
-            response = session.post(url, data=payload_contexto, headers=headers, timeout=120)
-            print(f"Respuesta del servidor (status {response.status_code}):")
-            print(response.text[:1000] + "..." if len(response.text) > 1000 else response.text)
-
-            if response.status_code == 200:
-                response_text = response.text
-                caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', response_text)
-                if not caudal_match:
-                    caudal_match = re.search(r'Caudal \(m3/seg\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
-
-                if caudal_match and caudal_match.group(1):
-                    caudal_str = caudal_match.group(1).replace(",", ".")
-                    try:
-                        caudal = float(caudal_str)
-                        print(f" -> Caudal encontrado: {nombre}: {caudal} m³/s")
-                    except ValueError:
-                        print(f" -> Error: No se pudo convertir '{caudal_str}' a número para caudal de {nombre}.")
-                else:
-                    print(f" -> No se encontró caudal para {nombre}. ultimoCaudalReg='{caudal_match.group(1) if caudal_match else ''}'")
+        # Paso 1: Simular selección de estación
+        seleccion_response = simular_seleccion_estacion(session, url, headers, view_state, codigo, nombre, param2, max_retries)
+        if not seleccion_response:
+            print(f"No se pudo seleccionar la estación {nombre}. Intentando continuar...")
+        
+        # Extraer caudal desde la selección
+        if seleccion_response:
+            caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', seleccion_response)
+            if not caudal_match:
+                caudal_match = re.search(r'Caudal \(m3/seg\).*?>\s*([\d,.]+)\s*</div>', seleccion_response, re.IGNORECASE | re.DOTALL)
+            if caudal_match and caudal_match.group(1):
+                caudal_str = caudal_match.group(1).replace(",", ".")
+                try:
+                    caudal = float(caudal_str)
+                    print(f" -> Caudal encontrado: {nombre}: {caudal} m³/s")
+                except ValueError:
+                    print(f" -> Error: No se pudo convertir '{caudal_str}' a número para caudal de {nombre}.")
             else:
-                print(f" -> Error {response.status_code} para {nombre} en medicionesByTypeFunctions.")
-                if response.status_code == 502:
-                    print(" -> Reintentando con nuevo ViewState...")
-                    view_state = obtener_view_state(session, url, headers, max_retries)
-                    if not view_state:
-                        continue
-        except requests.exceptions.RequestException as e:
-            print(f" -> Error al procesar {nombre} en medicionesByTypeFunctions: {e}")
-            time.sleep(2)
-            continue
+                print(f" -> No se encontró caudal para {nombre}.")
 
         # Paso 2: Obtener altura y fecha con graficoMedicionesForm
         for attempt in range(max_retries):
@@ -163,39 +174,33 @@ def obtener_datos_dga_api(max_retries=3):
                         f.write(response_text)
                     print(f"Response guardado en response_{nombre.replace(' ', '_')}_{attempt + 1}.txt")
 
-                    # Ignorar los primeros 5000 caracteres
-                    response_text_tail = response_text[5000:] if len(response_text) > 5000 else response_text
-                    print(f"Procesando {len(response_text_tail)} caracteres (después de ignorar los primeros 5000)...")
-
                     # Buscar var graficoBottom
-                    grafico_bottom_search = re.search(r'var graficoBottom', response_text_tail)
+                    grafico_bottom_search = re.search(r'var graficoBottom', response_text)
                     if grafico_bottom_search:
-                        print(f" -> 'var graficoBottom' encontrado en la posición {grafico_bottom_search.start() + 5000} del response completo.")
-                    else:
-                        print(f" -> 'var graficoBottom' NO encontrado en el response. Mostrando últimos 10000 caracteres para depuración:")
-                        print(response_text[-10000:] if len(response_text) > 10000 else response_text)
-
-                    # Extraer JSON embebido en var graficoBottom
-                    json_match = re.search(r'var graficoBottom = new Grafico\("[^"]+",\s*(\[.*?\])\);', response_text_tail, re.DOTALL)
-                    if json_match:
-                        try:
-                            json_data = json.loads(json_match.group(1))
-                            if json_data and isinstance(json_data, list) and len(json_data) > 0:
-                                # Tomar la última medición
-                                ultima_medicion = json_data[-1]
-                                altura = ultima_medicion.get("medicion")
-                                fecha_actualizacion = ultima_medicion.get("fecha")
-                                if altura is not None:
-                                    print(f" -> Altura encontrada: {nombre}: {altura} m")
-                                    print(f" -> Fecha encontrada: {nombre}: {fecha_actualizacion}")
+                        print(f" -> 'var graficoBottom' encontrado en la posición {grafico_bottom_search.start()} del response.")
+                        json_match = re.search(r'var graficoBottom = new Grafico\("[^"]+",\s*(\[.*?\])\);', response_text, re.DOTALL)
+                        if json_match:
+                            try:
+                                json_data = json.loads(json_match.group(1))
+                                if json_data and isinstance(json_data, list) and len(json_data) > 0:
+                                    ultima_medicion = json_data[-1]
+                                    altura = ultima_medicion.get("medicion")
+                                    fecha_actualizacion = ultima_medicion.get("fecha")
+                                    if altura is not None:
+                                        print(f" -> Altura encontrada: {nombre}: {altura} m")
+                                        print(f" -> Fecha encontrada: {nombre}: {fecha_actualizacion}")
+                                    else:
+                                        print(f" -> No se encontró 'medicion' en el JSON para {nombre}.")
                                 else:
-                                    print(f" -> No se encontró 'medicion' en el JSON para {nombre}. JSON: {json_match.group(1)[:200]}...")
-                            else:
-                                print(f" -> JSON vacío o inválido para {nombre}. JSON: {json_match.group(1)[:200]}...")
-                        except json.JSONDecodeError as e:
-                            print(f" -> Error al parsear JSON para {nombre}: {e}. JSON: {json_match.group(1)[:200]}...")
+                                    print(f" -> JSON vacío o inválido para {nombre}.")
+                            except json.JSONDecodeError as e:
+                                print(f" -> Error al parsear JSON para {nombre}: {e}. JSON: {json_match.group(1)[:200]}...")
+                        else:
+                            print(f" -> No se encontró JSON en var graficoBottom para {nombre}.")
                     else:
-                        # Fallback a búsqueda en HTML
+                        print(f" -> 'var graficoBottom' NO encontrado en el response. Buscando altura en el pop-up...")
+
+                        # Fallback: Buscar altura y fecha en el pop-up
                         altura_match = re.search(r'Nivel de Agua \(m\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
                         if not altura_match:
                             altura_match = re.search(r'Altura \(m\).*?>\s*([\d,.]+)\s*</div>', response_text, re.IGNORECASE | re.DOTALL)
@@ -209,9 +214,11 @@ def obtener_datos_dga_api(max_retries=3):
                             except ValueError:
                                 print(f" -> Error: No se pudo convertir '{altura_str}' a número para altura de {nombre}.")
                         else:
-                            print(f" -> No se encontró altura para {nombre}. Response guardado para depuración.")
+                            print(f" -> No se encontró altura para {nombre} en el HTML.")
 
                         fecha_actualizacion = fecha_match.group(1).strip() if fecha_match else None
+                        if fecha_actualizacion:
+                            print(f" -> Fecha encontrada en HTML: {nombre}: {fecha_actualizacion}")
 
                     if altura is not None:
                         print(f" -> ¡ÉXITO! {nombre}: Caudal {caudal if caudal is not None else 'No disponible'} m³/s, Altura {altura} m (Fecha: {fecha_actualizacion if fecha_actualizacion else 'No disponible'})")
@@ -223,6 +230,7 @@ def obtener_datos_dga_api(max_retries=3):
                         view_state = obtener_view_state(session, url, headers, max_retries)
                         if not view_state:
                             break
+                        payload["javax.faces.ViewState"] = view_state
             except requests.exceptions.RequestException as e:
                 print(f" -> Error al procesar {nombre} en {grafico_source}: {e}")
                 if attempt < max_retries - 1:
@@ -230,6 +238,7 @@ def obtener_datos_dga_api(max_retries=3):
                     view_state = obtener_view_state(session, url, headers, max_retries)
                     if not view_state:
                         break
+                    payload["javax.faces.ViewState"] = view_state
             time.sleep(2)
 
         datos_extraidos.append({
@@ -241,6 +250,34 @@ def obtener_datos_dga_api(max_retries=3):
         })
 
     return datos_extraidos
+
+def descargar_reporte_excel():
+    print("Descargando reporte Excel 'Altura y Caudal Instantáneo'...")
+    # Nota: Esto requiere interacción manual o una API específica para descargar el Excel.
+    # Por ahora, asumimos que el archivo ya está descargado como 'reporte_caudales.xlsx'.
+    try:
+        df = pd.read_excel("reporte_caudales.xlsx")
+        codigos = ["05410002-7", "05410024-8", "05414001-0"]
+        datos_excel = []
+        for codigo in codigos:
+            datos_estacion = df[df["Código"] == codigo]
+            if not datos_estacion.empty:
+                ultima_fila = datos_estacion.iloc[-1]
+                datos_excel.append({
+                    "estacion": ultima_fila.get("Nombre Estación", "Desconocido"),
+                    "codigo": codigo,
+                    "caudal": ultima_fila.get("Caudal (m³/s)", None),
+                    "altura": ultima_fila.get("Altura (m)", None),
+                    "fecha_actualizacion": ultima_fila.get("Fecha", None)
+                })
+                print(f"Datos desde Excel para {codigo}: {datos_excel[-1]}")
+            else:
+                print(f"No se encontraron datos en el Excel para {codigo}.")
+        return datos_excel
+    except Exception as e:
+        print(f"Error al procesar el reporte Excel: {e}")
+        print("Por favor, descarga manualmente el reporte 'Altura y Caudal Instantáneo' desde https://snia.mop.gob.cl.")
+        return []
 
 def generar_json_y_html(datos):
     with open("caudales.json", "w", encoding="utf-8") as f:
@@ -288,6 +325,10 @@ if __name__ == "__main__":
     print("--- INICIANDO PRUEBA CON API ---")
     datos_en_vivo = obtener_datos_dga_api()
 
+    if not datos_en_vivo or not any(d["caudal"] is not None or d["altura"] is not None for d in datos_en_vivo):
+        print("\n❌ La prueba con la API falló. Intentando con el reporte Excel...")
+        datos_en_vivo = descargar_reporte_excel()
+
     if datos_en_vivo and any(d["caudal"] is not None or d["altura"] is not None for d in datos_en_vivo):
         print("\n=============================================================")
         print("✅ ¡Prueba exitosa! Estos son los datos encontrados:")
@@ -306,4 +347,4 @@ if __name__ == "__main__":
         print("1. Verifica tu conexión a internet.")
         print("2. Asegúrate de que https://snia.mop.gob.cl sea accesible desde tu navegador.")
         print("3. Prueba ejecutar el script más tarde (puede ser un problema temporal del servidor).")
-        print("4. Como alternativa, descarga el reporte Excel 'Altura y Caudal Instantáneo' desde el portal.")
+        print("4. Descarga manualmente el reporte Excel 'Altura y Caudal Instantáneo' desde https://snia.mop.gob.cl.")
