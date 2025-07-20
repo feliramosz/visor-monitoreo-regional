@@ -76,7 +76,7 @@ def obtener_datos_dga_api(max_retries=3):
         seleccion_response = simular_seleccion_estacion(session, url, headers, view_state, codigo, nombre, param2, max_retries)
         
         if seleccion_response:
-            # Extraer Caudal
+            # 1. Extraer Caudal
             caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', seleccion_response)
             if caudal_match and caudal_match.group(1):
                 try:
@@ -84,20 +84,16 @@ def obtener_datos_dga_api(max_retries=3):
                     print(f" -> Caudal encontrado: {caudal} m³/s")
                 except ValueError: pass
 
-            # <<< INICIO DE LA CORRECCIÓN FINAL >>>
-            # Extraer Altura y Fecha buscando directamente en el HTML que genera el script
-            
-            # Patrón para encontrar la fecha de actualización
+            # 2. Extraer Fecha
             fecha_match = re.search(r"<b>Fecha y hora de actualización:</b> ' \+ markers\[\d+\]\.fecha \+ '", seleccion_response)
             if fecha_match:
-                # Si encuentra el patrón, busca el valor de la fecha real en la definición del 'marker'
                 marker_fecha_match = re.search(r"markers\[\d+\]\.fecha='([^']+)'", seleccion_response)
                 if marker_fecha_match:
                     fecha_actualizacion = marker_fecha_match.group(1).strip()
                     print(f" -> Fecha encontrada: {fecha_actualizacion}")
 
-            # Patrón para encontrar la altura (Nivel de Agua)
-            altura_match = re.search(r"Nivel de Agua \(m\)(?:<\/b><\/div><div[^>]+><b>:<\/b><\/div><div[^>]+>|.*?'><b>:<\/b><\/div><div[^>]+><b>)([\d,\.]+)<\/b><\/div>)", seleccion_response, re.DOTALL)
+            # 3. Extraer Altura (Nivel de Agua) con la expresión regular corregida
+            altura_match = re.search(r"Nivel de Agua \(m\).*?<b>:<\/b><\/div><div[^>]+>([\d,.]+)<\/div>", seleccion_response, re.DOTALL)
             if altura_match:
                 try:
                     altura_str = altura_match.group(1).replace(",",".")
@@ -105,7 +101,6 @@ def obtener_datos_dga_api(max_retries=3):
                     print(f" -> Altura encontrada: {altura} m")
                 except ValueError:
                     print(f" -> Error al convertir altura: {altura_str}")
-            # <<< FIN DE LA CORRECCIÓN FINAL >>>
 
             # Actualizar ViewState para la siguiente iteración
             vs_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', seleccion_response)
