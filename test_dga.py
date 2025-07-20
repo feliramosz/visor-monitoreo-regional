@@ -15,6 +15,8 @@ def obtener_view_state(session, url, headers, max_retries=3):
                 if view_state_match:
                     print(f"ViewState obtenido.")
                     return view_state_match.group(1)
+                else:
+                    print("Error: No se encontró ViewState en la respuesta.")
             else:
                 print(f"Error {response.status_code} al obtener ViewState.")
         except requests.exceptions.RequestException as e:
@@ -84,16 +86,8 @@ def obtener_datos_dga_api(max_retries=3):
                     print(f" -> Caudal encontrado: {caudal} m³/s")
                 except ValueError: pass
 
-            # 2. Extraer Fecha
-            fecha_match = re.search(r"<b>Fecha y hora de actualización:</b> ' \+ markers\[\d+\]\.fecha \+ '", seleccion_response)
-            if fecha_match:
-                marker_fecha_match = re.search(r"markers\[\d+\]\.fecha='([^']+)'", seleccion_response)
-                if marker_fecha_match:
-                    fecha_actualizacion = marker_fecha_match.group(1).strip()
-                    print(f" -> Fecha encontrada: {fecha_actualizacion}")
-
-            # 3. Extraer Altura (Nivel de Agua) con la expresión regular corregida
-            altura_match = re.search(r"Nivel de Agua \(m\).*?<b>:<\/b><\/div><div[^>]+>([\d,.]+)<\/div>", seleccion_response, re.DOTALL)
+            # 2. Extraer Altura
+            altura_match = re.search(r"Nivel de Agua \(m\).*?<\/b><\/div><div[^>]+><b>:<\/b><\/div><div[^>]+>([\d,\.]+)<\/div>", seleccion_response, re.DOTALL)
             if altura_match:
                 try:
                     altura_str = altura_match.group(1).replace(",",".")
@@ -101,7 +95,15 @@ def obtener_datos_dga_api(max_retries=3):
                     print(f" -> Altura encontrada: {altura} m")
                 except ValueError:
                     print(f" -> Error al convertir altura: {altura_str}")
-
+            
+            # 3. Extraer Fecha
+            fecha_match = re.search(r"<b>Fecha y hora de actualización:</b> ' \+ markers\[\d+\]\.fecha \+ '", seleccion_response)
+            if fecha_match:
+                marker_fecha_match = re.search(r"markers\[\d+\]\.fecha='([^']+)'", seleccion_response)
+                if marker_fecha_match:
+                    fecha_actualizacion = marker_fecha_match.group(1).strip()
+                    print(f" -> Fecha encontrada: {fecha_actualizacion}")
+            
             # Actualizar ViewState para la siguiente iteración
             vs_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', seleccion_response)
             if vs_match: view_state = vs_match.group(1)
@@ -154,7 +156,6 @@ if __name__ == "__main__":
         print("\nAPI no entregó todos los datos. Probando con reporte Excel como respaldo...")
         datos_excel = descargar_reporte_excel()
         if datos_excel:
-            # Fusionar datos: API tiene prioridad
             for api_dato in datos_en_vivo:
                 for excel_dato in datos_excel:
                     if api_dato['codigo'] == excel_dato['codigo']:
