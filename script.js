@@ -266,6 +266,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 sidebarRightHTML += stationHTML;
             }
         });
+        // Se inserta el HTML en el DOM una vez finalizado el bucle
+        sidebarLeft.innerHTML = sidebarLeftHTML;
+        sidebarRight.innerHTML = sidebarRightHTML;
+
     } catch (error) {
         console.error("Error al procesar datos del clima:", error);
     }
