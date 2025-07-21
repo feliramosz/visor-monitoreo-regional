@@ -261,9 +261,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Divide las estaciones entre la barra izquierda y derecha
             if (index < 4) {
-                sidebarLeft.appendChild(stationBox);
+                sidebarLeftHTML += stationHTML;
             } else {
-                sidebarRight.appendChild(stationBox);
+                sidebarRightHTML += stationHTML;
             }
         });
     } catch (error) {
