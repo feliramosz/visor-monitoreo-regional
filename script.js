@@ -215,10 +215,29 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
 
-        const currentHour = new Date().getHours();        
+        const currentHour = new Date().getHours();
         
+        const jBotanico = weatherData.find(s => s.codigo === '330006');
+        const torquemada = weatherData.find(s => s.codigo === '320041');
 
-        weatherData.forEach((station, index) => {
+        const jBotanicoOnline = jBotanico && jBotanico.hora_actualizacion !== 'Offline';
+
+        let thirdStation;
+        if (jBotanicoOnline) {
+            thirdStation = jBotanico;
+        } else {
+            // Si J. Botánico está offline, usa Torquemada si está disponible.
+            thirdStation = torquemada || {
+                codigo: 'offline-placeholder',
+                nombre: 'J. Botánico / Torquemada',
+                hora_actualizacion: 'Sin conexión'
+            };
+        }
+                
+        const stationsToDisplay = weatherData.filter(s => s.codigo !== '330006' && s.codigo !== '320041');        
+        stationsToDisplay.splice(2, 0, thirdStation);                
+        
+        stationsToDisplay.forEach((station, index) => {
             const stationBox = document.createElement('div');
             stationBox.className = 'weather-station-box';
 
