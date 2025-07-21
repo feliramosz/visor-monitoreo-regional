@@ -237,24 +237,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const stationsToDisplay = weatherData.filter(s => s.codigo !== '330006' && s.codigo !== '320041');        
         stationsToDisplay.splice(2, 0, thirdStation);                
         
+        let sidebarLeftHTML = '';
+        let sidebarRightHTML = '';
+        
         stationsToDisplay.forEach((station, index) => {
-            const stationBox = document.createElement('div');
-            stationBox.className = 'weather-station-box';
-
             const backgroundFile = getWeatherBackground(station, currentHour);
-            if (backgroundFile) {
-                stationBox.style.backgroundImage = `url('assets/${backgroundFile}')`;
-            }
+            // Se construye el atributo de estilo como texto
+            const backgroundStyle = backgroundFile ? `style="background-image: url('assets/${backgroundFile}')"` : '';
 
-            stationBox.innerHTML = `
-                <div class="weather-overlay">
-                    <h4>${station.nombre}</h4>                    
-                    <p><strong>Temperatura:</strong> ${station.temperatura}°C</p>
-                    <p><strong>Humedad:</strong> ${station.humedad}%</p>
-                    <p><strong>Viento:</strong> ${station.viento_direccion} a ${station.viento_velocidad}</p>
-                    <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
-                    <p class="station-update-time">Últ. act: ${station.hora_actualizacion} h.</p>
-                    <p class="station-source">Fuente: EMA DMC</p>
+            // Se crea el HTML completo para la estación
+            const stationHTML = `
+                <div class="weather-station-box" ${backgroundStyle}>
+                    <div class="weather-overlay">
+                        <h4>${station.nombre}</h4>                    
+                        <p><strong>Temperatura:</strong> ${station.temperatura}°C</p>
+                        <p><strong>Humedad:</strong> ${station.humedad}%</p>
+                        <p><strong>Viento:</strong> ${station.viento_direccion} a ${station.viento_velocidad}</p>
+                        <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
+                        <p class="station-update-time">Últ. act: ${station.hora_actualizacion} h.</p>
+                        <p class="station-source">Fuente: EMA DMC</p>
+                    </div>
                 </div>`;                        
 
             // Divide las estaciones entre la barra izquierda y derecha
