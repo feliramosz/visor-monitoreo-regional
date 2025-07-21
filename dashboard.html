@@ -70,6 +70,7 @@
             <input type="checkbox" id="showWazePanel" title="Waze" checked>
             <label style="margin-left: 10px;" for="toggleNotifications">Sonido on/off:</label>
             <input type="checkbox" id="toggleNotifications" checked>
+            <button id="portsModalBtn" class="footer-icon-btn" title="Estado de Puertos">&#128755;</button>
         </div>
         <div id="notification-marquee-container">
             <p id="notification-marquee-text"></p>
@@ -87,6 +88,17 @@
                 <button id="sec-modal-close" class="sec-modal-close-btn">&times;</button>
             </div>
             <div id="sec-modal-body" class="sec-modal-body">
+                </div>
+        </div>
+    </div>
+    
+    <div id="ports-modal" class="sec-modal-overlay" style="display: none;">
+        <div class="sec-modal-content">
+            <div class="sec-modal-header">
+                <h4 id="ports-modal-title">Estado de Puertos en Tiempo Real</h4>
+                <button id="ports-modal-close" class="sec-modal-close-btn">&times;</button>
+            </div>
+            <div id="ports-modal-body" class="sec-modal-body">
                 </div>
         </div>
     </div>

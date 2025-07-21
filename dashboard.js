@@ -21,6 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleRightColumnCheck = document.getElementById('toggleRightColumn');
     let lastData = {}; // Para guardar la última data cargada
     let lastNovedades = {}; 
+    const portsModalBtn = document.getElementById('portsModalBtn');
+    const portsModal = document.getElementById('ports-modal');
+    const portsModalClose = document.getElementById('ports-modal-close');
+    const portsModalBody = document.getElementById('ports-modal-body');
 
     // --- Controles del carrusel de MAPAS ---
     const mapPanelTitle = document.getElementById('map-panel-title');
@@ -2035,6 +2039,57 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Error al contactar el API de tsunami:", error);
         }
     }
+
+    if (portsModalBtn) {
+        portsModalBtn.addEventListener('click', async () => {
+            if (portsModal && portsModalBody) {
+                portsModal.style.display = 'flex';
+                portsModalBody.innerHTML = '<p><i>Cargando estado de puertos...</i></p>';
+                try {
+                    const response = await fetch('/api/estado_puertos_live');
+                    if (!response.ok) throw new Error('No se pudo obtener la información.');
+                    const portsData = await response.json();
+                    
+                    let tableHtml = `
+                        <table class="sec-communes-table">
+                            <thead>
+                                <tr>
+                                    <th>Puerto</th>
+                                    <th>Estado del Puerto</th>
+                                    <th>Condición</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${portsData.map(p => `
+                                    <tr>
+                                        <td>${p.puerto}</td>
+                                        <td>${p.estado_del_puerto}</td>
+                                        <td>${p.condicion}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        <p class="data-source" style="text-align: right; margin-top: 10px;">Fuente: DIRECTEMAR</p>
+                    `;
+                    portsModalBody.innerHTML = tableHtml;
+
+                } catch (error) {
+                    portsModalBody.innerHTML = `<p style="color: red;">Error al cargar los datos de los puertos.</p>`;
+                }
+            }
+        });
+    }
+
+    const closePortsModal = () => {
+        if (portsModal) portsModal.style.display = 'none';
+    };
+
+    if (portsModalClose) portsModalClose.addEventListener('click', closePortsModal);
+    if (portsModal) portsModal.addEventListener('click', (event) => {
+        if (event.target === portsModal) {
+            closePortsModal();
+        }
+    });
 
     initializeApp();
 });

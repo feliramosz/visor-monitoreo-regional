@@ -2752,3 +2752,19 @@ footer {
     max-height: 900px;
     opacity: 0.25; /* Semitransparencia */
 }
+
+/*Icono en footer para estado puertos en /dashboard */
+.footer-icon-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 1.5em;
+    padding: 0 5px;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.footer-icon-btn:hover {
+    opacity: 0.8;
+}
