@@ -179,8 +179,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const c = condition.toLowerCase();
             let categoryKey = null;
 
+            // --- LÓGICA CORREGIDA ---
             if (c.includes('despejado')) {
-                categoryKey = inlandStationCodes.includes(station.codigo) ? 'despejado_interior' : 'despejado_costa';
+                if (inlandStationCodes.includes(station.codigo)) {
+                    categoryKey = 'despejado_interior';
+                } else {
+                    categoryKey = 'despejado_costa';
+                }
             } else if (c.includes('nubosidad parcial')) {
                 categoryKey = 'nubosidad parcial';
             } else if (c.includes('escasa nubosidad')) {
