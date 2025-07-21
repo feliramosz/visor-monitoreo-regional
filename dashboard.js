@@ -386,6 +386,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="sec-gauge-level" style="background-color: #ef9a9a;"></div>
                         <div class="sec-gauge-level" style="background-color: #e57373;"></div>
                         <div class="sec-gauge-level" style="background-color: #ef5350;"></div>
+                        <div id="sec-gauge-needle-container" class="sec-gauge-needle-container">
+                        <div id="sec-gauge-value" class="sec-gauge-value-display">0%</div>
+                        <div class="sec-gauge-needle"></div>
+                    </div>
                     </div>
                     <div class="sec-gauge-ticks">
                         <span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span><span>60</span><span>70</span><span>80</span><span>90</span><span>100</span>
@@ -398,6 +402,19 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
 
             container.innerHTML = tableHtml;
+
+            // --- LÓGICA PARA ACTUALIZAR EL MEDIDOR SEC ---
+            const needleContainer = document.getElementById('sec-gauge-needle-container');
+            const valueDisplay = document.getElementById('sec-gauge-value');
+            const percentage = parseFloat(data.porcentaje_afectado) || 0;
+
+            if (needleContainer && valueDisplay) {                
+                const boundedPercentage = Math.max(0, Math.min(100, percentage));
+                
+                // Actualiza la posición de la aguja y el texto
+                needleContainer.style.left = `${boundedPercentage}%`;
+                valueDisplay.textContent = `${percentage.toFixed(2)}%`;
+            }
 
             // 3. Lógica del pop-up (modal), aplicando la clase de alerta a las comunas correspondientes
             const modal = document.getElementById('sec-commune-modal');
