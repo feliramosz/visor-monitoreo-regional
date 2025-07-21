@@ -202,8 +202,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // 3. Comprobar si hay una versión nocturna
                     if (isNight) {
-                        const nightVersion = finalGif.replace('.gif', '_noche.gif');
-                        const nightFiles = ['despejado_noche.gif', 'nubosidad_parcial_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'lluvia_noche_2.gif'];
+                        const nightVersion = finalGif.replace('.gif', '_noche.gif');                        
+                        const nightFiles = ['despejado_noche.gif', 'nubosidad_parcial_noche.gif', 'despejado_2_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'lluvia_2_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'parcial_noche.gif', 'nubosidad_parcial_2_noche.gif', 'nubosidad_parcial_3_noche.gif', 'precipitaciones_debiles_noche.gif'];
                         if (nightFiles.includes(nightVersion)) {
                             finalGif = nightVersion;
                         }
