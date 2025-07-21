@@ -1665,6 +1665,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mapSlides.forEach((slide, i) => { slide.classList.toggle('active-map-slide', i === index); });
         mapPanelTitle.textContent = mapTitles[index];
         airQualityAlertPanel.style.display = (index === 0) ? 'flex' : 'none';
+        if (airQualityDetailsBtn) airQualityDetailsBtn.style.display = (index === 0) ? 'block' : 'none';
         if (index === 0 && airQualityMap) airQualityMap.invalidateSize();
         if (index === 1 && precipitationMap) precipitationMap.invalidateSize();
         currentMapSlide = index;
