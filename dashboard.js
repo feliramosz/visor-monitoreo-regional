@@ -19,12 +19,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleTopBannerCheck = document.getElementById('toggleTopBanner');
     const toggleCentralCarouselCheck = document.getElementById('toggleCentralCarousel');
     const toggleRightColumnCheck = document.getElementById('toggleRightColumn');
-    let lastData = {}; // Para guardar la última data cargada
+    let lastData = {};
     let lastNovedades = {}; 
     const portsModalBtn = document.getElementById('portsModalBtn');
     const portsModal = document.getElementById('ports-modal');
     const portsModalClose = document.getElementById('ports-modal-close');
     const portsModalBody = document.getElementById('ports-modal-body');
+    const airQualityDetailsBtn = document.getElementById('air-quality-details-btn');
+    const airQualityModal = document.getElementById('air-quality-modal');
+    const airQualityModalClose = document.getElementById('air-quality-modal-close');
+    const airQualityModalBody = document.getElementById('air-quality-modal-body');
+    let lastAirQualityData = [];
 
     // --- Controles del carrusel de MAPAS ---
     const mapPanelTitle = document.getElementById('map-panel-title');
@@ -1492,6 +1497,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(AIR_QUALITY_API_URL);
             const stations = await response.json();
+            lastAirQualityData = stations;
             gestionarNotificacionesCalidadAire(stations);
             airQualityMarkers.forEach(marker => marker.remove());
             airQualityMarkers = [];
@@ -2105,6 +2111,60 @@ document.addEventListener('DOMContentLoaded', () => {
     if (portsModal) portsModal.addEventListener('click', (event) => {
         if (event.target === portsModal) {
             closePortsModal();
+        }
+    });
+
+    // --- Lógica para el Modal de Calidad del Aire ---
+    if (airQualityDetailsBtn) {
+        airQualityDetailsBtn.addEventListener('click', () => {
+            if (airQualityModal && airQualityModalBody) {
+                airQualityModal.style.display = 'flex';
+                airQualityModalBody.innerHTML = '<p><i>Cargando detalles...</i></p>';
+
+                const stationsWithNews = lastAirQualityData.filter(s => s.estado !== 'bueno' && s.estado !== 'no_disponible');
+
+                if (stationsWithNews.length > 0) {
+                    let tableHtml = `
+                        <table class="sec-communes-table">
+                            <thead>
+                                <tr>
+                                    <th>Estación</th>
+                                    <th>Estado General</th>
+                                    <th>Parámetros con Novedad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${stationsWithNews.map(station => `
+                                    <tr>
+                                        <td>${station.nombre_estacion}</td>
+                                        <td style="text-transform: capitalize;">${station.estado}</td>
+                                        <td>
+                                            ${station.parametros.filter(p => p.estado !== 'bueno' && p.estado !== 'no_disponible').map(p => 
+                                                `<strong>${p.parametro}:</strong> ${p.valor} ${p.unidad}`
+                                            ).join('<br>')}
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        <p class="data-source" style="text-align: right; margin-top: 10px;">Fuente: SINCA</p>
+                    `;
+                    airQualityModalBody.innerHTML = tableHtml;
+                } else {
+                    airQualityModalBody.innerHTML = '<p>No hay estaciones que reporten novedades en este momento.</p>';
+                }
+            }
+        });
+    }
+
+    const closeAirQualityModal = () => {
+        if (airQualityModal) airQualityModal.style.display = 'none';
+    };
+
+    if (airQualityModalClose) airQualityModalClose.addEventListener('click', closeAirQualityModal);
+    if (airQualityModal) airQualityModal.addEventListener('click', (event) => {
+        if (event.target === airQualityModal) {
+            closeAirQualityModal();
         }
     });
 
