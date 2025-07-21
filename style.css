@@ -2713,7 +2713,7 @@ footer {
     /* La posición 'left' será controlada por JavaScript */
     left: 0%;     
     height: 100%;
-    transition: left 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Transición con efecto de rebote */
+    transition: left 0.8s cubic-bezier(0.25, 0.1, 0.25, 1); /* Transición con efecto de rebote */
     z-index: 2;
 }
 
@@ -2726,6 +2726,22 @@ footer {
     position: absolute;
     top: 25px;
     transform: translateX(-50%);
+    
+}
+
+.sec-gauge-value-display {
+    position: absolute;
+    top: -10px; 
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #343a40;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 5px;
+    font-size: 0.8em;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    white-space: nowrap;
 }
 
 /* --- ESTILOS PARA LOGO SENAPRED EN PANELES VACÍOS --- */
@@ -2751,4 +2767,33 @@ footer {
     max-width: 900px; /* Tamaño máximo del logo */
     max-height: 900px;
     opacity: 0.25; /* Semitransparencia */
+}
+
+/*Icono en footer para estado puertos en /dashboard */
+.footer-icon-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 1.5em;
+    padding: 0 5px;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.footer-icon-btn:hover {
+    opacity: 0.8;
+}
+
+/* --- ESTILOS PARA BOTÓN DE DETALLES DE CALIDAD DEL AIRE --- */
+#air-quality-details-btn {
+    background-color: #007bff;
+    color: white;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 1em;
+}
+
+#air-quality-details-btn:hover {
+    background-color: #0056b3;
 }

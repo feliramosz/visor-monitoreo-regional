@@ -202,8 +202,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // 3. Comprobar si hay una versión nocturna
                     if (isNight) {
-                        const nightVersion = finalGif.replace('.gif', '_noche.gif');
-                        const nightFiles = ['despejado_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'lluvia_noche_2.gif'];
+                        const nightVersion = finalGif.replace('.gif', '_noche.gif');                        
+                        const nightFiles = ['despejado_noche.gif', 'nubosidad_parcial_noche.gif', 'despejado_2_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'lluvia_2_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'parcial_noche.gif', 'nubosidad_parcial_2_noche.gif', 'nubosidad_parcial_3_noche.gif', 'precipitaciones_debiles_noche.gif'];
                         if (nightFiles.includes(nightVersion)) {
                             finalGif = nightVersion;
                         }
@@ -215,10 +215,29 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
 
-        const currentHour = new Date().getHours();        
+        const currentHour = new Date().getHours();
         
+        const jBotanico = weatherData.find(s => s.codigo === '330006');
+        const torquemada = weatherData.find(s => s.codigo === '320041');
 
-        weatherData.forEach((station, index) => {
+        const jBotanicoOnline = jBotanico && jBotanico.hora_actualizacion !== 'Offline';
+
+        let thirdStation;
+        if (jBotanicoOnline) {
+            thirdStation = jBotanico;
+        } else {
+            // Si J. Botánico está offline, usa Torquemada si está disponible.
+            thirdStation = torquemada || {
+                codigo: 'offline-placeholder',
+                nombre: 'J. Botánico / Torquemada',
+                hora_actualizacion: 'Sin conexión'
+            };
+        }
+                
+        const stationsToDisplay = weatherData.filter(s => s.codigo !== '330006' && s.codigo !== '320041');        
+        stationsToDisplay.splice(2, 0, thirdStation);                
+        
+        stationsToDisplay.forEach((station, index) => {
             const stationBox = document.createElement('div');
             stationBox.className = 'weather-station-box';
 
