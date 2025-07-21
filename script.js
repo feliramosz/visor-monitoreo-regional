@@ -158,8 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const sidebarLeft = document.getElementById('weather-sidebar-left');
         const sidebarRight = document.getElementById('weather-sidebar-right');
-        sidebarLeft.innerHTML = '';
-        sidebarRight.innerHTML = '';
     
         const gifMap = {
             'despejado_costa': { files: ['despejado_2.gif'], counter: 0 },
@@ -175,95 +173,92 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.keys(gifMap).forEach(key => gifMap[key].counter = 0);
 
         const getWeatherBackground = (station, hour) => {
-                const inlandStationCodes = ["320049", "320124", "320051"];
-                const condition = station.tiempo_presente || '';
-                const isNight = hour < 7 || hour > 19;
-                const c = condition.toLowerCase();
-                let categoryKey = null;
+            const inlandStationCodes = ["320049", "320124", "320051"];
+            const condition = station.tiempo_presente || '';
+            const isNight = hour < 7 || hour > 19;
+            const c = condition.toLowerCase();
+            let categoryKey = null;
 
-                // 1. Determinar la categoría del tiempo
-                if (c.includes('despejado')) {
-                    // Lógica geográfica: elige un set de GIFs distinto si es una estación interior
-                    categoryKey = inlandStationCodes.includes(station.codigo) ? 'despejado_interior' : 'despejado_costa';
+            // --- LÓGICA CORREGIDA ---
+            if (c.includes('despejado')) {
+                if (inlandStationCodes.includes(station.codigo)) {
+                    categoryKey = 'despejado_interior';
+                } else {
+                    categoryKey = 'despejado_costa';
                 }
-                else if (c.includes('nubosidad parcial')) categoryKey = 'nubosidad parcial';
-                else if (c.includes('escasa nubosidad')) categoryKey = 'escasa nubosidad';
-                else if (c.includes('nublado') || c.includes('cubierto')) categoryKey = 'nublado';
-                else if (c.includes('precipitaciones débiles')) categoryKey = 'precipitaciones débiles';
-                else if (c.includes('lluvia') || c.includes('precipitacion')) categoryKey = 'lluvia';
-                else if (c.includes('nieve')) categoryKey = 'nieve';
-                
-                // 2. Si se encontró una categoría, rotar el GIF
-                if (categoryKey) {
-                    const gifData = gifMap[categoryKey];
-                    const fileIndex = gifData.counter % gifData.files.length;
-                    let finalGif = gifData.files[fileIndex];
-                    gifData.counter++; // Incrementar para la próxima vez
+            } else if (c.includes('nubosidad parcial')) {
+                categoryKey = 'nubosidad parcial';
+            } else if (c.includes('escasa nubosidad')) {
+                categoryKey = 'escasa nubosidad';
+            } else if (c.includes('nublado') || c.includes('cubierto')) {
+                categoryKey = 'nublado';
+            } else if (c.includes('precipitaciones débiles')) {
+                categoryKey = 'precipitaciones débiles';
+            } else if (c.includes('lluvia') || c.includes('precipitacion')) {
+                categoryKey = 'lluvia';
+            } else if (c.includes('nieve')) {
+                categoryKey = 'nieve';
+            }
+            
+            if (categoryKey) {
+                const gifData = gifMap[categoryKey];
+                const fileIndex = gifData.counter % gifData.files.length;
+                let finalGif = gifData.files[fileIndex];
+                gifData.counter++;
 
-                    // 3. Comprobar si hay una versión nocturna
-                    if (isNight) {
-                        const nightVersion = finalGif.replace('.gif', '_noche.gif');                        
-                        const nightFiles = ['despejado_noche.gif', 'nubosidad_parcial_noche.gif', 'despejado_2_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'lluvia_2_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'parcial_noche.gif', 'nubosidad_parcial_2_noche.gif', 'nubosidad_parcial_3_noche.gif', 'precipitaciones_debiles_noche.gif'];
-                        if (nightFiles.includes(nightVersion)) {
-                            finalGif = nightVersion;
-                        }
+                if (isNight) {
+                    const nightVersion = finalGif.replace('.gif', '_noche.gif');
+                    const nightFiles = ['despejado_noche.gif', 'despejado_2_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'lluvia_2_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'parcial_noche.gif', 'nubosidad_parcial_2_noche.gif', 'nubosidad_parcial_3_noche.gif', 'precipitaciones_debiles_noche.gif'];
+                    if (nightFiles.includes(nightVersion)) {
+                        finalGif = nightVersion;
                     }
-                    return finalGif;
                 }
-
-                return '';
-            };
-
+                return finalGif;
+            }
+            return '';
+        };
 
         const currentHour = new Date().getHours();
         
         const jBotanico = weatherData.find(s => s.codigo === '330006');
         const torquemada = weatherData.find(s => s.codigo === '320041');
-
         const jBotanicoOnline = jBotanico && jBotanico.hora_actualizacion !== 'Offline';
-
-        let thirdStation;
-        if (jBotanicoOnline) {
-            thirdStation = jBotanico;
-        } else {
-            // Si J. Botánico está offline, usa Torquemada si está disponible.
-            thirdStation = torquemada || {
-                codigo: 'offline-placeholder',
-                nombre: 'J. Botánico / Torquemada',
-                hora_actualizacion: 'Sin conexión'
-            };
-        }
-                
+        
+        let thirdStation = jBotanicoOnline ? jBotanico : (torquemada || { codigo: 'offline-placeholder', nombre: 'J. Botánico / Torquemada', hora_actualizacion: 'Sin conexión' });
+        
         const stationsToDisplay = weatherData.filter(s => s.codigo !== '330006' && s.codigo !== '320041');        
         stationsToDisplay.splice(2, 0, thirdStation);                
         
+        let sidebarLeftHTML = '';
+        let sidebarRightHTML = '';
+        
         stationsToDisplay.forEach((station, index) => {
-            const stationBox = document.createElement('div');
-            stationBox.className = 'weather-station-box';
-
             const backgroundFile = getWeatherBackground(station, currentHour);
-            if (backgroundFile) {
-                stationBox.style.backgroundImage = `url('assets/${backgroundFile}')`;
-            }
+            const backgroundStyle = backgroundFile ? `style="background-image: url('assets/${backgroundFile}')"` : '';
 
-            stationBox.innerHTML = `
-                <div class="weather-overlay">
-                    <h4>${station.nombre}</h4>                    
-                    <p><strong>Temperatura:</strong> ${station.temperatura}°C</p>
-                    <p><strong>Humedad:</strong> ${station.humedad}%</p>
-                    <p><strong>Viento:</strong> ${station.viento_direccion} a ${station.viento_velocidad}</p>
-                    <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
-                    <p class="station-update-time">Últ. act: ${station.hora_actualizacion} h.</p>
-                    <p class="station-source">Fuente: EMA DMC</p>
+            const stationHTML = `
+                <div class="weather-station-box" ${backgroundStyle}>
+                    <div class="weather-overlay">
+                        <h4>${station.nombre}</h4>                    
+                        <p><strong>Temperatura:</strong> ${station.temperatura}°C</p>
+                        <p><strong>Humedad:</strong> ${station.humedad}%</p>
+                        <p><strong>Viento:</strong> ${station.viento_direccion} a ${station.viento_velocidad}</p>
+                        <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
+                        <p class="station-update-time">Últ. act: ${station.hora_actualizacion} h.</p>
+                        <p class="station-source">Fuente: EMA DMC</p>
+                    </div>
                 </div>`;                        
 
-            // Divide las estaciones entre la barra izquierda y derecha
             if (index < 4) {
-                sidebarLeft.appendChild(stationBox);
+                sidebarLeftHTML += stationHTML;
             } else {
-                sidebarRight.appendChild(stationBox);
+                sidebarRightHTML += stationHTML;
             }
         });
+
+        sidebarLeft.innerHTML = sidebarLeftHTML;
+        sidebarRight.innerHTML = sidebarRightHTML;
+
     } catch (error) {
         console.error("Error al procesar datos del clima:", error);
     }
