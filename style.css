@@ -2495,8 +2495,8 @@ footer {
 
 @keyframes blink-yellow {
     0%, 100% {
-        color: #b48b00;
-        text-shadow: 0 0 5px rgba(255, 235, 59, 0.7);
+        color: #1eb400;
+        text-shadow: 0 0 5px rgba(147, 255, 59, 0.7);
     }
     50% {
         color: #333;

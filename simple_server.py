@@ -508,7 +508,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         }
         codigos_estaciones = {
             "05410002-7": {"nombre": "Aconcagua en Chacabuquito", "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"},
-            "05410024-8": {"nombre": "Aconcagua San Felipe 2", "param2": "Fluviometricas"},
+            "05410024-8": {"nombre": "Aconcagua San Felipe 2", "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"},
             "05414001-0": {"nombre": "Putaendo Resguardo Los Patos", "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"}
         }
         datos_finales = []
