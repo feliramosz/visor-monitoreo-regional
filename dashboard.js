@@ -716,23 +716,31 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const getGaugeData = (value, threshold, type) => {
             const currentValue = (value !== null && !isNaN(value)) ? value : 0;
+
+            // Usamos tu lógica de escala fija
             let maxScale;
             if (type === 'altura') {
-                maxScale = 3.5;
+                maxScale = 3.5; // Máximo fijo para Altura
             } else { // 'caudal'
-                maxScale = 250.0;
+                maxScale = 250.0; // Máximo fijo para Caudal
             }
 
-            const needlePercentage = Math.min((currentValue / maxScale) * 100, 100);
-            const yellowStartPercentage = (threshold.amarilla / maxScale) * 100;
-            const redStartPercentage = (threshold.roja / maxScale) * 100;
+            // Calculamos el ancho en porcentaje de cada zona de color
+            const greenWidth = (threshold.amarilla / maxScale) * 100;
+            const yellowWidth = ((threshold.roja - threshold.amarilla) / maxScale) * 100;
+            const redWidth = 100 - greenWidth - yellowWidth;
+
+            // Calculamos la posición del marcador
+            const markerPosition = Math.min((currentValue / maxScale) * 100, 100);
 
             return {
                 value: currentValue.toFixed(2),
-                rotation: -90 + (needlePercentage * 1.8),
-                // Calculamos los grados de rotación para las capas de color
-                yellowRotation: (yellowStartPercentage * 1.8) - 90,
-                redRotation: (redStartPercentage * 1.8) - 90
+                markerPosition: markerPosition.toFixed(2),
+                zones: {
+                    green: greenWidth.toFixed(2),
+                    yellow: yellowWidth.toFixed(2),
+                    red: redWidth.toFixed(2)
+                }
             };
         };
 
@@ -753,29 +761,43 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 <div class="gauges-container">
-                    <div class="gauge-unit">
-                        <p class="gauge-label">Altura (m)</p>
-                        <div class="threshold-label-left"><span class="threshold-amarillo">A: ${thresholds.nivel.amarilla}</span></div>
-                        <div class="gauge-wrapper">
-                            <div class="gauge-arc-background"></div>
-                            <div class="gauge-arc-overlay yellow" style="transform: rotate(${nivelGauge.yellowRotation}deg);"></div>
-                            <div class="gauge-arc-overlay red" style="transform: rotate(${nivelGauge.redRotation}deg);"></div>
-                            <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
+                    <div class="linear-gauge-unit">
+                        <div class="linear-gauge-header">
+                            <span class="gauge-label">Altura (m)</span>
+                            <span class="gauge-current-value">${nivelGauge.value}</span>
                         </div>
-                        <div class="threshold-label-right"><span class="threshold-rojo">R: ${thresholds.nivel.roja}</span></div>
-                        <p class="gauge-current-value">${nivelGauge.value}</p>
+                        <div class="linear-gauge-wrapper">
+                            <div class="linear-gauge-track">
+                                <div class="lg-zone-green" style="width: ${nivelGauge.zones.green}%;"></div>
+                                <div class="lg-zone-yellow" style="width: ${nivelGauge.zones.yellow}%;"></div>
+                                <div class="lg-zone-red" style="width: ${nivelGauge.zones.red}%;"></div>
+                                <div class="linear-gauge-marker" style="left: ${nivelGauge.markerPosition}%;"></div>
+                            </div>
+                            <div class="linear-gauge-ticks">
+                                <span>0</span>
+                                <span style="left: ${nivelGauge.zones.green}%;">${thresholds.nivel.amarilla}</span>
+                                <span style="left: ${parseFloat(nivelGauge.zones.green) + parseFloat(nivelGauge.zones.yellow)}%;">${thresholds.nivel.roja}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="gauge-unit">
-                        <p class="gauge-label">Caudal (m³/s)</p>
-                        <div class="threshold-label-left"><span class="threshold-amarillo">A: ${thresholds.caudal.amarilla}</span></div>
-                        <div class="gauge-wrapper">
-                            <div class="gauge-arc-background"></div>
-                            <div class="gauge-arc-overlay yellow" style="transform: rotate(${caudalGauge.yellowRotation}deg);"></div>
-                            <div class="gauge-arc-overlay red" style="transform: rotate(${caudalGauge.redRotation}deg);"></div>
-                            <div class="gauge-needle" id="needle-caudal-${stationId}" style="transform: rotate(${caudalGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
+                    <div class="linear-gauge-unit">
+                        <div class="linear-gauge-header">
+                            <span class="gauge-label">Caudal (m³/s)</span>
+                            <span class="gauge-current-value ${ledStatus === 'yellow' ? 'blinking-value' : ''}" id="value-caudal-${stationId}">${caudalGauge.value}</span>
                         </div>
-                        <div class="threshold-label-right"><span class="threshold-rojo">R: ${thresholds.caudal.roja}</span></div>
-                        <p class="gauge-current-value" id="value-caudal-${stationId}">${caudalGauge.value}</p>
+                        <div class="linear-gauge-wrapper" id="wrapper-caudal-${stationId}">
+                            <div class="linear-gauge-track">
+                                <div class="lg-zone-green" style="width: ${caudalGauge.zones.green}%;"></div>
+                                <div class="lg-zone-yellow" style="width: ${caudalGauge.zones.yellow}%;"></div>
+                                <div class="lg-zone-red" style="width: ${caudalGauge.zones.red}%;"></div>
+                                <div class="linear-gauge-marker" style="left: ${caudalGauge.markerPosition}%;"></div>
+                            </div>
+                            <div class="linear-gauge-ticks">
+                                <span>0</span>
+                                <span style="left: ${caudalGauge.zones.green}%;">${thresholds.caudal.amarilla}</span>
+                                <span style="left: ${parseFloat(caudalGauge.zones.green) + parseFloat(caudalGauge.zones.yellow)}%;">${thresholds.caudal.roja}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>                    
             </div>

@@ -1884,99 +1884,91 @@ img, table {
 
 .gauges-container {
     display: flex;
+    flex-direction: column; /* Apilamos los medidores verticalmente */
     flex-grow: 1;
     justify-content: center;
-    align-items: center;
-    gap: 30px;
+    gap: 15px; /* Espacio entre el medidor de altura y el de caudal */
+    width: 100%;
 }
 
-.gauge-unit {
-    display: grid;
-    grid-template-areas:
-        ". title ."
-        "label-l gauge label-r"
-        ". value .";
-    grid-template-columns: 45px auto 45px;
-    align-items: center;
-    justify-items: center;
-    width: 50%;
+.linear-gauge-unit {
+    width: 100%;
+}
+
+.linear-gauge-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
 }
 
 .gauge-label {
-    grid-area: title;
     font-size: 0.8em;
     font-weight: bold;
-    margin-bottom: 2px;
-}
-
-.gauge-wrapper {
-    grid-area: gauge;
-    width: 90px;
-    height: 45px;
-    position: relative;
-    border-radius: 45px 45px 0 0;
-    overflow: hidden;
-}
-
-.gauge-arc-background, .gauge-arc-overlay {
-    width: 90px;
-    height: 45px;
-    position: absolute;
-    top: 0;
-    left: 0;
-    border-radius: 45px 45px 0 0;
-    transform-origin: bottom center;
-}
-
-.gauge-arc-background {
-    background-color: #4caf50; /* Base verde */
-}
-
-.gauge-arc-overlay.yellow {
-    background-color: #ffeb3b; /* Capa amarilla */
-}
-
-.gauge-arc-overlay.red {
-    background-color: #f44336; /* Capa roja */
-}
-
-.gauge-needle {
-    width: 2px;
-    height: 38px;
-    position: absolute;
-    bottom: 0;
-    left: 44px;
-    transform-origin: bottom center;
-    transition: transform 0.5s ease-out;
-    z-index: 10;
-}
-
-.needle-vibrator {
-    width: 100%;
-    height: 100%;
-    background-color: #333;
-    border-radius: 2px;    
-    animation: needle-vibration 3s ease-in-out infinite;
 }
 
 .gauge-current-value {
-    grid-area: value;
     font-size: 1.2em;
     font-weight: bold;
     color: #004d99;
-    margin-top: 1px;
 }
 
-.threshold-label-left, .threshold-label-right {
+.linear-gauge-wrapper {
+    position: relative;
+    width: 100%;
+    padding-bottom: 15px; /* Espacio para las etiquetas de abajo */
+}
+
+/* La barra principal que contiene las zonas de color */
+.linear-gauge-track {
+    display: flex;
+    width: 100%;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #ccc;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Las zonas de color */
+.lg-zone-green { background-color: #a5d6a7; }
+.lg-zone-yellow { background-color: #ffe082; }
+.lg-zone-red { background-color: #ef9a9a; }
+
+/* El marcador del valor actual */
+.linear-gauge-marker {
+    position: absolute;
+    top: -4px;
+    width: 4px;
+    height: 20px;
+    background-color: #343a40;
+    border: 1px solid white;
+    border-radius: 2px;
+    transform: translateX(-50%);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    transition: left 0.5s ease-out;
+    z-index: 10;
+}
+
+/* Las etiquetas de los umbrales */
+.linear-gauge-ticks {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 15px;
     font-size: 0.7em;
-    font-weight: bold;
-    line-height: 1.1;
+    color: #666;
 }
-.threshold-label-left { grid-area: label-l; text-align: right; }
-.threshold-label-right { grid-area: label-r; text-align: left; }
 
-.threshold-amarillo { color: #b48b00; }
-.threshold-rojo { color: #a42319; }
+.linear-gauge-ticks span {
+    position: absolute;
+    transform: translateX(-50%);
+}
+
+.linear-gauge-ticks span:first-child {
+    transform: translateX(0%);
+}
 
 .card-footer {
     margin-top: auto;
