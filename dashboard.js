@@ -716,24 +716,23 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const getGaugeData = (value, threshold, type) => {
             const currentValue = (value !== null && !isNaN(value)) ? value : 0;
-
             let maxScale;
             if (type === 'altura') {
                 maxScale = 3.5;
-            } else {
+            } else { // 'caudal'
                 maxScale = 250.0;
-            }            
+            }
 
             const needlePercentage = Math.min((currentValue / maxScale) * 100, 100);
-            const yellowStartPercentage = ((threshold.amarilla / maxScale) * 100).toFixed(2);
-            const redStartPercentage = ((threshold.roja / maxScale) * 100).toFixed(2);
-
-            const rotation = -90 + (needlePercentage * 1.8);
+            const yellowStartPercentage = (threshold.amarilla / maxScale) * 100;
+            const redStartPercentage = (threshold.roja / maxScale) * 100;
 
             return {
                 value: currentValue.toFixed(2),
-                rotation: Math.max(-90, Math.min(90, rotation)),
-                gradient: `conic-gradient(from -90deg, #4caf50 0% ${yellowStartPercentage}%, #ffeb3b ${yellowStartPercentage}% ${redStartPercentage}%, #f44336 ${redStartPercentage}% 100%)`
+                rotation: -90 + (needlePercentage * 1.8),
+                // Calculamos los grados de rotación para las capas de color
+                yellowRotation: (yellowStartPercentage * 1.8) - 90,
+                redRotation: (redStartPercentage * 1.8) - 90
             };
         };
 
@@ -758,7 +757,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p class="gauge-label">Altura (m)</p>
                         <div class="threshold-label-left"><span class="threshold-amarillo">A: ${thresholds.nivel.amarilla}</span></div>
                         <div class="gauge-wrapper">
-                            <div class="gauge-arc" style="background: ${nivelGauge.gradient};"></div>
+                            <div class="gauge-arc-background"></div>
+                            <div class="gauge-arc-overlay yellow" style="transform: rotate(${nivelGauge.yellowRotation}deg);"></div>
+                            <div class="gauge-arc-overlay red" style="transform: rotate(${nivelGauge.redRotation}deg);"></div>
                             <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
                         </div>
                         <div class="threshold-label-right"><span class="threshold-rojo">R: ${thresholds.nivel.roja}</span></div>
@@ -768,7 +769,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p class="gauge-label">Caudal (m³/s)</p>
                         <div class="threshold-label-left"><span class="threshold-amarillo">A: ${thresholds.caudal.amarilla}</span></div>
                         <div class="gauge-wrapper">
-                            <div class="gauge-arc" id="arc-caudal-${stationId}" style="background: ${caudalGauge.gradient};"></div>
+                            <div class="gauge-arc-background"></div>
+                            <div class="gauge-arc-overlay yellow" style="transform: rotate(${caudalGauge.yellowRotation}deg);"></div>
+                            <div class="gauge-arc-overlay red" style="transform: rotate(${caudalGauge.redRotation}deg);"></div>
                             <div class="gauge-needle" id="needle-caudal-${stationId}" style="transform: rotate(${caudalGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
                         </div>
                         <div class="threshold-label-right"><span class="threshold-rojo">R: ${thresholds.caudal.roja}</span></div>

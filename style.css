@@ -1914,18 +1914,30 @@ img, table {
     width: 90px;
     height: 45px;
     position: relative;
-    overflow: hidden; /* Esto es importante */
+    border-radius: 45px 45px 0 0;
+    overflow: hidden;
 }
 
-.gauge-arc {
+.gauge-arc-background, .gauge-arc-overlay {
     width: 90px;
-    height: 90px;
-    border-radius: 50%;
+    height: 45px;
     position: absolute;
-    /* Corta el círculo por la mitad para crear el arco */
-    clip-path: polygon(0% 0%, 100% 0%, 100% 50%, 0% 50%);
-    /* Añadimos un color de fondo de respaldo */
-    background-color: #e0e0e0;
+    top: 0;
+    left: 0;
+    border-radius: 45px 45px 0 0;
+    transform-origin: bottom center;
+}
+
+.gauge-arc-background {
+    background-color: #4caf50; /* Base verde */
+}
+
+.gauge-arc-overlay.yellow {
+    background-color: #ffeb3b; /* Capa amarilla */
+}
+
+.gauge-arc-overlay.red {
+    background-color: #f44336; /* Capa roja */
 }
 
 .gauge-needle {
