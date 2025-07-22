@@ -749,6 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Damos un ID único a cada elemento que necesitaremos actualizar
         const stationId = stationName.replace(/\s+/g, '-').toLowerCase();
+        const ledStatus = 'red';
 
         return `
             <div class="hydro-station-card">
