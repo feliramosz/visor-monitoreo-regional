@@ -499,12 +499,13 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
     def _get_hidrometria_dga_live(self):
         """
         Obtiene los datos de caudal en tiempo real desde el sitio de la DGA (SNIA).
+        Versión corregida y alineada con el script de prueba funcional.
         """
         url = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-            "Accept": "*/*", "Accept-Encoding": "gzip, deflate, br", "Accept-Language": "es-ES,es;q=0.9",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+            "Accept": "*/*", "Accept-Encoding": "gzip, deflate, br, zstd", "Accept-Language": "es-ES,es;q=0.9",
             "Origin": "https://snia.mop.gob.cl", "Referer": "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml",
             "Sec-Fetch-Dest": "empty", "Sec-Fetch-Mode": "cors", "Sec-Fetch-Site": "same-origin"
         }
@@ -519,9 +520,11 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         try:
             print("DGA Live: Intentando obtener ViewState...")
             response_initial = session.get(url, headers=headers, timeout=20)
+            response_initial.raise_for_status()
             view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', response_initial.text)
+            
             if not view_state_match:
-                print("DGA Live: No se pudo obtener el ViewState inicial.")
+                print("DGA Live ERROR: No se pudo obtener el ViewState inicial.")
                 return []
             view_state = view_state_match.group(1)
             print("DGA Live: ViewState obtenido.")
@@ -531,10 +534,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 print(f"DGA Live: Procesando {nombre}...")
                 
                 payload_seleccion = {
-                    "medicionesByTypeFunctions": "medicionesByTypeFunctions",
-                    "javax.faces.ViewState": view_state,
-                    "javax.faces.source": "medicionesByTypeFunctions:j_idt162",
-                    "javax.faces.partial.execute": "medicionesByTypeFunctions:j_idt162 @component",
+                    "medicionesByTypeFunctions": "medicionesByTypeFunctions", "javax.faces.ViewState": view_state,
+                    "javax.faces.source": "medicionesByTypeFunctions:j_idt162", "javax.faces.partial.execute": "medicionesByTypeFunctions:j_idt162 @component",
                     "javax.faces.partial.render": "@component", "param1": codigo, "param2": param2,
                     "org.richfaces.ajax.component": "medicionesByTypeFunctions:j_idt162",
                     "medicionesByTypeFunctions:j_idt162": "medicionesByTypeFunctions:j_idt162",
@@ -542,19 +543,28 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 }
                 
                 response_post = session.post(url, data=payload_seleccion, headers=headers, timeout=20)
+                response_post.raise_for_status()
+                
                 caudal = None
                 
-                caudal_match = re.search(r'><b>Caudal \(m3/s\)<\/b><\/div><div[^>]+><b>:<\/b><\/div><div[^>]+>([\d,.]+)<\/div>', response_post.text, re.DOTALL)
-                if caudal_match:
-                # --- FIN DEL CAMBIO ---
-                    try: caudal = float(caudal_match.group(1).replace(",", "."))
-                    except ValueError: pass
+                # --- ESTA ES LA LÍNEA CLAVE CORREGIDA ---
+                caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', response_post.text)
+
+                if caudal_match and caudal_match.group(1):
+                    try:
+                        caudal = float(caudal_match.group(1).replace(",", "."))
+                        print(f" -> Caudal encontrado: {caudal} m³/s") # Log para confirmar
+                    except (ValueError, TypeError):
+                        print(f" -> Valor de caudal no válido encontrado: {caudal_match.group(1)}")
+                        pass
+                else:
+                    print(" -> No se encontró el valor de caudal en la respuesta.") # Log si no encuentra nada
                 
                 datos_extraidos.append({"codigo": codigo, "nombre_estacion": nombre, "caudal_m3s_live": caudal})
 
-                # Actualizar ViewState para la siguiente petición
                 vs_match_update = re.search(r'javax.faces.ViewState" value="([^"]+)"', response_post.text)
-                if vs_match_update: view_state = vs_match_update.group(1)
+                if vs_match_update:
+                    view_state = vs_match_update.group(1)
 
             return datos_extraidos
 
