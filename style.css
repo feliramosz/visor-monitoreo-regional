@@ -2440,6 +2440,70 @@ footer {
     margin-left: 15px;
 }
 
+/* --- Estilos para Indicador LED de Estado de Datos --- */
+.hydro-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.hydro-card-header h4 {
+    flex-grow: 1; /* El título ocupa el espacio restante */
+    margin: 0;
+    text-align: left;
+}
+
+.led-indicator-container {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.led-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+
+/* Estado "apagado" por defecto */
+.led-off {
+    background-color: #555;
+    box-shadow: inset 0 0 3px rgba(0,0,0,0.5);
+}
+
+/* Estado "encendido" con colores y brillo */
+.led-on-green {
+    background-color: #4caf50;
+    box-shadow: 0 0 8px #4caf50, inset 0 0 2px white;
+}
+.led-on-yellow {
+    background-color: #ffeb3b;
+    box-shadow: 0 0 8px #ffeb3b, inset 0 0 2px white;
+}
+.led-on-red {
+    background-color: #f44336;
+    box-shadow: 0 0 8px #f44336, inset 0 0 2px white;
+    animation: pulse-red-led 2s infinite;
+}
+
+.gauge-current-value.blinking-value {
+    animation: blink-yellow 1.5s linear infinite;
+}
+
+@keyframes blink-yellow {
+    0%, 100% {
+        color: #b48b00;
+        text-shadow: 0 0 5px rgba(255, 235, 59, 0.7);
+    }
+    50% {
+        color: #333;
+        text-shadow: none;
+    }
+}
+
 /* --- Estilos para Paneles Dinámicos de Columna Derecha --- */
 /* Esta clase hará que el panel ocupe toda la altura de la columna */
 .dashboard-panel.full-height {

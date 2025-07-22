@@ -22,6 +22,8 @@ import sqlite3
 import unicodedata
 import uuid
 from werkzeug.security import check_password_hash, generate_password_hash
+import time
+
 
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8001
@@ -493,7 +495,73 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             traceback.print_exc()
             return {"error": "No se pudieron obtener los datos de la SEC."}
 
+    #--- Función para obtener datos de caudal en tiempo real desde la DGA ---#
+    def _get_hidrometria_dga_live(self):
+        """
+        Obtiene los datos de caudal en tiempo real desde el sitio de la DGA (SNIA).
+        """
+        url = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+            "Accept": "*/*", "Accept-Encoding": "gzip, deflate, br", "Accept-Language": "es-ES,es;q=0.9",
+            "Origin": "https://snia.mop.gob.cl", "Referer": "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml",
+            "Sec-Fetch-Dest": "empty", "Sec-Fetch-Mode": "cors", "Sec-Fetch-Site": "same-origin"
+        }
+        codigos_estaciones = {
+            "05410002-7": {"nombre": "Aconcagua en Chacabuquito", "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"},
+            "05410024-8": {"nombre": "Aconcagua San Felipe 2", "param2": "Fluviometricas"},
+            "05414001-0": {"nombre": "Putaendo Resguardo Los Patos", "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"}
+        }
+        datos_extraidos = []
+        session = requests.Session()
+
+        try:
+            print("DGA Live: Intentando obtener ViewState...")
+            response_initial = session.get(url, headers=headers, timeout=20)
+            view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', response_initial.text)
+            if not view_state_match:
+                print("DGA Live: No se pudo obtener el ViewState inicial.")
+                return []
+            view_state = view_state_match.group(1)
+            print("DGA Live: ViewState obtenido.")
+
+            for codigo, info in codigos_estaciones.items():
+                nombre, param2 = info["nombre"], info["param2"]
+                print(f"DGA Live: Procesando {nombre}...")
+                
+                payload_seleccion = {
+                    "medicionesByTypeFunctions": "medicionesByTypeFunctions",
+                    "javax.faces.ViewState": view_state,
+                    "javax.faces.source": "medicionesByTypeFunctions:j_idt162",
+                    "javax.faces.partial.execute": "medicionesByTypeFunctions:j_idt162 @component",
+                    "javax.faces.partial.render": "@component", "param1": codigo, "param2": param2,
+                    "org.richfaces.ajax.component": "medicionesByTypeFunctions:j_idt162",
+                    "medicionesByTypeFunctions:j_idt162": "medicionesByTypeFunctions:j_idt162",
+                    "AJAX:EVENTS_COUNT": "1", "javax.faces.partial.ajax": "true"
+                }
+                
+                response_post = session.post(url, data=payload_seleccion, headers=headers, timeout=20)
+                caudal = None
+                
+                caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', response_post.text)
+                if caudal_match and caudal_match.group(1):
+                    try: caudal = float(caudal_match.group(1).replace(",", "."))
+                    except ValueError: pass
+                
+                datos_extraidos.append({"codigo": codigo, "nombre_estacion": nombre, "caudal_m3s_live": caudal})
+
+                # Actualizar ViewState para la siguiente petición
+                vs_match_update = re.search(r'javax.faces.ViewState" value="([^"]+)"', response_post.text)
+                if vs_match_update: view_state = vs_match_update.group(1)
+
+            return datos_extraidos
+
+        except Exception as e:
+            print(f"ERROR grave en _get_hidrometria_dga_live: {e}")
+            return []
         
+    # --- Función para establecer las cabeceras de respuesta ---
     def _set_headers(self, status_code=200, content_type='text/html'):
         self.send_response(status_code)
         self.send_header('Content-type', content_type)
@@ -504,7 +572,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self._set_headers(200)
-
+    
+    # --- Manejo de peticiones GET ---
     def do_GET(self):
         if self.path != '/api/last_update_timestamp':
             print(f"[{PID}] --- INICIO do_GET para: {self.path} ---")
@@ -536,7 +605,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps(users).encode('utf-8'))
                 return
-
+            
+            # --- ENDPOINT PARA OBTENER LA ÚLTIMA ACTUALIZACIÓN ---
             elif requested_path == '/api/activity_log':
                 username = self._get_user_from_token()
                 if self._get_user_role(username) != 'administrador':
@@ -585,6 +655,33 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 raw_data = self._get_sec_raw_data_for_debug()
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps(raw_data, ensure_ascii=False, indent=2).encode('utf-8'))
+                return
+
+            # --- ENDPOINT PARA DATOS HIDROMÉTRICOS EN VIVO (DGA) ---
+            elif requested_path == '/api/hidrometria_live':
+                cache_key = 'hidrometria_live'
+                current_time = datetime.now().timestamp()
+                
+                # Servir desde caché si los datos son recientes (menos de 5 minutos)
+                if cache_key in self.server.cache and self.server.cache[cache_key]['expires'] > current_time:
+                    print(f"[{PID}] Sirviendo /api/hidrometria_live DESDE CACHÉ.")
+                    cached_data = self.server.cache[cache_key]['data']
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(cached_data, ensure_ascii=False).encode('utf-8'))
+                    return
+
+                print(f"[{PID}] Sirviendo /api/hidrometria_live DESDE API EXTERNA (actualizando caché).")
+                
+                live_data = self._get_hidrometria_dga_live()
+                
+                # Guardar en caché por 5 minutos (300 segundos)
+                self.server.cache[cache_key] = {
+                    'data': live_data,
+                    'expires': current_time + 300
+                }
+                
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps(live_data, ensure_ascii=False).encode('utf-8'))
                 return
 
             # --- ENDPOINT PARA MENSAJE DE PRUEBA DE CAMBIO DE PUERTO ---
@@ -677,7 +774,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps(novedades_data, ensure_ascii=False, indent=4).encode('utf-8'))
                 return
-            # --- FIN ENDPOINT NOVEDADES ---
+            
 
             # --- ENDPOINT TURNOS ---
             elif requested_path == '/api/turnos':
@@ -690,8 +787,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self._set_headers(404, 'application/json')
                     self.wfile.write(json.dumps({"error": "Archivo de turnos no encontrado."}).encode('utf-8'))
                 return
-            # --- FIN ENDPOINT TURNOS ---
-
+           
             # --- RUTA PARA OBTENER LAS HORAS DEL SHOA ---
             elif requested_path == '/api/shoa_times':
                 # --- PARA ASEGURAR IMPORTACIONES NECESARIAS EN ESTE ALCANCE ---                 
@@ -835,7 +931,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self.server.cache[cache_key] = {'data': weather_data_final, 'expires': current_time + 90}
                     self._set_headers(200, 'application/json')
                     self.wfile.write(json.dumps(weather_data_final, ensure_ascii=False).encode('utf-8'))
-                    # --- FIN DE LA NUEVA LÓGICA SIMPLIFICADA ---
+                    
                 except Exception as e:
                     import traceback
                     print(f"Error inesperado al procesar datos del tiempo: {e}")
@@ -857,11 +953,10 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self.wfile.write(json.dumps(cached_data, ensure_ascii=False).encode('utf-8'))
                     return
                 print(f"[{PID}] Sirviendo /api/calidad_aire DESDE API EXTERNA (actualizando caché).")
-                # --- Fin Lógica de Caché ---
+                
 
                 try:
-                    # La importación de datetime y timedelta está al principio del archivo.
-                    
+                    # La importación de datetime y timedelta está al principio del archivo.                    
                     STATIONS_MAP = {
                         "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
                         "330161": "San Antonio", "320124": "L. Agricola, Quillota",
@@ -958,7 +1053,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     return
                 
                 print(f"[{PID}] Sirviendo /api/sismos DESDE API EXTERNA (actualizando caché).")
-                # --- Fin Lógica de Caché ---
+                
 
                 try:
                     API_URL = "https://api.gael.cloud/general/public/sismos"

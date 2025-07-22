@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const WEATHER_API_URL = '/api/weather';
     const AIR_QUALITY_API_URL = '/api/calidad_aire';
     const METEO_MAP_API_URL = '/api/estaciones_meteo_mapa';
+    const HIDRO_LIVE_API_URL = '/api/hidrometria_live';
 
     // Referencias a elementos del DOM
     const weatherBannerContainer = document.getElementById('weather-banner-container');
@@ -696,8 +697,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }  
 
-    function renderStaticHydroSlide(data) {
-        // El contenedor ahora es el "wrapper" central que creamos dinámicamente
+    // Renderiza la slide de hidrometría estática con datos de caudal en vivo
+    async function renderStaticHydroSlide(data) {
         const hydroContainer = document.getElementById('hydro-stations-wrapper');
         if (!hydroContainer) return;
 
@@ -707,69 +708,105 @@ document.addEventListener('DOMContentLoaded', () => {
             'Putaendo Resguardo Los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
         };
 
-        const stationsData = data.datos_hidrometricos || [];
+        try {
+            // Hacemos las dos peticiones en paralelo para mayor eficiencia
+            const [staticResponse, liveResponse] = await Promise.all([
+                fetch(DATA_API_URL),
+                fetch(HIDRO_LIVE_API_URL)
+            ]);
+            const staticData = await staticResponse.json();
+            const liveData = await liveResponse.json();
 
-        hydroContainer.innerHTML = Object.keys(hydroThresholds).map(stationName => {
-            const station = stationsData.find(s => s.nombre_estacion === stationName) || { nivel_m: null, caudal_m3s: null };
-            const thresholds = hydroThresholds[stationName];
-            const hasData = station.nivel_m !== null || station.caudal_m3s !== null;
-            const ledClass = hasData ? 'led-green' : 'led-red';
+            const stationsStatic = staticData.datos_hidrometricos || [];
+            
+            // Creamos un mapa con los datos en vivo para fácil acceso
+            const liveDataMap = new Map(liveData.map(item => [item.nombre_estacion, item]));
 
-            const getGaugeData = (value, threshold) => {
-                const currentValue = (value !== null && !isNaN(value)) ? value : 0;
-                let rotation;
-                if (currentValue <= 0) {
-                    rotation = -90;
-                } else {
-                    const maxThreshold = threshold.roja;
-                    let percentage = 0;
-                    if (maxThreshold > 0) {
-                        percentage = currentValue / maxThreshold;
-                    }
-                    rotation = -90 + (percentage * 180);
+            hydroContainer.innerHTML = Object.keys(hydroThresholds).map(stationName => {
+                const stationStatic = stationsStatic.find(s => s.nombre_estacion === stationName) || { nivel_m: null, caudal_m3s: null };
+                const stationLive = liveDataMap.get(stationName);
+
+                // --- LÓGICA HÍBRIDA Y DETERMINACIÓN DE LEDS ---
+                let finalCaudal = stationStatic.caudal_m3s;
+                let finalNivel = stationStatic.nivel_m;
+                let ledStatus = 'red'; // Por defecto es rojo (solo estático)
+
+                // Si tenemos un caudal válido en tiempo real, lo usamos y cambiamos el estado a amarillo
+                if (stationLive && typeof stationLive.caudal_m3s_live === 'number') {
+                    finalCaudal = stationLive.caudal_m3s_live;
+                    ledStatus = 'yellow'; // Híbrido: Caudal en vivo, Altura estática
                 }
-                return {
-                    value: currentValue.toFixed(2),
-                    rotation: Math.max(-90, Math.min(90, rotation)),
-                    amarilla: threshold.amarilla.toFixed(2),
-                    roja: threshold.roja.toFixed(2)
+                
+                // Nota: El estado 'green' (100% en vivo) no es posible actualmente
+                // porque no tenemos una fuente en tiempo real para la altura.
+
+                const thresholds = hydroThresholds[stationName];
+                
+                const getGaugeData = (value, threshold) => {
+                    const currentValue = (value !== null && !isNaN(value)) ? value : 0;
+                    let rotation;
+                    if (currentValue <= 0) {
+                        rotation = -90;
+                    } else {
+                        const maxThreshold = threshold.roja;
+                        let percentage = (maxThreshold > 0) ? currentValue / maxThreshold : 0;
+                        rotation = -90 + (percentage * 180);
+                    }
+                    return {
+                        value: currentValue.toFixed(2),
+                        rotation: Math.max(-90, Math.min(90, rotation)),
+                        amarilla: threshold.amarilla.toFixed(2),
+                        roja: threshold.roja.toFixed(2)
+                    };
                 };
-            };
 
-            const nivelGauge = getGaugeData(station.nivel_m, thresholds.nivel);
-            const caudalGauge = getGaugeData(station.caudal_m3s, thresholds.caudal);
+                const nivelGauge = getGaugeData(finalNivel, thresholds.nivel);
+                const caudalGauge = getGaugeData(finalCaudal, thresholds.caudal);
+                
+                // Clases para los leds
+                const led1Class = ledStatus === 'green' ? 'led-on-green' : 'led-off';
+                const led2Class = ledStatus === 'yellow' ? 'led-on-yellow' : 'led-off';
+                const led3Class = ledStatus === 'red' ? 'led-on-red' : 'led-off';
 
-            return `
-                <div class="hydro-station-card">
-                    <div class="hydro-card-header">
-                        <div class="status-led ${ledClass}"></div>
-                        <h4>${stationName} <span class="hydro-status-indicator blinking-red">[Static]</span></h4>
+                return `
+                    <div class="hydro-station-card">
+                        <div class="hydro-card-header">
+                            <h4>${stationName}</h4>
+                            <div class="led-indicator-container">
+                                <div class="led-indicator ${led1Class}"></div>
+                                <div class="led-indicator ${led2Class}"></div>
+                                <div class="led-indicator ${led3Class}"></div>
+                            </div>
+                        </div>
+                        <div class="gauges-container">
+                            <div class="gauge-unit">
+                                <p class="gauge-label">Altura (m)</p>
+                                <div class="threshold-label-left"><span class="threshold-amarillo">A: ${nivelGauge.amarilla}</span></div>
+                                <div class="gauge-wrapper">
+                                    <div class="gauge-arc-background"></div>
+                                    <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
+                                </div>
+                                <div class="threshold-label-right"><span class="threshold-rojo">R: ${nivelGauge.roja}</span></div>
+                                <p class="gauge-current-value">${nivelGauge.value}</p>
+                            </div>
+                            <div class="gauge-unit">
+                                <p class="gauge-label">Caudal (m³/s)</p>
+                                <div class="threshold-label-left"><span class="threshold-amarillo">A: ${caudalGauge.amarilla}</span></div>
+                                <div class="gauge-wrapper">
+                                    <div class="gauge-arc-background"></div>
+                                    <div class="gauge-needle" style="transform: rotate(${caudalGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
+                                </div>
+                                <div class="threshold-label-right"><span class="threshold-rojo">R: ${caudalGauge.roja}</span></div>
+                                <p class="gauge-current-value ${ledStatus === 'yellow' ? 'blinking-value' : ''}">${caudalGauge.value}</p>
+                            </div>
+                        </div>                    
                     </div>
-                    <div class="gauges-container">
-                        <div class="gauge-unit">
-                            <p class="gauge-label">Altura (m)</p>
-                            <div class="threshold-label-left"><span class="threshold-amarillo">A: ${nivelGauge.amarilla}</span></div>
-                            <div class="gauge-wrapper">
-                                <div class="gauge-arc-background"></div>
-                                <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
-                            </div>
-                            <div class="threshold-label-right"><span class="threshold-rojo">R: ${nivelGauge.roja}</span></div>
-                            <p class="gauge-current-value blinking-value">${nivelGauge.value}</p>
-                        </div>
-                        <div class="gauge-unit">
-                            <p class="gauge-label">Caudal (m³/s)</p>
-                            <div class="threshold-label-left"><span class="threshold-amarillo">A: ${caudalGauge.amarilla}</span></div>
-                            <div class="gauge-wrapper">
-                                <div class="gauge-arc-background"></div>
-                                <div class="gauge-needle" style="transform: rotate(${caudalGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
-                            </div>
-                            <div class="threshold-label-right"><span class="threshold-rojo">R: ${caudalGauge.roja}</span></div>
-                            <p class="gauge-current-value blinking-value">${caudalGauge.value}</p>
-                        </div>
-                    </div>                    
-                </div>
-            `;
-        }).join('');
+                `;
+            }).join('');
+        } catch (error) {
+            console.error("Error al renderizar el slide de hidrometría híbrido:", error);
+            hydroContainer.innerHTML = '<p style="color:red; text-align:center;">Error al cargar datos hidrométricos.</p>';
+        }
     }
 
     // --- FUNCIÓN PARA MOSTRAR TURNOS ---    
