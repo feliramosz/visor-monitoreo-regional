@@ -782,22 +782,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="gauges-container">
                             <div class="gauge-unit">
                                 <p class="gauge-label">Altura (m)</p>
-                                <div class="threshold-label-left"><span class="threshold-amarillo">A: ${nivelGauge.amarilla}</span></div>
+                                <div class="threshold-label-left"><span class="threshold-amarillo">A: ${thresholds.nivel.amarilla}</span></div>
                                 <div class="gauge-wrapper">
                                     <div class="gauge-arc" style="background: ${nivelGauge.gradient};"></div>
                                     <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
                                 </div>
-                                <div class="threshold-label-right"><span class="threshold-rojo">R: ${nivelGauge.roja}</span></div>
+                                <div class="threshold-label-right"><span class="threshold-rojo">R: ${thresholds.nivel.roja}</span></div>
                                 <p class="gauge-current-value">${nivelGauge.value}</p>
                             </div>
                             <div class="gauge-unit">
                                 <p class="gauge-label">Caudal (m³/s)</p>
-                                <div class="threshold-label-left"><span class="threshold-amarillo">A: ${caudalGauge.amarilla}</span></div>
+                                <div class="threshold-label-left"><span class="threshold-amarillo">A: ${thresholds.caudal.amarilla}</span></div>
                                 <div class="gauge-wrapper">
                                     <div class="gauge-arc" style="background: ${caudalGauge.gradient};"></div>
                                     <div class="gauge-needle" style="transform: rotate(${caudalGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
                                 </div>
-                                <div class="threshold-label-right"><span class="threshold-rojo">R: ${caudalGauge.roja}</span></div>
+                                <div class="threshold-label-right"><span class="threshold-rojo">R: ${thresholds.caudal.roja}</span></div>
                                 <p class="gauge-current-value ${ledStatus === 'yellow' ? 'blinking-value' : ''}">${caudalGauge.value}</p>
                             </div>
                         </div>                    
