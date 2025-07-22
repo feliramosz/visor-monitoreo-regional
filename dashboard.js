@@ -725,8 +725,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }            
 
             const needlePercentage = Math.min((currentValue / maxScale) * 100, 100);
-            const yellowStartPercentage = (threshold.amarilla / maxScale) * 100;
-            const redStartPercentage = (threshold.roja / maxScale) * 100;
+            const yellowStartPercentage = ((threshold.amarilla / maxScale) * 100).toFixed(2);
+            const redStartPercentage = ((threshold.roja / maxScale) * 100).toFixed(2);
 
             const rotation = -90 + (needlePercentage * 1.8);
 
