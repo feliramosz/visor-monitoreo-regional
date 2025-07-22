@@ -499,40 +499,39 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
     def _get_hidrometria_dga_live(self):
         """
         Obtiene los datos de caudal en tiempo real desde el sitio de la DGA (SNIA).
-        Versión corregida y alineada con el script de prueba funcional.
+        Versión robusta: Crea una nueva sesión para cada estación para evitar errores de estado.
         """
         url = "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml"
         headers = {
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
-            "Accept": "*/*", "Accept-Encoding": "gzip, deflate, br, zstd", "Accept-Language": "es-ES,es;q=0.9",
-            "Origin": "https://snia.mop.gob.cl", "Referer": "https://snia.mop.gob.cl/sat/site/informes/mapas/mapas.xhtml",
-            "Sec-Fetch-Dest": "empty", "Sec-Fetch-Mode": "cors", "Sec-Fetch-Site": "same-origin"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
         }
         codigos_estaciones = {
             "05410002-7": {"nombre": "Aconcagua en Chacabuquito", "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"},
             "05410024-8": {"nombre": "Aconcagua San Felipe 2", "param2": "Fluviometricas"},
             "05414001-0": {"nombre": "Putaendo Resguardo Los Patos", "param2": "Fluviometricas - Calidad de agua - Sedimentometrica - Meteorologicas"}
         }
-        datos_extraidos = []
-        session = requests.Session()
+        datos_finales = []
 
-        try:
-            print("DGA Live: Intentando obtener ViewState...")
-            response_initial = session.get(url, headers=headers, timeout=20)
-            response_initial.raise_for_status()
-            view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', response_initial.text)
+        for codigo, info in codigos_estaciones.items():
+            nombre, param2 = info["nombre"], info["param2"]
+            print(f"\n--- DGA Live: Procesando {nombre} con sesión nueva ---")
+            session = requests.Session()
+            caudal = None
             
-            if not view_state_match:
-                print("DGA Live ERROR: No se pudo obtener el ViewState inicial.")
-                return []
-            view_state = view_state_match.group(1)
-            print("DGA Live: ViewState obtenido.")
+            try:
+                # 1. Obtener ViewState y cookies en la nueva sesión
+                print(" -> Obteniendo ViewState y cookies...")
+                response_initial = session.get(url, headers=headers, timeout=120)
+                response_initial.raise_for_status()
+                view_state_match = re.search(r'javax.faces.ViewState" value="([^"]+)"', response_initial.text)
+                if not view_state_match:
+                    print(" -> ERROR: No se pudo obtener el ViewState.")
+                    continue # Saltar a la siguiente estación
+                view_state = view_state_match.group(1)
+                print(f" -> ViewState obtenido: ...{view_state[-10:]}")
 
-            for codigo, info in codigos_estaciones.items():
-                nombre, param2 = info["nombre"], info["param2"]
-                print(f"DGA Live: Procesando {nombre}...")
-                
+                # 2. Enviar la petición POST con los datos de la estación
                 payload_seleccion = {
                     "medicionesByTypeFunctions": "medicionesByTypeFunctions", "javax.faces.ViewState": view_state,
                     "javax.faces.source": "medicionesByTypeFunctions:j_idt162", "javax.faces.partial.execute": "medicionesByTypeFunctions:j_idt162 @component",
@@ -542,35 +541,28 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     "AJAX:EVENTS_COUNT": "1", "javax.faces.partial.ajax": "true"
                 }
                 
-                response_post = session.post(url, data=payload_seleccion, headers=headers, timeout=20)
+                print(" -> Enviando petición POST...")
+                response_post = session.post(url, data=payload_seleccion, headers=headers, timeout=120)
                 response_post.raise_for_status()
                 
-                caudal = None
-                
-                # --- ESTA ES LA LÍNEA CLAVE CORREGIDA ---
+                # 3. Extraer el caudal de la respuesta
                 caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', response_post.text)
-
                 if caudal_match and caudal_match.group(1):
                     try:
                         caudal = float(caudal_match.group(1).replace(",", "."))
-                        print(f" -> Caudal encontrado: {caudal} m³/s") # Log para confirmar
+                        print(f" -> ¡ÉXITO! Caudal encontrado: {caudal} m³/s")
                     except (ValueError, TypeError):
-                        print(f" -> Valor de caudal no válido encontrado: {caudal_match.group(1)}")
-                        pass
+                        print(f" -> ADVERTENCIA: Valor de caudal no válido: {caudal_match.group(1)}")
                 else:
-                    print(" -> No se encontró el valor de caudal en la respuesta.") # Log si no encuentra nada
-                
-                datos_extraidos.append({"codigo": codigo, "nombre_estacion": nombre, "caudal_m3s_live": caudal})
+                    print(" -> ERROR: No se encontró el valor de caudal en la respuesta.")
 
-                vs_match_update = re.search(r'javax.faces.ViewState" value="([^"]+)"', response_post.text)
-                if vs_match_update:
-                    view_state = vs_match_update.group(1)
+            except Exception as e:
+                print(f" -> ERROR procesando estación {nombre}: {e}")
+            
+            finally:
+                datos_finales.append({"codigo": codigo, "nombre_estacion": nombre, "caudal_m3s_live": caudal})
 
-            return datos_extraidos
-
-        except Exception as e:
-            print(f"ERROR grave en _get_hidrometria_dga_live: {e}")
-            return []
+        return datos_finales
         
     # --- Función para establecer las cabeceras de respuesta ---
     def _set_headers(self, status_code=200, content_type='text/html'):
