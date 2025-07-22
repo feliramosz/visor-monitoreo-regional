@@ -1964,6 +1964,9 @@ img, table {
 .linear-gauge-ticks span {
     position: absolute;
     transform: translateX(-50%);
+    background-color: rgba(249, 249, 249, 0.8); /* Fondo semitransparente */
+    padding: 1px 3px;
+    border-radius: 3px;
 }
 
 .linear-gauge-ticks span:first-child {
