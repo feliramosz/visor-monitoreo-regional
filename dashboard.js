@@ -714,19 +714,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const stationStatic = stationsStatic.find(s => s.nombre_estacion === stationName) || { nivel_m: null, caudal_m3s: null };
         const thresholds = hydroThresholds[stationName];
         
-        const getGaugeData = (value, threshold) => {
+        const getGaugeData = (value, threshold, type) => {
             const currentValue = (value !== null && !isNaN(value)) ? value : 0;
-            const maxScale = threshold.roja * 1.25;
+
+            let maxScale;
+            if (type === 'altura') {
+                maxScale = 3.5;
+            } else {
+                maxScale = 250.0;
+            }            
+
             const needlePercentage = Math.min((currentValue / maxScale) * 100, 100);
+            const yellowStartPercentage = (threshold.amarilla / maxScale) * 100;
+            const redStartPercentage = (threshold.roja / maxScale) * 100;
+
+            const rotation = -90 + (needlePercentage * 1.8);
+
             return {
                 value: currentValue.toFixed(2),
-                rotation: -90 + (needlePercentage * 1.8),
-                gradient: `conic-gradient(from -90deg, #4caf50 0% ${(threshold.amarilla / maxScale) * 100}%, #ffeb3b ${(threshold.amarilla / maxScale) * 100}% ${(threshold.roja / maxScale) * 100}%, #f44336 ${(threshold.roja / maxScale) * 100}% 100%)`
+                rotation: Math.max(-90, Math.min(90, rotation)),
+                gradient: `conic-gradient(from -90deg, #4caf50 0% ${yellowStartPercentage}%, #ffeb3b ${yellowStartPercentage}% ${redStartPercentage}%, #f44336 ${redStartPercentage}% 100%)`
             };
         };
 
-        const nivelGauge = getGaugeData(stationStatic.nivel_m, thresholds.nivel);
-        const caudalGauge = getGaugeData(stationStatic.caudal_m3s, thresholds.caudal);
+        const nivelGauge = getGaugeData(finalNivel, thresholds.nivel, 'altura');
+        const caudalGauge = getGaugeData(finalCaudal, thresholds.caudal, 'caudal');
         
         // Damos un ID único a cada elemento que necesitaremos actualizar
         const stationId = stationName.replace(/\s+/g, '-').toLowerCase();
