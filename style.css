@@ -1926,15 +1926,6 @@ img, table {
     clip-path: polygon(0% 0%, 100% 0%, 100% 50%, 0% 50%);
 }
 
-.gauge-arc-background::before {
-    background: #ffeb3b;    
-    transform: rotate(90deg);
-}
-.gauge-arc-background::after {
-    background: #f44336;
-    transform: rotate(135deg);
-}
-
 .gauge-needle {
     width: 2px;
     height: 38px;
