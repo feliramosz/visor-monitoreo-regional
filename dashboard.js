@@ -350,11 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. Construir el HTML de la tabla de provincias, aplicando la clase de alerta si es necesario
             let tableHtml = `
                 <table class="sec-table">
-                    <tbody>
-                        <tr>
-                            <td><strong>Porcentaje de afectados en la Región</strong></td>
-                            <td>${data.porcentaje_afectado}%</td>
-                        </tr>
+                    <tbody>                        
                         <tr>
                             <td><strong>Clientes afectados en la Región</strong></td>
                             <td>${data.total_afectados_region.toLocaleString('es-CL')}</td>
