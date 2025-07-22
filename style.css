@@ -1914,7 +1914,7 @@ img, table {
     width: 90px;
     height: 45px;
     position: relative;
-    overflow: hidden;
+    overflow: hidden; /* Esto es importante */
 }
 
 .gauge-arc {
@@ -1922,8 +1922,10 @@ img, table {
     height: 90px;
     border-radius: 50%;
     position: absolute;
-    /* Esto corta el círculo por la mitad para crear el arco */
+    /* Corta el círculo por la mitad para crear el arco */
     clip-path: polygon(0% 0%, 100% 0%, 100% 50%, 0% 50%);
+    /* Añadimos un color de fondo de respaldo */
+    background-color: #e0e0e0;
 }
 
 .gauge-needle {
@@ -1943,13 +1945,6 @@ img, table {
     background-color: #333;
     border-radius: 2px;    
     animation: needle-vibration 3s ease-in-out infinite;
-}
-
-@keyframes needle-vibration {
-    0% { transform: rotate(0deg); }
-    33% { transform: rotate(-1.5deg); }
-    66% { transform: rotate(1.5deg); }
-    100% { transform: rotate(0deg); }
 }
 
 .gauge-current-value {
