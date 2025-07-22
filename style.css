@@ -2841,3 +2841,28 @@ footer {
 #air-quality-details-btn:hover {
     background-color: #0056b3;
 }
+
+/* --- AJUSTES DE LAYOUT PARA EL BANNER DE HIDROMETRÍA --- */
+
+/* 1. Configura el contenedor principal del slide */
+#hydro-slide {
+    display: flex;
+    justify-content: space-between; /* Mantiene los elementos distribuidos */
+    align-items: stretch; /* Asegura que todos tengan la misma altura */
+    gap: 15px; /* Espacio entre los paneles */
+}
+
+/* 2. El panel central de estaciones es el que debe crecer */
+#hydro-stations-wrapper {
+    flex-grow: 1; /* Permite que este elemento ocupe el espacio sobrante */
+    display: flex;
+    gap: 15px;
+}
+
+/* 3. Los paneles de turno deben tener un ancho fijo y no crecer */
+#turno-llamado-container,
+#turno-operadores-container {
+    flex-grow: 0; /* Evita que crezcan */
+    flex-shrink: 0; /* Evita que se encojan */
+    flex-basis: 260px; /* Ancho base fijo para cada panel lateral */
+}
