@@ -544,8 +544,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 response_post = session.post(url, data=payload_seleccion, headers=headers, timeout=20)
                 caudal = None
                 
-                caudal_match = re.search(r'var ultimoCaudalReg = "([^"]*)"', response_post.text)
-                if caudal_match and caudal_match.group(1):
+                caudal_match = re.search(r'><b>Caudal \(m3/s\)<\/b><\/div><div[^>]+><b>:<\/b><\/div><div[^>]+>([\d,.]+)<\/div>', response_post.text, re.DOTALL)
+                if caudal_match:
+                # --- FIN DEL CAMBIO ---
                     try: caudal = float(caudal_match.group(1).replace(",", "."))
                     except ValueError: pass
                 
