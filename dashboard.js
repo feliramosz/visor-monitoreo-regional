@@ -737,8 +737,8 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         };
 
-        const nivelGauge = getGaugeData(finalNivel, thresholds.nivel, 'altura');
-        const caudalGauge = getGaugeData(finalCaudal, thresholds.caudal, 'caudal');
+        const nivelGauge = getGaugeData(stationStatic.nivel_m, thresholds.nivel, 'altura');
+        const caudalGauge = getGaugeData(stationStatic.caudal_m3s, thresholds.caudal, 'caudal');
         
         // Damos un ID único a cada elemento que necesitaremos actualizar
         const stationId = stationName.replace(/\s+/g, '-').toLowerCase();
