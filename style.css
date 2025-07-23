@@ -1854,7 +1854,7 @@ img, table {
     display: flex;
     flex-direction: column;
     flex: 1;
-    max-width: 2000px;
+    max-width: 210000px;
     height: 100%;
 }
 
