@@ -2173,6 +2173,7 @@ footer {
     justify-content: space-between;
     align-items: stretch;
     gap: 15px;
+    height: 40px;
 }
 
 /* Paneles laterales de turnos */
@@ -2812,7 +2813,7 @@ footer {
 #turno-operadores-container {
     flex-grow: 0;
     flex-shrink: 0;
-    flex-basis: 200px; /* Ancho fijo */
+    flex-basis: 280px; /* Ancho fijo */
 }
 
 /* Tarjeta individual de cada estación (Chacabuquito, etc.) */
