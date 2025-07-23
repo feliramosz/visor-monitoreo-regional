@@ -1854,7 +1854,7 @@ img, table {
     display: flex;
     flex-direction: column;
     flex: 1;
-    max-width: 1200px;
+    max-width: 2000px;
     height: 100%;
 }
 
@@ -1865,7 +1865,7 @@ img, table {
     font-weight: bold;
     text-align: center;
     height: 40px;
-    line-height: 5px;
+    line-height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
