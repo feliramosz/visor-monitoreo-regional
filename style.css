@@ -1847,8 +1847,6 @@ img, table {
 /* --- Estilos para la Slide de Hidrometría --- */
 #hydro-slide {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
     gap: 30px;
     padding: 10px;
     box-sizing: border-box;
@@ -2827,15 +2825,6 @@ footer {
 }
 
 /* --- AJUSTES DE LAYOUT PARA EL BANNER DE HIDROMETRÍA --- */
-
-/* 1. Configura el contenedor principal del slide */
-#hydro-slide {
-    display: flex;
-    justify-content: space-between;
-    align-items: stretch;
-    gap: 15px;
-}
-
 /* Contenedor central de las 3 estaciones */
 #hydro-stations-wrapper {
     flex-grow: 1; /* <-- Hace que este panel ocupe el espacio sobrante */
