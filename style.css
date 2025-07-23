@@ -1847,7 +1847,7 @@ img, table {
 /* --- Estilos para la Slide de Hidrometría --- */
 #hydro-slide {
     display: flex;
-    gap: 60px;
+    gap: 120px;
     padding: 10px;
     box-sizing: border-box;
     height: 154px; 
