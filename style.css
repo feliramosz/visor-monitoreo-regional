@@ -1844,15 +1844,6 @@ img, table {
     top: 0;
 }
 
-/* --- Estilos para la Slide de Hidrometría --- */
-#hydro-slide {
-    display: flex;
-    gap: 240px;
-    padding: 10px;
-    box-sizing: border-box;
-    height: 154px; 
-}
-
 .hydro-station-card {
     background-color: #f9f9f9;
     border: 1px solid #e0e0e0;
@@ -2190,6 +2181,11 @@ footer {
 #hydro-slide {
     justify-content: space-between; /* Distribuye el espacio entre los 3 contenedores */
     align-items: stretch; /* Asegura que todos los contenedores tengan la misma altura */
+    display: flex;
+    gap: 240px;
+    padding: 10px;
+    box-sizing: border-box;
+    height: 154px; 
 }
 
 .turno-container {
@@ -2829,7 +2825,7 @@ footer {
 #hydro-stations-wrapper {
     flex-grow: 1; /* <-- Hace que este panel ocupe el espacio sobrante */
     display: flex;
-    gap: 15px;
+    gap: 60px;
 }
 
 /* Paneles laterales de turnos */
