@@ -2850,22 +2850,39 @@ footer {
 /* 1. Configura el contenedor principal del slide */
 #hydro-slide {
     display: flex;
-    justify-content: space-between; /* Mantiene los elementos distribuidos */
-    align-items: stretch; /* Asegura que todos tengan la misma altura */
-    gap: 15px; /* Espacio entre los paneles */
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 15px;
 }
 
-/* 2. El panel central de estaciones es el que debe crecer */
+/* Contenedor central de las 3 estaciones */
 #hydro-stations-wrapper {
-    flex-grow: 1; /* Permite que este elemento ocupe el espacio sobrante */
+    flex-grow: 1; /* <-- Hace que este panel ocupe el espacio sobrante */
     display: flex;
     gap: 15px;
 }
 
-/* 3. Los paneles de turno deben tener un ancho fijo y no crecer */
+/* Paneles laterales de turnos */
 #turno-llamado-container,
 #turno-operadores-container {
-    flex-grow: 0; /* Evita que crezcan */
-    flex-shrink: 0; /* Evita que se encojan */
-    flex-basis: 260px; /* Ancho base fijo para cada panel lateral */
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 260px; /* Ancho fijo */
+}
+
+/* Tarjeta individual de cada estación (Chacabuquito, etc.) */
+.hydro-station-card {
+    flex: 1; /* Cada tarjeta de estación ocupa 1/3 del espacio disponible en el wrapper */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Contenedor de los dos medidores (Altura y Caudal) */
+.gauges-container {
+    display: flex;
+    flex-direction: column; /* <-- Apila los medidores verticalmente */
+    flex-grow: 1;
+    justify-content: center;
+    gap: 15px;
+    width: 100%;
 }

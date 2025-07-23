@@ -699,115 +699,106 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Renderiza la slide de hidrometría estática con datos de caudal en vivo
     function renderStaticHydroSlide(data) {
-    const hydroContainer = document.getElementById('hydro-stations-wrapper');
-    if (!hydroContainer) return;
+        const hydroContainer = document.getElementById('hydro-stations-wrapper');
+        if (!hydroContainer) return;
 
-    const stationsStatic = data.datos_hidrometricos || [];
-    const hydroThresholds = {
-        'Aconcagua en Chacabuquito': { nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.60 } },
-        'Aconcagua San Felipe 2': { nivel: { amarilla: 2.80, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
-        'Putaendo Resguardo Los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
-    };
-
-    // --- ETAPA 1: RENDERIZADO INICIAL CON DATOS ESTÁTICOS ---
-    hydroContainer.innerHTML = Object.keys(hydroThresholds).map(stationName => {
-        const stationStatic = stationsStatic.find(s => s.nombre_estacion === stationName) || { nivel_m: null, caudal_m3s: null };
-        const thresholds = hydroThresholds[stationName];
-        
-        const getGaugeData = (value, threshold, type) => {
-            const currentValue = (value !== null && !isNaN(value)) ? value : 0;
-
-            // Usamos tu lógica de escala fija
-            let maxScale;
-            if (type === 'altura') {
-                maxScale = 3.5; // Máximo fijo para Altura
-            } else { // 'caudal'
-                maxScale = 250.0; // Máximo fijo para Caudal
-            }
-
-            // Calculamos el ancho en porcentaje de cada zona de color
-            const greenWidth = (threshold.amarilla / maxScale) * 100;
-            const yellowWidth = ((threshold.roja - threshold.amarilla) / maxScale) * 100;
-            const redWidth = 100 - greenWidth - yellowWidth;
-
-            // Calculamos la posición del marcador
-            const markerPosition = Math.min((currentValue / maxScale) * 100, 100);
-
-            return {
-                value: currentValue.toFixed(2),
-                markerPosition: markerPosition.toFixed(2),
-                zones: {
-                    green: greenWidth.toFixed(2),
-                    yellow: yellowWidth.toFixed(2),
-                    red: redWidth.toFixed(2)
-                }
-            };
+        const stationsStatic = data.datos_hidrometricos || [];
+        const hydroThresholds = {
+            'Aconcagua en Chacabuquito': { nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.60 } },
+            'Aconcagua San Felipe 2': { nivel: { amarilla: 2.80, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
+            'Putaendo Resguardo Los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
         };
 
-        const nivelGauge = getGaugeData(stationStatic.nivel_m, thresholds.nivel, 'altura');
-        const caudalGauge = getGaugeData(stationStatic.caudal_m3s, thresholds.caudal, 'caudal');
-        
-        // Damos un ID único a cada elemento que necesitaremos actualizar
-        const stationId = stationName.replace(/\s+/g, '-').toLowerCase();
-        const ledStatus = 'red';
+        hydroContainer.innerHTML = Object.keys(hydroThresholds).map(stationName => {
+            const stationStatic = stationsStatic.find(s => s.nombre_estacion === stationName) || { nivel_m: null, caudal_m3s: null };
+            const thresholds = hydroThresholds[stationName];
 
-        return `
-            <div class="hydro-station-card">
-                <div class="hydro-card-header">
-                    <h4>${stationName}</h4>
-                    <div class="led-indicator-container" id="led-${stationId}">
-                        <div class="led-indicator led-off"></div>
-                        <div class="led-indicator led-off"></div>
-                        <div class="led-indicator led-on-red"></div>
+            const getGaugeData = (value, threshold, type) => {
+                const currentValue = (value !== null && !isNaN(value)) ? value : 0;
+                let maxScale;
+                if (type === 'altura') {
+                    maxScale = 3.5;
+                } else { // 'caudal'
+                    maxScale = 250.0;
+                }
+
+                const markerPosition = Math.min((currentValue / maxScale) * 100, 100);
+                const greenWidth = (threshold.amarilla / maxScale) * 100;
+                const yellowWidth = ((threshold.roja - threshold.amarilla) / maxScale) * 100;
+                const redWidth = 100 - greenWidth - yellowWidth;
+
+                return {
+                    value: currentValue.toFixed(2),
+                    markerPosition: markerPosition.toFixed(2),
+                    zones: {
+                        green: greenWidth.toFixed(2),
+                        yellow: yellowWidth.toFixed(2),
+                        red: redWidth.toFixed(2)
+                    }
+                };
+            };
+
+            const nivelGauge = getGaugeData(stationStatic.nivel_m, thresholds.nivel, 'altura');
+            const caudalGauge = getGaugeData(stationStatic.caudal_m3s, thresholds.caudal, 'caudal');
+            const stationId = stationName.replace(/\s+/g, '-').toLowerCase();
+            const ledStatus = 'red'; // Se define para la carga inicial estática
+
+            return `
+                <div class="hydro-station-card">
+                    <div class="hydro-card-header">
+                        <h4>${stationName}</h4>
+                        <div class="led-indicator-container" id="led-${stationId}">
+                            <div class="led-indicator led-off"></div>
+                            <div class="led-indicator led-off"></div>
+                            <div class="led-indicator led-on-red"></div>
+                        </div>
                     </div>
+                    <div class="gauges-container">
+                        <div class="linear-gauge-unit">
+                            <div class="linear-gauge-header">
+                                <span class="gauge-label">Altura (m)</span>
+                                <span class="gauge-current-value">${nivelGauge.value}</span>
+                            </div>
+                            <div class="linear-gauge-wrapper">
+                                <div class="linear-gauge-track">
+                                    <div class="lg-zone-green" style="width: ${nivelGauge.zones.green}%;"></div>
+                                    <div class="lg-zone-yellow" style="width: ${nivelGauge.zones.yellow}%;"></div>
+                                    <div class="lg-zone-red" style="width: ${nivelGauge.zones.red}%;"></div>
+                                    <div class="linear-gauge-marker" style="left: ${nivelGauge.markerPosition}%;"></div>
+                                </div>
+                                <div class="linear-gauge-ticks">
+                                    <span>0</span>
+                                    <span style="left: ${nivelGauge.zones.green}%;">${thresholds.nivel.amarilla}</span>
+                                    <span style="left: ${parseFloat(nivelGauge.zones.green) + parseFloat(nivelGauge.zones.yellow)}%;">${thresholds.nivel.roja}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="linear-gauge-unit">
+                            <div class="linear-gauge-header">
+                                <span class="gauge-label">Caudal (m³/s)</span>
+                                <span class="gauge-current-value ${ledStatus === 'yellow' ? 'blinking-value' : ''}" id="value-caudal-${stationId}">${caudalGauge.value}</span>
+                            </div>
+                            <div class="linear-gauge-wrapper" id="wrapper-caudal-${stationId}">
+                                <div class="linear-gauge-track">
+                                    <div class="lg-zone-green" style="width: ${caudalGauge.zones.green}%;"></div>
+                                    <div class="lg-zone-yellow" style="width: ${caudalGauge.zones.yellow}%;"></div>
+                                    <div class="lg-zone-red" style="width: ${caudalGauge.zones.red}%;"></div>
+                                    <div class="linear-gauge-marker" style="left: ${caudalGauge.markerPosition}%;"></div>
+                                </div>
+                                <div class="linear-gauge-ticks">
+                                    <span>0</span>
+                                    <span style="left: ${caudalGauge.zones.green}%;">${thresholds.caudal.amarilla}</span>
+                                    <span style="left: ${parseFloat(caudalGauge.zones.green) + parseFloat(caudalGauge.zones.yellow)}%;">${thresholds.caudal.roja}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>                    
                 </div>
-                <div class="gauges-container">
-                    <div class="linear-gauge-unit">
-                        <div class="linear-gauge-header">
-                            <span class="gauge-label">Altura (m)</span>
-                            <span class="gauge-current-value">${nivelGauge.value}</span>
-                        </div>
-                        <div class="linear-gauge-wrapper">
-                            <div class="linear-gauge-track">
-                                <div class="lg-zone-green" style="width: ${nivelGauge.zones.green}%;"></div>
-                                <div class="lg-zone-yellow" style="width: ${nivelGauge.zones.yellow}%;"></div>
-                                <div class="lg-zone-red" style="width: ${nivelGauge.zones.red}%;"></div>
-                                <div class="linear-gauge-marker" style="left: ${nivelGauge.markerPosition}%;"></div>
-                            </div>
-                            <div class="linear-gauge-ticks">
-                                <span>0</span>
-                                <span style="left: ${nivelGauge.zones.green}%;">${thresholds.nivel.amarilla}</span>
-                                <span style="left: ${parseFloat(nivelGauge.zones.green) + parseFloat(nivelGauge.zones.yellow)}%;">${thresholds.nivel.roja}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="linear-gauge-unit">
-                        <div class="linear-gauge-header">
-                            <span class="gauge-label">Caudal (m³/s)</span>
-                            <span class="gauge-current-value ${ledStatus === 'yellow' ? 'blinking-value' : ''}" id="value-caudal-${stationId}">${caudalGauge.value}</span>
-                        </div>
-                        <div class="linear-gauge-wrapper" id="wrapper-caudal-${stationId}">
-                            <div class="linear-gauge-track">
-                                <div class="lg-zone-green" style="width: ${caudalGauge.zones.green}%;"></div>
-                                <div class="lg-zone-yellow" style="width: ${caudalGauge.zones.yellow}%;"></div>
-                                <div class="lg-zone-red" style="width: ${caudalGauge.zones.red}%;"></div>
-                                <div class="linear-gauge-marker" style="left: ${caudalGauge.markerPosition}%;"></div>
-                            </div>
-                            <div class="linear-gauge-ticks">
-                                <span>0</span>
-                                <span style="left: ${caudalGauge.zones.green}%;">${thresholds.caudal.amarilla}</span>
-                                <span style="left: ${parseFloat(caudalGauge.zones.green) + parseFloat(caudalGauge.zones.yellow)}%;">${thresholds.caudal.roja}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>                    
-            </div>
-        `;
-    }).join('');
+            `;
+        }).join('');
 
-    // --- ETAPA 2: Iniciar la actualización en vivo en segundo plano ---
-    updateHydroWithLiveData();
-}
+        updateHydroWithLiveData();
+    }
 
     async function updateHydroWithLiveData() {
     console.log("Iniciando actualización de datos hidrométricos en vivo...");
