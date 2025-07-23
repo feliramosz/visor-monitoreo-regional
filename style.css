@@ -1854,7 +1854,7 @@ img, table {
     display: flex;
     flex-direction: column;
     flex: 1;
-    max-width: 800px;
+    max-width: 1200px;
     height: 100%;
 }
 
@@ -1865,7 +1865,7 @@ img, table {
     font-weight: bold;
     text-align: center;
     height: 40px;
-    line-height: 20px;
+    line-height: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1876,7 +1876,7 @@ img, table {
     flex-direction: column; /* Apilamos los medidores verticalmente */
     flex-grow: 1;
     justify-content: center;
-    gap: 15px; /* Espacio entre el medidor de altura y el de caudal */
+    gap: 3px; /* Espacio entre el medidor de altura y el de caudal */
     width: 100%;
 }
 
@@ -1888,7 +1888,7 @@ img, table {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .gauge-label {
@@ -2047,7 +2047,7 @@ img, table {
 .hydro-card-header {
     display: flex;
     align-items: center; /* Alinea verticalmente los items */
-    gap: 10px; /* Espacio entre el LED y el título */
+    gap: 2px; /* Espacio entre el LED y el título */
     margin-bottom: 2px; /* Espacio antes de los medidores */
 }
 
