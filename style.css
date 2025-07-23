@@ -1863,7 +1863,7 @@ img, table {
     display: flex;
     flex-direction: column;
     flex: 1;
-    max-width: 400px;
+    max-width: 800px;
     height: 100%;
 }
 
