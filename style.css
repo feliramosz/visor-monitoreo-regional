@@ -2048,7 +2048,7 @@ img, table {
     display: flex;
     align-items: center; /* Alinea verticalmente los items */
     gap: 10px; /* Espacio entre el LED y el título */
-    margin-bottom: 5px; /* Espacio antes de los medidores */
+    margin-bottom: 2px; /* Espacio antes de los medidores */
 }
 
 /* Ajustes al título para que funcione con Flexbox */
@@ -2071,8 +2071,8 @@ img, table {
 
 /* Ajuste al tamaño del LED para que no sea tan grande */
 .status-led {
-    width: 8px;
-    height: 8px;
+    width: 4px;
+    height: 4px;
     flex-shrink: 0; /* Evita que el LED se encoja */
 }
 
@@ -2165,6 +2165,65 @@ footer {
     visibility: visible;
 }
 
+/* --- ESTILOS PARA SLIDE DE HIDROMETRÍA Y TURNOS --- */
+
+/* Contenedor principal del slide (Llamado, Hidro, Operadores) */
+#hydro-slide {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 15px;
+}
+
+/* Paneles laterales de turnos */
+.turno-container {
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 260px; /* Ancho base fijo */
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-top: 2px solid #007bff;
+    border-bottom: 2px solid #007bff;
+}
+
+.turno-container h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    color: #004d99;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+
+.turno-container .turno-op-nombre {
+    display: block;
+    font-size: 1.1em;
+    font-weight: bold;
+    line-height: 1.3;
+    color: #333;
+}
+
+.turno-container .proximo-turno {
+    margin-top: 12px;
+    font-size: 0.9em;
+    font-weight: normal;
+    color: #6c757d;
+}
+
+/* Contenedor central de las 3 estaciones de hidrometría */
+#hydro-stations-wrapper {
+    flex-grow: 1; /* Hace que este panel ocupe el espacio sobrante */
+    display: flex;
+    gap: 15px;
+}
+
 /* --- ESTILO PARA EL INDICADOR DE PÁGINA DE NOVEDADES --- */
 #novedades-page-indicator {
     font-size: 0.9em;
@@ -2178,86 +2237,6 @@ footer {
 }
 
 /* --- ESTILOS PARA PANELES DE TURNOS --- */
-#hydro-slide {
-    justify-content: space-between; /* Distribuye el espacio entre los 3 contenedores */
-    align-items: stretch; /* Asegura que todos los contenedores tengan la misma altura */
-    display: flex;
-    gap: 240px;
-    padding: 10px;
-    box-sizing: border-box;
-    height: 154px; 
-}
-
-.turno-container {
-    flex: 1; /* Ocupa el espacio disponible */
-    max-width: 280px; /* Ancho máximo para el panel de turno */
-    min-width: 220px;
-    background-color: #f9f9f9;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* Centra el contenido verticalmente */
-    text-align: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    align-self: center;
-    border-top: 2px solid #007bff;
-    border-bottom: 2px solid #007bff;
-    box-shadow:
-    /*superior*/
-    0px -1px 1px rgba(0,0,0,0.2),
-    /*inferior*/
-    0px 1px 3px rgba(0,0,0,0.4),
-    /*izquierda*/
-    -1px 0px 3px rgba(0,0,0,0.4),
-    /*derecha*/
-    1px 0px 3px rgba(0,0,0,0.4),
-    /*interior*/
-    inset 1px 1px 3px rgba(0,0,0,0.4);
-}
-
-.turno-container h4 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 1.1em;
-    color: #004d99;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 8px;
-}
-
-.turno-container p {
-    margin: 5px 0;
-    font-size: 1.2em;
-    font-weight: bold;
-    color: #333;
-}
-
-.turno-container .turno-op {
-    display: block; /* Muestra cada operador en su propia línea */
-}
-
-/* --- ESTILOS ADICIONALES PARA PANEL DE TURNOS --- */
-.turno-container .turno-op-nombre {
-    display: block;
-    font-size: 1.1em; /* Un poco más pequeño que el tamaño actual */
-    font-weight: bold;
-    line-height: 1.3;
-    color: #333;
-}
-
-.turno-container .proximo-turno {
-    margin-top: 12px;
-    font-size: 0.9em;
-    font-weight: normal;
-    color: #6c757d;
-}
-
-.turno-container .proximo-turno strong {
-    font-weight: bold;
-    color: #555;
-}
-
 /* AJUSTE PARA TÍTULO DE AVISOS EN DASHBOARD */
 #panel-avisos .dynamic-title {
     font-size: 1.1em;
