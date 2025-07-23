@@ -2825,7 +2825,7 @@ footer {
 #hydro-stations-wrapper {
     flex-grow: 1; /* <-- Hace que este panel ocupe el espacio sobrante */
     display: flex;
-    gap: 60px;
+    gap: 160px;
 }
 
 /* Paneles laterales de turnos */
@@ -2833,7 +2833,7 @@ footer {
 #turno-operadores-container {
     flex-grow: 0;
     flex-shrink: 0;
-    flex-basis: 260px; /* Ancho fijo */
+    flex-basis: 200px; /* Ancho fijo */
 }
 
 /* Tarjeta individual de cada estación (Chacabuquito, etc.) */
@@ -2847,7 +2847,9 @@ footer {
 .gauges-container {
     display: flex;
     flex-direction: column; /* <-- Apila los medidores verticalmente */
-    flex-grow: 1;
+    flex-grow: 0;
+    flex-shrink: 0; 
+    flex-basis: 260px; 
     justify-content: center;
     gap: 15px;
     width: 100%;
