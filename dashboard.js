@@ -745,13 +745,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             return `
                 <div class="hydro-station-card">
-                    <div class="hydro-card-header">
-                        <h4>${stationName}</h4>
+                    <div class="hydro-card-header">                        
                         <div class="led-indicator-container" id="led-${stationId}">
                             <div class="led-indicator led-off"></div>
                             <div class="led-indicator led-off"></div>
                             <div class="led-indicator led-on-red"></div>
                         </div>
+                        <h4>${stationName}</h4>
                     </div>
                     <div class="gauges-container">
                         <div class="linear-gauge-unit">
