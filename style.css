@@ -1848,19 +1848,19 @@ img, table {
     background-color: #f9f9f9;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 15px 55px;
+    padding: 5px 55px;
     color: #333;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     /*display: flex;*/
     /*flex-direction: column;*/
     flex: 1;
-    max-width: 800px;
-    height: 100%;
+    max-width: 550px;
+    /*height: 125px;*/
 }
 
 .hydro-station-card h4 {
     margin: 0 0 5px 0;
-    font-size: 1.05em;
+    font-size: 0.9em;
     color: #004d99;
     font-weight: bold;
     text-align: center;
@@ -2016,7 +2016,7 @@ img, table {
     align-items: center;
     justify-content: space-around;
     gap: 10px;
-    padding: 10px;
+    /*padding: 10px;*/
     box-sizing: border-box;
     
     /* Animación de transición */
@@ -2207,13 +2207,6 @@ footer {
     font-size: 0.9em;
     font-weight: normal;
     color: #6c757d;
-}
-
-/* Contenedor central de las 3 estaciones de hidrometría */
-#hydro-stations-wrapper {
-    flex-grow: 1; /* Hace que este panel ocupe el espacio sobrante */
-    display: flex;
-    gap: 100px;
 }
 
 /* --- ESTILO PARA EL INDICADOR DE PÁGINA DE NOVEDADES --- */
@@ -2796,7 +2789,7 @@ footer {
 #hydro-stations-wrapper {
     flex-grow: 1; /* <-- Hace que este panel ocupe el espacio sobrante */
     display: flex;
-    gap: 200px;
+    gap: 90px;
 }
 
 /* Paneles laterales de turnos */
