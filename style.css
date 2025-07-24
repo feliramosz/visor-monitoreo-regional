@@ -2790,7 +2790,7 @@ footer {
 #hydro-stations-wrapper {
     flex-grow: 1; /* <-- Hace que este panel ocupe el espacio sobrante */
     display: flex;
-    gap: 90px;
+    gap: 20px;
 }
 
 /* Paneles laterales de turnos */
