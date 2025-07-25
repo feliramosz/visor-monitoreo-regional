@@ -395,10 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="sec-gauge-ticks">
                         <span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span><span>60</span><span>70</span><span>80</span><span>90</span><span>100</span>
-                    </div>
-                    <div id="sec-gauge-needle-container" class="sec-gauge-needle-container">
-                        <div class="sec-gauge-needle"></div>
-                    </div>
+                    </div>                    
                 </div>
                 <div style="text-align: center; font-weight: bold; font-size: 0.9em; color: #555; margin-top: -5px;">% Afectación Regional</div>
             `;
