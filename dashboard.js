@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const WEATHER_API_URL = '/api/weather';
     const AIR_QUALITY_API_URL = '/api/calidad_aire';
     const METEO_MAP_API_URL = '/api/estaciones_meteo_mapa';
+    const HIDRO_LIVE_API_URL = '/api/hidrometria_live';
 
     // Referencias a elementos del DOM
     const weatherBannerContainer = document.getElementById('weather-banner-container');
@@ -350,11 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. Construir el HTML de la tabla de provincias, aplicando la clase de alerta si es necesario
             let tableHtml = `
                 <table class="sec-table">
-                    <tbody>
-                        <tr>
-                            <td><strong>Porcentaje de afectados en la Región</strong></td>
-                            <td>${data.porcentaje_afectado}%</td>
-                        </tr>
+                    <tbody>                        
                         <tr>
                             <td><strong>Clientes afectados en la Región</strong></td>
                             <td>${data.total_afectados_region.toLocaleString('es-CL')}</td>
@@ -398,10 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="sec-gauge-ticks">
                         <span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50</span><span>60</span><span>70</span><span>80</span><span>90</span><span>100</span>
-                    </div>
-                    <div id="sec-gauge-needle-container" class="sec-gauge-needle-container">
-                        <div class="sec-gauge-needle"></div>
-                    </div>
+                    </div>                    
                 </div>
                 <div style="text-align: center; font-weight: bold; font-size: 0.9em; color: #555; margin-top: -5px;">% Afectación Regional</div>
             `;
@@ -700,81 +694,185 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }  
 
+    // Renderiza la slide de hidrometría estática con datos de caudal en vivo
     function renderStaticHydroSlide(data) {
-        // El contenedor ahora es el "wrapper" central que creamos dinámicamente
         const hydroContainer = document.getElementById('hydro-stations-wrapper');
         if (!hydroContainer) return;
 
-        const hydroThresholds = {            
+        const stationsStatic = data.datos_hidrometricos || [];
+        const hydroThresholds = {
             'Aconcagua en Chacabuquito': { nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.60 } },
             'Aconcagua San Felipe 2': { nivel: { amarilla: 2.80, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
             'Putaendo Resguardo Los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
         };
 
-        const stationsData = data.datos_hidrometricos || [];
-
         hydroContainer.innerHTML = Object.keys(hydroThresholds).map(stationName => {
-            const station = stationsData.find(s => s.nombre_estacion === stationName) || { nivel_m: null, caudal_m3s: null };
+            const stationStatic = stationsStatic.find(s => s.nombre_estacion === stationName) || { nivel_m: null, caudal_m3s: null };
             const thresholds = hydroThresholds[stationName];
-            const hasData = station.nivel_m !== null || station.caudal_m3s !== null;
-            const ledClass = hasData ? 'led-green' : 'led-red';
 
-            const getGaugeData = (value, threshold) => {
+            const getGaugeData = (value, thresholds) => {
                 const currentValue = (value !== null && !isNaN(value)) ? value : 0;
-                let rotation;
-                if (currentValue <= 0) {
-                    rotation = -90;
+
+                // 1. Definimos los puntos de quiebre de la escala de datos
+                const limiteVerdeFin = thresholds.amarilla; // El verde termina aquí
+                const limiteAmarilloFin = thresholds.roja;  // El amarillo termina aquí
+
+                // 2. Calculamos un final razonable para la escala roja.
+                // Haremos que el rango de la zona roja sea igual al rango de la zona amarilla.
+                const rangoAmarillo = limiteAmarilloFin - limiteVerdeFin;
+                const escalaMaxima = limiteAmarilloFin + rangoAmarillo;
+
+                let posicionMarcador = 0;
+
+                // 3. Lógica para mapear el valor actual a la escala visual no lineal
+                if (currentValue <= limiteVerdeFin) {
+                    // --- El valor está en el segmento VERDE ---
+                    // Se calcula qué porcentaje ocupa el valor dentro del rango de datos verde...
+                    const porcentajeEnSegmento = (limiteVerdeFin > 0) ? (currentValue / limiteVerdeFin) : 0;
+                    // ...y se mapea a los primeros 33.3% del gráfico.
+                    posicionMarcador = porcentajeEnSegmento * 33.3;
+                } else if (currentValue <= limiteAmarilloFin) {
+                    // --- El valor está en el segmento AMARILLO ---
+                    // Se calcula el progreso del valor dentro del rango de datos amarillo...
+                    const valorEnSegmento = currentValue - limiteVerdeFin;
+                    const porcentajeEnSegmento = (rangoAmarillo > 0) ? (valorEnSegmento / rangoAmarillo) : 0;
+                    // ...y se mapea a los siguientes 33.3% del gráfico (del 33.3% al 66.6%).
+                    posicionMarcador = 33.3 + (porcentajeEnSegmento * 33.3);
                 } else {
-                    const maxThreshold = threshold.roja;
-                    let percentage = 0;
-                    if (maxThreshold > 0) {
-                        percentage = currentValue / maxThreshold;
-                    }
-                    rotation = -90 + (percentage * 180);
+                    // --- El valor está en el segmento ROJO ---
+                    // Se calcula el progreso del valor dentro del rango de datos rojo...
+                    const valorEnSegmento = currentValue - limiteAmarilloFin;
+                    const rangoRojo = escalaMaxima - limiteAmarilloFin;
+                    const porcentajeEnSegmento = (rangoRojo > 0) ? (valorEnSegmento / rangoRojo) : 0;
+                    // ...y se mapea al último 33.4% del gráfico (del 66.6% al 100%).
+                    posicionMarcador = 66.6 + (porcentajeEnSegmento * 33.4);
                 }
+
+                // Aseguramos que el marcador no se pase del 100%
+                posicionMarcador = Math.min(posicionMarcador, 100);
+
                 return {
                     value: currentValue.toFixed(2),
-                    rotation: Math.max(-90, Math.min(90, rotation)),
-                    amarilla: threshold.amarilla.toFixed(2),
-                    roja: threshold.roja.toFixed(2)
+                    markerPosition: posicionMarcador.toFixed(2),
+                    // Los anchos visuales siguen siendo fijos e iguales
+                    zones: {
+                        green: '33.3',
+                        yellow: '33.3',
+                        red: '33.4'
+                    }
+                    // Ya no necesitamos 'tickPositions' porque las etiquetas irán en posiciones fijas.
                 };
             };
 
-            const nivelGauge = getGaugeData(station.nivel_m, thresholds.nivel);
-            const caudalGauge = getGaugeData(station.caudal_m3s, thresholds.caudal);
+            const nivelGauge = getGaugeData(stationStatic.nivel_m, thresholds.nivel, 'altura');
+            const caudalGauge = getGaugeData(stationStatic.caudal_m3s, thresholds.caudal, 'caudal');
+            const stationId = stationName.replace(/\s+/g, '-').toLowerCase();
+            const ledStatus = 'red'; // Se define para la carga inicial estática
 
             return `
                 <div class="hydro-station-card">
-                    <div class="hydro-card-header">
-                        <div class="status-led ${ledClass}"></div>
-                        <h4>${stationName} <span class="hydro-status-indicator blinking-red">[Static]</span></h4>
+                    <div class="hydro-card-header">                        
+                        <div class="led-indicator-container" id="led-${stationId}">
+                            <div class="led-indicator led-off"></div>
+                            <div class="led-indicator led-off"></div>
+                            <div class="led-indicator led-on-red"></div>
+                        </div>
+                        <h4>${stationName}</h4>
                     </div>
                     <div class="gauges-container">
-                        <div class="gauge-unit">
-                            <p class="gauge-label">Altura (m)</p>
-                            <div class="threshold-label-left"><span class="threshold-amarillo">A: ${nivelGauge.amarilla}</span></div>
-                            <div class="gauge-wrapper">
-                                <div class="gauge-arc-background"></div>
-                                <div class="gauge-needle" style="transform: rotate(${nivelGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
+                        <div class="linear-gauge-unit">
+                            <div class="linear-gauge-header">
+                                <span class="gauge-label">Altura (m)</span>
+                                <span class="gauge-current-value">${nivelGauge.value}</span>
                             </div>
-                            <div class="threshold-label-right"><span class="threshold-rojo">R: ${nivelGauge.roja}</span></div>
-                            <p class="gauge-current-value blinking-value">${nivelGauge.value}</p>
+                            <div class="linear-gauge-wrapper">
+                                <div class="linear-gauge-track">
+                                    <div class="lg-zone-green" style="width: ${nivelGauge.zones.green}%;"></div>
+                                    <div class="lg-zone-yellow" style="width: ${nivelGauge.zones.yellow}%;"></div>
+                                    <div class="lg-zone-red" style="width: ${nivelGauge.zones.red}%;"></div>
+                                    <div class="linear-gauge-marker" style="left: ${nivelGauge.markerPosition}%;"></div>
+                                </div>
+                                <div class="linear-gauge-ticks">
+                                    <span>0</span>                                    
+                                    <span style="left: 33.3%;">${thresholds.nivel.amarilla}</span>
+                                    <span style="left: 66.6%;">${thresholds.nivel.roja}</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="gauge-unit">
-                            <p class="gauge-label">Caudal (m³/s)</p>
-                            <div class="threshold-label-left"><span class="threshold-amarillo">A: ${caudalGauge.amarilla}</span></div>
-                            <div class="gauge-wrapper">
-                                <div class="gauge-arc-background"></div>
-                                <div class="gauge-needle" style="transform: rotate(${caudalGauge.rotation}deg);"><div class="needle-vibrator"></div></div>
+                        <div class="linear-gauge-unit">
+                            <div class="linear-gauge-header">
+                                <span class="gauge-label">Caudal (m³/s)</span>
+                                <span class="gauge-current-value ${ledStatus === 'yellow' ? 'blinking-value' : ''}" id="value-caudal-${stationId}">${caudalGauge.value}</span>
                             </div>
-                            <div class="threshold-label-right"><span class="threshold-rojo">R: ${caudalGauge.roja}</span></div>
-                            <p class="gauge-current-value blinking-value">${caudalGauge.value}</p>
+                            <div class="linear-gauge-wrapper" id="wrapper-caudal-${stationId}">
+                                <div class="linear-gauge-track">
+                                    <div class="lg-zone-green" style="width: ${caudalGauge.zones.green}%;"></div>
+                                    <div class="lg-zone-yellow" style="width: ${caudalGauge.zones.yellow}%;"></div>
+                                    <div class="lg-zone-red" style="width: ${caudalGauge.zones.red}%;"></div>
+                                    <div class="linear-gauge-marker" style="left: ${caudalGauge.markerPosition}%;"></div>
+                                </div>
+                                <div class="linear-gauge-ticks">
+                                    <span>0</span> 
+                                    <span style="left: 33.3%;">${thresholds.caudal.amarilla}</span>
+                                    <span style="left: 66.6%;">${thresholds.caudal.roja}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>                    
                 </div>
             `;
         }).join('');
+
+        updateHydroWithLiveData();
     }
+
+    async function updateHydroWithLiveData() {
+    console.log("Iniciando actualización de datos hidrométricos en vivo...");
+    try {
+        const liveResponse = await fetch(HIDRO_LIVE_API_URL);
+        if (!liveResponse.ok) throw new Error(`El servidor respondió con estado ${liveResponse.status}`);
+        
+        const liveData = await liveResponse.json();
+        const hydroThresholds = {
+            'Aconcagua en Chacabuquito': { nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.60 } },
+            'Aconcagua San Felipe 2': { nivel: { amarilla: 2.80, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
+            'Putaendo Resguardo Los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
+        };
+
+        const liveDataMap = new Map(liveData.map(item => [item.nombre_estacion, item]));
+
+        Object.keys(hydroThresholds).forEach(stationName => {
+            const stationLive = liveDataMap.get(stationName);
+            const stationId = stationName.replace(/\s+/g, '-').toLowerCase();
+
+            if (stationLive && typeof stationLive.caudal_m3s_live === 'number') {
+                const finalCaudal = stationLive.caudal_m3s_live;
+                const thresholds = hydroThresholds[stationName].caudal;
+                const maxScale = thresholds.roja * 1.25;
+                const needlePercentage = Math.min((finalCaudal / maxScale) * 100, 100);
+                const rotation = -90 + (needlePercentage * 1.8);
+
+                // Actualizar elementos del DOM
+                const valueEl = document.getElementById(`value-caudal-${stationId}`);
+                const needleEl = document.getElementById(`needle-caudal-${stationId}`);
+                const ledContainerEl = document.getElementById(`led-${stationId}`);
+
+                if (valueEl) {
+                    valueEl.textContent = finalCaudal.toFixed(2);
+                    valueEl.classList.add('blinking-value');
+                }
+                if (needleEl) needleEl.style.transform = `rotate(${rotation}deg)`;
+                if (ledContainerEl) ledContainerEl.innerHTML = `
+                    <div class="led-indicator led-off"></div>
+                    <div class="led-indicator led-on-yellow"></div>
+                    <div class="led-indicator led-off"></div>`;
+            }
+        });
+        console.log("Actualización de datos hidrométricos en vivo completada.");
+    } catch (error) {
+        console.error("Falló la actualización de datos hidrométricos en vivo:", error);
+    }
+}
 
     // --- FUNCIÓN PARA MOSTRAR TURNOS ---    
     async function fetchAndDisplayTurnos() {

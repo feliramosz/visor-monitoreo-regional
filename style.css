@@ -1844,34 +1844,26 @@ img, table {
     top: 0;
 }
 
-/* --- Estilos para la Slide de Hidrometría --- */
-#hydro-slide {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 30px;
-    padding: 10px;
-    box-sizing: border-box;
-    height: 154px; 
-}
-
 .hydro-station-card {
     background-color: #f9f9f9;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 10px 15px;
+    padding: 5px 5px 5px 5px;
     color: #333;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    max-width: 400px;
-    height: 100%;
+    width: 430px;
+    border-top: 2px solid #007bff;
+    border-bottom: 2px solid #007bff;
+    /*display: flex;*/
+    /*flex-direction: column;*/
+    /*flex: 1;*/
+    /*max-width: 550px;*/
+    /*height: 125px;*/
 }
 
 .hydro-station-card h4 {
     margin: 0 0 5px 0;
-    font-size: 1.05em;
+    font-size: 0.9em;
     color: #004d99;
     font-weight: bold;
     text-align: center;
@@ -1882,113 +1874,87 @@ img, table {
     justify-content: center;
 }
 
-.gauges-container {
+.linear-gauge-unit {
+    width: 100%;
+}
+
+.linear-gauge-header {
     display: flex;
-    flex-grow: 1;
-    justify-content: center;
-    align-items: center;
-    gap: 30px;
-}
-
-.gauge-unit {
-    display: grid;
-    grid-template-areas:
-        ". title ."
-        "label-l gauge label-r"
-        ". value .";
-    grid-template-columns: 45px auto 45px;
-    align-items: center;
-    justify-items: center;
-    width: 50%;
-}
-
-.gauge-label {
-    grid-area: title;
-    font-size: 0.8em;
-    font-weight: bold;
+    justify-content: space-between;
+    align-items: baseline;
     margin-bottom: 2px;
 }
 
-.gauge-wrapper {
-    grid-area: gauge;
-    width: 90px;
-    height: 45px;
-    position: relative;
-    overflow: hidden;
-}
-
-.gauge-arc-background {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    box-sizing: border-box;
-    background: #4caf50;
-    position: absolute;
-}
-
-.gauge-arc-background::before,
-.gauge-arc-background::after {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    box-sizing: border-box;
-    clip: rect(0px, 90px, 45px, 0px);
-}
-.gauge-arc-background::before {
-    background: #ffeb3b;    
-    transform: rotate(90deg);
-}
-.gauge-arc-background::after {
-    background: #f44336;
-    transform: rotate(135deg);
-}
-
-.gauge-needle {
-    width: 2px;
-    height: 38px;
-    position: absolute;
-    bottom: 0;
-    left: 44px;
-    transform-origin: bottom center;
-    transition: transform 0.5s ease-out;
-    z-index: 10;
-}
-
-.needle-vibrator {
-    width: 100%;
-    height: 100%;
-    background-color: #333;
-    border-radius: 2px;    
-    animation: needle-vibration 3s ease-in-out infinite;
-}
-
-@keyframes needle-vibration {
-    0% { transform: rotate(0deg); }
-    33% { transform: rotate(-1.5deg); }
-    66% { transform: rotate(1.5deg); }
-    100% { transform: rotate(0deg); }
+.gauge-label {
+    font-size: 0.8em;
+    font-weight: bold;
 }
 
 .gauge-current-value {
-    grid-area: value;
     font-size: 1.2em;
     font-weight: bold;
     color: #004d99;
-    margin-top: 1px;
 }
 
-.threshold-label-left, .threshold-label-right {
+.linear-gauge-wrapper {
+    position: relative;
+    width: 100%;
+    padding-bottom: 15px; /* Espacio para las etiquetas de abajo */
+}
+
+/* La barra principal que contiene las zonas de color */
+.linear-gauge-track {
+    display: flex;
+    width: 100%;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #ccc;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Las zonas de color */
+.lg-zone-green { background-color: #a5d6a7; }
+.lg-zone-yellow { background-color: #ffe082; }
+.lg-zone-red { background-color: #ef9a9a; }
+
+/* El marcador del valor actual */
+.linear-gauge-marker {
+    position: absolute;
+    top: -4px;
+    width: 4px;
+    height: 20px;
+    background-color: #343a40;
+    border: 1px solid white;
+    border-radius: 2px;
+    transform: translateX(-50%);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    transition: left 0.5s ease-out;
+    z-index: 10;
+}
+
+/* Las etiquetas de los umbrales */
+.linear-gauge-ticks {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 15px;
     font-size: 0.7em;
-    font-weight: bold;
-    line-height: 1.1;
+    color: #666;
 }
-.threshold-label-left { grid-area: label-l; text-align: right; }
-.threshold-label-right { grid-area: label-r; text-align: left; }
 
-.threshold-amarillo { color: #b48b00; }
-.threshold-rojo { color: #a42319; }
+.linear-gauge-ticks span {
+    position: absolute;
+    transform: translateX(-50%);
+    background-color: rgba(249, 249, 249, 0.8); /* Fondo semitransparente */
+    padding: 1px 3px;
+    border-radius: 3px;
+}
+
+.linear-gauge-ticks span:first-child {
+    transform: translateX(0%);
+}
 
 .card-footer {
     margin-top: auto;
@@ -2053,7 +2019,7 @@ img, table {
     align-items: center;
     justify-content: space-around;
     gap: 10px;
-    padding: 10px;
+    /*padding: 10px;*/
     box-sizing: border-box;
     
     /* Animación de transición */
@@ -2075,8 +2041,8 @@ img, table {
 .hydro-card-header {
     display: flex;
     align-items: center; /* Alinea verticalmente los items */
-    gap: 10px; /* Espacio entre el LED y el título */
-    margin-bottom: 5px; /* Espacio antes de los medidores */
+    gap: 2px; /* Espacio entre el LED y el título */
+    margin-bottom: 2px; /* Espacio antes de los medidores */
 }
 
 /* Ajustes al título para que funcione con Flexbox */
@@ -2099,8 +2065,8 @@ img, table {
 
 /* Ajuste al tamaño del LED para que no sea tan grande */
 .status-led {
-    width: 8px;
-    height: 8px;
+    width: 4px;
+    height: 4px;
     flex-shrink: 0; /* Evita que el LED se encoja */
 }
 
@@ -2193,6 +2159,59 @@ footer {
     visibility: visible;
 }
 
+/* --- ESTILOS PARA SLIDE DE HIDROMETRÍA Y TURNOS --- */
+
+/* Contenedor principal del slide (Llamado, Hidro, Operadores) */
+#hydro-slide {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 25px;
+    height: 143px;
+}
+
+/* Paneles laterales de turnos */
+.turno-container {
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 260px; /* Ancho base fijo */
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-top: 2px solid #007bff;
+    border-bottom: 2px solid #007bff;
+}
+
+.turno-container h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    color: #004d99;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+
+.turno-container .turno-op-nombre {
+    display: block;
+    font-size: 1.1em;
+    font-weight: bold;
+    line-height: 1.3;
+    color: #333;
+}
+
+.turno-container .proximo-turno {
+    margin-top: 12px;
+    font-size: 0.9em;
+    font-weight: normal;
+    color: #6c757d;
+}
+
 /* --- ESTILO PARA EL INDICADOR DE PÁGINA DE NOVEDADES --- */
 #novedades-page-indicator {
     font-size: 0.9em;
@@ -2206,100 +2225,6 @@ footer {
 }
 
 /* --- ESTILOS PARA PANELES DE TURNOS --- */
-#hydro-slide {
-    justify-content: space-between; /* Distribuye el espacio entre los 3 contenedores */
-    align-items: stretch; /* Asegura que todos los contenedores tengan la misma altura */
-}
-
-#hydro-stations-wrapper {
-    display: flex;
-    gap: 15px; /* Espacio entre las tarjetas de hidrometría */
-    align-self: center;
-    box-shadow:
-    /*superior*/
-    0px -1px 1px rgba(0,0,0,0.2),
-    /*inferior*/
-    0px 1px 3px rgba(0,0,0,0.4),
-    /*izquierda*/
-    -1px 0px 3px rgba(0,0,0,0.4),
-    /*derecha*/
-    1px 0px 3px rgba(0,0,0,0.4),
-    /*interior*/
-    inset 1px 1px 3px rgba(0,0,0,0.4); 
-    border-left: 2px solid #007bff;
-    border-right: 2px solid #007bff;
-}
-
-.turno-container {
-    flex: 1; /* Ocupa el espacio disponible */
-    max-width: 280px; /* Ancho máximo para el panel de turno */
-    min-width: 220px;
-    background-color: #f9f9f9;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* Centra el contenido verticalmente */
-    text-align: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    align-self: center;
-    border-top: 2px solid #007bff;
-    border-bottom: 2px solid #007bff;
-    box-shadow:
-    /*superior*/
-    0px -1px 1px rgba(0,0,0,0.2),
-    /*inferior*/
-    0px 1px 3px rgba(0,0,0,0.4),
-    /*izquierda*/
-    -1px 0px 3px rgba(0,0,0,0.4),
-    /*derecha*/
-    1px 0px 3px rgba(0,0,0,0.4),
-    /*interior*/
-    inset 1px 1px 3px rgba(0,0,0,0.4);
-}
-
-.turno-container h4 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 1.1em;
-    color: #004d99;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 8px;
-}
-
-.turno-container p {
-    margin: 5px 0;
-    font-size: 1.2em;
-    font-weight: bold;
-    color: #333;
-}
-
-.turno-container .turno-op {
-    display: block; /* Muestra cada operador en su propia línea */
-}
-
-/* --- ESTILOS ADICIONALES PARA PANEL DE TURNOS --- */
-.turno-container .turno-op-nombre {
-    display: block;
-    font-size: 1.1em; /* Un poco más pequeño que el tamaño actual */
-    font-weight: bold;
-    line-height: 1.3;
-    color: #333;
-}
-
-.turno-container .proximo-turno {
-    margin-top: 12px;
-    font-size: 0.9em;
-    font-weight: normal;
-    color: #6c757d;
-}
-
-.turno-container .proximo-turno strong {
-    font-weight: bold;
-    color: #555;
-}
-
 /* AJUSTE PARA TÍTULO DE AVISOS EN DASHBOARD */
 #panel-avisos .dynamic-title {
     font-size: 1.1em;
@@ -2421,7 +2346,7 @@ footer {
     align-items: baseline;          /* Alinea el texto por su base */
     border-bottom: 2px solid #e0e0e0;
     padding-bottom: 10px;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
 }
 
 /* Evita que el h3 dentro de este nuevo layout tenga sus propios márgenes y bordes */
@@ -2438,6 +2363,70 @@ footer {
     color: #6c757d;
     white-space: nowrap; /* Evita que el texto se parta en dos líneas */
     margin-left: 15px;
+}
+
+/* --- Estilos para Indicador LED de Estado de Datos --- */
+.hydro-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.hydro-card-header h4 {
+    flex-grow: 1; /* El título ocupa el espacio restante */
+    margin: 0;
+    text-align: left;
+}
+
+.led-indicator-container {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.led-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+
+/* Estado "apagado" por defecto */
+.led-off {
+    background-color: #555;
+    box-shadow: inset 0 0 3px rgba(0,0,0,0.5);
+}
+
+/* Estado "encendido" con colores y brillo */
+.led-on-green {
+    background-color: #4caf50;
+    box-shadow: 0 0 8px #4caf50, inset 0 0 2px white;
+}
+.led-on-yellow {
+    background-color: #ffeb3b;
+    box-shadow: 0 0 8px #ffeb3b, inset 0 0 2px white;
+}
+.led-on-red {
+    background-color: #f44336;
+    box-shadow: 0 0 8px #f44336, inset 0 0 2px white;
+    animation: pulse-red-led 2s infinite;
+}
+
+.gauge-current-value.blinking-value {
+    animation: blink-yellow 1.5s linear infinite;
+}
+
+@keyframes blink-yellow {
+    0%, 100% {
+        color: #1eb400;
+        text-shadow: 0 0 5px rgba(147, 255, 59, 0.7);
+    }
+    50% {
+        color: #333;
+        text-shadow: none;
+    }
 }
 
 /* --- Estilos para Paneles Dinámicos de Columna Derecha --- */
@@ -2678,7 +2667,7 @@ footer {
 .sec-gauge-container {
     width: 100%;
     max-width: 450px; /* Ancho máximo del medidor */
-    margin: 25px auto 10px auto; /* Centrado y con margen */
+    margin: 70px auto 10px auto; /* Centrado y con margen */
     position: relative;
     padding-bottom: 15px; /* Espacio para la aguja */
 }
@@ -2731,7 +2720,7 @@ footer {
 
 .sec-gauge-value-display {
     position: absolute;
-    top: -10px; 
+    top: -5px; 
     left: 50%;
     transform: translateX(-50%);
     background-color: #343a40;
@@ -2796,4 +2785,32 @@ footer {
 
 #air-quality-details-btn:hover {
     background-color: #0056b3;
+}
+
+/* --- AJUSTES DE LAYOUT PARA EL BANNER DE HIDROMETRÍA --- */
+/* Contenedor central de las 3 estaciones */
+#hydro-stations-wrapper {
+    flex-grow: 1; /* <-- Hace que este panel ocupe el espacio sobrante */
+    display: flex;
+    gap: 20px;
+}
+
+/* Paneles laterales de turnos */
+#turno-llamado-container,
+#turno-operadores-container {
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 200px; /* Ancho fijo */
+}
+
+/* Contenedor de los dos medidores (Altura y Caudal) */
+.gauges-container {
+    display: flex;
+    flex-direction: column; /* <-- Apila los medidores verticalmente */
+    flex-grow: 0;
+    flex-shrink: 0; 
+    flex-basis: 260px; 
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
 }
