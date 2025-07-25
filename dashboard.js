@@ -715,40 +715,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const getGaugeData = (value, thresholds) => {
                 const currentValue = (value !== null && !isNaN(value)) ? value : 0;
-                
-                // 1. Definimos los límites y una escala máxima dinámica.
-                // La escala total será un 50% más grande que el umbral rojo.
-                // Esto asegura que el umbral rojo se ubique visualmente en el 66.7% del gráfico.
-                const limiteAmarillo = thresholds.amarilla;
-                const limiteRojo = thresholds.roja;
-                const escalaMaxima = limiteRojo * 1.5;
 
-                // 2. Función auxiliar para convertir cualquier valor a un porcentaje de la escala.
-                const convertirValorAPorcentaje = (valor, escala) => {
-                    if (escala === 0) return 0; // Evitar división por cero
-                    return Math.min((valor / escala) * 100, 100); // No puede ser más del 100%
-                };
+                // 1. Definimos los puntos de quiebre de la escala de datos
+                const limiteVerdeFin = thresholds.amarilla; // El verde termina aquí
+                const limiteAmarilloFin = thresholds.roja;  // El amarillo termina aquí
 
-                // 3. Calculamos la posición del marcador y de las etiquetas de los umbrales.
-                const posicionMarcador = convertirValorAPorcentaje(currentValue, escalaMaxima);
-                const posicionEtiquetaAmarilla = convertirValorAPorcentaje(limiteAmarillo, escalaMaxima);
-                const posicionEtiquetaRoja = convertirValorAPorcentaje(limiteRojo, escalaMaxima);
+                // 2. Calculamos un final razonable para la escala roja.
+                // Haremos que el rango de la zona roja sea igual al rango de la zona amarilla.
+                const rangoAmarillo = limiteAmarilloFin - limiteVerdeFin;
+                const escalaMaxima = limiteAmarilloFin + rangoAmarillo;
 
-                // 4. Devolvemos los datos para construir el gráfico.
+                let posicionMarcador = 0;
+
+                // 3. Lógica para mapear el valor actual a la escala visual no lineal
+                if (currentValue <= limiteVerdeFin) {
+                    // --- El valor está en el segmento VERDE ---
+                    // Se calcula qué porcentaje ocupa el valor dentro del rango de datos verde...
+                    const porcentajeEnSegmento = (limiteVerdeFin > 0) ? (currentValue / limiteVerdeFin) : 0;
+                    // ...y se mapea a los primeros 33.3% del gráfico.
+                    posicionMarcador = porcentajeEnSegmento * 33.3;
+                } else if (currentValue <= limiteAmarilloFin) {
+                    // --- El valor está en el segmento AMARILLO ---
+                    // Se calcula el progreso del valor dentro del rango de datos amarillo...
+                    const valorEnSegmento = currentValue - limiteVerdeFin;
+                    const porcentajeEnSegmento = (rangoAmarillo > 0) ? (valorEnSegmento / rangoAmarillo) : 0;
+                    // ...y se mapea a los siguientes 33.3% del gráfico (del 33.3% al 66.6%).
+                    posicionMarcador = 33.3 + (porcentajeEnSegmento * 33.3);
+                } else {
+                    // --- El valor está en el segmento ROJO ---
+                    // Se calcula el progreso del valor dentro del rango de datos rojo...
+                    const valorEnSegmento = currentValue - limiteAmarilloFin;
+                    const rangoRojo = escalaMaxima - limiteAmarilloFin;
+                    const porcentajeEnSegmento = (rangoRojo > 0) ? (valorEnSegmento / rangoRojo) : 0;
+                    // ...y se mapea al último 33.4% del gráfico (del 66.6% al 100%).
+                    posicionMarcador = 66.6 + (porcentajeEnSegmento * 33.4);
+                }
+
+                // Aseguramos que el marcador no se pase del 100%
+                posicionMarcador = Math.min(posicionMarcador, 100);
+
                 return {
                     value: currentValue.toFixed(2),
                     markerPosition: posicionMarcador.toFixed(2),
-                    // Los anchos visuales de las zonas ahora son fijos e iguales.
+                    // Los anchos visuales siguen siendo fijos e iguales
                     zones: {
                         green: '33.3',
                         yellow: '33.3',
-                        red: '33.4' // Ligeramente mayor para sumar 100%
-                    },
-                    // Las posiciones de las ETIQUETAS sí dependen del valor real.
-                    tickPositions: {
-                        yellow: posicionEtiquetaAmarilla.toFixed(2),
-                        red: posicionEtiquetaRoja.toFixed(2)
+                        red: '33.4'
                     }
+                    // Ya no necesitamos 'tickPositions' porque las etiquetas irán en posiciones fijas.
                 };
             };
 
@@ -782,8 +797,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                                 <div class="linear-gauge-ticks">
                                     <span>0</span>                                    
-                                    <span style="left: ${nivelGauge.tickPositions.yellow}%;">${thresholds.nivel.amarilla}</span>
-                                    <span style="left: ${nivelGauge.tickPositions.red}%;">${thresholds.nivel.roja}</span>
+                                    <span style="left: 33.3%;">${thresholds.nivel.amarilla}</span>
+                                    <span style="left: 66.6%;">${thresholds.nivel.roja}</span>
                                 </div>
                             </div>
                         </div>
@@ -800,9 +815,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <div class="linear-gauge-marker" style="left: ${caudalGauge.markerPosition}%;"></div>
                                 </div>
                                 <div class="linear-gauge-ticks">
-                                    <span>0</span>                                   
-                                    <span style="left: ${caudalGauge.tickPositions.yellow}%;">${thresholds.caudal.amarilla}</span>
-                                    <span style="left: ${caudalGauge.tickPositions.red}%;">${thresholds.caudal.roja}</span>
+                                    <span>0</span> 
+                                    <span style="left: 33.3%;">${thresholds.caudal.amarilla}</span>
+                                    <span style="left: 66.6%;">${thresholds.caudal.roja}</span>
                                 </div>
                             </div>
                         </div>
