@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
         'Putaendo Resguardo Los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
     };
     
+    let lastFetchedShoaUtcTimestamp = 0;
+    let initialLocalTimestamp = 0;
+
     // Lógica para actualizar los relojes
     async function fetchShoaTimes() {
         try {
@@ -48,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLedClock('clock-rapa-nui', rapaNuiTime);
     }
 
-        // Función para determinar la clase de color según el umbral
+    // Función para determinar la clase de color según el umbral
     function getStatusClass(value, thresholds) {
         if (value === null || typeof value === 'undefined' || isNaN(value)) return '';
         if (value >= thresholds.roja) return 'status-rojo';
@@ -106,16 +109,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 container.appendChild(card);
             }
-
         } catch (error) {
             console.error("Error al cargar datos de hidrometría:", error);
             container.innerHTML = '<p style="text-align:center; color:red;">Error al cargar datos.</p>';
         }
     }
 
-
-    // Inicialización
+    
     fetchShoaTimes();
     setInterval(updateClockDisplays, 1000);
+    setInterval(fetchShoaTimes, 30000);
     cargarHidrometria();
+    
 });
