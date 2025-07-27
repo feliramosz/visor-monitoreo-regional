@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Último Boletín</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        body.mobile-body { display: flex; flex-direction: column; height: 100vh; margin: 0; }
+        header.mobile-header { flex-direction: column; padding: 10px 5px; }
+        header.mobile-header h1 { font-size: 1.2em; margin: 10px 0; }
+        .clocks-container { display: flex; justify-content: space-around; width: 100%; }
+        .header-clock { min-width: unset; }
+        .led-clock { font-size: 1.5em; padding: 5px 10px; }
+        .digit { font-size: 1em; width: 15px; }
+        .separator { font-size: 1em; width: 8px; }
+        .header-clock h3 { font-size: 0.6em; letter-spacing: 1px; }
+        main.mobile-main { padding: 15px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        .back-button-container { padding: 10px 15px; }
+        .back-button { display: block; text-align: center; padding: 12px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        
+        #status-container { padding: 30px; }
+        #status-icon { font-size: 4em; }
+        #status-text { font-size: 1.2em; font-weight: bold; color: #333; margin-top: 15px; }
+        
+        /* --- Estilos para el nuevo botón de Play --- */
+        #play-boletin-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            font-size: 3em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        #play-boletin-btn:hover { transform: scale(1.1); }
+        #play-boletin-btn:disabled { background-color: #6c757d; cursor: not-allowed; }
+
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.8; } }
+    </style>
+</head>
+<body class="mobile-body">
+
+    <header class="mobile-header">
+        <h1>ESTADO DE SITUACION REGIONAL</h1>
+        <div class="clocks-container">
+            </div>
+    </header>
+
+    <main class="mobile-main">
+        <div id="status-container">
+            <button id="play-boletin-btn">▶</button>
+            <div id="status-text">Presiona para escuchar el último boletín</div>
+        </div>
+    </main>
+    
+    <div class="back-button-container">
+        <a href="/version_mobil/mobile.html" class="back-button">← Volver al Menú</a>
+    </div>
+    
+    <script src="/boletin-logic.js"></script>
+    <script src="/version_mobil/ultimo_boletin.js"></script>
+
+</body>
+</html>
