@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('session_token');
     if (!token) {
         window.location.href = `/login.html?redirect_to=${window.location.pathname}`;
@@ -44,42 +44,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Función para cargar los boletines
     async function cargarBoletines() {
-        const ptwcCard = document.querySelector('#ptwc-card .bulletin-text');
-        const ptwcMeta = document.querySelector('#ptwc-card .bulletin-meta');
-        const geofonCard = document.querySelector('#geofon-card .bulletin-text');
-        const geofonMeta = document.querySelector('#geofon-card .bulletin-meta');
+        const ptwcContainer = document.getElementById('ptwc-bulletin');
+        const geofonContainer = document.getElementById('geofon-bulletin');
 
-        // Función para formatear el timestamp a una fecha legible
-        const formatTimestamp = (ts) => {
-            const date = new Date(ts * 1000);
-            return date.toLocaleString('es-CL', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit'
-            }) + ' hrs';
-        };
-
-        // Cargar boletín de PTWC
+        // Cargar boletín de Tsunami (PTWC)
         try {
-            const response = await fetch(TSUNAMI_API_URL);
-            if (!response.ok) throw new Error('No hay boletines recientes.');
-            const data = await response.json();
-            ptwcMeta.textContent = `Recibido: ${formatTimestamp(data.timestamp)}`;
-            ptwcCard.textContent = data.mensaje;
+            const responsePtwc = await fetch('/api/last_tsunami_message');
+            const dataPtwc = await responsePtwc.json();
+            if (responsePtwc.ok) {
+                ptwcContainer.textContent = dataPtwc.mensaje;
+            } else {
+                ptwcContainer.textContent = dataPtwc.error || 'No hay boletín reciente de PTWC.';
+            }
         } catch (error) {
-            ptwcMeta.textContent = 'Estado';
-            ptwcCard.textContent = 'No se han recibido boletines de PTWC.';
+            ptwcContainer.textContent = 'No se pudo conectar con el servicio de PTWC.';
         }
 
-        // Cargar boletín de GEOFON
+        // Cargar boletín de Sismo Significativo (GEOFON)
         try {
-            const response = await fetch(GEOFON_API_URL);
-            if (!response.ok) throw new Error('No hay boletines recientes.');
-            const data = await response.json();
-            geofonMeta.textContent = `Recibido: ${formatTimestamp(data.timestamp)}`;
-            geofonCard.textContent = data.mensaje;
+            const responseGeofon = await fetch('/api/last_geofon_message');
+            const dataGeofon = await responseGeofon.json();
+            if (responseGeofon.ok) {
+                geofonContainer.textContent = dataGeofon.mensaje;
+            } else {
+                geofonContainer.textContent = dataGeofon.error || 'No hay boletín reciente de GEOFON.';
+            }
         } catch (error) {
-            geofonMeta.textContent = 'Estado';
-            geofonCard.textContent = 'No se han recibido boletines de GEOFON.';
+            geofonContainer.textContent = 'No se pudo conectar con el servicio de GEOFON.';
         }
     }
 
