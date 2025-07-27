@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('session_token');
     if (!token) {
         window.location.href = `/login.html?redirect_to=${window.location.pathname}`;
@@ -6,8 +6,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const WEATHER_API_URL = '/api/weather';
-    const SHOA_TIMES_API_URL = '/api/shoa_times';
-    const tbody = document.getElementById('stations-tbody');
+    const SHOA_TIMES_API_URL = '/api/shoa_times';    
+    const tbody = document.getElementById('estaciones-tbody');
+    try {
+        const response = await fetch('/api/weather');
+        const estaciones = await response.json();
+        tbody.innerHTML = estaciones.map(est => `
+            <tr>
+                <td>${est.nombre}</td>
+                <td><a href="#" class="details-icon">ⓘ</a></td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="2" style="color:red; text-align:center;">Error al cargar datos.</td></tr>';
+    }
     const modal = document.getElementById('station-modal');
     const closeModalBtn = document.getElementById('modal-close-btn');
     const modalStationName = document.getElementById('modal-station-name');
