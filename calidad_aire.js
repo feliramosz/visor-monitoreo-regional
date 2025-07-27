@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // URLs y referencias del DOM
     const AIR_QUALITY_API_URL = '/api/calidad_aire';
     const SHOA_TIMES_API_URL = '/api/shoa_times';
-    const mapContainer = document.getElementById('air-quality-map-mobile');
+    const mainTbody = document.getElementById('stations-tbody');
     const showModalBtn = document.getElementById('show-modal-btn');
     const modal = document.getElementById('stations-modal');
     const closeModalBtn = document.getElementById('modal-close-btn');
@@ -16,10 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const simulateBtn = document.getElementById('simulate-btn');
     
     // Variables globales
-    let airQualityMap;
-    let airQualityMarkers = [];
     let lastStationsData = [];
-    const stateToColor = {'bueno': '#4caf50', 'regular': '#ffeb3b', 'alerta': '#ff9800', 'preemergencia': '#f44336', 'emergencia': '#9c27b0', 'no_disponible': '#9e9e9e'};
+    const stateToColor = {'bueno': '#d4edda', 'regular': '#fff3cd', 'alerta': '#ffc107', 'preemergencia': '#fd7e14', 'emergencia': '#dc3545', 'no_disponible': '#e9ecef'};
 
     // Lógica para actualizar los relojes
     async function fetchShoaTimes() {
@@ -54,30 +52,30 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLedClock('clock-rapa-nui', rapaNuiTime);
     }
     
-    // --- Lógica del Mapa y Datos ---
-    function initMap() {
-        if (!mapContainer) return;
-        airQualityMap = L.map(mapContainer).setView([-32.9, -71.3], 9);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(airQualityMap);
-    }
-
-    function updateMap(stations) {
-        if (!airQualityMap) return;
-        airQualityMarkers.forEach(marker => marker.remove());
-        airQualityMarkers = [];
-
+    // --- Lógica de Datos y Renderizado ---
+    // Función para renderizar la tabla principal
+    function renderMainTable(stations) {
+        mainTbody.innerHTML = '';
+        if (!stations || stations.length === 0) {
+            mainTbody.innerHTML = '<tr><td colspan="2">No hay estaciones disponibles.</td></tr>';
+            return;
+        }
         stations.forEach(station => {
-            if (station.lat && station.lon) {
-                const marker = L.circleMarker([station.lat, station.lon], {
-                    radius: 8,
-                    fillColor: stateToColor[station.estado] || stateToColor['no_disponible'],
-                    color: '#fff', weight: 2, fillOpacity: 0.9
-                }).addTo(airQualityMap).bindPopup(`<b>${station.nombre_estacion}</b><br>Estado: ${station.estado.replace('_', ' ')}`);
-                airQualityMarkers.push(marker);
-            }
+            const tr = document.createElement('tr');
+            const estado = station.estado.replace('_', ' ');
+            tr.innerHTML = `
+                <td>${station.nombre_estacion}</td>
+                <td>
+                    <span class="status-badge" style="background-color: ${stateToColor[station.estado] || '#fff'}">
+                        ${estado}
+                    </span>
+                </td>
+            `;
+            mainTbody.appendChild(tr);
         });
     }
 
+    // Función para actualizar el contenido del pop-up
     function updateModal(stations) {
         const stationsWithNews = stations.filter(s => s.estado !== 'bueno' && s.estado !== 'no_disponible');
         modalTbody.innerHTML = '';
@@ -96,26 +94,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${station.nombre_estacion}</td>
-                <td style="text-transform: capitalize; font-weight: bold; color: ${stateToColor[station.estado] || '#000'}">${station.estado.replace('_', ' ')}</td>
-                <td>${alteredParams || 'N/A'}</td>
+                <td style="text-transform: capitalize; font-weight: bold; color: #333">${station.estado.replace('_', ' ')}</td>
+                <td>${alteredParams || '<i>Sin detalle de parámetros</i>'}</td>
             `;
             modalTbody.appendChild(tr);
         });
     }
 
+    // Función para obtener los datos reales desde la API
     async function cargarCalidadAire() {
         try {
             const response = await fetch(AIR_QUALITY_API_URL);
             lastStationsData = await response.json();
-            updateMap(lastStationsData);
+            renderMainTable(lastStationsData);
         } catch (error) {
             console.error("Error al cargar datos de calidad del aire:", error);
+            mainTbody.innerHTML = '<tr><td colspan="2" style="color:red;">Error al cargar datos.</td></tr>';
         }
     }
     
     // --- Event Listeners ---
     showModalBtn.addEventListener('click', () => {
-        updateModal(lastStationsData); // Actualiza el modal con los últimos datos reales
+        updateModal(lastStationsData);
         modal.style.display = 'flex';
     });
     closeModalBtn.addEventListener('click', () => modal.style.display = 'none');
@@ -125,25 +125,43 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Lógica del Botón de Simulación ---
     let simulationState = 0;
-    const mockData = [
-        { name: "Todo Bueno", data: () => lastStationsData.map(s => ({...s, estado: 'bueno'})) },
-        { name: "Alerta en Quintero", data: () => lastStationsData.map(s => s.nombre_estacion.includes('Quintero') ? {...s, estado: 'alerta'} : {...s, estado: 'bueno'}) },
-        { name: "Preemergencia y Emergencia", data: () => lastStationsData.map(s => {
-            if (s.nombre_estacion.includes('Concón')) return {...s, estado: 'preemergencia'};
-            if (s.nombre_estacion.includes('Valparaíso')) return {...s, estado: 'emergencia'};
-            return {...s, estado: 'regular'};
-        })},
-        { name: "Datos Reales", data: () => lastStationsData }
-    ];
+    const getMockData = () => {
+        // Clonamos los datos reales para no modificarlos
+        const baseData = JSON.parse(JSON.stringify(lastStationsData));
+        return [
+            { name: "Datos Reales", data: baseData },
+            { name: "Alerta en Quintero", data: baseData.map(s => {
+                if (s.nombre_estacion.includes('Quintero')) {
+                    s.estado = 'alerta';
+                    s.parametros = [
+                        {parametro: 'SO2', valor: '550 ug/m3', unidad: '', estado: 'alerta'},
+                        {parametro: 'MP2.5', valor: '20 ug/m3', unidad: '', estado: 'bueno'}
+                    ];
+                }
+                return s;
+            })},
+            { name: "Preemergencia y Emergencia", data: baseData.map(s => {
+                if (s.nombre_estacion.includes('Concón')) {
+                    s.estado = 'preemergencia';
+                    s.parametros = [{parametro: 'MP10', valor: '210 ug/m3', estado: 'preemergencia'}];
+                } else if (s.nombre_estacion.includes('Valparaíso')) {
+                    s.estado = 'emergencia';
+                    s.parametros = [{parametro: 'MP2.5', valor: '180 ug/m3', estado: 'emergencia'}];
+                }
+                return s;
+            })},
+            { name: "Todo Bueno", data: baseData.map(s => ({...s, estado: 'bueno', parametros: []})) }
+        ];
+    };
 
     simulateBtn.addEventListener('click', () => {
+        const mockData = getMockData();
         simulationState = (simulationState + 1) % mockData.length;
         const currentSim = mockData[simulationState];
-        simulateBtn.textContent = `Simulando: ${currentSim.name}`;
         
-        const simulatedStations = currentSim.data();
-        updateMap(simulatedStations); // Actualiza el mapa con datos simulados
-        updateModal(simulatedStations); // Actualiza el modal también para consistencia
+        simulateBtn.textContent = `Simulando: ${currentSim.name}`;
+        renderMainTable(currentSim.data); // Actualiza la tabla principal con datos simulados
+        updateModal(currentSim.data); // Actualiza el modal también
         
         console.log(`Simulación activa: ${currentSim.name}`);
     });
