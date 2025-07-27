@@ -89,8 +89,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 'calidad_aire': '/calidad_aire.html',
                 'estacion_meteo': '/estacion_meteo.html',
                 'agua_caida': '/agua_caida.html',
-                'estado_puertos': '/estado_puertos.html',
-                'paso_fronterizo': '/paso_fronterizo.html'
+                'puertos': '/estado_puertos.html',
+                'paso': '/paso_fronterizo.html',
+                'sec': '/interrupciones_sec.html',
+                'dga': '/hidrometria_dga.html',
+                'turnos': '/personal_turno.html',
+                'waze': '/accidentes_waze.html',
+                'sismos': '/sismos_tsunami.html',
+                'boletin': '/ultimo_boletin.html'
             };
 
             if (sectionMap[section]) {
