@@ -74,4 +74,16 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchShoaTimes();
     setInterval(updateClockDisplays, 1000);
     setInterval(fetchShoaTimes, 30 * 1000);
+
+    document.querySelectorAll('.icon-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const section = card.dataset.section;
+            if (section === 'alertas') {
+                window.location.href = '/alertas.html';
+            } else {
+                // Próximamente se agregarán las otras secciones
+                alert(`Sección '${section}' en desarrollo.`);
+            }
+        });
+    });
 });
