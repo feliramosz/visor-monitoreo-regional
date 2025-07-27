@@ -1,10 +1,11 @@
-document.addEventListener('DOMContentLoaded', async() => {
+document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('session_token');
     if (!token) {
         window.location.href = `/login.html?redirect_to=${window.location.pathname}`;
         return;
     }
 
+    // URLs y referencias
     const DATA_API_URL = '/api/data';
     const SHOA_TIMES_API_URL = '/api/shoa_times';    
     const container = document.getElementById('hidrometria-container');
@@ -13,29 +14,7 @@ document.addEventListener('DOMContentLoaded', async() => {
         'Aconcagua San Felipe 2': { nivel: { amarilla: 2.80, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
         'Putaendo Resguardo Los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
     };
-    try {
-        const response = await fetch('/api/data');
-        const data = await response.json();
-        const estaciones = data.datos_hidrometricos || [];
-        let html = '';
-        estaciones.forEach(est => {
-            const umbrales = hydroThresholds[est.nombre_estacion];
-            if (!umbrales) return;
-            html += `
-                <div class="station-card">
-                    <h3>${est.nombre_estacion}</h3>
-                    <table class="station-table">
-                        <tr><td>PARÁMETRO</td><td><strong>VALOR MEDIDO</strong></td><td>UMBRAL AMARILLO</td><td>UMBRAL ROJO</td></tr>
-                        <tr><td>Altura (m)</td><td><strong>${est.nivel_m}</strong></td><td>${umbrales.nivel.amarilla}</td><td>${umbrales.nivel.roja}</td></tr>
-                        <tr><td>Caudal (m³/s)</td><td><strong>${est.caudal_m3s}</strong></td><td>${umbrales.caudal.amarilla}</td><td>${umbrales.caudal.roja}</td></tr>
-                    </table>
-                </div>`;
-        });
-        container.innerHTML = html;
-    } catch (error) {
-        container.innerHTML = '<p style="color:red; text-align:center;">Error al cargar datos de hidrometría.</p>';
-    }
-
+    
     // Lógica para actualizar los relojes
     async function fetchShoaTimes() {
         try {
@@ -69,9 +48,9 @@ document.addEventListener('DOMContentLoaded', async() => {
         updateLedClock('clock-rapa-nui', rapaNuiTime);
     }
 
-    // Función para determinar la clase de color según el umbral
+        // Función para determinar la clase de color según el umbral
     function getStatusClass(value, thresholds) {
-        if (value === null || isNaN(value)) return '';
+        if (value === null || typeof value === 'undefined' || isNaN(value)) return '';
         if (value >= thresholds.roja) return 'status-rojo';
         if (value >= thresholds.amarilla) return 'status-amarillo';
         return '';
@@ -86,7 +65,6 @@ document.addEventListener('DOMContentLoaded', async() => {
 
             container.innerHTML = '';
             
-            // Iteramos sobre los umbrales para asegurar que siempre se muestren las 3 estaciones
             for (const stationName in hydroThresholds) {
                 const thresholds = hydroThresholds[stationName];
                 const stationData = measuredData.find(s => s.nombre_estacion === stationName);
@@ -134,6 +112,7 @@ document.addEventListener('DOMContentLoaded', async() => {
             container.innerHTML = '<p style="text-align:center; color:red;">Error al cargar datos.</p>';
         }
     }
+
 
     // Inicialización
     fetchShoaTimes();
