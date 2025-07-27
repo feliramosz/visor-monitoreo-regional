@@ -71,21 +71,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Lógica para cargar y renderizar la tabla principal
     async function cargarDatosSEC() {
-        try {
-            const response = await fetch(SEC_API_URL);
-            const data = await response.json();
-            
-            tbody.innerHTML = '';
-            if (data.error) throw new Error(data.error);
+    try {
+        const response = await fetch(SEC_API_URL);
+        const data = await response.json();
 
-            // 1. Añadir la fila del porcentaje regional al principio
-            const percentageRow = document.createElement('tr');
-            percentageRow.className = 'percentage-row';
-            percentageRow.innerHTML = `
-                <td>Porcentaje de población afectada en la región</td>
-                <td>${data.porcentaje_afectado}%</td>
-            `;
-            tbody.appendChild(percentageRow);
+        tbody.innerHTML = '';
+        if (data.error) throw new Error(data.error);
+
+        // 1. Añadir la fila del porcentaje regional
+        const percentageRow = document.createElement('tr');
+        percentageRow.className = 'percentage-row';
+        percentageRow.innerHTML = `
+            <td>Porcentaje de afectación regional</td>
+            <td>${data.porcentaje_afectado}%</td>
+        `;
+        tbody.appendChild(percentageRow);
+
+        // --- Añadir la fila con el total de clientes afectados ---
+        const totalRow = document.createElement('tr');
+        totalRow.className = 'percentage-row';
+        totalRow.innerHTML = `
+            <td>Total de clientes afectados en la región</td>
+            <td>${data.total_afectados_region.toLocaleString('es-CL')}</td>
+        `;
+        tbody.appendChild(totalRow);
 
             // 2. Añadir las filas de cada provincia
             data.desglose_provincias.forEach(province => {
