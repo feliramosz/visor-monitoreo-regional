@@ -75,13 +75,22 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updateClockDisplays, 1000);
     setInterval(fetchShoaTimes, 30 * 1000);
 
+    // --- Lógica de Navegación de Iconos ---
     document.querySelectorAll('.icon-card').forEach(card => {
         card.addEventListener('click', () => {
             const section = card.dataset.section;
-            if (section === 'alertas') {
-                window.location.href = '/alertas.html';
+
+            // Mapeo de secciones a sus respectivas páginas
+            const sectionMap = {
+                'alertas': '/alertas.html',
+                'avisos': '/avisos.html',
+                'informes': '/informes.html'
+            };
+
+            if (sectionMap[section]) {
+                window.location.href = sectionMap[section];
             } else {
-                // Próximamente se agregarán las otras secciones
+                // Mensaje para las secciones aún no implementadas
                 alert(`Sección '${section}' en desarrollo.`);
             }
         });

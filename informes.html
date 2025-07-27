@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informes Emitidos (24h)</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body.mobile-body { display: flex; flex-direction: column; height: 100vh; margin: 0; }
+        header.mobile-header { flex-direction: column; padding: 10px 5px; }
+        header.mobile-header h1 { font-size: 1.2em; margin: 10px 0; }
+        .clocks-container { display: flex; justify-content: space-around; width: 100%; }
+        .header-clock { min-width: unset; }
+        .led-clock { font-size: 1.5em; padding: 5px 10px; }
+        .digit { font-size: 1em; width: 15px; }
+        .separator { font-size: 1em; width: 8px; }
+        .header-clock h3 { font-size: 0.6em; letter-spacing: 1px; }
+        main.mobile-main { padding: 15px; flex-grow: 1; overflow-y: auto; }
+        .info-card { background-color: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 15px; padding: 15px; border-left: 5px solid #007bff; }
+        .info-card h3 { margin-top: 0; font-size: 1.1em; color: #333; }
+        .info-card p { margin: 5px 0; font-size: 0.9em; }
+        .info-card .meta-info { font-size: 0.8em; color: #6c757d; border-top: 1px solid #eee; padding-top: 8px; margin-top: 8px; }
+        .back-button { display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
+    </style>
+</head>
+<body class="mobile-body">
+
+    <header class="mobile-header">
+        <h1>ESTADO DE SITUACION REGIONAL</h1>
+        <div class="clocks-container">
+            <div class="header-clock">
+                <div class="led-clock" id="clock-continental"><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span></div>
+                <h3>HORA DE CHILE CONTINENTAL</h3>
+            </div>
+            <div class="header-clock">
+                <div class="led-clock" id="clock-rapa-nui"><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span></div>
+                <h3>HORA RAPA NUI</h3>
+            </div>
+        </div>
+    </header>
+
+    <main class="mobile-main">
+        <h2>Informes Emitidos (Últimas 24h)</h2>
+        <div id="informes-container">
+            </div>
+        <a href="/mobile.html" class="back-button">← Volver al Menú</a>
+    </main>
+
+    <script src="informes.js"></script>
+
+</body>
+</html>
