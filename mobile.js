@@ -84,7 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const sectionMap = {
                 'alertas': '/alertas.html',
                 'avisos': '/avisos.html',
-                'informes': '/informes.html'
+                'informes': '/informes.html',
+                'novedades': '/novedades.html' 
             };
 
             if (sectionMap[section]) {
