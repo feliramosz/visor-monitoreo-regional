@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('session_token');
     if (!token) {
         window.location.href = `/login.html?redirect_to=${window.location.pathname}`;
@@ -12,6 +12,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
     const closeModalBtn = document.getElementById('modal-close-btn');
+    const thead = document.getElementById('sec-thead');
+    try {
+        const response = await fetch('/api/clientes_afectados');
+        const data = await response.json();
+        thead.innerHTML = '<tr><th>PROVINCIA / REGIÓN</th><th>CLIENTES AFECTADOS</th></tr>';
+        let rowsHtml = `
+            <tr><td><strong>Porcentaje de afectación regional</strong></td><td><strong>${data.porcentaje_afectado}%</strong></td></tr>
+            <tr><td><strong>Total de clientes afectados en la región</strong></td><td><strong>${data.total_afectados_region.toLocaleString('es-CL')}</strong></td></tr>
+        `;
+        data.desglose_provincias.forEach(prov => {
+            rowsHtml += `<tr><td>${prov.provincia}</td><td>${prov.total_afectados.toLocaleString('es-CL')}</td></tr>`;
+        });
+        tbody.innerHTML = rowsHtml;
+    } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="2" style="color:red; text-align:center;">Error al cargar datos de la SEC.</td></tr>';
+    }
 
     // Lógica para actualizar los relojes
     async function fetchShoaTimes() {
