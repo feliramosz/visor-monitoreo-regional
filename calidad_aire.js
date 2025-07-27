@@ -5,18 +5,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // URLs y referencias del DOM
-    const AIR_QUALITY_API_URL = '/api/calidad_aire';
-    const SHOA_TIMES_API_URL = '/api/shoa_times';
-    const mainTbody = document.getElementById('stations-tbody');
-    const showModalBtn = document.getElementById('show-modal-btn');
-    const modal = document.getElementById('stations-modal');
-    const closeModalBtn = document.getElementById('modal-close-btn');
-    const modalTbody = document.getElementById('modal-tbody');    
-    
-    // Variables globales
-    let lastStationsData = [];
-    const stateToColor = {'bueno': '#d4edda', 'regular': '#fff3cd', 'alerta': '#ffc107', 'preemergencia': '#fd7e14', 'emergencia': '#dc3545', 'no_disponible': '#e9ecef'};
+    // URLs y referencias
+    const DATA_API_URL = '/api/data';
+    const SHOA_TIMES_API_URL = '/api/shoa_times';    
+    const container = document.getElementById('hidrometria-container');
+    const hydroThresholds = {
+        'Aconcagua en Chacabuquito': { nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.60 } },
+        'Aconcagua San Felipe 2': { nivel: { amarilla: 2.80, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
+        'Putaendo Resguardo Los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
+    };
 
     // --- Lógica de Relojes ---
     let lastFetchedShoaUtcTimestamp = 0, initialLocalTimestamp = 0;
@@ -53,70 +50,70 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLedClock('clock-rapa-nui', rapaNuiTime);
     }
     
-    // --- Lógica de Datos y Renderizado ---
-    function renderMainTable(stations) {
-        mainTbody.innerHTML = '';
-        if (!stations || stations.length === 0) {
-            mainTbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">No hay estaciones disponibles.</td></tr>';
-            return;
-        }
-        stations.forEach(station => {
-            const tr = document.createElement('tr');
-            const estado = station.estado.replace('_', ' ');
-            tr.innerHTML = `
-                <td>${station.nombre_estacion}</td>
-                <td>
-                    <span class="status-badge" style="background-color: ${stateToColor[station.estado] || '#fff'}">
-                        ${estado}
-                    </span>
-                </td>
-            `;
-            mainTbody.appendChild(tr);
-        });
+    // Función para determinar la clase de color según el umbral
+    function getStatusClass(value, thresholds) {
+        if (value === null || typeof value === 'undefined' || isNaN(value)) return '';
+        if (value >= thresholds.roja) return 'status-rojo';
+        if (value >= thresholds.amarilla) return 'status-amarillo';
+        return '';
     }
 
-    function updateModal(stations) {
-        const stationsWithNews = stations.filter(s => s.estado !== 'bueno' && s.estado !== 'no_disponible');
-        modalTbody.innerHTML = '';
-        if (stationsWithNews.length === 0) {
-            modalTbody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No hay estaciones que reporten novedades.</td></tr>';
-            return;
-        }
-        stationsWithNews.forEach(station => {
-            const alteredParams = station.parametros
-                .filter(p => p.estado !== 'bueno' && p.estado !== 'no_disponible')
-                .map(p => `<strong>${p.parametro}:</strong> ${p.valor} ${p.unidad}`)
-                .join('<br>');
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${station.nombre_estacion}</td>
-                <td style="text-transform: capitalize; font-weight: bold; color: #333">${station.estado.replace('_', ' ')}</td>
-                <td>${alteredParams || '<i>Sin detalle de parámetros</i>'}</td>
-            `;
-            modalTbody.appendChild(tr);
-        });
-    }
-
-    async function cargarCalidadAire() {
+    // Lógica principal para cargar y renderizar las tarjetas
+    async function cargarHidrometria() {
         try {
-            const response = await fetch(AIR_QUALITY_API_URL);
-            lastStationsData = await response.json();
-            renderMainTable(lastStationsData);
+            const response = await fetch(DATA_API_URL);
+            const data = await response.json();
+            const measuredData = data.datos_hidrometricos || [];
+
+            container.innerHTML = '';
+            
+            for (const stationName in hydroThresholds) {
+                const thresholds = hydroThresholds[stationName];
+                const stationData = measuredData.find(s => s.nombre_estacion === stationName);
+
+                const nivelMedido = stationData ? stationData.nivel_m : null;
+                const caudalMedido = stationData ? stationData.caudal_m3s : null;
+
+                const nivelClass = getStatusClass(nivelMedido, thresholds.nivel);
+                const caudalClass = getStatusClass(caudalMedido, thresholds.caudal);
+
+                const card = document.createElement('div');
+                card.className = 'station-card';
+                card.innerHTML = `
+                    <h3>${stationName}</h3>
+                    <table class="card-table">
+                        <thead>
+                            <tr>
+                                <th>Parámetro</th>
+                                <th>Valor Medido</th>
+                                <th>Umbral Amarillo</th>
+                                <th>Umbral Rojo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Altura (m)</td>
+                                <td class="${nivelClass}">${nivelMedido !== null ? nivelMedido.toFixed(2) : 'S/D'}</td>
+                                <td>${thresholds.nivel.amarilla}</td>
+                                <td>${thresholds.nivel.roja}</td>
+                            </tr>
+                            <tr>
+                                <td>Caudal (m³/s)</td>
+                                <td class="${caudalClass}">${caudalMedido !== null ? caudalMedido.toFixed(2) : 'S/D'}</td>
+                                <td>${thresholds.caudal.amarilla}</td>
+                                <td>${thresholds.caudal.roja}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+                container.appendChild(card);
+            }
+
         } catch (error) {
-            console.error("Error al cargar datos de calidad del aire:", error);
-            mainTbody.innerHTML = '<tr><td colspan="2" style="color:red; text-align:center;">Error al cargar datos.</td></tr>';
+            console.error("Error al cargar datos de hidrometría:", error);
+            container.innerHTML = '<p style="text-align:center; color:red;">Error al cargar datos.</p>';
         }
     }
-    
-    // --- Event Listeners ---
-    showModalBtn.addEventListener('click', () => {
-        updateModal(lastStationsData);
-        modal.style.display = 'flex';
-    });
-    closeModalBtn.addEventListener('click', () => modal.style.display = 'none');
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) modal.style.display = 'none';
-    });
     
     // --- Inicialización ---
     fetchShoaTimes();
