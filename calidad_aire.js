@@ -12,8 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const showModalBtn = document.getElementById('show-modal-btn');
     const modal = document.getElementById('stations-modal');
     const closeModalBtn = document.getElementById('modal-close-btn');
-    const modalTbody = document.getElementById('modal-tbody');
-    const simulateBtn = document.getElementById('simulate-btn');
+    const modalTbody = document.getElementById('modal-tbody');    
     
     // Variables globales
     let lastStationsData = [];
@@ -119,46 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === modal) modal.style.display = 'none';
     });
     
-    // --- Lógica del Botón de Simulación ---
-    let simulationState = 0;
-    const getMockData = () => {
-        const baseData = JSON.parse(JSON.stringify(lastStationsData));
-        return [
-            { name: "Datos Reales", data: baseData },
-            { name: "Alerta en Quintero", data: baseData.map(s => {
-                if (s.nombre_estacion.includes('Quintero')) {
-                    s.estado = 'alerta';
-                    s.parametros = [
-                        {parametro: 'SO2', valor: '550 ug/m3', unidad: '', estado: 'alerta'},
-                        {parametro: 'MP2.5', valor: '20 ug/m3', unidad: '', estado: 'bueno'}
-                    ];
-                }
-                return s;
-            })},
-            { name: "Preemergencia y Emergencia", data: baseData.map(s => {
-                if (s.nombre_estacion.includes('Concón')) {
-                    s.estado = 'preemergencia';
-                    s.parametros = [{parametro: 'MP10', valor: '210 ug/m3', estado: 'preemergencia'}];
-                } else if (s.nombre_estacion.includes('Valparaíso')) {
-                    s.estado = 'emergencia';
-                    s.parametros = [{parametro: 'MP2.5', valor: '180 ug/m3', estado: 'emergencia'}];
-                }
-                return s;
-            })},
-            { name: "Todo Bueno", data: baseData.map(s => ({...s, estado: 'bueno', parametros: []})) }
-        ];
-    };
-    simulateBtn.addEventListener('click', () => {
-        const mockData = getMockData();
-        simulationState = (simulationState + 1) % mockData.length;
-        const currentSim = mockData[simulationState];
-        simulateBtn.textContent = `Simulando: ${currentSim.name}`;
-        renderMainTable(currentSim.data);
-        updateModal(currentSim.data);
-        console.log(`Simulación activa: ${currentSim.name}`);
-    });
-    
-    // --- Inicialización ---    
+    // --- Inicialización ---
     fetchShoaTimes();
     setInterval(updateClockDisplays, 1000);
     setInterval(fetchShoaTimes, 30 * 1000);

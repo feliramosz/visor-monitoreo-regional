@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calidad del Aire</title>
+    <title>Estaciones Meteorológicas</title>
     <link rel="stylesheet" href="style.css">
     <style>
         body.mobile-body { display: flex; flex-direction: column; height: 100vh; margin: 0; }
@@ -18,43 +18,17 @@
         main.mobile-main { padding: 15px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; }
         .back-button { display: block; text-align: center; margin-top: 20px; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
         
-        /* --- NUEVOS ESTILOS --- */
-        .main-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        .main-header h2 {
-            margin: 0;
-            flex-grow: 1; /* El título ocupa el espacio disponible */
-        }
-        .show-modal-btn {
-            padding: 8px 12px;
-            font-size: 0.8em;
-            font-weight: bold;
-            color: white;
-            background-color: #007bff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            flex-shrink: 0; /* Evita que el botón se encoja */
-        }
-        /* --- FIN NUEVOS ESTILOS --- */
-        
         .data-table { width: 100%; border-collapse: collapse; font-size: 0.9em; margin-bottom: 20px; }
         .data-table th, .data-table td { padding: 12px 8px; border: 1px solid #ddd; text-align: left; vertical-align: middle; }
         .data-table thead th { background-color: #f2f2f2; font-weight: bold; }
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; color: #333; text-transform: capitalize; }
-        
+        .info-button { font-size: 1.5em; cursor: pointer; color: #007bff; text-align: center; }
+
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 4000; }
-        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 95%; max-width: 500px; max-height: 80vh; display: flex; flex-direction: column; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 95%; max-width: 500px; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 10px; }
         .modal-header h3 { margin: 0; font-size: 1.2em; }
         .modal-close-btn { font-size: 1.8em; border: none; background: none; cursor: pointer; }
-        .modal-body { overflow-y: auto; }
-        .modal-table { width: 100%; border-collapse: collapse; font-size: 0.8em; }
-        .modal-table th, .modal-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: left; }
+        .modal-body p { margin: 8px 0; font-size: 1em; }
     </style>
 </head>
 <body class="mobile-body">
@@ -74,47 +48,32 @@
     </header>
 
     <main class="mobile-main">
-        <div class="main-header">
-            <h2>Calidad del Aire</h2>
-            <button id="show-modal-btn" class="show-modal-btn">Ver Novedades</button>
-        </div>
-        
+        <h2>Estaciones Meteorológicas</h2>
         <table class="data-table">
             <thead>
                 <tr>
                     <th>Estación</th>
-                    <th>Estado</th>
+                    <th>Detalles</th>
                 </tr>
             </thead>
             <tbody id="stations-tbody">
                 </tbody>
         </table>
-
         <a href="/mobile.html" class="back-button">← Volver al Menú</a>
     </main>
 
-    <div id="stations-modal" class="modal-overlay">
+    <div id="station-modal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Estaciones con Novedad</h3>
+                <h3 id="modal-station-name"></h3>
                 <button id="modal-close-btn" class="modal-close-btn">&times;</button>
             </div>
-            <div class="modal-body">
-                <table class="modal-table">
-                    <thead>
-                        <tr>
-                            <th>Estación</th>
-                            <th>Estado</th>
-                            <th>Parámetros Alterados</th>
-                        </tr>
-                    </thead>
-                    <tbody id="modal-tbody"></tbody>
-                </table>
-            </div>
+            <div class="modal-body" id="modal-station-details">
+                </div>
         </div>
     </div>
 
-    <script src="calidad_aire.js"></script>
+    <script src="estacion_meteo.js"></script>
 
 </body>
 </html>
