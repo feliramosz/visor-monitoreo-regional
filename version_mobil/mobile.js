@@ -82,21 +82,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Mapeo de secciones a sus respectivas páginas
             const sectionMap = {
-                'alertas': '/alertas.html',
-                'avisos': '/avisos.html',
-                'informes': '/informes.html',
-                'novedades': '/novedades.html',
-                'calidad_aire': '/calidad_aire.html',
-                'estacion_meteo': '/estacion_meteo.html',
-                'agua_caida': '/agua_caida.html',
-                'puertos': '/estado_puertos.html',
-                'paso': '/paso_fronterizo.html',
-                'sec': '/interrupciones_sec.html',
-                'dga': '/hidrometria_dga.html',
-                'turnos': '/personal_turno.html',
-                'waze': '/accidentes_waze.html',
-                'sismos': '/sismos_tsunami.html',
-                'boletin': '/ultimo_boletin.html'
+                'alertas': '/version_mobil/alertas.html',
+                'avisos': '/version_mobil/avisos.html',
+                'informes': '/version_mobil/informes.html',
+                'novedades': '/version_mobil/novedades.html',
+                'calidad_aire': '/version_mobil/calidad_aire.html',
+                'estacion_meteo': '/version_mobil/estacion_meteo.html',
+                'agua_caida': '/version_mobil/agua_caida.html',
+                'puertos': '/version_mobil/estado_puertos.html',
+                'paso': '/version_mobil/paso_fronterizo.html',
+                'sec': '/version_mobil/interrupciones_sec.html',
+                'dga': '/version_mobil/hidrometria_dga.html',
+                'turnos': '/version_mobil/personal_turno.html',
+                'waze': '/version_mobil/accidentes_waze.html',
+                'sismos': '/version_mobil/sismos_tsunami.html',
+                'boletin': '/version_mobil/ultimo_boletin.html'
             };
 
             if (sectionMap[section]) {

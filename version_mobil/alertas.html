@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Informes Emitidos (24h)</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
+    <title>Alertas Vigentes</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>        
         body.mobile-body {
         display: flex;
         flex-direction: column;
@@ -31,10 +31,23 @@
         padding: 15px;
         min-height: 0;
         }
-        .info-card { background-color: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 15px; padding: 15px; border-left: 5px solid #007bff; }
-        .info-card h3 { margin-top: 0; font-size: 1.1em; color: #333; }
-        .info-card p { margin: 5px 0; font-size: 0.9em; }
-        .info-card .meta-info { font-size: 0.8em; color: #6c757d; border-top: 1px solid #eee; padding-top: 8px; margin-top: 8px; }
+
+        /* Estilos para la tabla de alertas */
+        .alerts-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        .alerts-table th, .alerts-table td {
+            padding: 12px 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+            vertical-align: middle;
+        }
+        .alerts-table thead th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
         .back-button { display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
     </style>
 </head>
@@ -44,24 +57,37 @@
         <h1>ESTADO DE SITUACION REGIONAL</h1>
         <div class="clocks-container">
             <div class="header-clock">
-                <div class="led-clock" id="clock-continental"><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span></div>
+                <div class="led-clock" id="clock-continental">
+                    <span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span>
+                </div>
                 <h3>HORA DE CHILE CONTINENTAL</h3>
             </div>
             <div class="header-clock">
-                <div class="led-clock" id="clock-rapa-nui"><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span></div>
+                <div class="led-clock" id="clock-rapa-nui">
+                    <span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span>
+                </div>
                 <h3>HORA RAPA NUI</h3>
             </div>
         </div>
     </header>
 
     <main class="mobile-main">
-        <h2>Informes Emitidos (Últimas 24h)</h2>
-        <div id="informes-container">
-            </div>
+        <h2>Alertas Vigentes</h2>
+        <table class="alerts-table">
+            <thead>
+                <tr>
+                    <th>Tipo de Alerta</th>
+                    <th>Evento</th>
+                    <th>Cobertura</th>
+                </tr>
+            </thead>
+            <tbody id="alertas-tbody">
+                </tbody>
+        </table>
         <a href="/mobile.html" class="back-button">← Volver al Menú</a>
     </main>
 
-    <script src="informes.js?v=1.0.0"></script>
+    <script src="/version_mobil/alertas.js?v=1.0.0"></script>
 
 </body>
 </html>

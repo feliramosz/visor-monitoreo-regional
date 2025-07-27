@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const userAgent = navigator.userAgent.toLowerCase();
                 const isMobile = /mobi|iphone|ipad|android|tablet/.test(userAgent);
 
-                const finalRedirectUrl = redirectTo || (isMobile ? '/mobile.html' : '/dashboard.html');
+                const finalRedirectUrl = redirectTo || (isMobile ? '/version_mobil/mobile.html' : '/dashboard.html');
 
                 // Mostrar el pop-up solo en la vista móvil si aún no ha dado permiso
                 if (isMobile && !localStorage.getItem('audioPermitido')) {

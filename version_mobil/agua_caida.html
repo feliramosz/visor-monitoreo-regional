@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alertas Vigentes</title>
-    <link rel="stylesheet" href="style.css">
-    <style>        
+    <title>Agua Caída</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
         body.mobile-body {
         display: flex;
         flex-direction: column;
@@ -31,24 +31,12 @@
         padding: 15px;
         min-height: 0;
         }
-
-        /* Estilos para la tabla de alertas */
-        .alerts-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9em;
-        }
-        .alerts-table th, .alerts-table td {
-            padding: 12px 8px;
-            border: 1px solid #ddd;
-            text-align: left;
-            vertical-align: middle;
-        }
-        .alerts-table thead th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
         .back-button { display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.9em; margin-bottom: 20px; }
+        .data-table th, .data-table td { padding: 12px 8px; border: 1px solid #ddd; text-align: left; vertical-align: middle; }
+        .data-table thead th { background-color: #f2f2f2; font-weight: bold; }
+        .data-table td:nth-child(2), .data-table td:nth-child(3) { text-align: center; }
     </style>
 </head>
 <body class="mobile-body">
@@ -57,37 +45,33 @@
         <h1>ESTADO DE SITUACION REGIONAL</h1>
         <div class="clocks-container">
             <div class="header-clock">
-                <div class="led-clock" id="clock-continental">
-                    <span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span>
-                </div>
+                <div class="led-clock" id="clock-continental"><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span></div>
                 <h3>HORA DE CHILE CONTINENTAL</h3>
             </div>
             <div class="header-clock">
-                <div class="led-clock" id="clock-rapa-nui">
-                    <span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span>
-                </div>
+                <div class="led-clock" id="clock-rapa-nui"><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span></div>
                 <h3>HORA RAPA NUI</h3>
             </div>
         </div>
     </header>
 
     <main class="mobile-main">
-        <h2>Alertas Vigentes</h2>
-        <table class="alerts-table">
+        <h2>Precipitación Acumulada (24h)</h2>
+        <table class="data-table">
             <thead>
                 <tr>
-                    <th>Tipo de Alerta</th>
-                    <th>Evento</th>
-                    <th>Cobertura</th>
+                    <th>Estación</th>
+                    <th>Precipitación Hoy (mm)</th>
+                    <th>Precipitación Ayer (mm)</th>
                 </tr>
             </thead>
-            <tbody id="alertas-tbody">
+            <tbody id="precip-tbody">
                 </tbody>
         </table>
         <a href="/mobile.html" class="back-button">← Volver al Menú</a>
     </main>
-
-    <script src="alertas.js?v=1.0.0"></script>
+    
+    <script src="/version_mobil/agua_caida.js?v=1.0.0"></script>
 
 </body>
 </html>

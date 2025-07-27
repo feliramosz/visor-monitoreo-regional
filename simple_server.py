@@ -1464,8 +1464,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     is_mobile = any(keyword in user_agent for keyword in mobile_keywords)
 
                     if is_mobile:
-                        print(f"[{PID}] Dispositivo móvil detectado. Sirviendo mobile.html")
-                        file_to_serve = os.path.join(SERVER_ROOT, 'mobile.html')
+                        print(f"[{PID}] Dispositivo móvil detectado. Sirviendo /version_mobil/mobile.html")
+                        file_to_serve = os.path.join(SERVER_ROOT, 'version_mobil', 'mobile.html')
                     else:
                         print(f"[{PID}] Dispositivo de escritorio detectado. Sirviendo index.html")
                         file_to_serve = os.path.join(SERVER_ROOT, 'index.html')
