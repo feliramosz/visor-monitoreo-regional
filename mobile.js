@@ -93,8 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 'paso': '/paso_fronterizo.html',
                 'sec': '/interrupciones_sec.html',
                 'dga': '/hidrometria_dga.html',
-                'personal_turno': '/personal_turno.html',
-                'accidentes_waze': '/accidentes_waze.html',
+                'turnos': '/personal_turno.html',
+                'waze': '/accidentes_waze.html',
                 'sismos': '/sismos_tsunami.html',
                 'boletin': '/ultimo_boletin.html'
             };
