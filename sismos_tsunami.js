@@ -45,17 +45,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // Función para cargar los boletines
     async function cargarBoletines() {
         const ptwcCard = document.querySelector('#ptwc-card .bulletin-text');
+        const ptwcMeta = document.querySelector('#ptwc-card .bulletin-meta');
         const geofonCard = document.querySelector('#geofon-card .bulletin-text');
+        const geofonMeta = document.querySelector('#geofon-card .bulletin-meta');
+
+        // Función para formatear el timestamp a una fecha legible
+        const formatTimestamp = (ts) => {
+            const date = new Date(ts * 1000);
+            return date.toLocaleString('es-CL', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            }) + ' hrs';
+        };
 
         // Cargar boletín de PTWC
         try {
             const response = await fetch(TSUNAMI_API_URL);
             if (!response.ok) throw new Error('No hay boletines recientes.');
             const data = await response.json();
+            ptwcMeta.textContent = `Recibido: ${formatTimestamp(data.timestamp)}`;
             ptwcCard.textContent = data.mensaje;
         } catch (error) {
+            ptwcMeta.textContent = 'Estado';
             ptwcCard.textContent = 'No se han recibido boletines de PTWC.';
-            console.log(error.message);
         }
 
         // Cargar boletín de GEOFON
@@ -63,10 +75,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(GEOFON_API_URL);
             if (!response.ok) throw new Error('No hay boletines recientes.');
             const data = await response.json();
+            geofonMeta.textContent = `Recibido: ${formatTimestamp(data.timestamp)}`;
             geofonCard.textContent = data.mensaje;
         } catch (error) {
+            geofonMeta.textContent = 'Estado';
             geofonCard.textContent = 'No se han recibido boletines de GEOFON.';
-            console.log(error.message);
         }
     }
 

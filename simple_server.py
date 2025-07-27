@@ -1297,9 +1297,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             elif requested_path == '/api/last_tsunami_message':
                 LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_message.json')
                 if os.path.exists(LAST_MESSAGE_FILE):
-                    self._set_headers(200, 'application/json')
                     with open(LAST_MESSAGE_FILE, 'r') as f:
-                        self.wfile.write(f.read().encode('utf-8'))
+                        data = json.load(f)
+                    # Añadimos el timestamp de modificación del archivo
+                    data['timestamp'] = os.path.getmtime(LAST_MESSAGE_FILE)
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(data).encode('utf-8'))
                 else:
                     self._set_headers(404, 'application/json')
                     self.wfile.write(json.dumps({"error": "No hay un último mensaje de tsunami guardado."}).encode('utf-8'))
@@ -1319,9 +1322,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             elif requested_path == '/api/last_geofon_message':
                 LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_geofon_message.json')
                 if os.path.exists(LAST_MESSAGE_FILE):
-                    self._set_headers(200, 'application/json')
                     with open(LAST_MESSAGE_FILE, 'r') as f:
-                        self.wfile.write(f.read().encode('utf-8'))
+                        data = json.load(f)
+                    # Añadimos el timestamp de modificación del archivo
+                    data['timestamp'] = os.path.getmtime(LAST_MESSAGE_FILE)
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(data).encode('utf-8'))
                 else:
                     self._set_headers(404, 'application/json')
                     self.wfile.write(json.dumps({"error": "Aún no se ha registrado un boletín de GEOFON para probar."}).encode('utf-8'))
