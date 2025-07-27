@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('session_token');
     if (!token) {
         window.location.href = `/login.html?redirect_to=${window.location.pathname}`;
@@ -42,73 +42,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Lógica para cargar y mostrar los turnos
-    async function cargarTurnos() {
-        const llamadoCard = document.querySelector('#llamado-card .personnel-name');
-        const turnoActualCard = document.querySelector('#turno-actual-card .personnel-name');
-        const proximoTurnoCard = document.querySelector('#proximo-turno-card .personnel-name');
-        const turnoActualTitle = document.querySelector('#turno-actual-card h4');
+    const container = document.getElementById('turnos-container');
+    try {
+        const response = await fetch('/api/turnos');
+        const turnosData = await response.json();
+        const ahora = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Santiago" }));
+        const mesActual = ahora.toLocaleString('es-CL', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
+        const datosMes = turnosData[mesActual];
+        if (!datosMes) throw new Error('No hay datos para el mes actual.');
 
-        try {
-            const response = await fetch(TURNOS_API_URL);
-            const turnosData = await response.json();
-
-            const ahora = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Santiago" }));
-            const mesActual = ahora.toLocaleString('es-CL', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
-            const datosMes = turnosData[mesActual];
-
-            if (!datosMes || !datosMes.dias) throw new Error("No hay datos de turnos para el mes actual.");
-
-            const infoHoy = datosMes.dias.find(d => d.dia === ahora.getDate());
-            let turnoActivo = null, proximoTurno = null, tipoTurno = '', personal = datosMes.personal || {};
-
-            if (ahora.getHours() >= 9 && ahora.getHours() < 21) {
-                tipoTurno = 'Día';
-                if (infoHoy) {
-                    turnoActivo = infoHoy.turno_dia;
-                    proximoTurno = infoHoy.turno_noche;
-                }
-            } else { // Turno de Noche
-                tipoTurno = 'Noche';
-                let infoTurnoNoche;
-                if (ahora.getHours() >= 21) {
-                    infoTurnoNoche = infoHoy;
-                    if(infoTurnoNoche) turnoActivo = infoTurnoNoche.turno_noche;
-                    
-                    const manana = new Date(ahora);
-                    manana.setDate(ahora.getDate() + 1);
-                    const mesManana = manana.toLocaleString('es-CL', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
-                    const datosMesManana = turnosData[mesManana] || datosMes;
-                    const infoManana = datosMesManana.dias.find(d => d.dia === manana.getDate());
-                    if (infoManana) proximoTurno = infoManana.turno_dia;
-
-                } else {
-                    const ayer = new Date(ahora);
-                    ayer.setDate(ahora.getDate() - 1);
-                    const mesAyer = ayer.toLocaleString('es-CL', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
-                    const datosMesAyer = turnosData[mesAyer];
-                    if (datosMesAyer) {
-                        infoTurnoNoche = datosMesAyer.dias.find(d => d.dia === ayer.getDate());
-                        if (infoTurnoNoche) {
-                            turnoActivo = infoTurnoNoche.turno_noche;
-                            personal = datosMesAyer.personal || {};
-                        }
-                    }
-                    if (infoHoy) proximoTurno = infoHoy.turno_dia;
-                }
-            }
-
-            // Poblar las tarjetas
-            llamadoCard.textContent = turnoActivo ? (personal[turnoActivo.llamado] || 'No definido') : 'No definido';
-            
-            turnoActualTitle.textContent = `Personal en Turno (${tipoTurno})`;
-            turnoActualCard.innerHTML = turnoActivo ? `${personal[turnoActivo.op1] || 'S/I'}<br>${personal[turnoActivo.op2] || 'S/I'}` : 'No definido';
-            
-            proximoTurnoCard.innerHTML = proximoTurno ? `${personal[proximoTurno.op1] || 'S/I'}<br>${personal[proximoTurno.op2] || 'S/I'}` : 'No definido';
-
-        } catch (error) {
-            console.error("Error al cargar los turnos:", error);
-            [llamadoCard, turnoActualCard, proximoTurnoCard].forEach(card => card.textContent = 'Error al cargar');
+        const infoHoy = datosMes.dias.find(d => d.dia === ahora.getDate());
+        const personal = datosMes.personal || {};
+        let turnoActivo, proximoTurno, tipoTurno = 'Día';
+        if (ahora.getHours() >= 9 && ahora.getHours() < 21) {
+            turnoActivo = infoHoy.turno_dia;
+            proximoTurno = infoHoy.turno_noche;
+        } else { 
+            tipoTurno = 'Noche';            
+            turnoActivo = infoHoy.turno_noche;
+            const manana = new Date(ahora); manana.setDate(ahora.getDate() + 1);
+            const infoManana = datosMes.dias.find(d => d.dia === manana.getDate());
+            proximoTurno = infoManana ? infoManana.turno_dia : null;
         }
+        
+        container.innerHTML = `
+            <div class="turno-card"><h3>Profesional a Llamado</h3><p>${personal[turnoActivo.llamado] || 'No definido'}</p></div>
+            <div class="turno-card"><h3>Personal en Turno (${tipoTurno})</h3><p>${personal[turnoActivo.op1] || 'N/A'}<br>${personal[turnoActivo.op2] || 'N/A'}</p></div>
+            <div class="turno-card"><h3>Próximo Turno</h3><p>${proximoTurno ? (personal[proximoTurno.op1] || 'N/A') + '<br>' + (personal[proximoTurno.op2] || 'N/A') : 'No definido'}</p></div>
+        `;
+    } catch (error) {
+        container.innerHTML = '<p style="color:red; text-align:center;">Error al cargar datos de turnos.</p>';
     }
 
     // Inicialización

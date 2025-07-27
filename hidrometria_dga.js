@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async() => {
     const token = localStorage.getItem('session_token');
     if (!token) {
         window.location.href = `/login.html?redirect_to=${window.location.pathname}`;
@@ -6,15 +6,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const DATA_API_URL = '/api/data';
-    const SHOA_TIMES_API_URL = '/api/shoa_times';
-    const container = document.getElementById('hydro-cards-container');
-
-    // Umbrales de alerta
+    const SHOA_TIMES_API_URL = '/api/shoa_times';    
+    const container = document.getElementById('hidrometria-container');
     const hydroThresholds = {
         'Aconcagua en Chacabuquito': { nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.60 } },
         'Aconcagua San Felipe 2': { nivel: { amarilla: 2.80, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
         'Putaendo Resguardo Los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
     };
+    try {
+        const response = await fetch('/api/data');
+        const data = await response.json();
+        const estaciones = data.datos_hidrometricos || [];
+        let html = '';
+        estaciones.forEach(est => {
+            const umbrales = hydroThresholds[est.nombre_estacion];
+            if (!umbrales) return;
+            html += `
+                <div class="station-card">
+                    <h3>${est.nombre_estacion}</h3>
+                    <table class="station-table">
+                        <tr><td>PARÁMETRO</td><td><strong>VALOR MEDIDO</strong></td><td>UMBRAL AMARILLO</td><td>UMBRAL ROJO</td></tr>
+                        <tr><td>Altura (m)</td><td><strong>${est.nivel_m}</strong></td><td>${umbrales.nivel.amarilla}</td><td>${umbrales.nivel.roja}</td></tr>
+                        <tr><td>Caudal (m³/s)</td><td><strong>${est.caudal_m3s}</strong></td><td>${umbrales.caudal.amarilla}</td><td>${umbrales.caudal.roja}</td></tr>
+                    </table>
+                </div>`;
+        });
+        container.innerHTML = html;
+    } catch (error) {
+        container.innerHTML = '<p style="color:red; text-align:center;">Error al cargar datos de hidrometría.</p>';
+    }
 
     // Lógica para actualizar los relojes
     async function fetchShoaTimes() {

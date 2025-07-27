@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('session_token');
     if (!token) {
         window.location.href = `/login.html?redirect_to=${window.location.pathname}`;
@@ -8,6 +8,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const WAZE_API_URL = '/api/waze';
     const SHOA_TIMES_API_URL = '/api/shoa_times';
     const tbody = document.getElementById('waze-tbody');
+    const thead = document.getElementById('waze-thead');
+    thead.innerHTML = '<tr><th>UBICACIÓN</th><th>COMUNA</th><th>REPORTE</th></tr>';
+    try {
+        const response = await fetch('/api/waze');
+        const accidentes = await response.json();
+        if (accidentes.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No hay accidentes reportados en este momento.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = accidentes.map(acc => `
+            <tr>
+                <td>${acc.street}</td>
+                <td>${acc.city}</td>
+                <td>Hace ${Math.round((Date.now() - acc.pubMillis) / 60000)} min</td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="3" style="color:red; text-align:center;">Error al cargar datos de Waze.</td></tr>';
+    }
 
     // Lógica para actualizar los relojes
     async function fetchShoaTimes() {
