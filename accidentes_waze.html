@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accidentes Waze</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body.mobile-body { display: flex; flex-direction: column; height: 100vh; margin: 0; }
+        header.mobile-header { flex-direction: column; padding: 10px 5px; }
+        header.mobile-header h1 { font-size: 1.2em; margin: 10px 0; }
+        .clocks-container { display: flex; justify-content: space-around; width: 100%; }
+        .header-clock { min-width: unset; }
+        .led-clock { font-size: 1.5em; padding: 5px 10px; }
+        .digit { font-size: 1em; width: 15px; }
+        .separator { font-size: 1em; width: 8px; }
+        .header-clock h3 { font-size: 0.6em; letter-spacing: 1px; }
+        main.mobile-main { padding: 15px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; }
+        .back-button { display: block; text-align: center; margin-top: 20px; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.9em; margin-bottom: 20px; }
+        .data-table th, .data-table td { padding: 12px 8px; border: 1px solid #ddd; text-align: left; vertical-align: middle; }
+        .data-table thead th { background-color: #f2f2f2; font-weight: bold; }
+        .map-link { font-size: 1.5em; text-decoration: none; cursor: pointer; }
+    </style>
+</head>
+<body class="mobile-body">
+
+    <header class="mobile-header">
+        <h1>ESTADO DE SITUACION REGIONAL</h1>
+        <div class="clocks-container">
+            <div class="led-clock" id="clock-continental"><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span></div>
+            <h3>HORA DE CHILE CONTINENTAL</h3>
+        </div>
+        <div class="header-clock">
+            <div class="led-clock" id="clock-rapa-nui"><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span></div>
+            <h3>HORA RAPA NUI</h3>
+        </div>
+    </header>
+
+    <main class="mobile-main">
+        <h2>Accidentes Reportados en Waze</h2>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Ubicación</th>
+                    <th>Comuna</th>
+                    <th>Reporte</th>
+                    <th>Ver</th>
+                </tr>
+            </thead>
+            <tbody id="waze-tbody">
+                </tbody>
+        </table>
+        <a href="/mobile.html" class="back-button">← Volver al Menú</a>
+    </main>
+    
+    <script src="accidentes_waze.js"></script>
+
+</body>
+</html>
