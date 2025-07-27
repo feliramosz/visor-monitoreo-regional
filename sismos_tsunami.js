@@ -9,11 +9,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const GEOFON_API_URL = '/api/last_geofon_message';
     const SHOA_TIMES_API_URL = '/api/shoa_times';
 
-    // Lógica de Relojes (se omite por brevedad)
-    let lastFetchedShoaUtcTimestamp = 0, initialLocalTimestamp = 0;
-    async function fetchShoaTimes() { /* ...código de reloj... */ }
-    function updateLedClock(clockId, timeString) { /* ...código de reloj... */ }
-    function updateClockDisplays() { /* ...código de reloj... */ }
+    // Lógica para actualizar los relojes
+    async function fetchShoaTimes() {
+        try {
+            const response = await fetch(SHOA_TIMES_API_URL);
+            const data = await response.json();
+            lastFetchedShoaUtcTimestamp = data.shoa_utc_timestamp;
+            initialLocalTimestamp = Date.now() / 1000;
+        } catch (error) { console.error("Error al cargar horas:", error); }
+    }
+
+    function updateLedClock(clockId, timeString) {
+        const clock = document.getElementById(clockId);
+        if (!clock) return;
+        const digits = clock.querySelectorAll('.digit');
+        const timeDigits = timeString.replace(/:/g, '');
+        digits.forEach((digit, i) => {
+            if (digit && timeDigits[i] && digit.textContent !== timeDigits[i]) {
+                digit.textContent = timeDigits[i];
+            }
+        });
+    }
+
+    function updateClockDisplays() {
+        if (lastFetchedShoaUtcTimestamp === 0) return;
+        const secondsElapsed = (Date.now() / 1000) - initialLocalTimestamp;
+        const currentUtcTime = new Date((lastFetchedShoaUtcTimestamp + secondsElapsed) * 1000);
+        const formatOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+        const continentalTime = currentUtcTime.toLocaleTimeString('es-CL', { ...formatOptions, timeZone: 'America/Santiago' });
+        const rapaNuiTime = currentUtcTime.toLocaleTimeString('es-CL', { ...formatOptions, timeZone: 'Pacific/Easter' });
+        updateLedClock('clock-continental', continentalTime);
+        updateLedClock('clock-rapa-nui', rapaNuiTime);
+    }
 
     // Función para cargar los boletines
     async function cargarBoletines() {
