@@ -19,7 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastStationsData = [];
     const stateToColor = {'bueno': '#d4edda', 'regular': '#fff3cd', 'alerta': '#ffc107', 'preemergencia': '#fd7e14', 'emergencia': '#dc3545', 'no_disponible': '#e9ecef'};
 
-    // Lógica para actualizar los relojes
+    // --- Lógica de Relojes ---
+    let lastFetchedShoaUtcTimestamp = 0, initialLocalTimestamp = 0;
+    
     async function fetchShoaTimes() {
         try {
             const response = await fetch(SHOA_TIMES_API_URL);
@@ -53,11 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- Lógica de Datos y Renderizado ---
-    // Función para renderizar la tabla principal
     function renderMainTable(stations) {
         mainTbody.innerHTML = '';
         if (!stations || stations.length === 0) {
-            mainTbody.innerHTML = '<tr><td colspan="2">No hay estaciones disponibles.</td></tr>';
+            mainTbody.innerHTML = '<tr><td colspan="2" style="text-align:center;">No hay estaciones disponibles.</td></tr>';
             return;
         }
         stations.forEach(station => {
@@ -75,22 +76,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Función para actualizar el contenido del pop-up
     function updateModal(stations) {
         const stationsWithNews = stations.filter(s => s.estado !== 'bueno' && s.estado !== 'no_disponible');
         modalTbody.innerHTML = '';
-
         if (stationsWithNews.length === 0) {
             modalTbody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No hay estaciones que reporten novedades.</td></tr>';
             return;
         }
-
         stationsWithNews.forEach(station => {
             const alteredParams = station.parametros
                 .filter(p => p.estado !== 'bueno' && p.estado !== 'no_disponible')
                 .map(p => `<strong>${p.parametro}:</strong> ${p.valor} ${p.unidad}`)
                 .join('<br>');
-
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${station.nombre_estacion}</td>
@@ -101,7 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Función para obtener los datos reales desde la API
     async function cargarCalidadAire() {
         try {
             const response = await fetch(AIR_QUALITY_API_URL);
@@ -109,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderMainTable(lastStationsData);
         } catch (error) {
             console.error("Error al cargar datos de calidad del aire:", error);
-            mainTbody.innerHTML = '<tr><td colspan="2" style="color:red;">Error al cargar datos.</td></tr>';
+            mainTbody.innerHTML = '<tr><td colspan="2" style="color:red; text-align:center;">Error al cargar datos.</td></tr>';
         }
     }
     
@@ -126,7 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Lógica del Botón de Simulación ---
     let simulationState = 0;
     const getMockData = () => {
-        // Clonamos los datos reales para no modificarlos
         const baseData = JSON.parse(JSON.stringify(lastStationsData));
         return [
             { name: "Datos Reales", data: baseData },
@@ -153,22 +148,19 @@ document.addEventListener('DOMContentLoaded', () => {
             { name: "Todo Bueno", data: baseData.map(s => ({...s, estado: 'bueno', parametros: []})) }
         ];
     };
-
     simulateBtn.addEventListener('click', () => {
         const mockData = getMockData();
         simulationState = (simulationState + 1) % mockData.length;
         const currentSim = mockData[simulationState];
-        
         simulateBtn.textContent = `Simulando: ${currentSim.name}`;
-        renderMainTable(currentSim.data); // Actualiza la tabla principal con datos simulados
-        updateModal(currentSim.data); // Actualiza el modal también
-        
+        renderMainTable(currentSim.data);
+        updateModal(currentSim.data);
         console.log(`Simulación activa: ${currentSim.name}`);
     });
     
     // --- Inicialización ---    
     fetchShoaTimes();
     setInterval(updateClockDisplays, 1000);
-    initMap();
+    setInterval(fetchShoaTimes, 30 * 1000);
     cargarCalidadAire();
 });
