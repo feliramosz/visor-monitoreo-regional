@@ -5,6 +5,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // Referencias a elementos del DOM
+    const playBtn = document.getElementById('play-boletin-btn');
+    const statusText = document.getElementById('status-text');
+    const statusIconContainer = document.getElementById('status-container'); // Contenedor principal
+
+
     // Lógica para actualizar los relojes
     async function fetchShoaTimes() {
         try {
@@ -40,28 +46,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Función principal para generar y leer el boletín
     async function generarYLeerBoletinCompleto() {
-        const statusText = document.getElementById('status-text');
-        const statusIcon = document.getElementById('status-icon');
-
         if (localStorage.getItem('audioPermitido') === 'no') {
-            statusIcon.textContent = '🔇';
             statusText.textContent = 'La reproducción de audio está desactivada.';
-            statusIcon.style.animation = 'none';
+            playBtn.innerHTML = '🔇';
+            playBtn.disabled = true;
             return;
         }
 
-        try {
-            // 1. Obtener todos los datos necesarios en paralelo
-            const [
-                dataResponse,
-                calidadAireResponse,
-                turnosResponse
-            ] = await Promise.all([
-                fetch('/api/data'),
-                fetch('/api/calidad_aire'),
-                fetch('/api/turnos')
-            ]);
+        playBtn.disabled = true;
+        playBtn.style.display = 'none'; // Ocultar botón de play
+        statusIconContainer.innerHTML = '<div id="status-icon" style="font-size: 4em; animation: pulse 2s infinite;">🔊</div><div id="status-text">Preparando boletín...</div>';
 
+        try {
+            // "Despertamos" el motor de voz de Safari (Corrección para iPhone)
+            window.speechSynthesis.cancel();
+            const warmUpUtterance = new SpeechSynthesisUtterance(' ');
+            warmUpUtterance.volume = 0;
+            window.speechSynthesis.speak(warmUpUtterance);
+
+            // 1. Obtener todos los datos necesarios
+            const [dataResponse, calidadAireResponse, turnosResponse] = await Promise.all([
+                fetch('/api/data'), fetch('/api/calidad_aire'), fetch('/api/turnos')
+            ]);
             const mainData = await dataResponse.json();
             // La respuesta de calidad del aire y turnos la pasaremos a las funciones que las necesitan
 
@@ -95,29 +101,25 @@ document.addEventListener('DOMContentLoaded', () => {
             await sonidoNotificacion.play();
 
             sonidoNotificacion.onended = () => {
-                hablar(textoFinal);
-                statusText.textContent = 'Reproduciendo boletín...';
+                const utterance = hablar(textoFinal);
+                document.getElementById('status-text').textContent = 'Reproduciendo boletín...';
                 
-                // Actualizar estado al finalizar la locución
-                const utterance = window.speechSynthesis.getUtterances()[0];
                 if (utterance) {
                     utterance.onend = () => {
-                        statusText.textContent = 'Boletín finalizado.';
-                        statusIcon.style.animation = 'none';
+                        document.getElementById('status-text').textContent = 'Boletín finalizado.';
+                        document.getElementById('status-icon').style.animation = 'none';
                     };
                 }
             };
 
         } catch (error) {
             console.error("Error al generar el boletín:", error);
-            statusText.textContent = 'Error al cargar los datos para el boletín.';
-            statusIcon.textContent = '⚠️';
-            statusIcon.style.animation = 'none';
+            statusIconContainer.innerHTML = '<div id="status-icon" style="font-size: 4em;">⚠️</div><div id="status-text">Error al cargar los datos para el boletín.</div>';
         }
     }
 
     // Inicialización
     fetchShoaTimes();
     setInterval(updateClockDisplays, 1000);
-    generarYLeerBoletinCompleto();
+    playBtn.addEventListener('click', generarYLeerBoletinCompleto);
 });
