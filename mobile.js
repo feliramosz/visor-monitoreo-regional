@@ -87,7 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 'informes': '/informes.html',
                 'novedades': '/novedades.html',
                 'calidad_aire': '/calidad_aire.html',
-                'estacion_meteo': '/estacion_meteo.html'
+                'estacion_meteo': '/estacion_meteo.html',
+                'agua_caida': '/agua_caida.html'
             };
 
             if (sectionMap[section]) {
