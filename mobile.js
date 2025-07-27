@@ -85,13 +85,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 'alertas': '/alertas.html',
                 'avisos': '/avisos.html',
                 'informes': '/informes.html',
-                'novedades': '/novedades.html' 
+                'novedades': '/novedades.html',
+                'calidad_aire': '/calidad_aire.html'
             };
 
             if (sectionMap[section]) {
                 window.location.href = sectionMap[section];
             } else {
-                // Mensaje para las secciones aún no implementadas
                 alert(`Sección '${section}' en desarrollo.`);
             }
         });
