@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Último Boletín</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body.mobile-body { display: flex; flex-direction: column; height: 100vh; margin: 0; }
+        header.mobile-header { flex-direction: column; padding: 10px 5px; }
+        header.mobile-header h1 { font-size: 1.2em; margin: 10px 0; }
+        .clocks-container { display: flex; justify-content: space-around; width: 100%; }
+        .header-clock { min-width: unset; }
+        .led-clock { font-size: 1.5em; padding: 5px 10px; }
+        .digit { font-size: 1em; width: 15px; }
+        .separator { font-size: 1em; width: 8px; }
+        .header-clock h3 { font-size: 0.6em; letter-spacing: 1px; }
+        main.mobile-main { padding: 15px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        .back-button { display: block; text-align: center; margin-top: 20px; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        
+        #status-container {
+            padding: 30px;
+        }
+        #status-icon {
+            font-size: 4em;
+            animation: pulse 2s infinite;
+        }
+        #status-text {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-top: 15px;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+    </style>
+</head>
+<body class="mobile-body">
+
+    <header class="mobile-header">
+        <h1>ESTADO DE SITUACION REGIONAL</h1>
+        <div class="clocks-container">
+            <div class="led-clock" id="clock-continental"><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span></div>
+            <h3>HORA DE CHILE CONTINENTAL</h3>
+        </div>
+        <div class="header-clock">
+            <div class="led-clock" id="clock-rapa-nui"><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span></div>
+            <h3>HORA RAPA NUI</h3>
+        </div>
+    </header>
+
+    <main class="mobile-main">
+        <div id="status-container">
+            <div id="status-icon">🔊</div>
+            <div id="status-text">Preparando boletín...</div>
+        </div>
+        <a href="/mobile.html" class="back-button">← Volver al Menú</a>
+    </main>
+    
+    <script src="boletin-logic.js"></script>
+    <script src="ultimo_boletin.js"></script>
+
+</body>
+</html>
