@@ -25,9 +25,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Lógica de redirección inteligente
                 const urlParams = new URLSearchParams(window.location.search);
                 const redirectTo = urlParams.get('redirect_to');
-                
-                // Si hay un parámetro de redirección, úsalo. Si no, ve al dashboard por defecto.
-                window.location.href = redirectTo || '/dashboard.html';
+
+                // --- Inicio: Lógica para determinar el destino y manejar el pop-up de audio ---
+                const userAgent = navigator.userAgent.toLowerCase();
+                const isMobile = /mobi|iphone|ipad|android|tablet/.test(userAgent);
+
+                const finalRedirectUrl = redirectTo || (isMobile ? '/mobile.html' : '/dashboard.html');
+
+                // Mostrar el pop-up solo en la vista móvil si aún no ha dado permiso
+                if (isMobile && !localStorage.getItem('audioPermitido')) {
+                    const audioPopup = document.getElementById('audio-popup');
+                    const btnAudioYes = document.getElementById('btn-audio-yes');
+                    const btnAudioNo = document.getElementById('btn-audio-no');
+
+                    if (audioPopup) {
+                        // Ocultar el formulario de login y mostrar el pop-up
+                        loginForm.style.display = 'none';
+                        document.querySelector('.registration-info').style.display = 'none';
+                        document.querySelector('.login-container h2').textContent = 'Permiso de Sonido';
+
+                        audioPopup.style.display = 'flex';
+
+                        // Asignar los eventos a los botones del pop-up
+                        btnAudioYes.onclick = () => {
+                            localStorage.setItem('audioPermitido', 'si');
+                            window.location.href = finalRedirectUrl;
+                        };
+                        btnAudioNo.onclick = () => {
+                            localStorage.setItem('audioPermitido', 'no');
+                            window.location.href = finalRedirectUrl;
+                        };
+                    } else {
+                        window.location.href = finalRedirectUrl; // Si el pop-up no existe por alguna razón, redirigir
+                    }
+                } else {
+                    // Si no es un dispositivo móvil o si ya tiene la preferencia guardada, redirigir directamente
+                    window.location.href = finalRedirectUrl;
+                }
 
             } else {
                 // Mostrar error del servidor (ej. "Usuario o contraseña inválidos")

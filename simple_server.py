@@ -1452,8 +1452,17 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 file_to_serve = os.path.join(SERVER_ROOT, requested_path.lstrip('/'))
                 file_to_serve = os.path.normpath(file_to_serve)
 
-                if requested_path == '/':
-                    file_to_serve = os.path.join(SERVER_ROOT, 'index.html')
+                if requested_path == '/':                    
+                    user_agent = self.headers.get('User-Agent', '').lower()
+                    mobile_keywords = ['mobi', 'iphone', 'ipad', 'android', 'tablet', 'windows phone']
+                    is_mobile = any(keyword in user_agent for keyword in mobile_keywords)
+
+                    if is_mobile:
+                        print(f"[{PID}] Dispositivo móvil detectado. Sirviendo mobile.html")
+                        file_to_serve = os.path.join(SERVER_ROOT, 'mobile.html')
+                    else:
+                        print(f"[{PID}] Dispositivo de escritorio detectado. Sirviendo index.html")
+                        file_to_serve = os.path.join(SERVER_ROOT, 'index.html')
                 elif requested_path == '/admin':
                     file_to_serve = os.path.join(SERVER_ROOT, 'admin.html')
                 elif requested_path == '/dashboard':
