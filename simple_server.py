@@ -267,7 +267,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 mensaje_voz += "¡Atención! El boletín contiene acciones recomendadas importantes. Por favor, revise el sitio web oficial del Pacific Tsunami Warning Center para obtener los detalles oficiales."
                 sonido = "assets/sismo.mp3"
             elif event_code_value == "Information":
-                mensaje_voz += "No se espera un impacto de tsunami. No se requiere tomar ninguna acción."
+                mensaje_voz += "No se reporta un impacto de tsunami. No se requiere tomar ninguna acción."
             else: # Casos no reconocidos o cancelaciones
                 mensaje_voz += "¡Atención! Se ha recibido un boletín de tsunami con información relevante que requiere su atención. Revise el sitio web oficial del Pacific Tsunami Warning Center para obtener los detalles."
                 sonido = "assets/sismo.mp3"
