@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (hora < 12) saludoFinal = "buenos días.";
         else if (hora < 21) saludoFinal = "buenas tardes.";
         else saludoFinal = "buenas noches.";
-        boletinCompleto.push(`Finaliza el boletín informativo de las ${horaFormato} horas, ${saludoFinal}`);
+        boletinCompleto.push(`Finaliza el boletín informativo de las ${horaFormato} , ${saludoFinal}`);
         
         const textoFinal = boletinCompleto.filter(Boolean).join(" ... ");
         
@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const mensajeVoz = `El puerto ${nombrePuerto} ahora se encuentra ${estadoNuevo} y su condicion es ${condicionNueva}.`;
 
                 // Lanza la notificación con un sonido de alerta
-                lanzarNotificacion('assets/notificacion_normal.mp3', mensajeVoz);
+                lanzarNotificacion('assets/notificacion_normal.mp3', mensajeVoz,'assets/cierre_boletin.mp3');
 
                 // Actualiza la memoria con el nuevo estado para no volver a notificar
                 memoriaNotificaciones.puertos[nombrePuerto] = { estado: estadoNuevo, condicion: condicionNueva };
@@ -2030,10 +2030,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const dosHoras = 2 * 3600 * 1000;
 
             if (tiempoDesdeUltimaNotificacion > dosHoras) {
-                const mensajeVoz = `El Complejo Fronterizo Los Libertadores se encuentra ${estadoNuevo}.`;
-                lanzarNotificacion('assets/notificacion_normnal.mp3', mensajeVoz);
+                const mensajeVoz = `Recordatorio. El Complejo Fronterizo Los Libertadores se mantiene ${estadoNuevo}.`;
+                lanzarNotificacion('assets/notificacion_normnal.mp3', mensajeVoz, 'assets/cierre_boletin.mp3');
 
-                // Aquí está la corrección clave: actualizamos el objeto completo
+                // Actualizamos el objeto completo
                 memoriaNotificaciones.pasoFronterizo['Los Libertadores'] = { estado: estadoNuevo, ultimaNotificacion: ahora };
             }
         }
