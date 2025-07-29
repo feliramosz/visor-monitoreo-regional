@@ -39,11 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const btnAudioNo = document.getElementById('btn-audio-no');
 
                     if (audioPopup) {
-                        // Ocultar el formulario de login y mostrar el pop-up
-                        loginForm.style.display = 'none';
-                        document.querySelector('.registration-info').style.display = 'none';
-                        document.querySelector('.login-container h2').textContent = 'Permiso de Sonido';
-
                         audioPopup.style.display = 'flex';
 
                         // Asignar los eventos a los botones del pop-up
