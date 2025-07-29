@@ -92,6 +92,117 @@
         .data-table th:nth-child(2), .data-table th:nth-child(3) {
             text-align: center;
         }
+        .status-cell {
+            font-weight: bold;
+            text-align: center;
+            color: white;
+            text-transform: uppercase;
+        }
+        .status-habilitado {
+            background-color: #28a745;
+        }
+        .status-cerrado {
+            background-color: #dc3545;
+        }
+        .status-otro {
+            background-color: #6c757d;
+        }
+        .province-row {
+            cursor: pointer;
+        }
+        .province-row:hover {
+            background-color: #f8f9fa;
+        }
+        /* --- Estilos para Hidrometría --- */
+        .station-card { background-color: #fff; border-radius: 8px; margin-bottom: 20px; overflow: hidden; border: 1px solid #ddd; }
+        .station-card h3 { background-color: #f8f9fa; margin: 0; padding: 12px; font-size: 1.1em; }
+        .card-table { width: 100%; border-collapse: collapse; }
+        .card-table th, .card-table td { padding: 10px; border-top: 1px solid #eee; font-size: 0.9em; text-align: center; }
+        .card-table th { font-weight: bold; font-size: 0.8em; }
+        .card-table tbody td:first-child { text-align: left; font-weight: bold; }
+        .status-amarillo { background-color: #fff3cd; font-weight: bold; }
+        .status-rojo { background-color: #f8d7da; font-weight: bold; color: #721c24; }
+        /* --- Estilos para Personal de Turno --- */
+        .turno-card { 
+            background-color: #fff; 
+            border-radius: 8px; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            text-align: center; 
+            border-top: 4px solid #007bff; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .turno-card h3 { 
+            margin: 0 0 10px 0; 
+            font-size: 1em; 
+            color: #007bff; 
+            font-weight: bold;
+        }
+        .turno-card p { 
+            margin: 5px 0; 
+            font-size: 1.2em; 
+            font-weight: bold; 
+            line-height: 1.4;
+        }
+        /* Estilo para el icono de mapa en Waze */
+        .waze-map-link {
+            text-decoration: none;
+            font-size: 1.5em;
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+        .waze-map-link:hover {
+            transform: scale(1.2);
+        }
+        /* --- Estilos para Boletines Sísmicos --- */
+        .bulletin-card { 
+            background-color: #fff; 
+            border-radius: 8px; 
+            padding: 15px; 
+            margin-bottom: 20px; 
+            border-top: 4px solid #0056b3; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .bulletin-card h3 { 
+            margin: 0 0 10px; 
+            font-size: 1.2em; 
+            color: #333; 
+        }
+        .bulletin-card p { 
+            margin: 0; 
+            font-size: 0.95em; 
+            line-height: 1.6; 
+        }
+        /* --- Estilos para Último Boletín --- */
+        .boletin-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 30px;
+            box-sizing: border-box;
+        }
+        #play-boletin-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            font-size: 3em;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        #play-boletin-btn:hover { transform: scale(1.1); }
+        #play-boletin-btn:disabled { background-color: #6c757d; cursor: not-allowed; }
+        #boletin-status-text {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body class="mobile-body">
@@ -120,7 +231,7 @@
             <div class="icon-card" data-section="estacion_meteo"><img src="/assets/iconos-gif/estacion_meteo.gif" alt="Estaciones"><span>Est. Meteorológica</span></div>
             <div class="icon-card" data-section="agua_caida"><img src="/assets/iconos-gif/agua_caida.gif" alt="Agua Caída"><span>Agua Caída</span></div>
             <div class="icon-card" data-section="puertos"><img src="/assets/iconos-gif/estado_puertos.gif" alt="Puertos"><span>Puertos</span></div>
-            <div class="icon-card" data-section="paso"><img src="/assets/iconos-gif/paso_fronterizo.gif" alt="Pasos Fronterizos"><span>Pasos Fronterizos</span></div>
+            <div class="icon-card" data-section="paso"><img src="/assets/iconos-gif/paso_fronterizo.gif" alt="Paso Fronterizo"><span>Paso Fronterizo</span></div>
             <div class="icon-card" data-section="sec"><img src="/assets/iconos-gif/interrupciones_SEC.gif" alt="SEC"><span>SEC</span></div>
             <div class="icon-card" data-section="dga"><img src="/assets/iconos-gif/hidrometria_DGA.gif" alt="Hidrometría"><span>Hidrometría</span></div>
             <div class="icon-card" data-section="turnos"><img src="/assets/iconos-gif/personal_turno.gif" alt="Turnos"><span>Personal de Turno</span></div>
