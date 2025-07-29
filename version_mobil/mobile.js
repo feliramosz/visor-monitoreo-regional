@@ -248,14 +248,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 tableHTML += '</tbody></table>';
-                modalBody.innerHTML = tableHTML;
-
-                 // La llamada a la función de detalle tenía un error de tipeo aquí
+                modalBody.innerHTML = tableHTML;                
                 document.getElementById('show-details-btn').addEventListener('click', renderDetailView);
             };
-
-            // Cargar la vista principal por defecto
-            renderMainView();
 
             // Función interna para renderizar la vista de detalles (solo estaciones con novedad)
             const renderDetailView = () => {
