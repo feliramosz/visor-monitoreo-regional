@@ -242,11 +242,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 tableHTML += '</tbody></table>';
                 modalBody.innerHTML = tableHTML;
 
-                // El evento se añade después de que el botón existe en el pop-up
-                document.getElementById('show-details-btn').addEventListener('click', () => {
-                    renderDetailView();
-                });
+                 // La llamada a la función de detalle tenía un error de tipeo aquí
+                document.getElementById('show-details-btn').addEventListener('click', renderDetailView);
             };
+
+            // Cargar la vista principal por defecto
+            renderMainView();
 
             // Función interna para renderizar la vista de detalles (solo estaciones con novedad)
             const renderDetailView = () => {
