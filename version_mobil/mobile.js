@@ -11,6 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalBody = document.getElementById('modal-body');
     const closeModalBtn = document.getElementById('modal-close-btn');
 
+    // --- Variables y Constantes para APIs ---
+    const SHOA_TIMES_API_URL = '/api/shoa_times';
+    let lastFetchedShoaUtcTimestamp = 0;
+    let initialLocalTimestamp = 0;
+
     // --- Lógica de Relojes ---
     async function fetchShoaTimes() {
         try {
@@ -30,7 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const digits = clock.querySelectorAll('.digit');
         const timeDigits = timeString.replace(/:/g, '');
         digits.forEach((digit, i) => {
-            if (digit.textContent !== timeDigits[i]) digit.textContent = timeDigits[i];
+            if (digit && timeDigits[i] && digit.textContent !== timeDigits[i]) {
+                digit.textContent = timeDigits[i];
+            }
         });
     }
 
@@ -64,8 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Lógica para Cargar Contenido en el Modal ---
-
-    // 1. Contenido para Alertas Vigentes
     async function loadAlertasContent() {
         openModal("Alertas Vigentes");
         try {
@@ -78,7 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // Ordenar por severidad
             const priorityOrder = { 'roja': 1, 'amarilla': 2, 'temprana preventiva': 3 };
             alertas.sort((a, b) => {
                 const nivelA = a.nivel_alerta.toLowerCase();
@@ -88,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return scoreA - scoreB;
             });
 
-            // Construir la tabla
             let tableHTML = '<table class="data-table"><thead><tr><th>Tipo</th><th>Evento</th><th>Cobertura</th></tr></thead><tbody>';
             alertas.forEach(alerta => {
                 const nivel = alerta.nivel_alerta.toLowerCase();
@@ -107,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Lógica de Navegación de Iconos (Actualizada) ---
+    // --- Lógica de Navegación de Iconos ---
     document.querySelectorAll('.icon-card').forEach(card => {
         card.addEventListener('click', () => {
             const section = card.dataset.section;
@@ -115,13 +118,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (section === 'alertas') {
                 loadAlertasContent();
             } else {
-                // Próximamente agregaremos las otras funciones aquí
                 openModal(card.querySelector('span').textContent);
                 modalBody.innerHTML = `<p>Sección '${section}' en desarrollo.</p>`;
             }
         });
     });
 
+    // --- Inicialización ---
     fetchShoaTimes();
     setInterval(updateClockDisplays, 1000);
     setInterval(fetchShoaTimes, 30 * 1000);

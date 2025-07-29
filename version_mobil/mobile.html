@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/style.css">
     <style>
         body.mobile-body { display: flex; flex-direction: column; height: 100vh; margin: 0; overflow-y: auto; }
-        header.mobile-header { flex-direction: column; padding: 10px 5px; }
+        header.mobile-header { flex-shrink: 0; flex-direction: column; padding: 10px 5px; }
         header.mobile-header h1 { font-size: 1.2em; margin: 10px 0; }
         .clocks-container { display: flex; justify-content: space-around; width: 100%; }
         .header-clock { min-width: unset; }
@@ -20,7 +20,6 @@
         .icon-card:hover { transform: translateY(-5px); }
         .icon-card img { width: 50px; height: 50px; margin-bottom: 5px; }
         .icon-card span { font-size: 0.7em; font-weight: bold; color: #333; }
-        /* --- Estilos para el Pop-up Principal --- */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 4000; }
         .modal-content { background: white; border-radius: 8px; width: 95%; max-width: 500px; height: 85%; max-height: 600px; display: flex; flex-direction: column; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #ddd; }
@@ -34,11 +33,37 @@
 <body class="mobile-body">
 
     <header class="mobile-header">
-        </header>
+        <h1>ESTADO DE SITUACION REGIONAL</h1>
+        <div class="clocks-container">
+            <div class="header-clock">
+                <div class="led-clock" id="clock-continental"><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span></div>
+                <h3>HORA DE CHILE CONTINENTAL</h3>
+            </div>
+            <div class="header-clock">
+                <div class="led-clock" id="clock-rapa-nui"><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span><span class="separator">:</span><span class="digit">0</span><span class="digit">0</span></div>
+                <h3>HORA RAPA NUI</h3>
+            </div>
+        </div>
+    </header>
 
     <main class="mobile-main">
         <div class="icon-grid">
-            </div>
+            <div class="icon-card" data-section="alertas"><img src="/assets/iconos-gif/alertas_vigentes.gif" alt="Alertas"><span>Alertas Vigentes</span></div>
+            <div class="icon-card" data-section="avisos"><img src="/assets/iconos-gif/avisos.gif" alt="Avisos"><span>Avisos</span></div>
+            <div class="icon-card" data-section="informes"><img src="/assets/iconos-gif/informes.gif" alt="Informes"><span>Informes 24h</span></div>
+            <div class="icon-card" data-section="novedades"><img src="/assets/iconos-gif/novedades.gif" alt="Novedades"><span>Novedades</span></div>
+            <div class="icon-card" data-section="calidad_aire"><img src="/assets/iconos-gif/calidad_aire.gif" alt="Calidad del Aire"><span>Calidad del Aire</span></div>
+            <div class="icon-card" data-section="estacion_meteo"><img src="/assets/iconos-gif/estacion_meteo.gif" alt="Estaciones"><span>Est. Meteorológica</span></div>
+            <div class="icon-card" data-section="agua_caida"><img src="/assets/iconos-gif/agua_caida.gif" alt="Agua Caída"><span>Agua Caída</span></div>
+            <div class="icon-card" data-section="puertos"><img src="/assets/iconos-gif/estado_puertos.gif" alt="Puertos"><span>Puertos</span></div>
+            <div class="icon-card" data-section="paso"><img src="/assets/iconos-gif/paso_fronterizo.gif" alt="Pasos Fronterizos"><span>Pasos Fronterizos</span></div>
+            <div class="icon-card" data-section="sec"><img src="/assets/iconos-gif/interrupciones_SEC.gif" alt="SEC"><span>SEC</span></div>
+            <div class="icon-card" data-section="dga"><img src="/assets/iconos-gif/hidrometria_DGA.gif" alt="Hidrometría"><span>Hidrometría</span></div>
+            <div class="icon-card" data-section="turnos"><img src="/assets/iconos-gif/personal_turno.gif" alt="Turnos"><span>Personal de Turno</span></div>
+            <div class="icon-card" data-section="waze"><img src="/assets/iconos-gif/accidentes_waze.gif" alt="Waze"><span>Accidentes Waze</span></div>
+            <div class="icon-card" data-section="sismos"><img src="/assets/iconos-gif/ptwc_geofon.gif" alt="Sismos"><span>Sismos/Tsunami</span></div>
+            <div class="icon-card" data-section="boletin"><img src="/assets/iconos-gif/ultimo_boletin.gif" alt="Boletín"><span>Último Boletín</span></div>
+        </div>
     </main>
 
     <div id="main-modal" class="modal-overlay">
