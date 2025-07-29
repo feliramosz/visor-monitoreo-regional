@@ -5,9 +5,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    const SHOA_TIMES_API_URL = '/api/shoa_times';
-    let lastFetchedShoaUtcTimestamp = 0;
-    let initialLocalTimestamp = 0;
+    // --- Referencias a Elementos del DOM ---
+    const modal = document.getElementById('main-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    const closeModalBtn = document.getElementById('modal-close-btn');
 
     // --- Lógica de Relojes ---
     async function fetchShoaTimes() {
@@ -21,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Error al cargar horas del SHOA:", error);
         }
     }
-
+    
     function updateLedClock(clockId, timeString) {
         const clock = document.getElementById(clockId);
         if (!clock) return;
@@ -43,67 +45,84 @@ document.addEventListener('DOMContentLoaded', () => {
         updateLedClock('clock-rapa-nui', rapaNuiTime);
     }
 
-    // --- Lógica para el Pop-up de Audio ---
-    const audioPopup = document.getElementById('audio-popup');
-    const btnAudioYes = document.getElementById('btn-audio-yes');
-    const btnAudioNo = document.getElementById('btn-audio-no');
-
-    // Comprobar si ya se ha dado permiso
-    if (!localStorage.getItem('audioPermitido')) {
-        audioPopup.style.display = 'flex';
+    // --- Lógica del Pop-up (Modal) ---
+    function openModal(title = "Cargando...") {
+        modalTitle.textContent = title;
+        modalBody.innerHTML = '<p>Por favor, espere...</p>';
+        modal.style.display = 'flex';
     }
 
-    const handleAudioPermission = (permitido) => {
-        localStorage.setItem('audioPermitido', permitido ? 'si' : 'no');
-        audioPopup.style.display = 'none';
-        // Aquí se podría inicializar el sistema de notificaciones si es 'si'
-        if (permitido) {
-            console.log("Audio activado por el usuario.");
-            // Forzar una pequeña síntesis de voz silenciosa para "despertar" el motor de audio
-            const utterance = new SpeechSynthesisUtterance('');
-            utterance.volume = 0;
-            window.speechSynthesis.speak(utterance);
+    function closeModal() {
+        modal.style.display = 'none';
+    }
+
+    closeModalBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
         }
-    };
+    });
 
-    btnAudioYes.addEventListener('click', () => handleAudioPermission(true));
-    btnAudioNo.addEventListener('click', () => handleAudioPermission(false));
+    // --- Lógica para Cargar Contenido en el Modal ---
 
+    // 1. Contenido para Alertas Vigentes
+    async function loadAlertasContent() {
+        openModal("Alertas Vigentes");
+        try {
+            const response = await fetch('/api/data');
+            const data = await response.json();
+            const alertas = data.alertas_vigentes || [];
 
-    // --- Inicialización ---
-    fetchShoaTimes();
-    setInterval(updateClockDisplays, 1000);
-    setInterval(fetchShoaTimes, 30 * 1000);
+            if (alertas.length === 0) {
+                modalBody.innerHTML = '<p>No se registran alertas vigentes.</p>';
+                return;
+            }
+            
+            // Ordenar por severidad
+            const priorityOrder = { 'roja': 1, 'amarilla': 2, 'temprana preventiva': 3 };
+            alertas.sort((a, b) => {
+                const nivelA = a.nivel_alerta.toLowerCase();
+                const nivelB = b.nivel_alerta.toLowerCase();
+                const scoreA = Object.keys(priorityOrder).find(key => nivelA.includes(key)) ? priorityOrder[Object.keys(priorityOrder).find(key => nivelA.includes(key))] : 99;
+                const scoreB = Object.keys(priorityOrder).find(key => nivelB.includes(key)) ? priorityOrder[Object.keys(priorityOrder).find(key => nivelB.includes(key))] : 99;
+                return scoreA - scoreB;
+            });
 
-    // --- Lógica de Navegación de Iconos ---
+            // Construir la tabla
+            let tableHTML = '<table class="data-table"><thead><tr><th>Tipo</th><th>Evento</th><th>Cobertura</th></tr></thead><tbody>';
+            alertas.forEach(alerta => {
+                const nivel = alerta.nivel_alerta.toLowerCase();
+                let itemClass = '';
+                if (nivel.includes('roja')) itemClass = 'alerta-roja';
+                else if (nivel.includes('amarilla')) itemClass = 'alerta-amarilla';
+                else if (nivel.includes('temprana preventiva')) itemClass = 'alerta-temprana-preventiva';
+                
+                tableHTML += `<tr><td class="${itemClass}">${alerta.nivel_alerta}</td><td>${alerta.evento}</td><td>${alerta.cobertura}</td></tr>`;
+            });
+            tableHTML += '</tbody></table>';
+            modalBody.innerHTML = tableHTML;
+
+        } catch (error) {
+            modalBody.innerHTML = '<p style="color:red;">Error al cargar la información.</p>';
+        }
+    }
+
+    // --- Lógica de Navegación de Iconos (Actualizada) ---
     document.querySelectorAll('.icon-card').forEach(card => {
         card.addEventListener('click', () => {
             const section = card.dataset.section;
-
-            // Mapeo de secciones a sus respectivas páginas
-            const sectionMap = {
-                'alertas': '/version_mobil/alertas.html',
-                'avisos': '/version_mobil/avisos.html',
-                'informes': '/version_mobil/informes.html',
-                'novedades': '/version_mobil/novedades.html',
-                'calidad_aire': '/version_mobil/calidad_aire.html',
-                'estacion_meteo': '/version_mobil/estacion_meteo.html',
-                'agua_caida': '/version_mobil/agua_caida.html',
-                'puertos': '/version_mobil/estado_puertos.html',
-                'paso': '/version_mobil/paso_fronterizo.html',
-                'sec': '/version_mobil/interrupciones_sec.html',
-                'dga': '/version_mobil/hidrometria_dga.html',
-                'turnos': '/version_mobil/personal_turno.html',
-                'waze': '/version_mobil/accidentes_waze.html',
-                'sismos': '/version_mobil/sismos_tsunami.html',
-                'boletin': '/version_mobil/ultimo_boletin.html'
-            };
-
-            if (sectionMap[section]) {
-                window.location.href = sectionMap[section];
+            
+            if (section === 'alertas') {
+                loadAlertasContent();
             } else {
-                alert(`Sección '${section}' en desarrollo.`);
+                // Próximamente agregaremos las otras funciones aquí
+                openModal(card.querySelector('span').textContent);
+                modalBody.innerHTML = `<p>Sección '${section}' en desarrollo.</p>`;
             }
         });
     });
+
+    fetchShoaTimes();
+    setInterval(updateClockDisplays, 1000);
+    setInterval(fetchShoaTimes, 30 * 1000);
 });
