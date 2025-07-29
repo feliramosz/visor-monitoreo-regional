@@ -10,6 +10,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
     const closeModalBtn = document.getElementById('modal-close-btn');
+    const stateToColor = {
+        'bueno': '#4caf50',
+        'regular': '#ffeb3b',
+        'alerta': '#ff9800',
+        'preemergencia': '#f44336',
+        'emergencia': '#9c27b0',
+        'no_disponible': '#9e9e9e'
+    };
 
     // --- Variables y Constantes para APIs ---
     const SHOA_TIMES_API_URL = '/api/shoa_times';
