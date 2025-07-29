@@ -32,6 +32,66 @@
         .info-card h3 { margin-top: 0; font-size: 1.1em; color: #333; }
         .info-card p { margin: 5px 0; font-size: 0.9em; }
         .info-card .meta-info { font-size: 0.8em; color: #6c757d; border-top: 1px solid #eee; padding-top: 8px; margin-top: 8px; }
+        .aviso-aviso, .aviso-alerta, .aviso-alarma, .aviso-marejadas {
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: white;
+            display: inline-block;
+        }
+        .aviso-aviso { background-color: #28a745; }
+        .aviso-alerta { background-color: #ffc107; color: #343a40; }
+        .aviso-alarma { background-color: #dc3545; }
+        .aviso-marejadas { background-color: #0d6efd; }
+        .novedad-item {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            border-left: 4px solid #007bff;
+        }
+        .novedad-header {
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        .novedad-texto {
+            font-size: 0.95em;
+            line-height: 1.5;
+            color: #343a40;
+            white-space: pre-wrap;
+        }
+        .main-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .main-header h2 { margin: 0; flex-grow: 1; font-size: 1.1em; }
+        .show-modal-btn { padding: 8px 12px; font-size: 0.8em; font-weight: bold; color: white; background-color: #007bff; border: none; border-radius: 5px; cursor: pointer; flex-shrink: 0; }
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; color: #333; text-transform: capitalize; }
+        .data-table td { text-align: center; }
+        .data-table td:first-child { text-align: left; }
+        .info-button {
+            background-color: #0d6efd;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 6px 10px;
+            font-size: 0.8em;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .station-details {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        .station-details p {
+            margin: 8px 0;
+            font-size: 1.1em;
+        }
+        .data-table td:nth-child(2), .data-table td:nth-child(3),
+        .data-table th:nth-child(2), .data-table th:nth-child(3) {
+            text-align: center;
+        }
     </style>
 </head>
 <body class="mobile-body">

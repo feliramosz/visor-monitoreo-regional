@@ -180,6 +180,225 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 4. Contenido para Novedades
+    async function loadNovedadesContent() {
+        openModal("Novedades");
+        try {
+            const response = await fetch('/api/novedades');
+            const data = await response.json();
+            const novedades = data.entradas || [];
+
+            if (novedades.length === 0) {
+                modalBody.innerHTML = '<p>No hay novedades para mostrar.</p>';
+                return;
+            }
+
+            let cardsHTML = '';
+            // Invertimos el array para mostrar la novedad más reciente primero
+            novedades.reverse().forEach(item => {
+                cardsHTML += `
+                    <div class="novedad-item">
+                        <div class="novedad-header">
+                            <span>${item.timestamp}</span>
+                        </div>
+                        <div class="novedad-texto">${item.texto}</div>
+                    </div>`;
+            });
+            
+            modalBody.innerHTML = cardsHTML;
+
+        } catch (error) {
+            modalBody.innerHTML = '<p style="color:red;">Error al cargar la información.</p>';
+        }
+    }
+
+    // 5. Contenido para Calidad del Aire
+    async function loadCalidadAireContent() {
+        openModal("Calidad del Aire");
+        try {
+            const response = await fetch('/api/calidad_aire');
+            const stations = await response.json();
+
+            // Función interna para renderizar la vista principal (todas las estaciones)
+            const renderMainView = () => {
+                let tableHTML = `
+                    <div class="main-header">
+                        <h2>Todas las Estaciones</h2>
+                        <button id="show-details-btn" class="show-modal-btn">Ver Novedades</button>
+                    </div>
+                    <table class="data-table">
+                        <thead><tr><th>Estación</th><th>Estado</th></tr></thead>
+                        <tbody>`;
+                
+                stations.forEach(station => {
+                    const estado = station.estado.replace('_', ' ');
+                    tableHTML += `
+                        <tr>
+                            <td>${station.nombre_estacion}</td>
+                            <td><span class="status-badge" style="background-color: ${stateToColor[station.estado] || '#fff'}">${estado}</span></td>
+                        </tr>`;
+                });
+
+                tableHTML += '</tbody></table>';
+                modalBody.innerHTML = tableHTML;
+
+                // Añadir evento al botón para cambiar a la vista de detalles
+                document.getElementById('show-details-btn').addEventListener('click', () => {
+                    renderDetailView();
+                });
+            };
+
+            // Función interna para renderizar la vista de detalles (solo estaciones con novedad)
+            const renderDetailView = () => {
+                const stationsWithNews = stations.filter(s => s.estado !== 'bueno' && s.estado !== 'no_disponible');
+                let detailHTML = `
+                    <div class="main-header">
+                        <h2>Estaciones con Novedad</h2>
+                        <button id="show-main-btn" class="show-modal-btn">Ver Todas</button>
+                    </div>`;
+
+                if (stationsWithNews.length === 0) {
+                    detailHTML += '<p>No hay estaciones que reporten novedades en este momento.</p>';
+                } else {
+                    detailHTML += '<table class="data-table"><thead><tr><th>Estación</th><th>Estado</th><th>Parámetros Alterados</th></tr></thead><tbody>';
+                    stationsWithNews.forEach(station => {
+                        const alteredParams = station.parametros
+                            .filter(p => p.estado !== 'bueno' && p.estado !== 'no_disponible')
+                            .map(p => `<strong>${p.parametro}:</strong> ${p.valor} ${p.unidad}`)
+                            .join('<br>');
+                        
+                        detailHTML += `
+                            <tr>
+                                <td>${station.nombre_estacion}</td>
+                                <td style="text-transform: capitalize;">${station.estado.replace('_', ' ')}</td>
+                                <td>${alteredParams || '<i>N/A</i>'}</td>
+                            </tr>`;
+                    });
+                    detailHTML += '</tbody></table>';
+                }
+                
+                modalBody.innerHTML = detailHTML;
+
+                // Añadir evento al botón para volver a la lista principal
+                document.getElementById('show-main-btn').addEventListener('click', () => {
+                    renderMainView();
+                });
+            };
+
+            // Cargar la vista principal por defecto
+            renderMainView();
+
+        } catch (error) {
+            modalBody.innerHTML = '<p style="color:red;">Error al cargar la información de Calidad del Aire.</p>';
+        }
+    }
+
+    // 6. Contenido para Estaciones Meteorológicas
+    async function loadEstacionesMeteoContent() {
+        openModal("Estaciones Meteorológicas");
+        try {
+            const response = await fetch('/api/weather');
+            const stations = await response.json();
+
+            // Función para renderizar la vista de detalles de UNA estación
+            const renderDetailView = (stationCode) => {
+                const station = stations.find(s => s.codigo === stationCode);
+                if (!station) {
+                    modalBody.innerHTML = '<p>No se encontraron datos para esta estación.</p>';
+                    return;
+                }
+
+                modalTitle.textContent = station.nombre;
+                modalBody.innerHTML = `
+                    <button id="back-to-list-btn" class="show-modal-btn">← Volver a la lista</button>
+                    <div class="station-details">
+                        <p><strong>Temperatura:</strong> ${station.temperatura}°C</p>
+                        <p><strong>Humedad:</strong> ${station.humedad}%</p>
+                        <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
+                        <p><strong>Precipitación (24h):</strong> ${station.precipitacion_24h} mm</p>
+                        <p><strong>Última Actualización:</strong> ${station.hora_actualizacion} hrs</p>
+                    </div>
+                `;
+
+                document.getElementById('back-to-list-btn').addEventListener('click', renderMainView);
+            };
+
+            // Función para renderizar la lista principal de estaciones
+            const renderMainView = () => {
+                modalTitle.textContent = "Estaciones Meteorológicas";
+                let tableHTML = `
+                    <table class="data-table">
+                        <thead><tr><th>Estación</th><th>Detalles</th></tr></thead>
+                        <tbody>`;
+                
+                stations.forEach(station => {
+                    tableHTML += `
+                        <tr>
+                            <td>${station.nombre}</td>
+                            <td><button class="info-button" data-codigo="${station.codigo}">Ver ⓘ</button></td>
+                        </tr>`;
+                });
+                tableHTML += '</tbody></table>';
+                modalBody.innerHTML = tableHTML;
+
+                // Añadir eventos a los nuevos botones "Ver"
+                modalBody.querySelectorAll('.info-button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        renderDetailView(e.target.dataset.codigo);
+                    });
+                });
+            };
+
+            // Cargar la vista principal por defecto
+            renderMainView();
+
+        } catch (error) {
+            modalBody.innerHTML = '<p style="color:red;">Error al cargar la información de las estaciones.</p>';
+        }
+    }
+
+    // 7. Contenido para Agua Caída (Precipitación)
+    async function loadAguaCaidaContent() {
+        openModal("Precipitación Acumulada (24h)");
+        try {
+            const response = await fetch('/api/estaciones_meteo_mapa');
+            const estaciones = await response.json();
+
+            if (!estaciones || estaciones.length === 0) {
+                modalBody.innerHTML = '<p>No hay datos de precipitación disponibles.</p>';
+                return;
+            }
+            
+            let tableHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Estación</th>
+                            <th>Precipitación Hoy (mm)</th>
+                            <th>Precipitación Ayer (mm)</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            estaciones.forEach(est => {
+                const precipActual = parseFloat(est.precipitacion_actual) || 0;
+                const precipAnterior = parseFloat(est.precipitacion_anterior) || 0;
+                tableHTML += `
+                    <tr>
+                        <td>${est.nombre}</td>
+                        <td>${precipActual.toFixed(1)}</td>
+                        <td>${precipAnterior.toFixed(1)}</td>
+                    </tr>`;
+            });
+
+            tableHTML += '</tbody></table>';
+            modalBody.innerHTML = tableHTML;
+
+        } catch (error) {
+            modalBody.innerHTML = '<p style="color:red;">Error al cargar la información de precipitación.</p>';
+        }
+    }
+
     // --- Lógica de Navegación de Iconos ---
     document.querySelectorAll('.icon-card').forEach(card => {
         card.addEventListener('click', () => {
@@ -191,6 +410,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadAvisosContent();
             } else if (section === 'informes') {
                 loadInformesContent();
+            } else if (section === 'novedades') {
+                loadNovedadesContent();
+            } else if (section === 'calidad_aire') {
+                loadCalidadAireContent();
+            } else if (section === 'estacion_meteo') {
+                loadEstacionesMeteoContent();
+            } else if (section === 'agua_caida') {
+                loadAguaCaidaContent();
             } else {
                 openModal(card.querySelector('span').textContent);
                 modalBody.innerHTML = `<p>Sección '${section}' en desarrollo.</p>`;
