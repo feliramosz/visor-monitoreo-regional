@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 tableHTML += '</tbody></table>';
                 modalBody.innerHTML = tableHTML;
 
-                // Añadir evento al botón para cambiar a la vista de detalles
+                // El evento se añade después de que el botón existe en el pop-up
                 document.getElementById('show-details-btn').addEventListener('click', () => {
                     renderDetailView();
                 });
@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 modalBody.innerHTML = detailHTML;
 
-                // Añadir evento al botón para volver a la lista principal
+                // El evento se añade después de que el botón existe en el pop-up
                 document.getElementById('show-main-btn').addEventListener('click', () => {
                     renderMainView();
                 });
