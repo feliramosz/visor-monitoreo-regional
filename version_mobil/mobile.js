@@ -399,6 +399,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 8. Contenido para Estado de Puertos
+    async function loadPuertosContent() {
+        openModal("Estado de Puertos");
+        try {
+            const response = await fetch('/api/estado_puertos_live');
+            const puertos = await response.json();
+
+            if (!puertos || puertos.length === 0) {
+                modalBody.innerHTML = '<p>No se pudo obtener la información de los puertos en este momento.</p>';
+                return;
+            }
+            
+            let tableHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Puerto</th>
+                            <th>Estado del Puerto</th>
+                            <th>Condición</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            puertos.forEach(puerto => {
+                tableHTML += `
+                    <tr>
+                        <td>${puerto.puerto}</td>
+                        <td>${puerto.estado_del_puerto}</td>
+                        <td>${puerto.condicion}</td>
+                    </tr>`;
+            });
+
+            tableHTML += '</tbody></table>';
+            modalBody.innerHTML = tableHTML;
+
+        } catch (error) {
+            modalBody.innerHTML = '<p style="color:red;">Error al cargar la información de los puertos.</p>';
+        }
+    }
+
     // --- Lógica de Navegación de Iconos ---
     document.querySelectorAll('.icon-card').forEach(card => {
         card.addEventListener('click', () => {
@@ -418,6 +458,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadEstacionesMeteoContent();
             } else if (section === 'agua_caida') {
                 loadAguaCaidaContent();
+            } else if (section === 'puertos') {
+                loadPuertosContent();
             } else {
                 openModal(card.querySelector('span').textContent);
                 modalBody.innerHTML = `<p>Sección '${section}' en desarrollo.</p>`;
