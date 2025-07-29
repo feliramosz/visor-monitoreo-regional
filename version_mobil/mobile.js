@@ -147,6 +147,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 3. Contenido para Informes Emitidos (24h)
+    async function loadInformesContent() {
+        openModal("Informes Emitidos (Últimas 24h)");
+        try {
+            const response = await fetch('/api/data');
+            const data = await response.json();
+            const informes = data.emergencias_ultimas_24_horas || [];
+
+            if (informes.length === 0) {
+                modalBody.innerHTML = '<p>No se han emitido informes en las últimas 24 horas.</p>';
+                return;
+            }
+
+            let cardsHTML = '';
+            informes.forEach(informe => {
+                cardsHTML += `
+                    <div class="info-card">
+                        <h3>${informe.evento_lugar}</h3>
+                        <p>${informe.resumen}</p>
+                        <div class="meta-info">
+                            <span><strong>N°:</strong> ${informe.n_informe}</span> | 
+                            <span><strong>Fecha:</strong> ${informe.fecha_hora}</span>
+                        </div>
+                    </div>`;
+            });
+            
+            modalBody.innerHTML = cardsHTML;
+
+        } catch (error) {
+            modalBody.innerHTML = '<p style="color:red;">Error al cargar la información.</p>';
+        }
+    }
+
     // --- Lógica de Navegación de Iconos ---
     document.querySelectorAll('.icon-card').forEach(card => {
         card.addEventListener('click', () => {
@@ -154,6 +187,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (section === 'alertas') {
                 loadAlertasContent();
+            } else if (section === 'avisos') {
+                loadAvisosContent();
+            } else if (section === 'informes') {
+                loadInformesContent();
             } else {
                 openModal(card.querySelector('span').textContent);
                 modalBody.innerHTML = `<p>Sección '${section}' en desarrollo.</p>`;
