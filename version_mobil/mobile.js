@@ -110,6 +110,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 2. Contenido para Avisos Vigentes
+    async function loadAvisosContent() {
+        openModal("Avisos Vigentes");
+        try {
+            const response = await fetch('/api/data');
+            const data = await response.json();
+            const avisos = data.avisos_alertas_meteorologicas || [];
+
+            if (avisos.length === 0) {
+                modalBody.innerHTML = '<p>No hay avisos ni alertas meteorológicas vigentes.</p>';
+                return;
+            }
+            
+            let tableHTML = '<table class="data-table"><thead><tr><th>Tipo</th><th>Descripción</th><th>Cobertura</th></tr></thead><tbody>';
+            avisos.forEach(aviso => {
+                const tipo = aviso.aviso_alerta_alarma.toLowerCase();
+                let tipoClass = '';
+                if (tipo.includes('marejada')) tipoClass = 'aviso-marejadas';
+                else if (tipo.includes('alarma')) tipoClass = 'aviso-alarma';
+                else if (tipo.includes('alerta')) tipoClass = 'aviso-alerta';
+                else tipoClass = 'aviso-aviso';
+
+                tableHTML += `
+                    <tr>
+                        <td><span class="${tipoClass}">${aviso.aviso_alerta_alarma}</span></td>
+                        <td>${aviso.descripcion}</td>
+                        <td>${aviso.cobertura}</td>
+                    </tr>`;
+            });
+            tableHTML += '</tbody></table>';
+            modalBody.innerHTML = tableHTML;
+
+        } catch (error) {
+            modalBody.innerHTML = '<p style="color:red;">Error al cargar la información.</p>';
+        }
+    }
+
     // --- Lógica de Navegación de Iconos ---
     document.querySelectorAll('.icon-card').forEach(card => {
         card.addEventListener('click', () => {
