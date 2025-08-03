@@ -13,6 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const METEO_MAP_API_URL = '/api/estaciones_meteo_mapa';
     const HIDRO_LIVE_API_URL = '/api/hidrometria_live';
 
+    // Referencias a los controles del dashboard invierno/verano
+    const bodyElement = document.body;
+    const setViewSummerBtn = document.getElementById('setViewSummerBtn');
+    const setViewWinterBtn = document.getElementById('setViewWinterBtn');
+    let currentView = 'winter';
     // Referencias a elementos del DOM
     const weatherBannerContainer = document.getElementById('weather-banner-container');
     const headerAlertBanner = document.getElementById('header-alert-banner');    
@@ -556,6 +561,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- INICIO: Funciones para gestionar la vista (Verano/Invierno) ---
+    function setView(viewMode) {
+        if (currentView === viewMode) return; // No hacer nada si la vista ya está activa
+
+        currentView = viewMode;
+        localStorage.setItem('dashboardView', viewMode);
+
+        // Actualizar clases en el body
+        bodyElement.classList.toggle('summer-view', viewMode === 'summer');
+        bodyElement.classList.toggle('winter-view', viewMode === 'winter');
+
+        // Actualizar estilo de los botones
+        setViewSummerBtn.classList.toggle('active-view', viewMode === 'summer');
+        setViewWinterBtn.classList.toggle('active-view', viewMode === 'winter');
+
+        // Volver a renderizar los componentes que cambian
+        renderWeatherSlide(lastData);
+        fetchAndRenderMeteoMap(); // Nueva función para manejar el mapa meteorológico
+    }
+
+    function loadViewPreference() {
+        const savedView = localStorage.getItem('dashboardView') || 'winter';
+        setView(savedView);
+    }
+    
     /**
      * Obtiene los datos del clima y los renderiza en la slide de clima.
      */
@@ -988,59 +1018,125 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Lógica de Renderizado de Paneles    
-    async function fetchAndRenderWeather() {
-        const weatherBannerContainer = document.getElementById('weather-banner-container');
+    async function renderWeatherSlide(fullData) {
+        const weatherContainer = document.getElementById('weather-slide');
+        if (!weatherContainer) return;
+
         try {
-            // 1. Añadimos una clase para iniciar la animación de desaparición
-            weatherBannerContainer.classList.add('fading-out');
-            
-            // 2. Esperamos a que la animación CSS termine
-            await new Promise(resolve => setTimeout(resolve, 500));
-
             const response = await fetch(WEATHER_API_URL);
-            if (!response.ok) {
-                throw new Error(`Error de red: ${response.statusText}`);
-            }
+            if (!response.ok) throw new Error('Error de red al obtener clima');
             const weatherData = await response.json();
-            
-            // Se construye el HTML con los datos nuevos
-            weatherBannerContainer.innerHTML = weatherData.map(station => {
-                let passStatusText = '';
-                let passStatusWord = '';
-                let statusClass = '';
 
-                if (station.nombre === 'Los Libertadores, Los Andes') {
-                    const status = borderPassStatus['Los Libertadores'] || 'No informado';
-                    passStatusText = 'Paso: ';
-                    passStatusWord = status;
-                    statusClass = 'status-no-informado';
-                    if (status.toLowerCase().includes('habilitado') || status.toLowerCase().includes('abierto')) {
-                        statusClass = 'status-habilitado';
-                    } else if (status.toLowerCase().includes('cerrado') || status.toLowerCase().includes('suspendido')) {
-                        statusClass = 'status-cerrado';
+            if (lastData) {
+                lastData.weather_data = weatherData;
+            }
+
+            const jBotanico = weatherData.find(s => s.codigo === '330006');
+            const torquemada = weatherData.find(s => s.codigo === '320041');
+            const jBotanicoOnline = jBotanico && jBotanico.hora_actualizacion !== 'Offline';
+            const torquemadaOnline = torquemada && torquemada.hora_actualizacion !== 'Offline';
+
+            let thirdStation;
+            if (jBotanicoOnline) {
+                thirdStation = jBotanico;
+            } else if (torquemadaOnline) {
+                thirdStation = torquemada;
+            } else {
+                thirdStation = {
+                    codigo: 'offline-placeholder', nombre: 'Estación J. Botánico / Torquemada',
+                    temperatura: '---', precipitacion_24h: '---', humedad: '---',
+                    viento_velocidad: '---', viento_direccion: '', hora_actualizacion: 'Sin conexión'
+                };
+            }
+            
+            const stationsToDisplay = weatherData.filter(s => s.codigo !== '330006' && s.codigo !== '320041');
+            stationsToDisplay.splice(2, 0, thirdStation);
+
+            const gifMap = {
+                'despejado_costa': { files: ['despejado_2.gif'], counter: 0 },
+                'despejado_interior': { files: ['despejado.gif'], counter: 0 },
+                'nubosidad parcial': { files: ['parcial.gif', 'nubosidad_parcial_2.gif', 'nubosidad_parcial_3.gif'], counter: 0 },
+                'escasa nubosidad': { files: ['escasa_nubosidad.gif'], counter: 0 },
+                'nublado': { files: ['nublado.gif'], counter: 0 },
+                'precipitaciones débiles': { files: ['precipitaciones_debiles.gif'], counter: 0 },
+                'lluvia': { files: ['lluvia.gif', 'lluvia_2.gif'], counter: 0 },
+                'nieve': { files: ['nieve.gif'], counter: 0 }
+            };
+
+            const getWeatherBackground = (station, hour) => {
+                const inlandStationCodes = ["320049", "320124", "320051"];
+                const condition = station.tiempo_presente || '';
+                const isNight = hour < 7 || hour > 19;
+                const c = condition.toLowerCase();
+                let categoryKey = null;
+                if (c.includes('despejado')) {
+                    categoryKey = inlandStationCodes.includes(station.codigo) ? 'despejado_interior' : 'despejado_costa';
+                } else if (c.includes('nubosidad parcial')) categoryKey = 'nubosidad parcial';
+                else if (c.includes('escasa nubosidad')) categoryKey = 'escasa nubosidad';
+                else if (c.includes('nublado') || c.includes('cubierto')) categoryKey = 'nublado';
+                else if (c.includes('precipitaciones débiles')) categoryKey = 'precipitaciones débiles';
+                else if (c.includes('lluvia') || c.includes('precipitacion')) categoryKey = 'lluvia';
+                else if (c.includes('nieve')) categoryKey = 'nieve';
+                if (categoryKey) {
+                    const gifData = gifMap[categoryKey];
+                    const fileIndex = gifData.counter % gifData.files.length;
+                    let finalGif = gifData.files[fileIndex];
+                    gifData.counter++;
+                    if (isNight) {
+                        const nightVersion = finalGif.replace('.gif', '_noche.gif');
+                        const nightFiles = ['despejado_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'lluvia_noche_2.gif'];
+                        if (nightFiles.includes(nightVersion)) finalGif = nightVersion;
                     }
+                    return finalGif;
+                }
+                return '';
+            };
+
+            const currentHour = new Date().getHours();
+
+            weatherContainer.innerHTML = stationsToDisplay.map(station => {
+                let backgroundStyle;
+                if (station.codigo === 'offline-placeholder') {
+                    backgroundStyle = `background-image: url('assets/imagen_offline.png');`;
+                } else {
+                    const backgroundFile = getWeatherBackground(station, currentHour);
+                    backgroundStyle = backgroundFile ? `background-image: url('assets/${backgroundFile}');` : '';
+                }
+
+                // --- INICIO: Lógica condicional para Verano/Invierno ---
+                let variableDataHTML = '';
+                if (currentView === 'summer') {
+                    variableDataHTML = `<p><strong>Humedad:</strong> ${station.humedad || '---'}%</p>`;
+                } else { // Winter view
+                    variableDataHTML = `<p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>`;
+                }
+                // --- FIN: Lógica condicional ---
+
+                let passStatusText = ''; let passStatusWord = ''; let statusClass = 'status-no-informado';
+                if (station.nombre === 'Los Libertadores') {
+                    const status = (fullData.estado_pasos_fronterizos.find(p => p.nombre_paso === 'Los Libertadores') || {}).condicion || 'No informado';
+                    passStatusText = 'Paso: '; passStatusWord = status;
+                    if (status.toLowerCase().includes('habilitado')) statusClass = 'status-habilitado';
+                    else if (status.toLowerCase().includes('cerrado')) statusClass = 'status-cerrado';
                 }
 
                 return `
-                    <div class="weather-station-box">
-                        <h4>${station.nombre}</h4>
-                        <p><strong>Temp:</strong> ${station.temperatura}°C</p>
-                        <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
-                        <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
-                        
-                        <div class="weather-box-footer">
-                            <span class="pass-status">${passStatusText}<span class="${statusClass}">${passStatusWord}</span></span>
-                            <span class="station-update-time">Act: ${station.hora_actualizacion}h</span>
+                    <div class="weather-station-box" style="${backgroundStyle}" data-station-code="${station.codigo}">
+                        <div class="weather-overlay">
+                            <h4>${station.nombre}</h4>                            
+                            <p><strong>Temp:</strong> ${station.temperatura}°C</p>
+                            ${variableDataHTML}
+                            <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
+                            <div class="weather-box-footer">
+                                <span class="pass-status">${passStatusText}<span class="${statusClass}">${passStatusWord}</span></span>
+                                <span class="station-update-time">Act: ${station.hora_actualizacion}h</span>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             }).join('');
-
         } catch (error) {
-            console.error("Error al cargar datos del clima:", error);
-            weatherBannerContainer.innerHTML = '<p>Error al cargar datos del clima.</p>';
-        } finally {
-            weatherBannerContainer.classList.remove('fading-out');
+            console.error("Error al renderizar slide de clima:", error);
+            weatherContainer.innerHTML = '<p style="color:white;">Error al cargar datos del clima.</p>';
         }
     }
 
@@ -1644,13 +1740,23 @@ document.addEventListener('DOMContentLoaded', () => {
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(precipitationMap);
     }
 
-    async function fetchAndRenderPrecipitationData() {
+    async function fetchAndRenderMeteoMap() {
+        precipitationMarkers.forEach(marker => marker.remove());
+        precipitationMarkers = [];
+
+        if (currentView === 'summer') {
+            await renderSummerWindMap();
+        } else {
+            await renderWinterPrecipitationMap();
+        }
+    }
+
+    // --- INICIO: Nuevas funciones para renderizar cada tipo de mapa ---
+    async function renderWinterPrecipitationMap() {
+        document.getElementById('map-panel-title').textContent = "Precipitaciones Últ. 24h";
         try {
             const response = await fetch(METEO_MAP_API_URL);
             const stations = await response.json();
-
-            precipitationMarkers.forEach(marker => marker.remove());
-            precipitationMarkers = [];
 
             stations.forEach(station => {
                 if (station.lat && station.lon) {
@@ -1661,21 +1767,67 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (precipActual > 20) color = '#08306b'; else if (precipActual > 10) color = '#08519c';
                     else if (precipActual > 5) color = '#3182bd'; else if (precipActual > 1) color = '#6baed6';
 
-                    // Formato para el tooltip con el dato de ayer (ambos valores con un decimal)
                     const tooltipContent = `${precipActual.toFixed(1)}<br><span class="precip-anterior">(${precipAnterior.toFixed(1)})</span>`;
 
                     const marker = L.circleMarker([station.lat, station.lon], {
                         radius: 8, fillColor: color, color: "#000",
                         weight: 1, opacity: 1, fillOpacity: 0.8
                     }).addTo(precipitationMap)
-                      // Formato para el popup (ambos valores con un decimal)
                       .bindPopup(`<b>${station.nombre}</b><br>Precipitación 24h: ${precipActual.toFixed(1)} mm<br>Precipitación día anterior: ${precipAnterior.toFixed(1)} mm`)                     
                       .bindTooltip(tooltipContent, { permanent: true, direction: 'bottom', className: 'precipitation-label', offsetY: 10 });
                       
                     precipitationMarkers.push(marker);
                 }
             });
-        } catch (error) { console.error("Error al cargar datos del mapa meteorológico:", error); }
+        } catch (error) { console.error("Error al cargar datos del mapa de precipitación:", error); }
+    }
+
+    async function renderSummerWindMap() {
+        document.getElementById('map-panel-title').textContent = "Viento, Temperatura y Humedad";
+        
+        // Helper para convertir dirección cardinal a grados para la rotación CSS
+        const cardinalToDegrees = {
+            'N': 0, 'NNE': 22.5, 'NE': 45, 'ENE': 67.5,
+            'E': 90, 'ESE': 112.5, 'SE': 135, 'SSE': 157.5,
+            'S': 180, 'SSO': 202.5, 'SO': 225, 'OSO': 247.5,
+            'O': 270, 'ONO': 292.5, 'NO': 315, 'NNO': 337.5
+        };
+
+        try {
+            // Usamos la API del clima, que tiene todos los datos que necesitamos
+            const response = await fetch(WEATHER_API_URL);
+            const stations = await response.json();
+
+            // Usamos la referencia al mismo mapa, pero lo llenamos con otros marcadores
+            stations.forEach(station => {
+                // Buscamos las coordenadas en los datos de /api/estaciones_meteo_mapa que ya tenemos en lastData
+                const stationCoords = (lastData.meteo_map_data || []).find(s => s.nombre === station.nombre);
+
+                if (stationCoords && stationCoords.lat && stationCoords.lon) {
+                    const degrees = cardinalToDegrees[station.viento_direccion] || 0;
+
+                    const windMarkerHtml = `
+                        <div class="wind-marker">
+                            <span class="wind-temp">${station.temperatura}°</span>
+                            <div class="wind-arrow" style="transform: rotate(${degrees}deg);"></div>
+                            <span class="wind-humidity">${station.humedad}%</span>
+                        </div>`;
+
+                    const customIcon = L.divIcon({
+                        className: 'custom-div-icon', // No aplicar estilos a esta clase
+                        html: windMarkerHtml,
+                        iconSize: [100, 30], // Tamaño aproximado del marcador
+                        iconAnchor: [50, 15] // Centrar el marcador
+                    });
+
+                    const marker = L.marker([stationCoords.lat, stationCoords.lon], { icon: customIcon })
+                        .addTo(precipitationMap)
+                        .bindPopup(`<b>${station.nombre}</b><br>Viento: ${station.viento_direccion} ${station.viento_velocidad}`);
+                    
+                    precipitationMarkers.push(marker);
+                }
+            });
+        } catch (error) { console.error("Error al cargar datos del mapa de viento:", error); }
     }
 
     function formatTimeAgo(millis) {
@@ -1787,8 +1939,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function refreshAllMeteoData() {
         console.log("Actualizando todos los datos meteorológicos (banner y mapa)...");
+        // Estas funciones ahora respetarán la variable `currentView`
         renderWeatherSlide(lastData);
-        fetchAndRenderPrecipitationData();
+        fetchAndRenderMeteoMap();
     }
 
     // --- Lógica para escuchar cambios desde otras pestañas ---
@@ -1839,7 +1992,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function initializeApp() {
-        loadPreferences();
+        // --- INICIO: Cargar preferencia de vista y añadir listeners a los botones ---
+        loadViewPreference();
+        setViewSummerBtn.addEventListener('click', () => setView('summer'));
+        setViewWinterBtn.addEventListener('click', () => setView('winter'));
+        // --- FIN: Carga de preferencia ---
+
         updateClocks();
         initializeAirQualityMap();
         initializePrecipitationMap();
@@ -1851,8 +2009,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if(nextBtn) nextBtn.addEventListener('click', nextMapSlide);
         if(prevBtn) prevBtn.addEventListener('click', prevMapSlide);
 
-        await fetchAndRenderMainData(); 
+        // Obtenemos los datos de los mapas primero para tener las coordenadas
+        try {
+            const meteoMapResponse = await fetch(METEO_MAP_API_URL);
+            lastData.meteo_map_data = await meteoMapResponse.json();
+        } catch (e) {
+            console.error("No se pudieron cargar las coordenadas iniciales del mapa meteorológico", e);
+            lastData.meteo_map_data = [];
+        }
         
+        await fetchAndRenderMainData(); 
         
         fetchAndRenderAirQuality(); 
         refreshAllMeteoData();         
@@ -2031,7 +2197,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (tiempoDesdeUltimaNotificacion > dosHoras) {
                 const mensajeVoz = `Recordatorio. El Complejo Fronterizo Los Libertadores se mantiene ${estadoNuevo}.`;
-                lanzarNotificacion('assets/notificacion_normnal.mp3', mensajeVoz, 'assets/cierre_boletin.mp3');
+                lanzarNotificacion('assets/notificacion_normal.mp3', mensajeVoz, 'assets/cierre_boletin.mp3');
 
                 // Actualizamos el objeto completo
                 memoriaNotificaciones.pasoFronterizo['Los Libertadores'] = { estado: estadoNuevo, ultimaNotificacion: ahora };

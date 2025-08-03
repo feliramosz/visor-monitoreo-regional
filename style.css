@@ -2871,3 +2871,72 @@ footer {
     background-color: #007bff;
     color: white;
 }
+
+/* --- INICIO: Estilos para controles de vista Verano/Invierno --- */
+.view-switch-btn {
+    background: none;
+    border: 2px solid #fff;
+    color: white;
+    cursor: pointer;
+    font-size: 1.5em;
+    padding: 2px 6px;
+    border-radius: 5px;
+    line-height: 1;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.view-switch-btn:hover {
+    transform: scale(1.1);
+}
+
+.view-switch-btn.active-view {
+    background-color: #007bff;
+    border-color: #cce7ff;
+}
+
+.control-separator {
+    display: inline-block;
+    width: 2px;
+    height: 25px;
+    background-color: #4a5a6a;
+    margin: 0 10px;
+    vertical-align: middle;
+}
+/* --- FIN: Estilos para controles de vista Verano/Invierno --- */
+
+/* --- INICIO: Estilos para mapa de Viento (Verano) --- */
+.wind-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 15px;
+    padding: 2px 8px;
+    border: 1px solid #333;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.wind-temp {
+    color: #d32f2f; /* Rojo para temperatura */
+    font-size: 14px;
+}
+
+.wind-humidity {
+    color: #0277bd; /* Azul para humedad */
+    font-size: 14px;
+}
+
+.wind-arrow {
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-bottom: 14px solid #333; /* Flecha negra */
+    /* La rotación se aplicará con JS */
+    transform-origin: center;
+    transition: transform 0.5s ease-out;
+}
+/* --- FIN: Estilos para mapa de Viento (Verano) --- */
