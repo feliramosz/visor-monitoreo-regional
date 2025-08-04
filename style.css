@@ -2975,16 +2975,18 @@ footer {
     align-items: center;
 }
 
+.wind-arrow-marker.green { color: #28a745; }
+.wind-arrow-marker.yellow { color: #ffc107; }
+.wind-arrow-marker.orange { color: #fd7e14; }
+.wind-arrow-marker.red { color: #dc3545; }
+
 .wind-arrow-marker .arrow-chevron {
-    width: 20px;
-    height: 10px;
-    background-color: black;
-    /* Usamos la imagen que me enviaste como máscara */
-    mask-image: url('image_96980f.jpg');
-    mask-size: contain;
-    mask-repeat: no-repeat;
-    mask-position: center;
-    margin-top: -4px; /* Solapa ligeramente las flechas */
+    width: 0;
+    height: 0;    
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;   
+    border-top: 12px solid; 
+    margin-top: -4px;
 }
 
 /* Colores según velocidad de viento */

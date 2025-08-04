@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentMapSlide = 0;
     const mapSlideDuration = 20000;
     let isMapCarouselPaused = false;
-    const mapTitles = ["Calidad del Aire (SINCA)", "Precipitaciones Últ. 24h"];
+    let mapTitles = [];
     let groups = {};
 
     // Estado del carrusel de AVISOS
@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         currentView = viewMode;
         localStorage.setItem('dashboardView', viewMode);
-
+        mapTitles = ["Calidad del Aire (SINCA)", viewMode === 'summer' ? "Viento, Temperatura y Humedad" : "Precipitaciones Últ. 24h"];
         bodyElement.classList.toggle('summer-view', viewMode === 'summer');
         bodyElement.classList.toggle('winter-view', viewMode === 'winter');
 
@@ -216,23 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(airQualityMap);
-
-        // --- AÑADIR LEYENDA ---
-        const legend = L.control({ position: 'bottomright' });
-        legend.onAdd = function (map) {
-            const div = L.DomUtil.create('div', 'info legend');
-            let legendHTML = '';
-            const stateToColor = {
-                'bueno': '#4caf50', 'regular': '#ffeb3b', 'alerta': '#ff9800',
-                'preemergencia': '#f44336', 'emergencia': '#9c27b0', 'no disponible': '#9e9e9e'
-            };
-            for (const estado in stateToColor) {
-                legendHTML += `<div class="legend-item"><i style="background:${stateToColor[estado]}"></i> ${estado}</div>`;
-            }
-            div.innerHTML = legendHTML;
-            return div;
-        };
-        legend.addTo(airQualityMap);
+        
     }
 
     async function fetchAndRenderAirQuality() {
