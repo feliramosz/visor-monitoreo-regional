@@ -1778,7 +1778,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     elements += `<line class="feather" x1="25" y1="${yPos}" x2="30" y2="${yPos - 2.5}" />`;
                 }
 
-                return `<svg viewbox="15 0 25 50">
+                return `<svg viewbox="15 0 22 50">
                     <g transform="rotate(${rotation} 25 25)">
                         <line class="shaft" x1="25" y1="25" x2="25" y2="10" />
                         ${elements}
