@@ -2940,3 +2940,55 @@ footer {
     transition: transform 0.5s ease-out;
 }
 /* --- FIN: Estilos para mapa de Viento (Verano) --- */
+
+/* --- INICIO: Estilos para el nuevo marcador de viento (Verano) --- */
+.wind-arrow-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 80px; /* Ancho fijo para alinear texto */
+    text-align: center;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px #FFF, -1px -1px 2px #FFF, 1px -1px 2px #FFF, -1px 1px 2px #FFF;
+}
+
+.wind-arrow-marker .wind-data {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 13px;
+    margin-bottom: 2px;
+}
+
+.wind-arrow-marker .wind-temp {
+    color: #d32f2f; /* Rojo para temperatura */
+}
+
+.wind-arrow-marker .wind-humidity {
+    color: #0277bd; /* Azul para humedad */
+}
+
+.wind-arrow-marker .arrow-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.wind-arrow-marker .arrow-chevron {
+    width: 20px;
+    height: 10px;
+    background-color: black;
+    /* Usamos la imagen que me enviaste como máscara */
+    mask-image: url('image_96980f.jpg');
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    margin-top: -4px; /* Solapa ligeramente las flechas */
+}
+
+/* Colores según velocidad de viento */
+.wind-arrow-marker.green .arrow-chevron { background-color: #28a745; }
+.wind-arrow-marker.yellow .arrow-chevron { background-color: #ffc107; }
+.wind-arrow-marker.orange .arrow-chevron { background-color: #fd7e14; }
+.wind-arrow-marker.red .arrow-chevron { background-color: #dc3545; }

@@ -234,6 +234,47 @@ document.addEventListener('DOMContentLoaded', () => {
         legend.addTo(airQualityMap);
     }
 
+    async function fetchAndRenderAirQuality() {
+    if (!airQualityMap) return;
+
+    try {
+        const response = await fetch(AIR_QUALITY_API_URL);
+        if (!response.ok) throw new Error(`Error Calidad del Aire: ${response.statusText}`);
+        const stations = await response.json();
+        lastAirQualityData = stations; // Guardar datos para el modal
+
+        // Limpiar marcadores anteriores del mapa
+        airQualityMarkers.forEach(marker => marker.remove());
+        airQualityMarkers = [];
+        
+        const alertPanel = document.getElementById('air-quality-alert-panel-dashboard');
+        alertPanel.innerHTML = ''; // Limpiar panel lateral
+
+        // Crear los marcadores en el mapa para TODAS las estaciones
+        stations.forEach(station => {
+            if (station.lat && station.lon) {
+                const markerColor = stateToColor[station.estado] || stateToColor['no_disponible'];
+                const marker = L.circleMarker([station.lat, station.lon], {
+                    radius: 10,
+                    fillColor: markerColor,
+                    color: '#333',
+                    weight: 1.5,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(airQualityMap);
+
+                const displayEstado = station.estado.replace('_', ' ');
+                let popupContent = `<b>${station.nombre_estacion}</b><br>Estado: ${displayEstado}`;
+                marker.bindPopup(popupContent);
+                airQualityMarkers.push(marker);
+            }
+        });
+
+        } catch (error) {
+            console.error("Error al procesar datos de calidad del aire:", error);
+        }
+    }
+
     async function fetchAndRenderMeteoMap() {
         if (!precipitationMap) return;
         precipitationMarkers.forEach(marker => marker.remove());
@@ -1856,21 +1897,70 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Error al cargar datos del mapa de precipitación:", error); }
     }
 
-    async function renderSummerWindMap() {
+    async function renderSummerWindMap() {        
+        mapPanelTitle.textContent = "Viento, Temperatura y Humedad";
+        
         const cardinalToDegrees = {'N':0,'NE':45,'E':90,'SE':135,'S':180,'SO':225,'O':270,'NO':315};
         try {
-            const response = await fetch(WEATHER_API_URL);
-            const stations = await response.json();
+            // Usamos /api/weather como la fuente principal de estaciones
+            const weatherResponse = await fetch(WEATHER_API_URL);
+            const weatherStations = await weatherResponse.json();
+
             const coordsResponse = await fetch(METEO_MAP_API_URL);
             const stationsWithCoords = await coordsResponse.json();
 
-            stations.forEach(station => {
+            weatherStations.forEach(station => {
+                // CORRECCIÓN: Asegura que busquemos coordenadas para todas las estaciones
                 const stationCoords = stationsWithCoords.find(s => s.nombre === station.nombre);
+
                 if (stationCoords && stationCoords.lat && stationCoords.lon) {
-                    const degrees = cardinalToDegrees[station.viento_direccion] || 0;
-                    const windMarkerHtml = `<div class="wind-marker"><span class="wind-temp">${station.temperatura}°</span><div class="wind-arrow" style="transform: rotate(${degrees}deg);"></div><span class="wind-humidity">${station.humedad}%</span></div>`;
-                    const customIcon = L.divIcon({ className: '', html: windMarkerHtml, iconAnchor: [50, 15] });
-                    const marker = L.marker([stationCoords.lat, stationCoords.lon], { icon: customIcon }).addTo(precipitationMap);
+                    const degrees = cardinalToDegrees[station.viento_direccion.split('/')[0].trim()] || 0;
+                    
+                    // --- INICIO: Lógica para el nuevo estilo de flechas ---
+                    const windSpeed = parseFloat(station.viento_velocidad) || 0;
+                    let arrowClass = '';
+                    let arrowCount = 0;
+
+                    if (windSpeed >= 0 && windSpeed <= 40) {
+                        arrowClass = 'green';
+                        arrowCount = 1;
+                    } else if (windSpeed >= 41 && windSpeed <= 60) {
+                        arrowClass = 'yellow';
+                        arrowCount = 2;
+                    } else if (windSpeed >= 61 && windSpeed <= 80) {
+                        arrowClass = 'orange';
+                        arrowCount = 3;
+                    } else if (windSpeed > 80) {
+                        arrowClass = 'red';
+                        arrowCount = 4;
+                    }
+                    
+                    let arrowsHtml = '';
+                    for (let i = 0; i < arrowCount; i++) {
+                        arrowsHtml += '<div class="arrow-chevron"></div>';
+                    }
+                    // --- FIN: Lógica para el nuevo estilo de flechas ---
+
+                    const windMarkerHtml = `
+                        <div class="wind-arrow-marker ${arrowClass}" style="transform: rotate(${degrees}deg);">
+                            <div class="wind-data">
+                                <span class="wind-temp">${station.temperatura}°</span>
+                                <span class="wind-humidity">${station.humedad}%</span>
+                            </div>
+                            <div class="arrow-stack">${arrowsHtml}</div>
+                        </div>`;
+
+                    const customIcon = L.divIcon({
+                        className: '', // Sin clase base para evitar estilos conflictivos
+                        html: windMarkerHtml,
+                        iconSize: [80, 60],
+                        iconAnchor: [40, 30]
+                    });
+                    
+                    const marker = L.marker([stationCoords.lat, stationCoords.lon], { icon: customIcon })
+                        .addTo(precipitationMap)
+                        .bindPopup(`<b>${station.nombre}</b><br>Viento: ${station.viento_velocidad}`);
+                    
                     precipitationMarkers.push(marker);
                 }
             });
