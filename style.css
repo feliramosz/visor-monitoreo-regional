@@ -2941,64 +2941,46 @@ footer {
 }
 /* --- FIN: Estilos para mapa de Viento (Verano) --- */
 
-/* --- INICIO: Estilos para el nuevo marcador de viento (Verano) --- */
-.wind-arrow-marker {
+/* --- ESTILOS PARA LA NUEVA VISUALIZACIÓN DE VIENTO (WIND BARB) --- */
+.wind-barb-marker {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 80px; /* Ancho fijo para alinear texto */
-    text-align: center;
+    width: 100px; /* Espacio para el símbolo y los textos */
+    height: 50px;
+}
+
+.wind-barb-marker .data-container {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
     font-weight: bold;
+    font-size: 13px;
     text-shadow: 1px 1px 2px #FFF, -1px -1px 2px #FFF, 1px -1px 2px #FFF, -1px 1px 2px #FFF;
 }
 
-.wind-arrow-marker .wind-data {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    font-size: 13px;
-    margin-bottom: 2px;
-}
-
-.wind-arrow-marker .wind-temp {
+.wind-barb-marker .wind-temp {
     color: #d32f2f; /* Rojo para temperatura */
 }
 
-.wind-arrow-marker .wind-humidity {
+.wind-barb-marker .wind-humidity {
     color: #0277bd; /* Azul para humedad */
 }
 
-.wind-arrow-marker .arrow-stack {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+.wind-barb-marker svg {
+    width: 50px;
+    height: 50px;
+    overflow: visible; /* Permite que las plumas no se corten */
+    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.7));
 }
 
-/* --- ESTILOS CORREGIDOS Y DEFINITIVOS PARA LA FLECHA DE VIENTO --- */
-
-/* Estas clases definen el color que heredará la flecha */
-.wind-arrow-marker.green { color: #28a745; }
-.wind-arrow-marker.yellow { color: #ffc107; }
-.wind-arrow-marker.orange { color: #fd7e14; }
-.wind-arrow-marker.red { color: #dc3545; }
-
-/* Dibuja la forma del "chevron" (V) y la apila */
-.wind-arrow-marker .arrow-chevron {
-    width: 14px;      /* Ancho del trazo de la V */
-    height: 14px;     /* Alto del trazo de la V */
-    border-style: solid;
-    /* Hereda el color (verde, amarillo, etc.) de la clase padre */
-    border-color: inherit; 
-    /* Dibuja solo los bordes derecho e inferior de un cuadrado */
-    border-width: 0 4px 4px 0;
-    /* Rota el cuadrado 45 grados para que se vea como una 'V' apuntando hacia abajo */
-    transform: rotate(45deg);
-    /* Solapa las flechas para el efecto de apilado */
-    margin-top: -10px; 
+.wind-barb-marker svg .shaft { /* Línea principal */
+    stroke: #333;
+    stroke-width: 1.5;
 }
 
-/* Elimina el margen superior de la primera flecha para que se vea bien */
-.wind-arrow-marker .arrow-chevron:first-child {
-    margin-top: 0;
+.wind-barb-marker svg .feather { /* Plumas */
+    stroke: #333;
+    stroke-width: 1.5;
+    fill: none;
 }

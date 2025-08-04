@@ -1889,70 +1889,86 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function renderSummerWindMap() {
         mapPanelTitle.textContent = "Viento, Temperatura y Humedad";
-        const cardinalToDegrees = { 'N': 0, 'NE': 45, 'E': 90, 'SE': 135, 'S': 180, 'SO': 225, 'O': 270, 'NO': 315 };
 
-        try {            
+        try {
             const [coordsResponse, weatherResponse] = await Promise.all([
                 fetch(METEO_MAP_API_URL),
                 fetch(WEATHER_API_URL)
             ]);
-
             const stationsWithCoords = await coordsResponse.json();
             const weatherData = await weatherResponse.json();
-            
             const weatherDataMap = new Map(weatherData.map(station => [station.nombre, station]));
-            
+
+            /**
+             * Crea el SVG para un "Wind Barb" meteorológico.
+             * @param {number} speedKt - Velocidad del viento en nudos.
+             * @param {number} directionDeg - Dirección del viento en grados (de donde viene).
+             * @returns {string} - El código HTML del SVG.
+             */
+            const createWindBarbSVG = (speedKt, directionDeg) => {
+                const rotation = directionDeg; // El SVG rotará a la dirección de origen del viento
+                let speed = Math.round(speedKt / 5) * 5; // Redondea a los 5 nudos más cercanos
+                let pennants = 0, fullBarbs = 0, halfBarbs = 0;
+
+                pennants = Math.floor(speed / 50);
+                speed %= 50;
+                fullBarbs = Math.floor(speed / 10);
+                speed %= 10;
+                halfBarbs = Math.floor(speed / 5);
+
+                let elements = '';
+                let yPos = 10; // Posición inicial en el eje Y para la primera pluma
+
+                // Dibuja los banderines (50 nudos)
+                for (let i = 0; i < pennants; i++) {
+                    elements += `<path class="feather" d="M 25 ${yPos} L 35 ${yPos} L 25 ${yPos + 4} z" fill="#333" />`;
+                    yPos += 5;
+                }
+                // Dibuja las plumas completas (10 nudos)
+                for (let i = 0; i < fullBarbs; i++) {
+                    elements += `<line class="feather" x1="25" y1="${yPos}" x2="35" y2="${yPos - 5}" />`;
+                    yPos += 4;
+                }
+                // Dibuja las medias plumas (5 nudos)
+                for (let i = 0; i < halfBarbs; i++) {
+                    elements += `<line class="feather" x1="25" y1="${yPos}" x2="30" y2="${yPos - 2.5}" />`;
+                }
+
+                return `<svg viewbox="0 0 50 50">
+                            <g transform="rotate(${rotation} 25 25)">
+                                <line class="shaft" x1="25" y1="25" x2="25" y2="10" />
+                                ${elements}
+                            </g>
+                        </svg>`;
+            };
+
             stationsWithCoords.forEach(station => {
-                if (station.lat && station.lon) {                    
+                if (station.lat && station.lon) {
                     const summerData = weatherDataMap.get(station.nombre);
                     let marker;
 
-                    if (summerData) {                        
-                        const degrees = cardinalToDegrees[summerData.viento_direccion.split('/')[0].trim()] || 0;
-                        const windSpeed = parseFloat(summerData.viento_velocidad) || 0;
-                        let arrowClass = '';
-                        let arrowCount = 0;
+                    if (summerData && summerData.viento_velocidad !== '---' && summerData.viento_direccion) {
+                        const speedKt = (parseFloat(summerData.viento_velocidad) || 0) / 1.852; // Convertir km/h a nudos
+                        const directionDeg = parseFloat(summerData.viento_direccion.replace('°',''));
 
-                        if (windSpeed <= 40) { arrowClass = 'green'; arrowCount = 1; }
-                        else if (windSpeed <= 60) { arrowClass = 'yellow'; arrowCount = 2; }
-                        else if (windSpeed <= 80) { arrowClass = 'orange'; arrowCount = 3; }
-                        else { arrowClass = 'red'; arrowCount = 4; }
-                        
-                        let arrowsHtml = '';
-                        for (let i = 0; i < arrowCount; i++) {
-                            arrowsHtml += '<div class="arrow-chevron"></div>';
-                        }
-
-                        const windMarkerHtml = `
-                            <div class="wind-arrow-marker ${arrowClass}">
-                                <div class="wind-data">
-                                    <span class="wind-temp">${summerData.temperatura}°</span>
+                        const barbSVG = createWindBarbSVG(speedKt, directionDeg);
+                        const markerHtml = `
+                            <div class="wind-barb-marker">
+                                <div class="data-container">
+                                    <span class="wind-temp">${summerData.temperatura}°C</span>
                                     <span class="wind-humidity">${summerData.humedad}%</span>
                                 </div>
-                                <div class="arrow-stack" style="transform: rotate(${degrees}deg);">${arrowsHtml}</div>
+                                ${barbSVG}
                             </div>`;
-                        
-                        const customIcon = L.divIcon({
-                            className: '',
-                            html: windMarkerHtml,
-                            iconSize: [80, 60],
-                            iconAnchor: [40, 30]
-                        });
-                        
+
+                        const customIcon = L.divIcon({ className: '', html: markerHtml, iconSize: [100, 50], iconAnchor: [50, 25] });
                         marker = L.marker([station.lat, station.lon], { icon: customIcon })
                             .bindPopup(`<b>${station.nombre}</b><br>Viento: ${summerData.viento_velocidad}`);
-
-                    } else {                        
+                    } else {
                         marker = L.circleMarker([station.lat, station.lon], {
-                            radius: 8,
-                            fillColor: '#9e9e9e',
-                            color: "#FFF",
-                            weight: 1,
-                            opacity: 1,
-                            fillOpacity: 0.7
+                            radius: 8, fillColor: '#9e9e9e', color: "#FFF", weight: 1, opacity: 1, fillOpacity: 0.7
                         }).bindPopup(`<b>${station.nombre}</b><br>Datos de viento no disponibles.`);
                     }
-
                     marker.addTo(precipitationMap);
                     precipitationMarkers.push(marker);
                 }

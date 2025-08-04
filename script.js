@@ -156,6 +156,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!response.ok) throw new Error(`Error clima: ${response.statusText}`);
         const weatherData = await response.json();
         
+        // CORRECCIÓN 1: Aquí se define la lista de estaciones que queremos para index.html
+        const STATIONS_PARA_INDEX = [
+            "320049", // Chincolco, Petorca
+            "330007", // Rodelillo, Valparaíso
+            "330006", // J. Botánico
+            "320041", // Torquemada
+            "330161", // San Antonio
+            "320124", // L. Agricola, Quillota
+            "320051", // Los Libertadores
+            "330031", // Juan Fernández
+            "270001"  // Rapa Nui
+        ];
+        
+        const stationsToDisplay = weatherData.filter(s => STATIONS_PARA_INDEX.includes(s.codigo));
+
         const sidebarLeft = document.getElementById('weather-sidebar-left');
         const sidebarRight = document.getElementById('weather-sidebar-right');
     
@@ -225,8 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const jBotanicoOnline = jBotanico && jBotanico.hora_actualizacion !== 'Offline';
         
         let thirdStation = jBotanicoOnline ? jBotanico : (torquemada || { codigo: 'offline-placeholder', nombre: 'J. Botánico / Torquemada', hora_actualizacion: 'Sin conexión' });
-        
-        const stationsToDisplay = weatherData.filter(s => s.codigo !== '330006' && s.codigo !== '320041');        
+                    
         stationsToDisplay.splice(2, 0, thirdStation);                
         
         let sidebarLeftHTML = '';
