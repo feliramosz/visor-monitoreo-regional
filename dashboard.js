@@ -1763,27 +1763,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 let elements = '';
                 let yPos = 10; // Posición inicial en el eje Y para la primera pluma
 
-                // Dibuja los banderines (50 nudos)
+                // Dibuja los banderines (50 nudos) - MÁS CORTOS
                 for (let i = 0; i < pennants; i++) {
-                    elements += `<path class="feather" d="M 25 ${yPos} L 35 ${yPos} L 25 ${yPos + 4} z" fill="#333" />`;
+                    // CAMBIO: El punto 'L 35' ahora es 'L 31' para acortar el banderín
+                    elements += `<path class="feather" d="M 25 ${yPos} L 31 ${yPos} L 25 ${yPos + 4} z" fill="#333" />`;
                     yPos += 5;
                 }
-                // Dibuja las plumas completas (10 nudos)
+                // Dibuja las plumas completas (10 nudos) - MÁS CORTAS
                 for (let i = 0; i < fullBarbs; i++) {
-                    elements += `<line class="feather" x1="25" y1="${yPos}" x2="35" y2="${yPos - 5}" />`;
+                    // CAMBIO: El punto 'x2="35"' ahora es 'x2="31"' para acortar la pluma
+                    elements += `<line class="feather" x1="25" y1="${yPos}" x2="31" y2="${yPos - 5}" />`;
                     yPos += 4;
                 }
-                // Dibuja las medias plumas (5 nudos)
+                // Dibuja las medias plumas (5 nudos) - MÁS CORTAS
                 for (let i = 0; i < halfBarbs; i++) {
-                    elements += `<line class="feather" x1="25" y1="${yPos}" x2="30" y2="${yPos - 2.5}" />`;
+                    // CAMBIO: El punto 'x2="30"' ahora es 'x2="28"' para acortar la media pluma
+                    elements += `<line class="feather" x1="25" y1="${yPos}" x2="28" y2="${yPos - 2.5}" />`;
                 }
 
-                return `<svg viewbox="15 0 22 50">
-                    <g transform="rotate(${rotation} 25 25)">
-                        <line class="shaft" x1="25" y1="25" x2="25" y2="10" />
-                        ${elements}
-                    </g>
-                </svg>`;
+                // CAMBIO FINAL: Un viewBox mucho más angosto y preciso para el nuevo dibujo
+                return `<svg viewbox="22 0 12 50">
+                            <g transform="rotate(${rotation} 25 25)">
+                                <line class="shaft" x1="25" y1="25" x2="25" y2="10" />
+                                ${elements}
+                            </g>
+                        </svg>`;
             };
 
             stationsWithCoords.forEach(station => {
