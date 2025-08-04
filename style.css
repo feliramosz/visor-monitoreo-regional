@@ -2950,8 +2950,8 @@ footer {
     filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
 }
 
-.wind-barb-marker svg .shaft,
-.wind-barb-marker svg .feather {
+.wind-svg-right svg .shaft,
+.wind-svg-right svg .feather {
     stroke: #333;
     stroke-width: 2;
     fill: none;
