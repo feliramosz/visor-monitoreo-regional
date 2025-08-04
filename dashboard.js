@@ -209,14 +209,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function initializeAirQualityMap() {
         if (airQualityMap) return;
         const mapCenter = [-32.93, -71.46];
-        const mapContainer = document.getElementById('air-quality-map-container-dashboard');
-        if (!mapContainer) return;
-
-        airQualityMap = L.map(mapContainer).setView([-32.95, -70.91], 8);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(airQualityMap);
-        
+        airQualityMap = L.map(airQualityMapContainer).setView(mapCenter, 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(airQualityMap);
     }
 
     async function fetchAndRenderAirQuality() {

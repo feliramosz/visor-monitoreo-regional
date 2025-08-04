@@ -2981,16 +2981,20 @@ footer {
 .wind-arrow-marker.red { color: #dc3545; }
 
 .wind-arrow-marker .arrow-chevron {
-    width: 0;
-    height: 0;    
-    border-left: 8px solid transparent;
-    border-right: 8px solid transparent;   
-    border-top: 12px solid; 
-    margin-top: -4px;
+    width: 12px;
+    height: 12px;    
+    border-bottom: 4px solid;
+    border-right: 4px solid;    
+    border-color: inherit;   
+    transform: rotate(45deg);
+    margin-top: -8px; 
 }
 
-/* Colores según velocidad de viento */
 .wind-arrow-marker.green .arrow-chevron { background-color: #28a745; }
 .wind-arrow-marker.yellow .arrow-chevron { background-color: #ffc107; }
 .wind-arrow-marker.orange .arrow-chevron { background-color: #fd7e14; }
 .wind-arrow-marker.red .arrow-chevron { background-color: #dc3545; }
+
+.summer-view #panel-mapas .leaflet-bottom.leaflet-right {
+    display: none;
+}
