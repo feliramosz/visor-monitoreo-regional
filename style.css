@@ -2904,43 +2904,6 @@ footer {
 }
 /* --- FIN: Estilos para controles de vista Verano/Invierno --- */
 
-/* --- INICIO: Estilos para mapa de Viento (Verano) --- */
-.wind-marker {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    background-color: rgba(255, 255, 255, 0.8);
-    border-radius: 15px;
-    padding: 2px 8px;
-    border: 1px solid #333;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
-    font-weight: bold;
-    white-space: nowrap;
-}
-
-.wind-temp {
-    color: #d32f2f; /* Rojo para temperatura */
-    font-size: 10px;
-}
-
-.wind-humidity {
-    color: #0277bd; /* Azul para humedad */
-    font-size: 10px;
-}
-
-.wind-arrow {
-    width: 0;
-    height: 0;
-    border-left: 7px solid transparent;
-    border-right: 7px solid transparent;
-    border-bottom: 14px solid #333; /* Flecha negra */
-    /* La rotación se aplicará con JS */
-    transform-origin: center;
-    transition: transform 0.5s ease-out;
-}
-/* --- FIN: Estilos para mapa de Viento (Verano) --- */
-
 /* --- ESTILOS FINALES PARA TARJETA DE VIENTO COMPACTA --- */
 .wind-barb-marker {
     background-color: rgba(248, 249, 250, 0.9); /* Ligeramente más opaco */
