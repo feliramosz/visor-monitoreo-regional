@@ -1888,70 +1888,73 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Error al cargar datos del mapa de precipitación:", error); }
     }
 
-    async function renderSummerWindMap() {        
+    async function renderSummerWindMap() {
         mapPanelTitle.textContent = "Viento, Temperatura y Humedad";
-        
-        const cardinalToDegrees = {'N':0,'NE':45,'E':90,'SE':135,'S':180,'SO':225,'O':270,'NO':315};
-        try {
-            // Usamos /api/weather como la fuente principal de estaciones
-            const weatherResponse = await fetch(WEATHER_API_URL);
-            const weatherStations = await weatherResponse.json();
+        const cardinalToDegrees = { 'N': 0, 'NE': 45, 'E': 90, 'SE': 135, 'S': 180, 'SO': 225, 'O': 270, 'NO': 315 };
 
-            const coordsResponse = await fetch(METEO_MAP_API_URL);
+        try {            
+            const [coordsResponse, weatherResponse] = await Promise.all([
+                fetch(METEO_MAP_API_URL),
+                fetch(WEATHER_API_URL)
+            ]);
+
             const stationsWithCoords = await coordsResponse.json();
+            const weatherData = await weatherResponse.json();
+            
+            const weatherDataMap = new Map(weatherData.map(station => [station.nombre, station]));
+            
+            stationsWithCoords.forEach(station => {
+                if (station.lat && station.lon) {                    
+                    const summerData = weatherDataMap.get(station.nombre);
+                    let marker;
 
-            weatherStations.forEach(station => {
-                // CORRECCIÓN: Asegura que busquemos coordenadas para todas las estaciones
-                const stationCoords = stationsWithCoords.find(s => s.nombre === station.nombre);
+                    if (summerData) {                        
+                        const degrees = cardinalToDegrees[summerData.viento_direccion.split('/')[0].trim()] || 0;
+                        const windSpeed = parseFloat(summerData.viento_velocidad) || 0;
+                        let arrowClass = '';
+                        let arrowCount = 0;
 
-                if (stationCoords && stationCoords.lat && stationCoords.lon) {
-                    const degrees = cardinalToDegrees[station.viento_direccion.split('/')[0].trim()] || 0;
-                    
-                    // --- INICIO: Lógica para el nuevo estilo de flechas ---
-                    const windSpeed = parseFloat(station.viento_velocidad) || 0;
-                    let arrowClass = '';
-                    let arrowCount = 0;
+                        if (windSpeed <= 40) { arrowClass = 'green'; arrowCount = 1; }
+                        else if (windSpeed <= 60) { arrowClass = 'yellow'; arrowCount = 2; }
+                        else if (windSpeed <= 80) { arrowClass = 'orange'; arrowCount = 3; }
+                        else { arrowClass = 'red'; arrowCount = 4; }
+                        
+                        let arrowsHtml = '';
+                        for (let i = 0; i < arrowCount; i++) {
+                            arrowsHtml += '<div class="arrow-chevron"></div>';
+                        }
 
-                    if (windSpeed >= 0 && windSpeed <= 40) {
-                        arrowClass = 'green';
-                        arrowCount = 1;
-                    } else if (windSpeed >= 41 && windSpeed <= 60) {
-                        arrowClass = 'yellow';
-                        arrowCount = 2;
-                    } else if (windSpeed >= 61 && windSpeed <= 80) {
-                        arrowClass = 'orange';
-                        arrowCount = 3;
-                    } else if (windSpeed > 80) {
-                        arrowClass = 'red';
-                        arrowCount = 4;
+                        const windMarkerHtml = `
+                            <div class="wind-arrow-marker ${arrowClass}">
+                                <div class="wind-data">
+                                    <span class="wind-temp">${summerData.temperatura}°</span>
+                                    <span class="wind-humidity">${summerData.humedad}%</span>
+                                </div>
+                                <div class="arrow-stack" style="transform: rotate(${degrees}deg);">${arrowsHtml}</div>
+                            </div>`;
+                        
+                        const customIcon = L.divIcon({
+                            className: '',
+                            html: windMarkerHtml,
+                            iconSize: [80, 60],
+                            iconAnchor: [40, 30]
+                        });
+                        
+                        marker = L.marker([station.lat, station.lon], { icon: customIcon })
+                            .bindPopup(`<b>${station.nombre}</b><br>Viento: ${summerData.viento_velocidad}`);
+
+                    } else {                        
+                        marker = L.circleMarker([station.lat, station.lon], {
+                            radius: 8,
+                            fillColor: '#9e9e9e',
+                            color: "#FFF",
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.7
+                        }).bindPopup(`<b>${station.nombre}</b><br>Datos de viento no disponibles.`);
                     }
-                    
-                    let arrowsHtml = '';
-                    for (let i = 0; i < arrowCount; i++) {
-                        arrowsHtml += '<div class="arrow-chevron"></div>';
-                    }
-                    // --- FIN: Lógica para el nuevo estilo de flechas ---
 
-                    const windMarkerHtml = `
-                        <div class="wind-arrow-marker ${arrowClass}">
-                            <div class="wind-data">
-                                <span class="wind-temp">${station.temperatura}°</span>
-                                <span class="wind-humidity">${station.humedad}%</span>
-                            </div>
-                            <div class="arrow-stack" style="transform: rotate(${degrees}deg);">${arrowsHtml}</div>
-                        </div>`;
-
-                    const customIcon = L.divIcon({
-                        className: '', // Sin clase base para evitar estilos conflictivos
-                        html: windMarkerHtml,
-                        iconSize: [80, 60],
-                        iconAnchor: [40, 30]
-                    });
-                    
-                    const marker = L.marker([stationCoords.lat, stationCoords.lon], { icon: customIcon })
-                        .addTo(precipitationMap)
-                        .bindPopup(`<b>${station.nombre}</b><br>Viento: ${station.viento_velocidad}`);
-                    
+                    marker.addTo(precipitationMap);
                     precipitationMarkers.push(marker);
                 }
             });
