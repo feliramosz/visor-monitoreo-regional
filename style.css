@@ -2941,18 +2941,18 @@ footer {
 }
 /* --- FIN: Estilos para mapa de Viento (Verano) --- */
 
-/* --- ESTILOS AJUSTADOS PARA TARJETA DE VIENTO (VERSIÓN FINAL) --- */
+/* --- ESTILOS FINALES PARA TARJETA DE VIENTO COMPACTA --- */
 .wind-barb-marker {
-    background-color: rgba(255, 255, 255, 0.85);
-    border: 1px solid #555;
-    border-radius: 5px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    background-color: rgba(248, 249, 250, 0.9); /* Ligeramente más opaco */
+    border: 1px solid #343a40;
+    border-radius: 4px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.5);
     display: flex;
     flex-direction: row;
     align-items: center;
-    /* CORRECCIÓN: Padding y gap reducidos para un ajuste ceñido */
-    padding: 2px 3px;
-    gap: 3px;
+    /* CORRECCIÓN: Padding y gap reducidos al mínimo */
+    padding: 2px;
+    gap: 2px;
 }
 
 .wind-barb-marker .data-container {
@@ -2960,26 +2960,20 @@ footer {
     flex-direction: column;
     align-items: center;
     font-weight: bold;
-    /* CORRECCIÓN: Fuente un 15% más pequeña (de 12px a 10px) */
-    font-size: 10px; 
-    line-height: 1.1;
+    font-size: 10px;
+    line-height: 1.2;
     text-shadow: none;
     padding-right: 3px;
     border-right: 1px solid #ccc;
 }
 
-.wind-barb-marker .wind-temp {
-    color: #d32f2f;
-}
+.wind-barb-marker .wind-temp { color: #d32f2f; }
+.wind-barb-marker .wind-humidity { color: #0277bd; }
 
-.wind-barb-marker .wind-humidity {
-    color: #0277bd;
-}
-
-/* CORRECCIÓN: SVG del wind barb un 10% más grande (de 45px a 50px) */
+/* CORRECCIÓN: Se reduce el tamaño del contenedor SVG para eliminar espacio sobrante */
 .wind-barb-marker svg {
-    width: 50px;
-    height: 50px;
+    width: 38px;
+    height: 38px;
     filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
 }
 
