@@ -1856,8 +1856,7 @@ document.addEventListener('DOMContentLoaded', () => {
             wazeCarouselInterval = setInterval(nextWazeSlide, wazePageDuration);
         }
     }
-
-    // --- INICIO: Nuevas funciones para renderizar cada tipo de mapa ---
+    
     async function renderWinterPrecipitationMap() {
         document.getElementById('map-panel-title').textContent = "Precipitaciones Últ. 24h";
         try {
