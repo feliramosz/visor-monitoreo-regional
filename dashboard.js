@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (precipitationMap) return;
         const mapContainer = document.getElementById('precipitation-map-container-dashboard');
         if (!mapContainer) return;
-        precipitationMap = L.map(mapContainer).setView([-32.95, -70.91], 8);
+        precipitationMap = L.map(mapContainer).setView([-32.95, -70.81], 8);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(precipitationMap);
     }
     
