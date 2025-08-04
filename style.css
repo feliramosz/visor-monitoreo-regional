@@ -2916,6 +2916,8 @@ footer {
     /* CORRECCIÓN: Padding y gap reducidos al mínimo */
     padding: 2px;
     gap: 2px;
+    width: fit-content;
+    white-space: nowrap;
 }
 
 .wind-barb-marker .data-container {
