@@ -2905,53 +2905,55 @@ footer {
 /* --- FIN: Estilos para controles de vista Verano/Invierno --- */
 
 /* --- ESTILOS PARA NUEVO MARCADOR DE VIENTO VERTICAL --- */
-.wind-marker-vertical {
-    background-color: rgba(248, 249, 250, 0.38);
+.wind-marker-table-wrapper {
+    background-color: rgba(248, 249, 250, 0.75);
     border: 1px solid #343a40;
     border-radius: 4px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.5);
-    text-align: center;
-    font-weight: bold;
-    line-height: 1.2;
 }
 
-.wind-speed-top {
+.wind-marker-table {
+    border-collapse: collapse;
+    line-height: 1.1;
+    font-weight: bold;
+}
+
+.wind-marker-table td, .wind-marker-table th {
     padding: 2px 4px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wind-speed-cell {
     border-bottom: 1px solid #343a40;
     font-size: 11px;
     color: #343a40;
+    width: 100%;
 }
 
-.wind-bottom-section {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    align-items: center;
-}
-
-.wind-left-data {
-    font-size: 10px;
-    border-right: 1px solid #343a40;
-}
-
-.wind-temp-middle {
-    padding: 2px 4px;
+.wind-temp-cell {
     border-bottom: 1px solid #343a40;
-    color: #d32f2f;
+    border-right: 1px solid #343a40;
+    font-size: 10px;
+    color: #d32f2f; /* Rojo para temperatura */
 }
 
-.wind-humidity-bottom {
-    padding: 2px 4px;
-    color: #0277bd;
+.wind-humidity-cell {
+    border-right: 1px solid #343a40;
+    font-size: 10px;
+    color: #0277bd; /* Azul para humedad */
 }
 
-.wind-svg-right svg {
+.wind-svg-cell svg {
     width: 30px;
     height: 38px;
     filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
+    display: block; /* Soluciona un espacio extra debajo del SVG */
 }
 
-.wind-svg-right svg .shaft,
-.wind-svg-right svg .feather {
+/* Estilos para las líneas del wind barb en el nuevo contexto de tabla */
+.wind-svg-cell svg .shaft,
+.wind-svg-cell svg .feather {
     stroke: #333;
     stroke-width: 2;
     fill: none;

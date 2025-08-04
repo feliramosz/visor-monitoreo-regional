@@ -1801,15 +1801,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         const barbSVG = createWindBarbSVG(speedKt, directionDeg);
                         const markerHtml = `
-                            <div class="wind-marker-vertical">
-                                <div class="wind-speed-top">${summerData.viento_velocidad}</div>
-                                <div class="wind-bottom-section">
-                                    <div class="wind-left-data">
-                                        <div class="wind-temp-middle">${summerData.temperatura}°C</div>
-                                        <div class="wind-humidity-bottom">${summerData.humedad}%</div>
-                                    </div>
-                                    <div class="wind-svg-right">${barbSVG}</div>
-                                </div>
+                            <div class="wind-marker-table-wrapper">
+                                <table class="wind-marker-table">
+                                    <thead>
+                                        <tr>
+                                            <th colspan="2" class="wind-speed-cell">${summerData.viento_velocidad}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="wind-temp-cell">${summerData.temperatura}°C</td>
+                                            <td rowspan="2" class="wind-svg-cell">${barbSVG}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="wind-humidity-cell">${summerData.humedad}%</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>`;
 
                         const customIcon = L.divIcon({ className: '', html: markerHtml, iconAnchor: [28, 42] });
