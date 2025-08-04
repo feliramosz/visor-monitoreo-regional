@@ -2935,7 +2935,7 @@ footer {
 
 /* CORRECCIÓN: Se reduce el tamaño del contenedor SVG para eliminar espacio sobrante */
 .wind-barb-marker svg {
-    width: 18px;
+    width: 25x;
     height: 35px;
     filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
 }
