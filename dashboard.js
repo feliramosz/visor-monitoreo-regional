@@ -1797,7 +1797,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (summerData && summerData.viento_velocidad !== '---' && summerData.viento_direccion) {
                         const speedKt = (parseFloat(summerData.viento_velocidad) || 0) / 1.852; // Convertir km/h a nudos
-                        const directionDeg = parseFloat(summerData.viento_direccion.replace('°',''));
+                        const directionDeg = parseFloat(summerData.viento_direccion_deg || 0);
 
                         const barbSVG = createWindBarbSVG(speedKt, directionDeg);
                         const markerHtml = `

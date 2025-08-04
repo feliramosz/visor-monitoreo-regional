@@ -937,6 +937,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                                 'temperatura': temp.replace('°C', '').strip(),
                                 'humedad': str(latest.get('humedadRelativa', 'N/A')).replace('%', '').strip(),
                                 'viento_direccion': degrees_to_cardinal(viento_dir_val),
+                                'viento_direccion_deg': str(viento_dir_val).replace('°', '').strip() if viento_dir_val is not None else '0',
                                 'viento_velocidad': format_wind_speed_to_kmh(viento_fuerza_val),
                                 'precipitacion_24h': precip.replace('mm', '').strip(),
                                 'hora_actualizacion': convert_utc_to_local_time_str(latest.get('momento', ''))
