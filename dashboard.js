@@ -208,6 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function initializeAirQualityMap() {
         if (airQualityMap) return;
+        const mapCenter = [-32.93, -71.46];
         const mapContainer = document.getElementById('air-quality-map-container-dashboard');
         if (!mapContainer) return;
 
@@ -235,43 +236,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchAndRenderAirQuality() {
-    if (!airQualityMap) return;
+        try {
+            const response = await fetch(AIR_QUALITY_API_URL);
+            const stations = await response.json();
+            lastAirQualityData = stations;
+            gestionarNotificacionesCalidadAire(stations); // Asumo que esta función también existe en tu archivo
+            
+            airQualityMarkers.forEach(marker => marker.remove());
+            airQualityMarkers = [];
 
-    try {
-        const response = await fetch(AIR_QUALITY_API_URL);
-        if (!response.ok) throw new Error(`Error Calidad del Aire: ${response.statusText}`);
-        const stations = await response.json();
-        lastAirQualityData = stations; // Guardar datos para el modal
+            stations.forEach(station => {
+                if (station.lat && station.lon) {
+                    // CORRECCIÓN: Estilo de marcador idéntico al de producción (borde blanco)
+                    const marker = L.circleMarker([station.lat, station.lon], {
+                        radius: 10,
+                        fillColor: stateToColor[station.estado] || stateToColor['no_disponible'],
+                        color: '#fff', 
+                        weight: 2, 
+                        opacity: 1, 
+                        fillOpacity: 0.8
+                    }).addTo(airQualityMap).bindPopup(`<b>${station.nombre_estacion}</b><br>Estado: ${station.estado}`);
+                    airQualityMarkers.push(marker);
+                }
+            });
 
-        // Limpiar marcadores anteriores del mapa
-        airQualityMarkers.forEach(marker => marker.remove());
-        airQualityMarkers = [];
-        
-        const alertPanel = document.getElementById('air-quality-alert-panel-dashboard');
-        alertPanel.innerHTML = ''; // Limpiar panel lateral
-
-        // Crear los marcadores en el mapa para TODAS las estaciones
-        stations.forEach(station => {
-            if (station.lat && station.lon) {
-                const markerColor = stateToColor[station.estado] || stateToColor['no_disponible'];
-                const marker = L.circleMarker([station.lat, station.lon], {
-                    radius: 10,
-                    fillColor: markerColor,
-                    color: '#333',
-                    weight: 1.5,
-                    opacity: 1,
-                    fillOpacity: 0.8
-                }).addTo(airQualityMap);
-
-                const displayEstado = station.estado.replace('_', ' ');
-                let popupContent = `<b>${station.nombre_estacion}</b><br>Estado: ${displayEstado}`;
-                marker.bindPopup(popupContent);
-                airQualityMarkers.push(marker);
+            // CORRECCIÓN: Lógica restaurada para poblar el panel lateral
+            const stationsWithNews = stations.filter(s => s.estado !== 'bueno' && s.estado !== 'no_disponible');
+            if (stationsWithNews.length > 0) {
+                stationsWithNews.sort((a, b) => Object.keys(stateToColor).indexOf(a.estado) - Object.keys(stateToColor).indexOf(b.estado));
+                const alertText = stationsWithNews.map(s => `<strong>${s.nombre_estacion}:</strong> ${s.estado.replace('_', ' ')}`).join('   |   ');
+                airQualityAlertPanel.innerHTML = `<div class="marquee-container"><p class="marquee-text">${alertText}</p></div>`;
+            } else {
+                airQualityAlertPanel.innerHTML = '<div class="marquee-container"><p style="text-align:center; width:100%;">Reporte de estado: Bueno.</p></div>';
             }
-        });
+            
+            updateHeaderAlert(stations); // Llama a la función que actualiza el banner del header
 
         } catch (error) {
-            console.error("Error al procesar datos de calidad del aire:", error);
+            console.error("Error en Calidad del Aire:", error);
+            airQualityAlertPanel.innerHTML = '<p style="color:red;">Error al cargar datos de calidad del aire.</p>';
         }
     }
 
@@ -289,6 +292,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function updateHeaderAlert(stations) {
+        const alertPriority = ['emergencia', 'preemergencia', 'alerta'];
+        let highestAlert = stations.filter(s => alertPriority.includes(s.estado)).sort((a,b) => alertPriority.indexOf(a.estado) - alertPriority.indexOf(b.estado))[0];
+        if (highestAlert) {
+            headerAlertBanner.textContent = `ALERTA CALIDAD DEL AIRE: Estación ${highestAlert.nombre_estacion} en estado de ${highestAlert.estado.toUpperCase()}`;
+            headerAlertBanner.className = `status-${highestAlert.estado} blinking-alert`;
+        } else {
+            headerAlertBanner.className = 'hidden';
+        }
+    }
 
     function setupCentralContent(data) {
         const container = document.getElementById('central-carousel-container');
@@ -1942,12 +1955,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     // --- FIN: Lógica para el nuevo estilo de flechas ---
 
                     const windMarkerHtml = `
-                        <div class="wind-arrow-marker ${arrowClass}" style="transform: rotate(${degrees}deg);">
+                        <div class="wind-arrow-marker ${arrowClass}">
                             <div class="wind-data">
                                 <span class="wind-temp">${station.temperatura}°</span>
                                 <span class="wind-humidity">${station.humedad}%</span>
                             </div>
-                            <div class="arrow-stack">${arrowsHtml}</div>
+                            <div class="arrow-stack" style="transform: rotate(${degrees}deg);">${arrowsHtml}</div>
                         </div>`;
 
                     const customIcon = L.divIcon({
