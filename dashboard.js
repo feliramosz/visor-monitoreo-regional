@@ -1809,7 +1809,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 ${barbSVG}
                             </div>`;
 
-                        const customIcon = L.divIcon({ className: '', html: markerHtml, iconSize: [75, 42], iconAnchor: [37, 21] });
+                        const customIcon = L.divIcon({ className: '', html: markerHtml, iconAnchor: [37, 21] });
                         marker = L.marker([station.lat, station.lon], { icon: customIcon })
                             .bindPopup(`<b>${station.nombre}</b><br>Viento: ${summerData.viento_velocidad}`);
                     } else {
