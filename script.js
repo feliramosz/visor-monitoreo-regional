@@ -168,18 +168,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 "330031", // Juan Fernández
                 "270001"  // Rapa Nui
             ];
-            const filteredStations = weatherData.filter(s => STATIONS_PARA_INDEX.includes(s.codigo));           
+
+            const filteredStations = weatherData.filter(s => STATIONS_PARA_INDEX.includes(s.codigo));   
+
             const jBotanico = filteredStations.find(s => s.codigo === '330006');
             const torquemada = filteredStations.find(s => s.codigo === '320041');
             const jBotanicoOnline = jBotanico && jBotanico.hora_actualizacion !== 'Offline';
-            const thirdStation = jBotanicoOnline ? jBotanico : torquemada;
-            const sidebarLeft = document.getElementById('weather-sidebar-left');
-            const sidebarRight = document.getElementById('weather-sidebar-right');
+            const thirdStation = jBotanicoOnline ? jBotanico : (torquemada || {
+                codigo: 'offline-placeholder',
+                nombre: 'J. Botánico / Torquemada',
+                hora_actualizacion: 'Sin conexión'
+            });
 
             let finalStations = filteredStations.filter(s => s.codigo !== '330006' && s.codigo !== '320041');
             if (thirdStation) {
                 finalStations.splice(2, 0, thirdStation);
             }
+
+            const sidebarLeft = document.getElementById('weather-sidebar-left');
+            const sidebarRight = document.getElementById('weather-sidebar-right');
+            let sidebarLeftHTML = '';
+            let sidebarRightHTML = '';
+
+            const currentHour = new Date().getHours();
         
             const gifMap = {
                 'despejado_costa': { files: ['despejado_2.gif'], counter: 0 },
@@ -239,15 +250,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 return '';
             };
-
-            const currentHour = new Date().getHours();
-                        
-            stationsToDisplay.splice(2, 0, thirdStation);                
-            
-            let sidebarLeftHTML = '';
-            let sidebarRightHTML = '';
-            
-            stationsToDisplay.slice(0, 8).forEach((station, index) => {
+                                    
+            finalStations.forEach((station, index) => {
                 const backgroundFile = getWeatherBackground(station, currentHour);
                 const backgroundStyle = backgroundFile ? `style="background-image: url('assets/${backgroundFile}')"` : '';
 
