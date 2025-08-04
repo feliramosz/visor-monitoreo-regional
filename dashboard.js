@@ -1805,6 +1805,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="data-container">
                                     <span class="wind-temp">${summerData.temperatura}°C</span>
                                     <span class="wind-humidity">${summerData.humedad}%</span>
+                                    <span class="wind-speed">${summerData.viento_velocidad}</span>
                                 </div>
                                 ${barbSVG}
                             </div>`;

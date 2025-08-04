@@ -2906,7 +2906,7 @@ footer {
 
 /* --- ESTILOS FINALES PARA TARJETA DE VIENTO COMPACTA --- */
 .wind-barb-marker {
-    background-color: rgba(248, 249, 250, 0.9); /* Ligeramente más opaco */
+    background-color: rgba(248, 249, 250, 0.38);
     border: 1px solid #343a40;
     border-radius: 4px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.5);
@@ -2934,6 +2934,7 @@ footer {
 
 .wind-barb-marker .wind-temp { color: #d32f2f; }
 .wind-barb-marker .wind-humidity { color: #0277bd; }
+.wind-barb-marker .wind-speed { color: #343a40; }
 
 /* CORRECCIÓN: Se reduce el tamaño del contenedor SVG para eliminar espacio sobrante */
 .wind-barb-marker svg {
