@@ -206,6 +206,34 @@ document.addEventListener('DOMContentLoaded', () => {
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(precipitationMap);
     }
     
+    function initializeAirQualityMap() {
+        if (airQualityMap) return;
+        const mapContainer = document.getElementById('air-quality-map-container-dashboard');
+        if (!mapContainer) return;
+
+        airQualityMap = L.map(mapContainer).setView([-32.95, -70.91], 8);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(airQualityMap);
+
+        // --- AÑADIR LEYENDA ---
+        const legend = L.control({ position: 'bottomright' });
+        legend.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'info legend');
+            let legendHTML = '';
+            const stateToColor = {
+                'bueno': '#4caf50', 'regular': '#ffeb3b', 'alerta': '#ff9800',
+                'preemergencia': '#f44336', 'emergencia': '#9c27b0', 'no disponible': '#9e9e9e'
+            };
+            for (const estado in stateToColor) {
+                legendHTML += `<div class="legend-item"><i style="background:${stateToColor[estado]}"></i> ${estado}</div>`;
+            }
+            div.innerHTML = legendHTML;
+            return div;
+        };
+        legend.addTo(airQualityMap);
+    }
+
     async function fetchAndRenderMeteoMap() {
         if (!precipitationMap) return;
         precipitationMarkers.forEach(marker => marker.remove());
