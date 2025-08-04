@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let sidebarLeftHTML = '';
         let sidebarRightHTML = '';
         
-        stationsToDisplay.forEach((station, index) => {
+        stationsToDisplay.slice(0, 8).forEach((station, index) => {
             const backgroundFile = getWeatherBackground(station, currentHour);
             const backgroundStyle = backgroundFile ? `style="background-image: url('assets/${backgroundFile}')"` : '';
 

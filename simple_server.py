@@ -854,9 +854,12 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
                     STATIONS_MAP = {
                         "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
-                        "330006": "J. Botánico", "330161": "San Antonio",
-                        "320124": "L. Agricola, Quillota", "320051": "Los Libertadores",
-                        "330031": "Juan Fernández", "270001": "Rapa Nui", "320041": "Torquemada"
+                        "330161": "San Antonio", "320124": "L. Agricola, Quillota",
+                        "320063": "Zapallar, Catapilco", "320045": "Llay Llay", 
+                        "320121": "Putaendo", "320051": "Los Libertadores", 
+                        "320123": "San Esteban", "330121": "Curacaví",
+                        "320019": "San Felipe", "320045": "Llay Llay",
+                        "320041": "Torquemada",
                     }
 
                     # Función para inferir el tiempo presente
