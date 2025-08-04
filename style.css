@@ -2921,12 +2921,12 @@ footer {
 
 .wind-temp {
     color: #d32f2f; /* Rojo para temperatura */
-    font-size: 8px;
+    font-size: 10px;
 }
 
 .wind-humidity {
     color: #0277bd; /* Azul para humedad */
-    font-size: 8px;
+    font-size: 10px;
 }
 
 .wind-arrow {
