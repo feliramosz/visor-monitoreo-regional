@@ -2040,12 +2040,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showMapSlide(index) {
-        mapSlides.forEach((slide, i) => { slide.classList.toggle('active-map-slide', i === index); });
-        mapPanelTitle.textContent = mapTitles[index];
+        mapSlides.forEach((slide, i) => { 
+            slide.classList.toggle('active-map-slide', i === index); 
+        });
+        
+        if (index === 0) {
+            mapPanelTitle.textContent = "Calidad del Aire (SINCA)";
+        } else {           
+            mapPanelTitle.textContent = (currentView === 'summer') 
+                ? "Viento, Temperatura y Humedad" 
+                : "Precipitaciones Últ. 24h";
+        }      
+
         airQualityAlertPanel.style.display = (index === 0) ? 'flex' : 'none';
-        if (airQualityDetailsBtn) airQualityDetailsBtn.style.display = (index === 0) ? 'block' : 'none';
+        if (airQualityDetailsBtn) airQualityDetailsBtn.style.display = (index === 0) ? 'block' : 'none';        
+        
         if (index === 0 && airQualityMap) airQualityMap.invalidateSize();
         if (index === 1 && precipitationMap) precipitationMap.invalidateSize();
+        
         currentMapSlide = index;
     }
 
