@@ -1801,16 +1801,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         const barbSVG = createWindBarbSVG(speedKt, directionDeg);
                         const markerHtml = `
-                            <div class="wind-barb-marker">
-                                <div class="data-container">
-                                    <span class="wind-temp">${summerData.temperatura}°C</span>
-                                    <span class="wind-humidity">${summerData.humedad}%</span>
-                                    <span class="wind-speed">${summerData.viento_velocidad}</span>
+                            <div class="wind-marker-vertical">
+                                <div class="wind-speed-top">${summerData.viento_velocidad}</div>
+                                <div class="wind-bottom-section">
+                                    <div class="wind-left-data">
+                                        <div class="wind-temp-middle">${summerData.temperatura}°C</div>
+                                        <div class="wind-humidity-bottom">${summerData.humedad}%</div>
+                                    </div>
+                                    <div class="wind-svg-right">${barbSVG}</div>
                                 </div>
-                                ${barbSVG}
                             </div>`;
 
-                        const customIcon = L.divIcon({ className: '', html: markerHtml, iconAnchor: [37, 21] });
+                        const customIcon = L.divIcon({ className: '', html: markerHtml, iconAnchor: [28, 42] });
                         marker = L.marker([station.lat, station.lon], { icon: customIcon })
                             .bindPopup(`<b>${station.nombre}</b><br>Viento: ${summerData.viento_velocidad}`);
                     } else {
