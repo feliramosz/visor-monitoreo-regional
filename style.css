@@ -2941,31 +2941,33 @@ footer {
 }
 /* --- FIN: Estilos para mapa de Viento (Verano) --- */
 
-/* --- ESTILOS CORREGIDOS PARA TARJETA DE VIENTO COMPACTA --- */
+/* --- ESTILOS AJUSTADOS PARA TARJETA DE VIENTO EQUILIBRADA --- */
 .wind-barb-marker {
-    /* Estilo de la "tarjetilla" */
+    /* Estilo de la tarjeta */
     background-color: rgba(255, 255, 255, 0.85);
     border: 1px solid #555;
     border-radius: 5px;
     box-shadow: 0 1px 5px rgba(0,0,0,0.4);
     
-    /* CORRECCIÓN: Organiza los elementos en una fila (texto a la izquierda, barb a la derecha) */
+    /* Layout: texto a la izquierda, barb a la derecha */
     display: flex;
     flex-direction: row;
     align-items: center;
-    padding: 2px 4px; /* Padding reducido */
-    gap: 4px; /* Espacio entre el texto y el barb */
+    padding: 4px; /* Un poco más de padding */
+    gap: 5px;
 }
 
 /* Contenedor para la columna de Temperatura y Humedad */
 .wind-barb-marker .data-container {
     display: flex;
-    flex-direction: column; /* Apila los textos verticalmente */
-    align-items: center;    /* Centra los textos */
+    flex-direction: column;
+    align-items: center;
     font-weight: bold;
-    font-size: 11px; 
-    line-height: 1.1; /* Reduce el espacio entre líneas */
+    font-size: 12px; /* Ligeramente más grande para legibilidad */
+    line-height: 1.2;
     text-shadow: none;
+    padding-right: 5px;
+    border-right: 1px solid #ccc; /* Línea separadora vertical */
 }
 
 .wind-barb-marker .wind-temp {
@@ -2976,10 +2978,10 @@ footer {
     color: #0277bd;
 }
 
-/* Ajustes al SVG del wind barb para hacerlo más pequeño */
+/* CORRECCIÓN: Se aumenta el tamaño del SVG para que el barb sea el protagonista */
 .wind-barb-marker svg {
-    width: 35px;
-    height: 35px;
+    width: 45px;
+    height: 45px;
     filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
 }
 
