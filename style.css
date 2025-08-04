@@ -2941,46 +2941,57 @@ footer {
 }
 /* --- FIN: Estilos para mapa de Viento (Verano) --- */
 
-/* --- ESTILOS PARA LA NUEVA VISUALIZACIÓN DE VIENTO (WIND BARB) --- */
+/* --- ESTILOS CORREGIDOS PARA VISUALIZACIÓN DE VIENTO (TARJETA) --- */
 .wind-barb-marker {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100px; /* Espacio para el símbolo y los textos */
-    height: 50px;
-}
-
-.wind-barb-marker .data-container {
+    /* Estilo de la "tarjetilla" */
+    background-color: rgba(255, 255, 255, 0.85);
+    border: 1px solid #555;
+    border-radius: 5px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    
+    /* Organiza el contenido: datos arriba, wind barb abajo */
     display: flex;
     flex-direction: column;
-    text-align: left;
+    align-items: center;
+    padding: 3px 5px;
+}
+
+/* Contenedor para la fila de Temperatura y Humedad */
+.wind-barb-marker .data-container {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
     font-weight: bold;
-    font-size: 13px;
-    text-shadow: 1px 1px 2px #FFF, -1px -1px 2px #FFF, 1px -1px 2px #FFF, -1px 1px 2px #FFF;
+    /* CORRECCIÓN: Fuente más pequeña */
+    font-size: 11px; 
+    text-shadow: none;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 2px;
+    padding-bottom: 1px;
 }
 
 .wind-barb-marker .wind-temp {
-    color: #d32f2f; /* Rojo para temperatura */
+    color: #d32f2f;
 }
 
 .wind-barb-marker .wind-humidity {
-    color: #0277bd; /* Azul para humedad */
+    color: #0277bd;
 }
 
+/* Ajustes al SVG del wind barb */
 .wind-barb-marker svg {
-    width: 50px;
-    height: 50px;
-    overflow: visible; /* Permite que las plumas no se corten */
-    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.7));
+    width: 40px;
+    height: 40px;
+    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
 }
 
-.wind-barb-marker svg .shaft { /* Línea principal */
+.wind-barb-marker svg .shaft {
     stroke: #333;
-    stroke-width: 1.5;
+    stroke-width: 2;
 }
 
-.wind-barb-marker svg .feather { /* Plumas */
+.wind-barb-marker svg .feather {
     stroke: #333;
-    stroke-width: 1.5;
+    stroke-width: 2;
     fill: none;
 }
