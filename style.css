@@ -2904,57 +2904,63 @@ footer {
 }
 /* --- FIN: Estilos para controles de vista Verano/Invierno --- */
 
-/* --- ESTILOS PARA NUEVO MARCADOR DE VIENTO VERTICAL --- */
-.wind-marker-table-wrapper {
-    background-color: rgba(248, 249, 250, 0.75);
-    border: 1px solid #343a40;
-    border-radius: 4px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.5);
-}
-
-.wind-marker-table {
-    border-collapse: collapse;
-    line-height: 1.1;
-    font-weight: bold;
-}
-
-.wind-marker-table td, .wind-marker-table th {
-    padding: 2px 4px;
+/* Contenedor principal que Leaflet crea. No necesita estilos propios. */
+.wind-arrow-marker {
     text-align: center;
+}
+
+/* La tabla que contiene toda la información del marcador */
+.wind-arrow-marker .wind-arrow-table {
+    background-color: rgba(255, 255, 255, 0.85); /* Fondo blanco semitransparente */
+    border: 1px solid #555;
+    border-radius: 5px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    border-collapse: collapse; /* Une los bordes de las celdas */
+    font-family: Arial, sans-serif;
+    width: 60px; /* Ancho fijo para consistencia */
+}
+
+/* Estilo general para todas las celdas */
+.wind-arrow-marker .wind-arrow-table td {
+    padding: 3px;
     vertical-align: middle;
+    text-align: center;
 }
 
-.wind-speed-cell {
-    border-bottom: 1px solid #343a40;
+/* Celda superior para la velocidad del viento */
+.wind-arrow-marker .wind-speed-cell {
     font-size: 11px;
-    color: #343a40;
-    width: 100%;
+    font-weight: bold;
+    color: #000;
+    border-bottom: 1px solid #555;
 }
 
-.wind-temp-cell {
-    border-bottom: 1px solid #343a40;
-    border-right: 1px solid #343a40;
+/* Celda para la temperatura */
+.wind-arrow-marker .wind-temp-cell {
     font-size: 10px;
-    color: #d32f2f; /* Rojo para temperatura */
+    font-weight: bold;
+    color: #d32f2f; /* Rojo para la temperatura */
+    border-right: 1px solid #555;
 }
 
-.wind-humidity-cell {
-    border-right: 1px solid #343a40;
+/* Celda para la humedad */
+.wind-arrow-marker .wind-humidity-cell {
     font-size: 10px;
-    color: #0277bd; /* Azul para humedad */
+    font-weight: bold;
+    color: #0277bd; /* Azul para la humedad */
+    border-right: 1px solid #555;
+    border-top: 1px solid #ccc; /* Línea separadora sutil */
 }
 
-.wind-svg-cell svg {
-    width: 30px;
-    height: 38px;
-    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
-    display: block; /* Soluciona un espacio extra debajo del SVG */
+/* Celda que contiene la flecha */
+.wind-arrow-marker .wind-arrow-cell {
+    width: 28px; /* Ancho fijo para la flecha */
 }
 
-/* Estilos para las líneas del wind barb en el nuevo contexto de tabla */
-.wind-svg-cell svg .shaft,
-.wind-svg-cell svg .feather {
-    stroke: #333;
-    stroke-width: 2;
-    fill: none;
+/* El SVG de la flecha */
+.wind-arrow-marker .arrow-svg {
+    width: 24px;
+    height: 36px;
+    transition: transform 0.3s ease-out; /* Animación suave al cargar */
+    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5)); /* Sombra para la flecha */
 }

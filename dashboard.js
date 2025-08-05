@@ -1735,6 +1735,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mapPanelTitle.textContent = "Viento, Temperatura y Humedad";
 
         try {
+            // Se mantienen las llamadas a la API para obtener los datos necesarios
             const [coordsResponse, weatherResponse] = await Promise.all([
                 fetch(METEO_MAP_API_URL),
                 fetch(WEATHER_API_URL)
@@ -1743,87 +1744,57 @@ document.addEventListener('DOMContentLoaded', () => {
             const weatherData = await weatherResponse.json();
             const weatherDataMap = new Map(weatherData.map(station => [station.nombre, station]));
 
-            /**
-             * Crea el SVG para un "Wind Barb" meteorológico.
-             * @param {number} speedKt - Velocidad del viento en nudos.
-             * @param {number} directionDeg - Dirección del viento en grados (de donde viene).
-             * @returns {string} - El código HTML del SVG.
-             */
-            const createWindBarbSVG = (speedKt, directionDeg) => {
-                const rotation = directionDeg; // El SVG rotará a la dirección de origen del viento
-                let speed = Math.round(speedKt / 5) * 5; // Redondea a los 5 nudos más cercanos
-                let pennants = 0, fullBarbs = 0, halfBarbs = 0;
-
-                pennants = Math.floor(speed / 50);
-                speed %= 50;
-                fullBarbs = Math.floor(speed / 10);
-                speed %= 10;
-                halfBarbs = Math.floor(speed / 5);
-
-                let elements = '';
-                let yPos = 10; // Posición inicial en el eje Y para la primera pluma
-
-                // Dibuja los banderines (50 nudos)
-                for (let i = 0; i < pennants; i++) {
-                    elements += `<path class="feather" d="M 25 ${yPos} L 35 ${yPos} L 25 ${yPos + 4} z" fill="#333" />`;
-                    yPos += 5;
-                }
-                // Dibuja las plumas completas (10 nudos)
-                for (let i = 0; i < fullBarbs; i++) {
-                    elements += `<line class="feather" x1="25" y1="${yPos}" x2="35" y2="${yPos - 5}" />`;
-                    yPos += 4;
-                }
-                // Dibuja las medias plumas (5 nudos)
-                for (let i = 0; i < halfBarbs; i++) {
-                    elements += `<line class="feather" x1="25" y1="${yPos}" x2="30" y2="${yPos - 2.5}" />`;
-                }
-                
-                return `<svg viewbox="0 0 50 50">
-                            <g transform="rotate(${rotation} 25 25)">
-                                <line class="shaft" x1="25" y1="25" x2="25" y2="10" />
-                                ${elements}
-                            </g>
-                        </svg>`;
-            };
-
             stationsWithCoords.forEach(station => {
                 if (station.lat && station.lon) {
                     const summerData = weatherDataMap.get(station.nombre);
                     let marker;
 
                     if (summerData && summerData.viento_velocidad !== '---' && summerData.viento_direccion) {
-                        const speedKt = (parseFloat(summerData.viento_velocidad) || 0) / 1.852; // Convertir km/h a nudos
+                        const speed = summerData.viento_velocidad || 'S/D';
+                        const temp = summerData.temperatura || 'S/D';
+                        const humidity = summerData.humedad || 'S/D';
                         const directionDeg = parseFloat(summerData.viento_direccion_deg || 0);
 
-                        const barbSVG = createWindBarbSVG(speedKt, directionDeg);
+                        // Se crea el HTML para la nueva tabla con la flecha SVG
                         const markerHtml = `
-                            <div class="wind-marker-table-wrapper">
-                                <table class="wind-marker-table">
-                                    <thead>
-                                        <tr>
-                                            <th colspan="2" class="wind-speed-cell">${summerData.viento_velocidad}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td class="wind-temp-cell">${summerData.temperatura}°C</td>
-                                            <td rowspan="2" class="wind-svg-cell">${barbSVG}</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="wind-humidity-cell">${summerData.humedad}%</td>
-                                        </tr>
-                                    </tbody>
+                            <div class="wind-arrow-marker">
+                                <table class="wind-arrow-table">
+                                    <tr>
+                                        <td colspan="2" class="wind-speed-cell">${speed}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="wind-temp-cell">${temp}°C</td>
+                                        <td rowspan="2" class="wind-arrow-cell">
+                                            <svg class="arrow-svg" style="transform: rotate(${directionDeg}deg);" viewBox="0 0 24 24">
+                                                <path d="M12 2L12 18M12 2L6 8M12 2L18 8" fill="none" stroke="#003366" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="wind-humidity-cell">${humidity}%</td>
+                                    </tr>
                                 </table>
-                            </div>`;
+                            </div>
+                        `;
 
-                        const customIcon = L.divIcon({ className: '', html: markerHtml, iconAnchor: [28, 42] });
+                        // Se utiliza L.divIcon para crear el marcador a partir del HTML
+                        const customIcon = L.divIcon({
+                            className: '', // Leaflet añade 'leaflet-div-icon' por defecto
+                            html: markerHtml,
+                            iconAnchor: [30, 45] // Ajusta el anclaje para que apunte correctamente al lugar
+                        });
+
                         marker = L.marker([station.lat, station.lon], { icon: customIcon })
                             .bindPopup(`<b>${station.nombre}</b><br>Viento: ${summerData.viento_velocidad}`);
+                        // --- FIN DE LA NUEVA LÓGICA ---
+
                     } else {
+                        // Marcador de respaldo si no hay datos
                         marker = L.circleMarker([station.lat, station.lon], {
                             radius: 8, fillColor: '#9e9e9e', color: "#FFF", weight: 1, opacity: 1, fillOpacity: 0.7
                         }).bindPopup(`<b>${station.nombre}</b><br>Datos de viento no disponibles.`);
                     }
+
                     marker.addTo(precipitationMap);
                     precipitationMarkers.push(marker);
                 }
