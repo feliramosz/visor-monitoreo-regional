@@ -423,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
             contentHTML += '</tbody></table>';
             
             // --- Añadir la hora de actualización al final ---
-            contentHTML += `<p class="meta-info" style="text-align: right; margin-top: 15px;">Hora de última actualización: ${timeString} h.</p>`;
+            contentHTML += `<p class="meta-info" style="text-align: right; margin-top: 15px;">Hora de última actualización: ${timeString}.</p>`;
 
             modalBody.innerHTML = contentHTML;
 
@@ -544,7 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 contentHTML += '</tbody></table>';
                 
                 // --- Añadir la hora de actualización al final ---
-                contentHTML += `<p class="meta-info" style="text-align: right; margin-top: 15px;">Hora de última actualización: ${timeString} h.</p>`;
+                contentHTML += `<p class="meta-info" style="text-align: right; margin-top: 15px;">Hora de última actualización: ${timeString}.</p>`;
 
                 modalBody.innerHTML = contentHTML;
 
@@ -568,7 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeString = now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
         
         // --- Construir el título con la hora ---
-        const titleHTML = `Hidrometría DGA <span style="font-size: 0.7em; color: #6c757d; font-weight: normal;">Ult. act: ${timeString} h.</span>`;
+        const titleHTML = `Hidrometría DGA <span style="font-size: 0.7em; color: #6c757d; font-weight: normal;">Ult. act: ${timeString}.</span>`;
         openModal(titleHTML);
 
         try {
@@ -764,36 +764,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadSismosTsunamiContent() {
         openModal("Últimos Boletines Sísmicos");
-        
+                
         modalBody.innerHTML = `
             <div class="bulletin-card" id="ptwc-card">
                 <h3>Pacific Tsunami Warning Center (PTWC)</h3>
                 <p id="ptwc-bulletin">Cargando...</p>
-                <div class="meta-info" id="ptwc-time-container" style="display: none;"></div>
             </div>
             <div class="bulletin-card" id="geofon-card">
                 <h3>GEOFON (Sismo Significativo)</h3>
                 <p id="geofon-bulletin">Cargando...</p>
-                <div class="meta-info" id="geofon-time-container" style="display: none;"></div>
             </div>
         `;
 
         try {
             const responsePtwc = await fetch('/api/last_tsunami_message');
             const dataPtwc = await responsePtwc.json();
+            const ptwcCard = document.getElementById('ptwc-card');
             const ptwcContainer = document.getElementById('ptwc-bulletin');
-            const ptwcTimeContainer = document.getElementById('ptwc-time-container');
+
             if (responsePtwc.ok) {
                 ptwcContainer.textContent = dataPtwc.mensaje;
-                // --- Mostrar la hora de recepción ---
-                const receptionDate = new Date(dataPtwc.timestamp * 1000);
-                ptwcTimeContainer.textContent = `Recibido: ${receptionDate.toLocaleString('es-CL')}`;
-                ptwcTimeContainer.style.display = 'block';
+                const receptionDate = new Date(dataPtwc.timestamp * 1000);            
+                const metaInfoDiv = document.createElement('div');
+                metaInfoDiv.className = 'meta-info';
+                metaInfoDiv.innerHTML = `<span><strong>Recibido:</strong> ${receptionDate.toLocaleString('es-CL')}</span>`;
+                ptwcCard.appendChild(metaInfoDiv);
             } else {
                 ptwcContainer.textContent = dataPtwc.error || 'No hay boletín reciente de PTWC.';
             }
         } catch (error) {
             document.getElementById('ptwc-bulletin').textContent = 'No se pudo conectar con el servicio de PTWC.';
+        }
+
+        try {
+            const responseGeofon = await fetch('/api/last_geofon_message');
+            const dataGeofon = await responseGeofon.json();
+            const geofonCard = document.getElementById('geofon-card');
+            const geofonContainer = document.getElementById('geofon-bulletin');
+
+            if (responseGeofon.ok) {
+                geofonContainer.textContent = dataGeofon.mensaje;
+                const receptionDate = new Date(dataGeofon.timestamp * 1000);                
+                const metaInfoDiv = document.createElement('div');
+                metaInfoDiv.className = 'meta-info';
+                metaInfoDiv.innerHTML = `<span><strong>Recibido:</strong> ${receptionDate.toLocaleString('es-CL')}</span>`;
+                geofonCard.appendChild(metaInfoDiv);
+            } else {
+                geofonContainer.textContent = dataGeofon.error || 'No hay boletín reciente de GEOFON.';
+            }
+        } catch (error) {
+            document.getElementById('geofon-bulletin').textContent = 'No se pudo conectar con el servicio de GEOFON.';
         }
 
         try {
