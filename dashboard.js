@@ -1740,7 +1740,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch(WEATHER_API_URL)
             ]);
             const stationsWithCoords = await coordsResponse.json();
-            const weatherData = await weatherResponse.json();
+            const weatherData = await response.json();
             const weatherDataMap = new Map(weatherData.map(station => [station.nombre, station]));
 
             stationsWithCoords.forEach(station => {
@@ -1750,49 +1750,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (summerData) {
                         const speedKmh = parseFloat(summerData.viento_velocidad) || 0;
-                        const temp = summerData.temperatura || 'S/D';
+                        const temp = parseFloat(summerData.temperatura) || 'S/D';
                         const humidity = summerData.humedad || 'S/D';
                         const directionDeg = parseFloat(summerData.viento_direccion_deg || 0);
                         
+                        let windSpeedHtml = '';
                         let windIndicatorSvg = '';
-                        let windSpeedText = speedKmh > 0 ? `${speedKmh.toFixed(0)} km/h` : 'Calmo';
 
+                        // --- Lógica para Celda de Viento y Flecha ---
                         if (speedKmh > 0) {
+                            // Si hay viento, muestra velocidad y flecha
+                            windSpeedHtml = `${speedKmh.toFixed(0)}<span class="unit">km/h</span>`;
                             windIndicatorSvg = `
-                                <svg class="arrow-svg" style="transform: rotate(${directionDeg}deg);" viewBox="0 0 24 24">
+                                <svg class="arrow-svg" style="transform: rotate(${directionDeg}deg);" viewBox="0 0 24 24" width="22" height="22">
                                     <path d="M12 2L12 18M12 2L6 8M12 2L18 8" fill="none" stroke="#003366" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>`;
                         } else {
+                            // Si el viento está calmo, muestra "Calmo" y un círculo
+                            windSpeedHtml = '<span class="calm-text">Calmo</span>';
                             windIndicatorSvg = `
-                                <svg class="arrow-svg" viewBox="0 0 24 24">
+                                <svg class="arrow-svg" viewBox="0 0 24 24" width="22" height="22">
                                     <circle cx="12" cy="12" r="6" fill="none" stroke="#003366" stroke-width="3"/>
                                 </svg>`;
-                        }
-                        
-                        // HTML del marcador (simplificado sin el div exterior)
+                        }                    
+
+                        // --- ESTRUCTURA DE TABLA 2x2 ---
                         const markerHtml = `
-                            <table class="wind-arrow-table">
+                            <table class="wind-grid-table">
                                 <tr>
-                                    <td colspan="2" class="wind-speed-cell">${windSpeedText}</td>
+                                    <td class="wind-speed-cell">${windSpeedHtml}</td>
+                                    <td class="wind-arrow-cell">${windIndicatorSvg}</td>
                                 </tr>
                                 <tr>
-                                    <td class="wind-temp-cell">${temp}°C</td>
-                                    <td rowspan="2" class="wind-arrow-cell">
-                                        ${windIndicatorSvg}
-                                    </td>
-                                </tr>
-                                <tr>
+                                    <td class="wind-temp-cell">${temp !== 'S/D' ? temp.toFixed(1) : 'S/D'}°</td>
                                     <td class="wind-humidity-cell">${humidity}%</td>
                                 </tr>
                             </table>
                         `;
 
-                        // Se definen explícitamente las dimensiones del ícono.
+                        // Se ajusta el tamaño del ícono a la nueva cuadrícula
                         const customIcon = L.divIcon({
-                            className: 'custom-wind-marker', // Clase contenedora para evitar conflictos
+                            className: 'custom-wind-marker',
                             html: markerHtml,
-                            iconSize: [65, 54], // Ancho y alto del marcador en píxeles [width, height]
-                            iconAnchor: [32, 54]  // Punto del ícono que corresponde a la coordenada del mapa (punta inferior central)
+                            iconSize: [70, 50],   // Ancho y alto [width, height]
+                            iconAnchor: [35, 50]    // Anclaje en la punta inferior central
                         });
 
                         marker = L.marker([station.lat, station.lon], { icon: customIcon })
