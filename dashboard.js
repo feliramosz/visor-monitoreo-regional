@@ -1757,52 +1757,48 @@ document.addEventListener('DOMContentLoaded', () => {
                         let windIndicatorSvg = '';
                         let windSpeedText = speedKmh > 0 ? `${speedKmh.toFixed(0)} km/h` : 'Calmo';
 
-                        // --- Lógica para Viento Calmo ---
-                        // Si la velocidad es mayor a 0, dibuja la flecha.
                         if (speedKmh > 0) {
                             windIndicatorSvg = `
                                 <svg class="arrow-svg" style="transform: rotate(${directionDeg}deg);" viewBox="0 0 24 24">
                                     <path d="M12 2L12 18M12 2L6 8M12 2L18 8" fill="none" stroke="#003366" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>`;
                         } else {
-                        // Si la velocidad es 0 o no válida, dibuja un círculo.
                             windIndicatorSvg = `
                                 <svg class="arrow-svg" viewBox="0 0 24 24">
                                     <circle cx="12" cy="12" r="6" fill="none" stroke="#003366" stroke-width="3"/>
                                 </svg>`;
                         }
-                        // --- FIN: Lógica para Viento Calmo ---
-
+                        
+                        // HTML del marcador (simplificado sin el div exterior)
                         const markerHtml = `
-                            <div class="wind-arrow-marker">
-                                <table class="wind-arrow-table">
-                                    <tr>
-                                        <td colspan="2" class="wind-speed-cell">${windSpeedText}</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="wind-temp-cell">${temp}°C</td>
-                                        <td rowspan="2" class="wind-arrow-cell">
-                                            ${windIndicatorSvg}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="wind-humidity-cell">${humidity}%</td>
-                                    </tr>
-                                </table>
-                            </div>
+                            <table class="wind-arrow-table">
+                                <tr>
+                                    <td colspan="2" class="wind-speed-cell">${windSpeedText}</td>
+                                </tr>
+                                <tr>
+                                    <td class="wind-temp-cell">${temp}°C</td>
+                                    <td rowspan="2" class="wind-arrow-cell">
+                                        ${windIndicatorSvg}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="wind-humidity-cell">${humidity}%</td>
+                                </tr>
+                            </table>
                         `;
 
+                        // Se definen explícitamente las dimensiones del ícono.
                         const customIcon = L.divIcon({
-                            className: '',
+                            className: 'custom-wind-marker', // Clase contenedora para evitar conflictos
                             html: markerHtml,
-                            iconAnchor: [32, 50] // Ajuste del anclaje
+                            iconSize: [65, 54], // Ancho y alto del marcador en píxeles [width, height]
+                            iconAnchor: [32, 54]  // Punto del ícono que corresponde a la coordenada del mapa (punta inferior central)
                         });
 
                         marker = L.marker([station.lat, station.lon], { icon: customIcon })
                             .bindPopup(`<b>${station.nombre}</b><br>Viento: ${summerData.viento_velocidad}`);
                     
                     } else {
-                        // Marcador de respaldo si no hay datos
                         marker = L.circleMarker([station.lat, station.lon], {
                             radius: 8, fillColor: '#9e9e9e', color: "#FFF", weight: 1, opacity: 1, fillOpacity: 0.7
                         }).bindPopup(`<b>${station.nombre}</b><br>Datos no disponibles.`);

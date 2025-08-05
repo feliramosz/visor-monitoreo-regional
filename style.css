@@ -2904,44 +2904,43 @@ footer {
 }
 /* --- FIN: Estilos para controles de vista Verano/Invierno --- */
 
-/* --- INICIO: Estilos para Marcador de Viento, Temperatura y Humedad --- */
-.wind-arrow-marker .wind-arrow-table {
+/* Contenedor que crea Leaflet. Le damos una clase para evitar conflictos. */
+.custom-wind-marker {
+    /* No necesita estilos, Leaflet lo maneja con iconSize */
+}
+
+/* La tabla con la información. Ahora es el elemento principal dentro del marcador. */
+.wind-arrow-table {
     background-color: rgba(255, 255, 255, 0.85);
-    border: 1px solid #333; /* Borde más sutil */
+    border: 1px solid #333;
     border-radius: 5px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.4);
     border-collapse: collapse;
     font-family: Arial, sans-serif;
-    width: 65px; /* Ancho ligeramente mayor para comodidad */
+    width: 100%; /* Ocupa el 100% del contenedor definido en iconSize */
+    height: 100%;
 }
 
-.wind-arrow-marker .wind-arrow-table td {
-    padding: 0; /* Controlamos el espacio con height y line-height */
+.wind-arrow-table td {
+    padding: 0;
     vertical-align: middle;
     text-align: center;
-    height: 18px; /* Altura fija para cada fila */
-    line-height: 18px; /* Centra el texto verticalmente en la altura fija */
 }
 
-/* Celda superior para la velocidad del viento */
-.wind-arrow-marker .wind-speed-cell {
+.wind-speed-cell {
     font-size: 12px;
     font-weight: bold;
-    color: #000;
     border-bottom: 1px solid #555;
 }
 
-/* Celda para la temperatura */
-.wind-arrow-marker .wind-temp-cell {
+.wind-temp-cell {
     font-size: 11px;
     font-weight: bold;
     color: #d32f2f;
     border-right: 1px solid #555;
-    width: 55%; /* Asigna más espacio a los valores */
 }
 
-/* Celda para la humedad */
-.wind-arrow-marker .wind-humidity-cell {
+.wind-humidity-cell {
     font-size: 11px;
     font-weight: bold;
     color: #0277bd;
@@ -2949,19 +2948,14 @@ footer {
     border-top: 1px solid #ccc;
 }
 
-/* Celda que contiene la flecha o el círculo */
-.wind-arrow-marker .wind-arrow-cell {
-    width: 45%;
-    display: flex; /* Usamos flexbox para centrar perfectamente el SVG */
+.wind-arrow-cell {
+    display: flex;
     align-items: center;
     justify-content: center;
-    height: 36px; /* Debe ser la suma de las dos celdas que abarca */
 }
 
-/* El SVG de la flecha o el círculo */
-.wind-arrow-marker .arrow-svg {
+.arrow-svg {
     width: 24px;
-    height: 24px; /* Tamaño consistente */
-    transition: transform 0.3s ease-out;
+    height: 24px;
     filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
 }
