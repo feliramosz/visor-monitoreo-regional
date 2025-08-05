@@ -2904,32 +2904,28 @@ footer {
 }
 /* --- FIN: Estilos para controles de vista Verano/Invierno --- */
 
-/* Contenedor principal que Leaflet crea. No necesita estilos propios. */
-.wind-arrow-marker {
-    text-align: center;
-}
-
-/* La tabla que contiene toda la información del marcador */
+/* --- INICIO: Estilos para Marcador de Viento, Temperatura y Humedad --- */
 .wind-arrow-marker .wind-arrow-table {
-    background-color: rgba(255, 255, 255, 0.85); /* Fondo blanco semitransparente */
-    border: 1px solid #555;
+    background-color: rgba(255, 255, 255, 0.85);
+    border: 1px solid #333; /* Borde más sutil */
     border-radius: 5px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-    border-collapse: collapse; /* Une los bordes de las celdas */
+    border-collapse: collapse;
     font-family: Arial, sans-serif;
-    width: 60px; /* Ancho fijo para consistencia */
+    width: 65px; /* Ancho ligeramente mayor para comodidad */
 }
 
-/* Estilo general para todas las celdas */
 .wind-arrow-marker .wind-arrow-table td {
-    padding: 3px;
+    padding: 0; /* Controlamos el espacio con height y line-height */
     vertical-align: middle;
     text-align: center;
+    height: 18px; /* Altura fija para cada fila */
+    line-height: 18px; /* Centra el texto verticalmente en la altura fija */
 }
 
 /* Celda superior para la velocidad del viento */
 .wind-arrow-marker .wind-speed-cell {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: bold;
     color: #000;
     border-bottom: 1px solid #555;
@@ -2937,30 +2933,35 @@ footer {
 
 /* Celda para la temperatura */
 .wind-arrow-marker .wind-temp-cell {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: bold;
-    color: #d32f2f; /* Rojo para la temperatura */
+    color: #d32f2f;
     border-right: 1px solid #555;
+    width: 55%; /* Asigna más espacio a los valores */
 }
 
 /* Celda para la humedad */
 .wind-arrow-marker .wind-humidity-cell {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: bold;
-    color: #0277bd; /* Azul para la humedad */
+    color: #0277bd;
     border-right: 1px solid #555;
-    border-top: 1px solid #ccc; /* Línea separadora sutil */
+    border-top: 1px solid #ccc;
 }
 
-/* Celda que contiene la flecha */
+/* Celda que contiene la flecha o el círculo */
 .wind-arrow-marker .wind-arrow-cell {
-    width: 28px; /* Ancho fijo para la flecha */
+    width: 45%;
+    display: flex; /* Usamos flexbox para centrar perfectamente el SVG */
+    align-items: center;
+    justify-content: center;
+    height: 36px; /* Debe ser la suma de las dos celdas que abarca */
 }
 
-/* El SVG de la flecha */
+/* El SVG de la flecha o el círculo */
 .wind-arrow-marker .arrow-svg {
     width: 24px;
-    height: 36px;
-    transition: transform 0.3s ease-out; /* Animación suave al cargar */
-    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5)); /* Sombra para la flecha */
+    height: 24px; /* Tamaño consistente */
+    transition: transform 0.3s ease-out;
+    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
 }

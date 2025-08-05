@@ -1735,7 +1735,6 @@ document.addEventListener('DOMContentLoaded', () => {
         mapPanelTitle.textContent = "Viento, Temperatura y Humedad";
 
         try {
-            // Se mantienen las llamadas a la API para obtener los datos necesarios
             const [coordsResponse, weatherResponse] = await Promise.all([
                 fetch(METEO_MAP_API_URL),
                 fetch(WEATHER_API_URL)
@@ -1749,25 +1748,41 @@ document.addEventListener('DOMContentLoaded', () => {
                     const summerData = weatherDataMap.get(station.nombre);
                     let marker;
 
-                    if (summerData && summerData.viento_velocidad !== '---' && summerData.viento_direccion) {
-                        const speed = summerData.viento_velocidad || 'S/D';
+                    if (summerData) {
+                        const speedKmh = parseFloat(summerData.viento_velocidad) || 0;
                         const temp = summerData.temperatura || 'S/D';
                         const humidity = summerData.humedad || 'S/D';
                         const directionDeg = parseFloat(summerData.viento_direccion_deg || 0);
+                        
+                        let windIndicatorSvg = '';
+                        let windSpeedText = speedKmh > 0 ? `${speedKmh.toFixed(0)} km/h` : 'Calmo';
 
-                        // Se crea el HTML para la nueva tabla con la flecha SVG
+                        // --- Lógica para Viento Calmo ---
+                        // Si la velocidad es mayor a 0, dibuja la flecha.
+                        if (speedKmh > 0) {
+                            windIndicatorSvg = `
+                                <svg class="arrow-svg" style="transform: rotate(${directionDeg}deg);" viewBox="0 0 24 24">
+                                    <path d="M12 2L12 18M12 2L6 8M12 2L18 8" fill="none" stroke="#003366" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>`;
+                        } else {
+                        // Si la velocidad es 0 o no válida, dibuja un círculo.
+                            windIndicatorSvg = `
+                                <svg class="arrow-svg" viewBox="0 0 24 24">
+                                    <circle cx="12" cy="12" r="6" fill="none" stroke="#003366" stroke-width="3"/>
+                                </svg>`;
+                        }
+                        // --- FIN: Lógica para Viento Calmo ---
+
                         const markerHtml = `
                             <div class="wind-arrow-marker">
                                 <table class="wind-arrow-table">
                                     <tr>
-                                        <td colspan="2" class="wind-speed-cell">${speed}</td>
+                                        <td colspan="2" class="wind-speed-cell">${windSpeedText}</td>
                                     </tr>
                                     <tr>
                                         <td class="wind-temp-cell">${temp}°C</td>
                                         <td rowspan="2" class="wind-arrow-cell">
-                                            <svg class="arrow-svg" style="transform: rotate(${directionDeg}deg);" viewBox="0 0 24 24">
-                                                <path d="M12 2L12 18M12 2L6 8M12 2L18 8" fill="none" stroke="#003366" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                                            </svg>
+                                            ${windIndicatorSvg}
                                         </td>
                                     </tr>
                                     <tr>
@@ -1777,22 +1792,20 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         `;
 
-                        // Se utiliza L.divIcon para crear el marcador a partir del HTML
                         const customIcon = L.divIcon({
-                            className: '', // Leaflet añade 'leaflet-div-icon' por defecto
+                            className: '',
                             html: markerHtml,
-                            iconAnchor: [30, 45] // Ajusta el anclaje para que apunte correctamente al lugar
+                            iconAnchor: [32, 50] // Ajuste del anclaje
                         });
 
                         marker = L.marker([station.lat, station.lon], { icon: customIcon })
                             .bindPopup(`<b>${station.nombre}</b><br>Viento: ${summerData.viento_velocidad}`);
-                        // --- FIN DE LA NUEVA LÓGICA ---
-
+                    
                     } else {
                         // Marcador de respaldo si no hay datos
                         marker = L.circleMarker([station.lat, station.lon], {
                             radius: 8, fillColor: '#9e9e9e', color: "#FFF", weight: 1, opacity: 1, fillOpacity: 0.7
-                        }).bindPopup(`<b>${station.nombre}</b><br>Datos de viento no disponibles.`);
+                        }).bindPopup(`<b>${station.nombre}</b><br>Datos no disponibles.`);
                     }
 
                     marker.addTo(precipitationMap);
