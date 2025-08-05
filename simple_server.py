@@ -854,9 +854,13 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
                     STATIONS_MAP = {
                         "320049": "Chincolco, Petorca", "330007": "Rodelillo, Valparaíso",
-                        "330006": "J. Botánico", "330161": "San Antonio",
-                        "320124": "L. Agricola, Quillota", "320051": "Los Libertadores",
-                        "330031": "Juan Fernández", "270001": "Rapa Nui", "320041": "Torquemada"
+                        "330161": "San Antonio", "320124": "L. Agricola, Quillota",
+                        "320063": "Zapallar, Catapilco", "320045": "Llay Llay", 
+                        "320121": "Putaendo", "320051": "Los Libertadores", 
+                        "320123": "San Esteban", "330121": "Curacaví",
+                        "320019": "San Felipe", "320045": "Llay Llay",
+                        "320041": "Torquemada","330031": "Juan Fernández",
+                        "270001": "Rapa Nui"
                     }
 
                     # Función para inferir el tiempo presente
@@ -912,6 +916,19 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                             latest = datos_recientes['datos'][0]
                             temp = str(latest.get('temperatura', 'N/A'))
                             precip = str(latest.get('aguaCaida24Horas', '0'))
+                                                        
+                            viento_dir_val = latest.get('direccionDelViento')
+                            viento_fuerza_val = latest.get('fuerzaDelViento')
+                            
+                            if not viento_dir_val or not viento_fuerza_val:                                
+                                viento_combinado = latest.get('vientoInstantaneo')
+                                if viento_combinado and '/' in str(viento_combinado):
+                                    try:
+                                        partes = str(viento_combinado).split('/')
+                                        viento_dir_val = partes[0]
+                                        viento_fuerza_val = f"{partes[1]} kt" 
+                                    except (IndexError, ValueError):
+                                        pass                         
                             
                             weather_data_final.append({
                                 'codigo': codigo,
@@ -919,12 +936,13 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                                 'tiempo_presente': _inferir_tiempo_presente(precip, temp),
                                 'temperatura': temp.replace('°C', '').strip(),
                                 'humedad': str(latest.get('humedadRelativa', 'N/A')).replace('%', '').strip(),
-                                'viento_direccion': degrees_to_cardinal(latest.get('direccionDelViento')),
-                                'viento_velocidad': format_wind_speed_to_kmh(latest.get('fuerzaDelViento')),
+                                'viento_direccion': degrees_to_cardinal(viento_dir_val),
+                                'viento_direccion_deg': str(viento_dir_val).replace('°', '').strip() if viento_dir_val is not None else '0',
+                                'viento_velocidad': format_wind_speed_to_kmh(viento_fuerza_val),
                                 'precipitacion_24h': precip.replace('mm', '').strip(),
                                 'hora_actualizacion': convert_utc_to_local_time_str(latest.get('momento', ''))
                             })
-                        else:
+                        else:                            
                             weather_data_final.append({
                                 'codigo': codigo, 'nombre': nombre, 'tiempo_presente': 'Offline', 'temperatura': 'Sin datos',
                                 'humedad': '---', 'viento_direccion': '---', 'viento_velocidad': '---',

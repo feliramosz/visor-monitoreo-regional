@@ -13,6 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const METEO_MAP_API_URL = '/api/estaciones_meteo_mapa';
     const HIDRO_LIVE_API_URL = '/api/hidrometria_live';
 
+    // Referencias a los controles del dashboard invierno/verano
+    const bodyElement = document.body;
+    const setViewSummerBtn = document.getElementById('setViewSummerBtn');
+    const setViewWinterBtn = document.getElementById('setViewWinterBtn');
+    let currentView = 'winter';
     // Referencias a elementos del DOM
     const weatherBannerContainer = document.getElementById('weather-banner-container');
     const headerAlertBanner = document.getElementById('header-alert-banner');    
@@ -50,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentMapSlide = 0;
     const mapSlideDuration = 20000;
     let isMapCarouselPaused = false;
-    const mapTitles = ["Calidad del Aire (SINCA)", "Precipitaciones Últ. 24h"];
+    let mapTitles = [];
     let groups = {};
 
     // Estado del carrusel de AVISOS
@@ -97,7 +102,152 @@ document.addEventListener('DOMContentLoaded', () => {
         pasoFronterizo: {},
         puertos: {}
     };
+    
+    // --- Funciones para gestionar la vista (Verano/Invierno) ---
+    function setView(viewMode) {
+        if (currentView === viewMode) return;
+
+        currentView = viewMode;
+        localStorage.setItem('dashboardView', viewMode);
+        mapTitles = ["Calidad del Aire (SINCA)", viewMode === 'summer' ? "Viento, Temperatura y Humedad" : "Precipitaciones Últ. 24h"];
+        bodyElement.classList.toggle('summer-view', viewMode === 'summer');
+        bodyElement.classList.toggle('winter-view', viewMode === 'winter');
+
+        setViewSummerBtn.classList.toggle('active-view', viewMode === 'summer');
+        setViewWinterBtn.classList.toggle('active-view', viewMode === 'winter');
+
+        renderWeatherSlide(lastData); // Actualiza el banner superior
+        fetchAndRenderMeteoMap();     // Actualiza el mapa
+    }
+
+    function loadViewPreference() {
+        const savedView = localStorage.getItem('dashboardView') || 'winter';
+        setView(savedView);
+    }
+
+    // --- Lógica de Renderizado ---
+    
+    // CORRECCIÓN: Función restaurada para manejar el carrusel del banner superior
+    function setupTopBannerCarousel(data) {
+        const container = document.getElementById('weather-banner-container');
+        if (!container) return;
+        if (window.topBannerInterval) clearInterval(window.topBannerInterval);
+
+        renderWeatherSlide(data);
+        // Las siguientes funciones pueblan la otra diapositiva del carrusel
+        renderStaticHydroSlide(data);
+        fetchAndDisplayTurnos();
+
+        const controls = { // Lee el estado de los checkboxes
+            showWeatherSlide: document.getElementById('showWeatherSlide').checked,
+            showHydroSlide: document.getElementById('showHydroSlide').checked,
+        };
+
+        const activeSlides = [];
+        if (controls.showWeatherSlide) activeSlides.push('weather-slide');
+        if (controls.showHydroSlide) activeSlides.push('hydro-slide');
+
+        const allSlides = container.querySelectorAll('.top-banner-slide');
+        if (activeSlides.length <= 1) {
+            allSlides.forEach(slide => slide.classList.remove('active-top-slide'));
+            const slideToShow = activeSlides.length === 1 ? document.getElementById(activeSlides[0]) : document.getElementById('weather-slide');
+            if (slideToShow) slideToShow.classList.add('active-top-slide');
+        } else {
+            let currentSlideIndex = 0;
+            const showSlide = () => {
+                const slideIdToShow = activeSlides[currentSlideIndex];
+                allSlides.forEach(slide => slide.classList.toggle('active-top-slide', slide.id === slideIdToShow));
+                currentSlideIndex = (currentSlideIndex + 1) % activeSlides.length;
+            };
+            showSlide();
+            window.topBannerInterval = setInterval(showSlide, 10000);
+        }
+    }
+    
+    // --- Lógica del Mapa Meteorológico ---
+    function initializePrecipitationMap() {
+        if (precipitationMap) return;
+        const mapContainer = document.getElementById('precipitation-map-container-dashboard');
+        if (!mapContainer) return;
+        precipitationMap = L.map(mapContainer).setView([-32.95, -70.86], 8);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(precipitationMap);
+    }
+    
+    function initializeAirQualityMap() {
+        if (airQualityMap) return;
+        const mapCenter = [-32.93, -71.46];
+        airQualityMap = L.map(airQualityMapContainer).setView(mapCenter, 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(airQualityMap);
+    }
+
+    async function fetchAndRenderAirQuality() {
+        try {
+            const response = await fetch(AIR_QUALITY_API_URL);
+            const stations = await response.json();
+            lastAirQualityData = stations;
+            gestionarNotificacionesCalidadAire(stations); // Asumo que esta función también existe en tu archivo
+            
+            airQualityMarkers.forEach(marker => marker.remove());
+            airQualityMarkers = [];
+
+            stations.forEach(station => {
+                if (station.lat && station.lon) {
+                    // CORRECCIÓN: Estilo de marcador idéntico al de producción (borde blanco)
+                    const marker = L.circleMarker([station.lat, station.lon], {
+                        radius: 10,
+                        fillColor: stateToColor[station.estado] || stateToColor['no_disponible'],
+                        color: '#fff', 
+                        weight: 2, 
+                        opacity: 1, 
+                        fillOpacity: 0.8
+                    }).addTo(airQualityMap).bindPopup(`<b>${station.nombre_estacion}</b><br>Estado: ${station.estado}`);
+                    airQualityMarkers.push(marker);
+                }
+            });
+
+            // CORRECCIÓN: Lógica restaurada para poblar el panel lateral
+            const stationsWithNews = stations.filter(s => s.estado !== 'bueno' && s.estado !== 'no_disponible');
+            if (stationsWithNews.length > 0) {
+                stationsWithNews.sort((a, b) => Object.keys(stateToColor).indexOf(a.estado) - Object.keys(stateToColor).indexOf(b.estado));
+                const alertText = stationsWithNews.map(s => `<strong>${s.nombre_estacion}:</strong> ${s.estado.replace('_', ' ')}`).join('   |   ');
+                airQualityAlertPanel.innerHTML = `<div class="marquee-container"><p class="marquee-text">${alertText}</p></div>`;
+            } else {
+                airQualityAlertPanel.innerHTML = '<div class="marquee-container"><p style="text-align:center; width:100%;">Reporte de estado: Bueno.</p></div>';
+            }
+            
+            updateHeaderAlert(stations); // Llama a la función que actualiza el banner del header
+
+        } catch (error) {
+            console.error("Error en Calidad del Aire:", error);
+            airQualityAlertPanel.innerHTML = '<p style="color:red;">Error al cargar datos de calidad del aire.</p>';
+        }
+    }
+
+    async function fetchAndRenderMeteoMap() {
+        if (!precipitationMap) return;
+        precipitationMarkers.forEach(marker => marker.remove());
+        precipitationMarkers = [];
         
+        mapPanelTitle.textContent = currentView === 'summer' ? "Viento, Temperatura y Humedad" : "Precipitaciones Últ. 24h";
+
+        if (currentView === 'summer') {
+            await renderSummerWindMap();
+        } else {
+            await renderWinterPrecipitationMap();
+        }
+    }
+
+    function updateHeaderAlert(stations) {
+        const alertPriority = ['emergencia', 'preemergencia', 'alerta'];
+        let highestAlert = stations.filter(s => alertPriority.includes(s.estado)).sort((a,b) => alertPriority.indexOf(a.estado) - alertPriority.indexOf(b.estado))[0];
+        if (highestAlert) {
+            headerAlertBanner.textContent = `ALERTA CALIDAD DEL AIRE: Estación ${highestAlert.nombre_estacion} en estado de ${highestAlert.estado.toUpperCase()}`;
+            headerAlertBanner.className = `status-${highestAlert.estado} blinking-alert`;
+        } else {
+            headerAlertBanner.className = 'hidden';
+        }
+    }
+
     function setupCentralContent(data) {
         const container = document.getElementById('central-carousel-container');
         if (!container) return;
@@ -502,6 +652,144 @@ document.addEventListener('DOMContentLoaded', () => {
         container.textContent = `Últ. AM/PM: ${horaInforme}`;
     }
 
+    const gifMap = {
+        'despejado_costa': { files: ['despejado_2.gif'], counter: 0 },
+        'despejado_interior': { files: ['despejado.gif'], counter: 0 },
+        'nubosidad parcial': { files: ['parcial.gif', 'nubosidad_parcial_2.gif', 'nubosidad_parcial_3.gif'], counter: 0 },
+        'escasa nubosidad': { files: ['escasa_nubosidad.gif'], counter: 0 },
+        'nublado': { files: ['nublado.gif'], counter: 0 },
+        'precipitaciones débiles': { files: ['precipitaciones_debiles.gif'], counter: 0 },
+        'lluvia': { files: ['lluvia.gif', 'lluvia_2.gif'], counter: 0 },
+        'nieve': { files: ['nieve.gif'], counter: 0 }
+    };
+
+    const getWeatherBackground = (station, hour) => {
+        const inlandStationCodes = ["320049", "320124", "320051"]; // Petorca, Quillota, Los Libertadores
+        const condition = station.tiempo_presente || '';
+        const isNight = hour < 7 || hour > 19;
+        const c = condition.toLowerCase();
+        let categoryKey = null;
+
+        if (c.includes('despejado')) {
+            categoryKey = inlandStationCodes.includes(station.codigo) ? 'despejado_interior' : 'despejado_costa';
+        } else if (c.includes('nubosidad parcial')) {
+            categoryKey = 'nubosidad parcial';
+        } else if (c.includes('escasa nubosidad')) {
+            categoryKey = 'escasa nubosidad';
+        } else if (c.includes('nublado') || c.includes('cubierto')) {
+            categoryKey = 'nublado';
+        } else if (c.includes('precipitaciones débiles')) {
+            categoryKey = 'precipitaciones débiles';
+        } else if (c.includes('lluvia') || c.includes('precipitacion')) {
+            categoryKey = 'lluvia';
+        } else if (c.includes('nieve')) {
+            categoryKey = 'nieve';
+        }
+        
+        if (categoryKey) {
+            const gifData = gifMap[categoryKey];
+            const fileIndex = gifData.counter % gifData.files.length;
+            let finalGif = gifData.files[fileIndex];
+            gifData.counter++;
+
+            if (isNight) {
+                const nightVersion = finalGif.replace('.gif', '_noche.gif');
+                // Lista de GIFs que tienen versión nocturna
+                const nightFiles = ['despejado_noche.gif', 'despejado_2_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'lluvia_2_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'parcial_noche.gif', 'nubosidad_parcial_2_noche.gif', 'nubosidad_parcial_3_noche.gif', 'precipitaciones_debiles_noche.gif'];
+                if (nightFiles.includes(nightVersion)) {
+                    finalGif = nightVersion;
+                }
+            }
+            return finalGif;
+        }
+        return '';
+    };
+
+    async function renderWeatherSlide(fullData) {
+        const weatherContainer = document.getElementById('weather-slide');
+        if (!weatherContainer) return;
+
+        try {
+            const response = await fetch(WEATHER_API_URL);
+            if (!response.ok) throw new Error('Error de red al obtener clima');
+            const weatherData = await response.json();
+
+            if (lastData) {
+                lastData.weather_data = weatherData;
+            }
+
+            const STATIONS_PARA_BANNER = [
+                "320049", "330007", "330006", "320041", "330161",
+                "320124", "320051", "330031", "270001"
+            ];
+            const filteredStations = weatherData.filter(s => STATIONS_PARA_BANNER.includes(s.codigo));
+
+            const jBotanico = filteredStations.find(s => s.codigo === '330006');
+            const torquemada = filteredStations.find(s => s.codigo === '320041');
+            const jBotanicoOnline = jBotanico && jBotanico.hora_actualizacion !== 'Offline';
+            const thirdStation = jBotanicoOnline ? jBotanico : (torquemada || {
+                codigo: 'offline-placeholder',
+                nombre: 'J. Botánico / Torquemada',
+                hora_actualizacion: 'Sin conexión'
+            });
+
+            let stationsToDisplay = filteredStations.filter(s => s.codigo !== '330006' && s.codigo !== '320041');
+            if (thirdStation) {
+                stationsToDisplay.splice(2, 0, thirdStation);
+            }
+
+            const currentHour = new Date().getHours();
+            Object.keys(gifMap).forEach(key => gifMap[key].counter = 0); // Resetea los contadores de GIFs
+
+            weatherContainer.innerHTML = stationsToDisplay.map(station => {
+                // Lógica para aplicar el fondo dinámico
+                let backgroundStyle = '';
+                if (station.codigo === 'offline-placeholder') {
+                    backgroundStyle = `background-image: url('assets/imagen_offline.png');`;
+                } else {
+                    const backgroundFile = getWeatherBackground(station, currentHour);
+                    if (backgroundFile) {
+                        backgroundStyle = `background-image: url('assets/${backgroundFile}');`;
+                    }
+                }
+
+                let variableDataHTML = '';
+                if (currentView === 'summer') {
+                    variableDataHTML = `<p><strong>Humedad:</strong> ${station.humedad || '---'}%</p>`;
+                } else {
+                    variableDataHTML = `<p><strong>Precip. (24h):</strong> ${station.precipitacion_24h || '---'} mm</p>`;
+                }
+
+                let passStatusText = '', passStatusWord = '', statusClass = 'status-no-informado';
+                if (station.nombre === 'Los Libertadores' && fullData.estado_pasos_fronterizos) {
+                    const status = (fullData.estado_pasos_fronterizos.find(p => p.nombre_paso.includes('Los Libertadores')) || {}).condicion || 'No informado';
+                    passStatusText = 'Paso: ';
+                    passStatusWord = status;
+                    if (status.toLowerCase().includes('habilitado')) statusClass = 'status-habilitado';
+                    else if (status.toLowerCase().includes('cerrado')) statusClass = 'status-cerrado';
+                }
+
+                return `
+                    <div class="weather-station-box" style="${backgroundStyle}" data-station-code="${station.codigo}">
+                        <div class="weather-overlay">
+                            <h4>${station.nombre}</h4>                            
+                            <p><strong>Temp:</strong> ${station.temperatura}°C</p>
+                            ${variableDataHTML}
+                            <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
+                            <div class="weather-box-footer">
+                                <span class="pass-status">${passStatusText}<span class="${statusClass}">${passStatusWord}</span></span>
+                                <span class="station-update-time">Act: ${station.hora_actualizacion}h</span>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+        } catch (error) {
+            console.error("Error al renderizar slide de clima:", error);
+            weatherContainer.innerHTML = '<p style="color:white;">Error al cargar datos del clima.</p>';
+        }
+    }
+
+
     /**
      * Orquesta el carrusel del banner superior, alternando entre slides.
      * @param {object} data - El objeto de datos principal.
@@ -556,144 +844,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /**
-     * Obtiene los datos del clima y los renderiza en la slide de clima.
-     */
-    async function renderWeatherSlide(fullData) {
-        const weatherContainer = document.getElementById('weather-slide');
-        if (!weatherContainer) return;
+    // --- INICIO: Funciones para gestionar la vista (Verano/Invierno) ---
+    function setView(viewMode) {
+        if (currentView === viewMode) return; // No hacer nada si la vista ya está activa
 
-        try {
-            const response = await fetch(WEATHER_API_URL);
-            if (!response.ok) throw new Error('Error de red al obtener clima');
-            const weatherData = await response.json();
+        currentView = viewMode;
+        localStorage.setItem('dashboardView', viewMode);
 
-            if (lastData) {
-                lastData.weather_data = weatherData;
-            }
+        // Actualizar clases en el body
+        bodyElement.classList.toggle('summer-view', viewMode === 'summer');
+        bodyElement.classList.toggle('winter-view', viewMode === 'winter');
 
-            // --- INICIO DE LA NUEVA LÓGICA DE RESPALDO ---
+        // Actualizar estilo de los botones
+        setViewSummerBtn.classList.toggle('active-view', viewMode === 'summer');
+        setViewWinterBtn.classList.toggle('active-view', viewMode === 'winter');
 
-            // 1. Encontrar las estaciones de interés
-            const jBotanico = weatherData.find(s => s.codigo === '330006');
-            const torquemada = weatherData.find(s => s.codigo === '320041');
+        // Volver a renderizar los componentes que cambian
+        renderWeatherSlide(lastData);
+        fetchAndRenderMeteoMap(); // Nueva función para manejar el mapa meteorológico
+    }
 
-            // 2. Verificar si están online (se considera online si tiene hora de actualización)
-            const jBotanicoOnline = jBotanico && jBotanico.hora_actualizacion !== 'Offline';
-            const torquemadaOnline = torquemada && torquemada.hora_actualizacion !== 'Offline';
-
-            // 3. Decidir qué estación mostrar en el tercer lugar
-            let thirdStation;
-            if (jBotanicoOnline) {
-                thirdStation = jBotanico;
-            } else if (torquemadaOnline) {
-                thirdStation = torquemada;
-            } else {
-                // Si ambas están offline, se crea un objeto placeholder
-                thirdStation = {
-                    codigo: 'offline-placeholder',
-                    nombre: 'Estación J. Botánico / Torquemada',
-                    temperatura: '---',
-                    precipitacion_24h: '---',
-                    viento_velocidad: '---',
-                    viento_direccion: '',
-                    hora_actualizacion: 'Sin conexión'
-                };
-            }
-
-            // 4. Construir el array final de estaciones a mostrar
-            const stationsToDisplay = weatherData.filter(s => s.codigo !== '330006' && s.codigo !== '320041');
-            stationsToDisplay.splice(2, 0, thirdStation); // Insertar la estación elegida en la 3ra posición
-
-            // --- FIN DE LA NUEVA LÓGICA ---
-
-            const gifMap = {
-                'despejado_costa': { files: ['despejado_2.gif'], counter: 0 },
-                'despejado_interior': { files: ['despejado.gif'], counter: 0 },
-                'nubosidad parcial': { files: ['parcial.gif', 'nubosidad_parcial_2.gif', 'nubosidad_parcial_3.gif'], counter: 0 },
-                'escasa nubosidad': { files: ['escasa_nubosidad.gif'], counter: 0 },
-                'nublado': { files: ['nublado.gif'], counter: 0 },
-                'precipitaciones débiles': { files: ['precipitaciones_debiles.gif'], counter: 0 },
-                'lluvia': { files: ['lluvia.gif', 'lluvia_2.gif'], counter: 0 },
-                'nieve': { files: ['nieve.gif'], counter: 0 }
-            };
-
-            const getWeatherBackground = (station, hour) => {
-            // ... (esta función interna no cambia) ...
-            const inlandStationCodes = ["320049", "320124", "320051"]; // Petorca, Quillota, Los Libertadores
-            const condition = station.tiempo_presente || '';
-            const isNight = hour < 7 || hour > 19;
-            const c = condition.toLowerCase();
-            let categoryKey = null;
-            if (c.includes('despejado')) {
-                categoryKey = inlandStationCodes.includes(station.codigo) ? 'despejado_interior' : 'despejado_costa';
-            } else if (c.includes('nubosidad parcial')) categoryKey = 'nubosidad parcial';
-            else if (c.includes('escasa nubosidad')) categoryKey = 'escasa nubosidad';
-            else if (c.includes('nublado') || c.includes('cubierto')) categoryKey = 'nublado';
-            else if (c.includes('precipitaciones débiles')) categoryKey = 'precipitaciones débiles';
-            else if (c.includes('lluvia') || c.includes('precipitacion')) categoryKey = 'lluvia';
-            else if (c.includes('nieve')) categoryKey = 'nieve';
-            if (categoryKey) {
-                const gifData = gifMap[categoryKey];
-                const fileIndex = gifData.counter % gifData.files.length;
-                let finalGif = gifData.files[fileIndex];
-                gifData.counter++;
-                if (isNight) {
-                    const nightVersion = finalGif.replace('.gif', '_noche.gif');
-                    const nightFiles = ['despejado_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'lluvia_noche_2.gif'];
-                    if (nightFiles.includes(nightVersion)) {
-                        finalGif = nightVersion;
-                    }
-                }
-                return finalGif;
-            }
-            return '';
-            };
-
-            const currentHour = new Date().getHours();
-
-            // 5. Renderizar el HTML usando el nuevo array "stationsToDisplay"
-            weatherContainer.innerHTML = stationsToDisplay.map(station => {
-                let backgroundStyle;
-                // Si es el placeholder, usar la imagen de respaldo
-                if (station.codigo === 'offline-placeholder') {
-                    backgroundStyle = `background-image: url('assets/imagen_offline.png');`;
-                } else {
-                    const backgroundFile = getWeatherBackground(station, currentHour);
-                    backgroundStyle = backgroundFile ? `background-image: url('assets/${backgroundFile}');` : '';
-                }
-
-                let passStatusText = '';
-                let passStatusWord = '';
-                let statusClass = 'status-no-informado';
-                if (station.nombre === 'Los Libertadores') {
-                    const status = (fullData.estado_pasos_fronterizos.find(p => p.nombre_paso === 'Los Libertadores') || {}).condicion || 'No informado';
-                    passStatusText = 'Paso: ';
-                    passStatusWord = status;
-                    if (status.toLowerCase().includes('habilitado')) statusClass = 'status-habilitado';
-                    else if (status.toLowerCase().includes('cerrado')) statusClass = 'status-cerrado';
-                }
-
-                return `
-                    <div class="weather-station-box" style="${backgroundStyle}" data-station-code="${station.codigo}">
-                        <div class="weather-overlay">
-                            <h4>${station.nombre}</h4>                            
-                            <p><strong>Temp:</strong> ${station.temperatura}°C</p>
-                            <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
-                            <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
-                            <div class="weather-box-footer">
-                                <span class="pass-status">${passStatusText}<span class="${statusClass}">${passStatusWord}</span></span>
-                                <span class="station-update-time">Act: ${station.hora_actualizacion}h</span>
-                            </div>
-                        </div>
-                    </div>`;
-            }).join('');
-        } catch (error) {
-            console.error("Error al renderizar slide de clima:", error);
-            weatherContainer.innerHTML = '<p style="color:white;">Error al cargar datos del clima.</p>';
-        }
-    }  
-
+    function loadViewPreference() {
+        const savedView = localStorage.getItem('dashboardView') || 'winter';
+        setView(savedView);
+    }
+    
     // Renderiza la slide de hidrometría estática con datos de caudal en vivo
     function renderStaticHydroSlide(data) {
         const hydroContainer = document.getElementById('hydro-stations-wrapper');
@@ -985,63 +1160,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const digits = clock.querySelectorAll('.digit');
         const timeDigits = timeString.replace(/:/g, '');
         digits.forEach((digit, i) => { if(digit.textContent !== timeDigits[i]) digit.textContent = timeDigits[i]; });
-    }
-
-    // Lógica de Renderizado de Paneles    
-    async function fetchAndRenderWeather() {
-        const weatherBannerContainer = document.getElementById('weather-banner-container');
-        try {
-            // 1. Añadimos una clase para iniciar la animación de desaparición
-            weatherBannerContainer.classList.add('fading-out');
-            
-            // 2. Esperamos a que la animación CSS termine
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            const response = await fetch(WEATHER_API_URL);
-            if (!response.ok) {
-                throw new Error(`Error de red: ${response.statusText}`);
-            }
-            const weatherData = await response.json();
-            
-            // Se construye el HTML con los datos nuevos
-            weatherBannerContainer.innerHTML = weatherData.map(station => {
-                let passStatusText = '';
-                let passStatusWord = '';
-                let statusClass = '';
-
-                if (station.nombre === 'Los Libertadores, Los Andes') {
-                    const status = borderPassStatus['Los Libertadores'] || 'No informado';
-                    passStatusText = 'Paso: ';
-                    passStatusWord = status;
-                    statusClass = 'status-no-informado';
-                    if (status.toLowerCase().includes('habilitado') || status.toLowerCase().includes('abierto')) {
-                        statusClass = 'status-habilitado';
-                    } else if (status.toLowerCase().includes('cerrado') || status.toLowerCase().includes('suspendido')) {
-                        statusClass = 'status-cerrado';
-                    }
-                }
-
-                return `
-                    <div class="weather-station-box">
-                        <h4>${station.nombre}</h4>
-                        <p><strong>Temp:</strong> ${station.temperatura}°C</p>
-                        <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
-                        <p><strong>Viento:</strong> ${station.viento_direccion} ${station.viento_velocidad}</p>
-                        
-                        <div class="weather-box-footer">
-                            <span class="pass-status">${passStatusText}<span class="${statusClass}">${passStatusWord}</span></span>
-                            <span class="station-update-time">Act: ${station.hora_actualizacion}h</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-        } catch (error) {
-            console.error("Error al cargar datos del clima:", error);
-            weatherBannerContainer.innerHTML = '<p>Error al cargar datos del clima.</p>';
-        } finally {
-            weatherBannerContainer.classList.remove('fading-out');
-        }
     }
 
     async function fetchAndRenderMainData() {
@@ -1582,75 +1700,12 @@ document.addEventListener('DOMContentLoaded', () => {
             wazeCarouselInterval = setInterval(nextWazeSlide, wazePageDuration);
         }
     }
-
-    // LÓGICA DE MAPAS
-    function initializeAirQualityMap() {
-        if (airQualityMap) return;
-        const mapCenter = [-32.93, -71.46];
-        airQualityMap = L.map(airQualityMapContainer).setView(mapCenter, 10);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(airQualityMap);
-    }
     
-    async function fetchAndRenderAirQuality() {
-        try {
-            const response = await fetch(AIR_QUALITY_API_URL);
-            const stations = await response.json();
-            lastAirQualityData = stations;
-            gestionarNotificacionesCalidadAire(stations);
-            airQualityMarkers.forEach(marker => marker.remove());
-            airQualityMarkers = [];
-
-            stations.forEach(station => {
-                if (station.lat && station.lon) {
-                    const marker = L.circleMarker([station.lat, station.lon], {
-                        radius: 10,
-                        fillColor: stateToColor[station.estado] || stateToColor['no_disponible'],
-                        color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.8
-                    }).addTo(airQualityMap).bindPopup(`<b>${station.nombre_estacion}</b><br>Estado: ${station.estado}`);
-                    airQualityMarkers.push(marker);
-                }
-            });
-
-            const stationsWithNews = stations.filter(s => s.estado !== 'bueno' && s.estado !== 'no_disponible');
-            if (stationsWithNews.length > 0) {
-                stationsWithNews.sort((a, b) => Object.keys(stateToColor).indexOf(a.estado) - Object.keys(stateToColor).indexOf(b.estado));
-                const alertText = stationsWithNews.map(s => `<strong>${s.nombre_estacion}:</strong> ${s.estado.replace('_', ' ')}`).join('   |   ');
-                airQualityAlertPanel.innerHTML = `<div class="marquee-container"><p class="marquee-text">${alertText}</p></div>`;
-            } else {
-                airQualityAlertPanel.innerHTML = '<div class="marquee-container"><p style="text-align:center; width:100%;">Reporte de estado: Bueno.</p></div>';
-            }
-            updateHeaderAlert(stations);
-        } catch (error) {
-            console.error("Error en Calidad del Aire:", error);
-            airQualityAlertPanel.innerHTML = '<p style="color:red;">Error al cargar datos de calidad del aire.</p>';
-        }
-    }
-
-    function updateHeaderAlert(stations) {
-        const alertPriority = ['emergencia', 'preemergencia', 'alerta'];
-        let highestAlert = stations.filter(s => alertPriority.includes(s.estado)).sort((a,b) => alertPriority.indexOf(a.estado) - alertPriority.indexOf(b.estado))[0];
-        if (highestAlert) {
-            headerAlertBanner.textContent = `ALERTA CALIDAD DEL AIRE: Estación ${highestAlert.nombre_estacion} en estado de ${highestAlert.estado.toUpperCase()}`;
-            headerAlertBanner.className = `status-${highestAlert.estado} blinking-alert`;
-        } else {
-            headerAlertBanner.className = 'hidden';
-        }
-    }
-
-    function initializePrecipitationMap() {
-        if (precipitationMap) return;
-        const mapCenter = [-32.95, -70.91];
-        precipitationMap = L.map(precipitationMapContainer).setView(mapCenter, 8);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(precipitationMap);
-    }
-
-    async function fetchAndRenderPrecipitationData() {
+    async function renderWinterPrecipitationMap() {
+        document.getElementById('map-panel-title').textContent = "Precipitaciones Últ. 24h";
         try {
             const response = await fetch(METEO_MAP_API_URL);
             const stations = await response.json();
-
-            precipitationMarkers.forEach(marker => marker.remove());
-            precipitationMarkers = [];
 
             stations.forEach(station => {
                 if (station.lat && station.lon) {
@@ -1661,21 +1716,95 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (precipActual > 20) color = '#08306b'; else if (precipActual > 10) color = '#08519c';
                     else if (precipActual > 5) color = '#3182bd'; else if (precipActual > 1) color = '#6baed6';
 
-                    // Formato para el tooltip con el dato de ayer (ambos valores con un decimal)
                     const tooltipContent = `${precipActual.toFixed(1)}<br><span class="precip-anterior">(${precipAnterior.toFixed(1)})</span>`;
 
                     const marker = L.circleMarker([station.lat, station.lon], {
                         radius: 8, fillColor: color, color: "#000",
                         weight: 1, opacity: 1, fillOpacity: 0.8
                     }).addTo(precipitationMap)
-                      // Formato para el popup (ambos valores con un decimal)
                       .bindPopup(`<b>${station.nombre}</b><br>Precipitación 24h: ${precipActual.toFixed(1)} mm<br>Precipitación día anterior: ${precipAnterior.toFixed(1)} mm`)                     
                       .bindTooltip(tooltipContent, { permanent: true, direction: 'bottom', className: 'precipitation-label', offsetY: 10 });
                       
                     precipitationMarkers.push(marker);
                 }
             });
-        } catch (error) { console.error("Error al cargar datos del mapa meteorológico:", error); }
+        } catch (error) { console.error("Error al cargar datos del mapa de precipitación:", error); }
+    }
+
+    async function renderSummerWindMap() {
+        mapPanelTitle.textContent = "Viento, Temperatura y Humedad";
+
+        try {
+            const [coordsResponse, weatherResponse] = await Promise.all([
+                fetch(METEO_MAP_API_URL),
+                fetch(WEATHER_API_URL)
+            ]);
+            const stationsWithCoords = await coordsResponse.json();        
+            const weatherData = await weatherResponse.json(); 
+            const weatherDataMap = new Map(weatherData.map(station => [station.nombre, station]));
+
+            stationsWithCoords.forEach(station => {
+                if (station.lat && station.lon) {
+                    const summerData = weatherDataMap.get(station.nombre);
+                    let marker;
+
+                    if (summerData) {
+                        const speedKmh = parseFloat(summerData.viento_velocidad) || 0;
+                        const temp = parseFloat(summerData.temperatura) || 'S/D';
+                        const humidity = summerData.humedad || 'S/D';
+                        const directionDeg = parseFloat(summerData.viento_direccion_deg || 0);
+                        
+                        let windSpeedHtml = '';
+                        let windIndicatorSvg = '';
+
+                        if (speedKmh > 0) {
+                            windSpeedHtml = `${speedKmh.toFixed(0)}<span class="unit">km/h</span>`;
+                            windIndicatorSvg = `
+                                <svg class="arrow-svg" style="transform: rotate(${directionDeg}deg);" viewBox="0 0 24 24" width="22" height="22">
+                                    <path d="M12 2L12 18M12 2L6 8M12 2L18 8" fill="none" stroke="#003366" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>`;
+                        } else {
+                            windSpeedHtml = '<span class="calm-text">Calmo</span>';
+                            windIndicatorSvg = `
+                                <svg class="arrow-svg" viewBox="0 0 24 24" width="22" height="22">
+                                    <circle cx="12" cy="12" r="6" fill="none" stroke="#003366" stroke-width="3"/>
+                                </svg>`;
+                        }
+
+                        const markerHtml = `
+                            <table class="wind-grid-table">
+                                <tr>
+                                    <td class="wind-speed-cell">${windSpeedHtml}</td>
+                                    <td class="wind-arrow-cell">${windIndicatorSvg}</td>
+                                </tr>
+                                <tr>
+                                    <td class="wind-temp-cell">${temp !== 'S/D' ? temp.toFixed(1) : 'S/D'}°</td>
+                                    <td class="wind-humidity-cell">${humidity}%</td>
+                                </tr>
+                            </table>
+                        `;
+
+                        const customIcon = L.divIcon({
+                            className: 'custom-wind-marker',
+                            html: markerHtml,
+                            iconSize: [60, 45],
+                            iconAnchor: [35, 50]
+                        });
+
+                        marker = L.marker([station.lat, station.lon], { icon: customIcon })
+                            .bindPopup(`<b>${station.nombre}</b><br>Viento: ${summerData.viento_velocidad}`);
+                    
+                    } else {
+                        marker = L.circleMarker([station.lat, station.lon], {
+                            radius: 8, fillColor: '#9e9e9e', color: "#FFF", weight: 1, opacity: 1, fillOpacity: 0.7
+                        }).bindPopup(`<b>${station.nombre}</b><br>Datos no disponibles.`);
+                    }
+
+                    marker.addTo(precipitationMap);
+                    precipitationMarkers.push(marker);
+                }
+            });
+        } catch (error) { console.error("Error al cargar datos del mapa de viento:", error); }
     }
 
     function formatTimeAgo(millis) {
@@ -1760,12 +1889,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showMapSlide(index) {
-        mapSlides.forEach((slide, i) => { slide.classList.toggle('active-map-slide', i === index); });
-        mapPanelTitle.textContent = mapTitles[index];
+        mapSlides.forEach((slide, i) => { 
+            slide.classList.toggle('active-map-slide', i === index); 
+        });
+        
+        if (index === 0) {
+            mapPanelTitle.textContent = "Calidad del Aire (SINCA)";
+        } else {           
+            mapPanelTitle.textContent = (currentView === 'summer') 
+                ? "Viento, Temperatura y Humedad" 
+                : "Precipitaciones Últ. 24h";
+        }      
+
         airQualityAlertPanel.style.display = (index === 0) ? 'flex' : 'none';
-        if (airQualityDetailsBtn) airQualityDetailsBtn.style.display = (index === 0) ? 'block' : 'none';
+        if (airQualityDetailsBtn) airQualityDetailsBtn.style.display = (index === 0) ? 'block' : 'none';        
+        
         if (index === 0 && airQualityMap) airQualityMap.invalidateSize();
         if (index === 1 && precipitationMap) precipitationMap.invalidateSize();
+        
         currentMapSlide = index;
     }
 
@@ -1787,8 +1928,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function refreshAllMeteoData() {
         console.log("Actualizando todos los datos meteorológicos (banner y mapa)...");
+        // Estas funciones ahora respetarán la variable `currentView`
         renderWeatherSlide(lastData);
-        fetchAndRenderPrecipitationData();
+        fetchAndRenderMeteoMap();
     }
 
     // --- Lógica para escuchar cambios desde otras pestañas ---
@@ -1839,7 +1981,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function initializeApp() {
-        loadPreferences();
+        // --- INICIO: Cargar preferencia de vista y añadir listeners a los botones ---
+        loadViewPreference();
+        setViewSummerBtn.addEventListener('click', () => setView('summer'));
+        setViewWinterBtn.addEventListener('click', () => setView('winter'));
+       
         updateClocks();
         initializeAirQualityMap();
         initializePrecipitationMap();
@@ -1851,9 +1997,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if(nextBtn) nextBtn.addEventListener('click', nextMapSlide);
         if(prevBtn) prevBtn.addEventListener('click', prevMapSlide);
 
+        // Obtenemos los datos de los mapas primero para tener las coordenadas
+        try {
+            const meteoMapResponse = await fetch(METEO_MAP_API_URL);
+            lastData.meteo_map_data = await meteoMapResponse.json();
+        } catch (e) {
+            console.error("No se pudieron cargar las coordenadas iniciales del mapa meteorológico", e);
+            lastData.meteo_map_data = [];
+        }
+        
         await fetchAndRenderMainData(); 
-        
-        
+        fetchAndRenderMeteoMap();
         fetchAndRenderAirQuality(); 
         refreshAllMeteoData();         
 
@@ -2031,7 +2185,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (tiempoDesdeUltimaNotificacion > dosHoras) {
                 const mensajeVoz = `Recordatorio. El Complejo Fronterizo Los Libertadores se mantiene ${estadoNuevo}.`;
-                lanzarNotificacion('assets/notificacion_normnal.mp3', mensajeVoz, 'assets/cierre_boletin.mp3');
+                lanzarNotificacion('assets/notificacion_normal.mp3', mensajeVoz, 'assets/cierre_boletin.mp3');
 
                 // Actualizamos el objeto completo
                 memoriaNotificaciones.pasoFronterizo['Los Libertadores'] = { estado: estadoNuevo, ultimaNotificacion: ahora };
@@ -2040,7 +2194,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * --- NUEVA FUNCIÓN ---
      * Revisa los datos de las estaciones meteorológicas y dispara una notificación
      * si alguna comienza a registrar precipitaciones.
      * @param {Array} estaciones - La lista de estaciones desde la API del clima.

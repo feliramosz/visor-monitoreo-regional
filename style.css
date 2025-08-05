@@ -2871,3 +2871,104 @@ footer {
     background-color: #007bff;
     color: white;
 }
+
+/* --- INICIO: Estilos para controles de vista Verano/Invierno --- */
+.view-switch-btn {
+    background: none;
+    border: 2px solid #fff;
+    color: white;
+    cursor: pointer;
+    font-size: 1.5em;
+    padding: 2px 6px;
+    border-radius: 5px;
+    line-height: 1;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.view-switch-btn:hover {
+    transform: scale(1.1);
+}
+
+.view-switch-btn.active-view {
+    background-color: #007bff;
+    border-color: #cce7ff;
+}
+
+.control-separator {
+    display: inline-block;
+    width: 2px;
+    height: 25px;
+    background-color: #4a5a6a;
+    margin: 0 10px;
+    vertical-align: middle;
+}
+/* --- FIN: Estilos para controles de vista Verano/Invierno --- */
+
+/* --- INICIO: Estilos FINALES para Marcador en Cuadrícula 2x2 --- */
+.wind-grid-table {
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.5); /* Fondo blanco con 50% de transparencia */
+    border: 1px solid #333;
+    border-radius: 5px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    font-family: Arial, sans-serif;
+    border-collapse: collapse;
+}
+
+.wind-grid-table td {
+    width: 50%;
+    height: 50%;
+    text-align: center;
+    vertical-align: middle;
+    padding: 1px;
+}
+
+/* Líneas de la cuadrícula */
+.wind-grid-table tr:first-child td {
+    border-bottom: 1px solid #999;
+}
+.wind-grid-table td:first-child {
+    border-right: 1px solid #999;
+}
+
+/* Celda de Velocidad del Viento */
+.wind-speed-cell {
+    font-size: 9.2px;
+    font-weight: bold;
+    line-height: 1;
+}
+.wind-speed-cell .unit {
+    display: block;
+    font-size: 9px;
+    font-weight: normal;
+}
+.wind-speed-cell .calm-text {
+    font-size: 8.5px; /* Reducción del 20% de la fuente original */
+    font-weight: bold;
+    color: #003366;
+}
+
+/* Celda de la Flecha/Círculo */
+.wind-arrow-cell {
+    padding-top: 1.5px;
+}
+.arrow-svg {
+    width: 12px; /* Reducción del tamaño original */
+    height: 12px;
+    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
+}
+
+/* Celda de Temperatura */
+.wind-temp-cell {
+    font-size: 9.5px; /* Reducción del 20% de la fuente original (13px * 0.8 = 10.4px) */
+    font-weight: bold;
+    color: #d32f2f;
+}
+
+/* Celda de Humedad */
+.wind-humidity-cell {
+    font-size: 9.5px; /* Reducción del 20% de la fuente original (13px * 0.8 = 10.4px) */
+    font-weight: bold;
+    color: #0277bd;
+}

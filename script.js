@@ -151,118 +151,137 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchAndRenderWeather() {
-    try {
-        const response = await fetch(WEATHER_API_URL);
-        if (!response.ok) throw new Error(`Error clima: ${response.statusText}`);
-        const weatherData = await response.json();
-        
-        const sidebarLeft = document.getElementById('weather-sidebar-left');
-        const sidebarRight = document.getElementById('weather-sidebar-right');
-    
-        const gifMap = {
-            'despejado_costa': { files: ['despejado_2.gif'], counter: 0 },
-            'despejado_interior': { files: ['despejado.gif'], counter: 0 },
-            'nubosidad parcial': { files: ['parcial.gif', 'nubosidad_parcial_2.gif', 'nubosidad_parcial_3.gif'], counter: 0 },
-            'escasa nubosidad': { files: ['escasa_nubosidad.gif'], counter: 0 },
-            'nublado': { files: ['nublado.gif'], counter: 0 },
-            'precipitaciones débiles': { files: ['precipitaciones_debiles.gif'], counter: 0 },
-            'lluvia': { files: ['lluvia.gif', 'lluvia_2.gif'], counter: 0 },
-            'nieve': { files: ['nieve.gif'], counter: 0 }
-        };        
-
-        Object.keys(gifMap).forEach(key => gifMap[key].counter = 0);
-
-        const getWeatherBackground = (station, hour) => {
-            const inlandStationCodes = ["320049", "320124", "320051"];
-            const condition = station.tiempo_presente || '';
-            const isNight = hour < 7 || hour > 19;
-            const c = condition.toLowerCase();
-            let categoryKey = null;
-
-            // --- LÓGICA CORREGIDA ---
-            if (c.includes('despejado')) {
-                if (inlandStationCodes.includes(station.codigo)) {
-                    categoryKey = 'despejado_interior';
-                } else {
-                    categoryKey = 'despejado_costa';
-                }
-            } else if (c.includes('nubosidad parcial')) {
-                categoryKey = 'nubosidad parcial';
-            } else if (c.includes('escasa nubosidad')) {
-                categoryKey = 'escasa nubosidad';
-            } else if (c.includes('nublado') || c.includes('cubierto')) {
-                categoryKey = 'nublado';
-            } else if (c.includes('precipitaciones débiles')) {
-                categoryKey = 'precipitaciones débiles';
-            } else if (c.includes('lluvia') || c.includes('precipitacion')) {
-                categoryKey = 'lluvia';
-            } else if (c.includes('nieve')) {
-                categoryKey = 'nieve';
-            }
+        try {
+            const response = await fetch(WEATHER_API_URL);
+            if (!response.ok) throw new Error(`Error clima: ${response.statusText}`);
+            const weatherData = await response.json();
             
-            if (categoryKey) {
-                const gifData = gifMap[categoryKey];
-                const fileIndex = gifData.counter % gifData.files.length;
-                let finalGif = gifData.files[fileIndex];
-                gifData.counter++;
+            // CORRECCIÓN 1: Aquí se define la lista de estaciones que queremos para index.html
+            const STATIONS_PARA_INDEX = [
+                "320049", // Chincolco, Petorca
+                "330007", // Rodelillo, Valparaíso
+                "330006", // J. Botánico
+                "320041", // Torquemada
+                "330161", // San Antonio
+                "320124", // L. Agricola, Quillota
+                "320051", // Los Libertadores
+                "330031", // Juan Fernández
+                "270001"  // Rapa Nui
+            ];
 
-                if (isNight) {
-                    const nightVersion = finalGif.replace('.gif', '_noche.gif');
-                    const nightFiles = ['despejado_noche.gif', 'despejado_2_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'lluvia_2_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'parcial_noche.gif', 'nubosidad_parcial_2_noche.gif', 'nubosidad_parcial_3_noche.gif', 'precipitaciones_debiles_noche.gif'];
-                    if (nightFiles.includes(nightVersion)) {
-                        finalGif = nightVersion;
+            const filteredStations = weatherData.filter(s => STATIONS_PARA_INDEX.includes(s.codigo));   
+
+            const jBotanico = filteredStations.find(s => s.codigo === '330006');
+            const torquemada = filteredStations.find(s => s.codigo === '320041');
+            const jBotanicoOnline = jBotanico && jBotanico.hora_actualizacion !== 'Offline';
+            const thirdStation = jBotanicoOnline ? jBotanico : (torquemada || {
+                codigo: 'offline-placeholder',
+                nombre: 'J. Botánico / Torquemada',
+                hora_actualizacion: 'Sin conexión'
+            });
+
+            let finalStations = filteredStations.filter(s => s.codigo !== '330006' && s.codigo !== '320041');
+            if (thirdStation) {
+                finalStations.splice(2, 0, thirdStation);
+            }
+
+            const sidebarLeft = document.getElementById('weather-sidebar-left');
+            const sidebarRight = document.getElementById('weather-sidebar-right');
+            let sidebarLeftHTML = '';
+            let sidebarRightHTML = '';
+
+            const currentHour = new Date().getHours();
+        
+            const gifMap = {
+                'despejado_costa': { files: ['despejado_2.gif'], counter: 0 },
+                'despejado_interior': { files: ['despejado.gif'], counter: 0 },
+                'nubosidad parcial': { files: ['parcial.gif', 'nubosidad_parcial_2.gif', 'nubosidad_parcial_3.gif'], counter: 0 },
+                'escasa nubosidad': { files: ['escasa_nubosidad.gif'], counter: 0 },
+                'nublado': { files: ['nublado.gif'], counter: 0 },
+                'precipitaciones débiles': { files: ['precipitaciones_debiles.gif'], counter: 0 },
+                'lluvia': { files: ['lluvia.gif', 'lluvia_2.gif'], counter: 0 },
+                'nieve': { files: ['nieve.gif'], counter: 0 }
+            };        
+
+            Object.keys(gifMap).forEach(key => gifMap[key].counter = 0);
+
+            const getWeatherBackground = (station, hour) => {
+                const inlandStationCodes = ["320049", "320124", "320051"];
+                const condition = station.tiempo_presente || '';
+                const isNight = hour < 7 || hour > 19;
+                const c = condition.toLowerCase();
+                let categoryKey = null;
+
+                // --- LÓGICA CORREGIDA ---
+                if (c.includes('despejado')) {
+                    if (inlandStationCodes.includes(station.codigo)) {
+                        categoryKey = 'despejado_interior';
+                    } else {
+                        categoryKey = 'despejado_costa';
                     }
+                } else if (c.includes('nubosidad parcial')) {
+                    categoryKey = 'nubosidad parcial';
+                } else if (c.includes('escasa nubosidad')) {
+                    categoryKey = 'escasa nubosidad';
+                } else if (c.includes('nublado') || c.includes('cubierto')) {
+                    categoryKey = 'nublado';
+                } else if (c.includes('precipitaciones débiles')) {
+                    categoryKey = 'precipitaciones débiles';
+                } else if (c.includes('lluvia') || c.includes('precipitacion')) {
+                    categoryKey = 'lluvia';
+                } else if (c.includes('nieve')) {
+                    categoryKey = 'nieve';
                 }
-                return finalGif;
-            }
-            return '';
-        };
+                
+                if (categoryKey) {
+                    const gifData = gifMap[categoryKey];
+                    const fileIndex = gifData.counter % gifData.files.length;
+                    let finalGif = gifData.files[fileIndex];
+                    gifData.counter++;
 
-        const currentHour = new Date().getHours();
-        
-        const jBotanico = weatherData.find(s => s.codigo === '330006');
-        const torquemada = weatherData.find(s => s.codigo === '320041');
-        const jBotanicoOnline = jBotanico && jBotanico.hora_actualizacion !== 'Offline';
-        
-        let thirdStation = jBotanicoOnline ? jBotanico : (torquemada || { codigo: 'offline-placeholder', nombre: 'J. Botánico / Torquemada', hora_actualizacion: 'Sin conexión' });
-        
-        const stationsToDisplay = weatherData.filter(s => s.codigo !== '330006' && s.codigo !== '320041');        
-        stationsToDisplay.splice(2, 0, thirdStation);                
-        
-        let sidebarLeftHTML = '';
-        let sidebarRightHTML = '';
-        
-        stationsToDisplay.forEach((station, index) => {
-            const backgroundFile = getWeatherBackground(station, currentHour);
-            const backgroundStyle = backgroundFile ? `style="background-image: url('assets/${backgroundFile}')"` : '';
+                    if (isNight) {
+                        const nightVersion = finalGif.replace('.gif', '_noche.gif');
+                        const nightFiles = ['despejado_noche.gif', 'despejado_2_noche.gif', 'escasa_nubosidad_noche.gif', 'lluvia_noche.gif', 'lluvia_2_noche.gif', 'nieve_noche.gif', 'nublado_noche.gif', 'parcial_noche.gif', 'nubosidad_parcial_2_noche.gif', 'nubosidad_parcial_3_noche.gif', 'precipitaciones_debiles_noche.gif'];
+                        if (nightFiles.includes(nightVersion)) {
+                            finalGif = nightVersion;
+                        }
+                    }
+                    return finalGif;
+                }
+                return '';
+            };
+                                    
+            finalStations.forEach((station, index) => {
+                const backgroundFile = getWeatherBackground(station, currentHour);
+                const backgroundStyle = backgroundFile ? `style="background-image: url('assets/${backgroundFile}')"` : '';
 
-            const stationHTML = `
-                <div class="weather-station-box" ${backgroundStyle}>
-                    <div class="weather-overlay">
-                        <h4>${station.nombre}</h4>                    
-                        <p><strong>Temperatura:</strong> ${station.temperatura}°C</p>
-                        <p><strong>Humedad:</strong> ${station.humedad}%</p>
-                        <p><strong>Viento:</strong> ${station.viento_direccion} a ${station.viento_velocidad}</p>
-                        <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
-                        <p class="station-update-time">Últ. act: ${station.hora_actualizacion} h.</p>
-                        <p class="station-source">Fuente: EMA DMC</p>
-                    </div>
-                </div>`;                        
+                const stationHTML = `
+                    <div class="weather-station-box" ${backgroundStyle}>
+                        <div class="weather-overlay">
+                            <h4>${station.nombre}</h4>                    
+                            <p><strong>Temperatura:</strong> ${station.temperatura}°C</p>
+                            <p><strong>Humedad:</strong> ${station.humedad}%</p>
+                            <p><strong>Viento:</strong> ${station.viento_direccion} a ${station.viento_velocidad}</p>
+                            <p><strong>Precip. (24h):</strong> ${station.precipitacion_24h} mm</p>
+                            <p class="station-update-time">Últ. act: ${station.hora_actualizacion} h.</p>
+                            <p class="station-source">Fuente: EMA DMC</p>
+                        </div>
+                    </div>`;                        
 
-            if (index < 4) {
-                sidebarLeftHTML += stationHTML;
-            } else {
-                sidebarRightHTML += stationHTML;
-            }
-        });
+                if (index < 4) {
+                    sidebarLeftHTML += stationHTML;
+                } else {
+                    sidebarRightHTML += stationHTML;
+                }
+            });
 
-        sidebarLeft.innerHTML = sidebarLeftHTML;
-        sidebarRight.innerHTML = sidebarRightHTML;
+            sidebarLeft.innerHTML = sidebarLeftHTML;
+            sidebarRight.innerHTML = sidebarRightHTML;
 
-    } catch (error) {
-        console.error("Error al procesar datos del clima:", error);
+        } catch (error) {
+            console.error("Error al procesar datos del clima:", error);
+        }
     }
-}
 
     async function loadLatestJson() {
         try {
