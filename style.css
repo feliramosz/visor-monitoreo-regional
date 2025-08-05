@@ -2934,7 +2934,7 @@ footer {
 
 /* Celda de Velocidad del Viento */
 .wind-speed-cell {
-    font-size: 14px;
+    font-size: 9.2px;
     font-weight: bold;
     line-height: 1;
 }
@@ -2954,8 +2954,8 @@ footer {
     padding-top: 1.5px;
 }
 .arrow-svg {
-    width: 15px; /* Reducción del tamaño original */
-    height: 15px;
+    width: 13px; /* Reducción del tamaño original */
+    height: 13px;
     filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
 }
 
