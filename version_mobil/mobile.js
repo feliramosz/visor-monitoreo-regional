@@ -229,7 +229,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button id="show-details-btn" class="show-modal-btn">Ver Novedades</button>
                     </div>
                     <table class="data-table">
-                        <thead><tr><th>Estación</th><th>Estado</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th style="width:70%;">Estación</th>
+                                <th style="width:30%;">Estado</th>
+                            </tr>
+                        </thead>
                         <tbody>`;
                 
                 stations.forEach(station => {
@@ -257,7 +262,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (stationsWithNews.length === 0) {
                     detailHTML += '<p>No hay estaciones que reporten novedades en este momento.</p>';
                 } else {
-                    detailHTML += '<table class="data-table"><thead><tr><th>Estación</th><th>Estado</th><th>Parámetros Alterados</th></tr></thead><tbody>';
+                    detailHTML += `
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:35%;">Estación</th>
+                                    <th style="width:25%;">Estado</th>
+                                    <th style="width:40%;">Parámetros Alterados</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
                     stationsWithNews.forEach(station => {
                         const alteredParams = station.parametros
                             .filter(p => p.estado !== 'bueno' && p.estado !== 'no_disponible')
@@ -317,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 modalTitle.textContent = "Estaciones Meteorológicas";
                 let tableHTML = `
                     <table class="data-table">
-                        <thead><tr><th>Estación</th><th>Detalles</th></tr></thead>
+                        <thead><tr><th style="width:70%;">Estación</th><th style="width:30%;">Detalles</th></tr></thead>
                         <tbody>`;
                 
                 stations.forEach(station => {
@@ -448,8 +462,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Nombre del Paso</th>
-                            <th>Estado</th>
+                            <th style="width:65%;">Nombre del Paso</th>
+                            <th style="width:35%;">Estado</th>
                         </tr>
                     </thead>
                     <tbody>`;
@@ -531,7 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </tbody>
                     </table>
                     <table class="data-table" style="margin-top:15px;">
-                        <thead><tr><th>Provincia</th><th>Clientes Afectados</th></tr></thead>
+                        <thead><tr><th style="width:70%;">Provincia</th><th style="width:30%;">Clientes Afectados</th></tr></thead>
                         <tbody>`;
                 
                 data.desglose_provincias.forEach(prov => {
