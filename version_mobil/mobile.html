@@ -48,7 +48,7 @@
             background-position: center;
             background-size: contain;
             transform: scale(1.3);
-            opacity: 0.1;
+            opacity: 0.5;
             z-index: 0; /* Capa de fondo */
         }
 
@@ -68,7 +68,7 @@
         .modal-body {
             overflow-y: auto;
             padding: 15px;
-            background-color: rgba(255, 255, 255, 0.45); /* Fondo "vidrio esmerilado" */
+            background-color: rgba(255, 255, 255, 0.60); /* Fondo "vidrio esmerilado" */
             position: relative;
             z-index: 1; /* Encima del fondo */
             flex-grow: 1;
@@ -80,10 +80,15 @@
         .modal-body .station-card,
         .modal-body .turno-card,
         .modal-body .bulletin-card,
-        .modal-body .data-table,
+        .modal-body .data-table {
+            background-color: rgba(255, 255, 255, 0.9) !important; /* Fondo blanco sólido al 90% */
+            /* Sombra para darle profundidad a las tarjetas */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Hacemos que las filas individuales de la tabla también sean semitransparentes */
         .modal-body .data-table tr {
-            background-color: transparent !important;
-            box-shadow: none !important;
+             background-color: rgba(255, 255, 255, 0.9) !important;
         }
         .data-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
         .data-table th, .data-table td { padding: 12px 8px; border: 1px solid #ddd; text-align: left; vertical-align: middle; }
