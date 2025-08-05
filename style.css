@@ -2944,7 +2944,7 @@ footer {
     font-weight: normal;
 }
 .wind-speed-cell .calm-text {
-    font-size: 9.2px; /* Reducción del 20% de la fuente original */
+    font-size: 9px; /* Reducción del 20% de la fuente original */
     font-weight: bold;
     color: #003366;
 }
@@ -2954,21 +2954,21 @@ footer {
     padding-top: 1.5px;
 }
 .arrow-svg {
-    width: 13px; /* Reducción del tamaño original */
-    height: 13px;
+    width: 12px; /* Reducción del tamaño original */
+    height: 12px;
     filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
 }
 
 /* Celda de Temperatura */
 .wind-temp-cell {
-    font-size: 10.4px; /* Reducción del 20% de la fuente original (13px * 0.8 = 10.4px) */
+    font-size: 10px; /* Reducción del 20% de la fuente original (13px * 0.8 = 10.4px) */
     font-weight: bold;
     color: #d32f2f;
 }
 
 /* Celda de Humedad */
 .wind-humidity-cell {
-    font-size: 10.4px; /* Reducción del 20% de la fuente original (13px * 0.8 = 10.4px) */
+    font-size: 10px; /* Reducción del 20% de la fuente original (13px * 0.8 = 10.4px) */
     font-weight: bold;
     color: #0277bd;
 }
