@@ -2908,7 +2908,7 @@ footer {
 .wind-grid-table {
     width: 100%;
     height: 100%;
-    background-color: rgba(255, 255, 255, 0.6); /* Fondo blanco con 40% de transparencia (1 - 0.6 = 0.4, o 60% opaco) */
+    background-color: rgba(255, 255, 255, 0.5); /* Fondo blanco con 50% de transparencia */
     border: 1px solid #333;
     border-radius: 5px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.4);
@@ -2944,18 +2944,18 @@ footer {
     font-weight: normal;
 }
 .wind-speed-cell .calm-text {
-    font-size: 9.6px; /* Reducción del 20% de la fuente original (12px * 0.8 = 9.6px) */
+    font-size: 9.2px; /* Reducción del 20% de la fuente original */
     font-weight: bold;
     color: #003366;
 }
 
 /* Celda de la Flecha/Círculo */
 .wind-arrow-cell {
-    padding-top: 3px;
+    padding-top: 1.5px;
 }
 .arrow-svg {
-    width: 17.6px; /* Reducción del 20% del tamaño original (22px * 0.8 = 17.6px) */
-    height: 17.6px;
+    width: 15px; /* Reducción del tamaño original */
+    height: 15px;
     filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5));
 }
 
