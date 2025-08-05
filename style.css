@@ -2944,7 +2944,7 @@ footer {
     font-weight: normal;
 }
 .wind-speed-cell .calm-text {
-    font-size: 9px; /* Reducción del 20% de la fuente original */
+    font-size: 8.5px; /* Reducción del 20% de la fuente original */
     font-weight: bold;
     color: #003366;
 }
@@ -2961,14 +2961,14 @@ footer {
 
 /* Celda de Temperatura */
 .wind-temp-cell {
-    font-size: 10px; /* Reducción del 20% de la fuente original (13px * 0.8 = 10.4px) */
+    font-size: 9.5px; /* Reducción del 20% de la fuente original (13px * 0.8 = 10.4px) */
     font-weight: bold;
     color: #d32f2f;
 }
 
 /* Celda de Humedad */
 .wind-humidity-cell {
-    font-size: 10px; /* Reducción del 20% de la fuente original (13px * 0.8 = 10.4px) */
+    font-size: 9.5px; /* Reducción del 20% de la fuente original (13px * 0.8 = 10.4px) */
     font-weight: bold;
     color: #0277bd;
 }
