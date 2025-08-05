@@ -90,6 +90,16 @@
         .modal-body .data-table tr {
              background-color: rgba(255, 255, 255, 0.9) !important;
         }
+        .modal-body .data-table,
+        .modal-body .card-table {
+            width: 100%;
+            table-layout: fixed; /* Fuerza a la tabla a ocupar el ancho definido */
+        }
+        
+        .modal-body .data-table td,
+        .modal-body .data-table th {
+            word-wrap: break-word; /* Permite que el texto largo se divida en varias líneas */
+        }
         .data-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
         .data-table th, .data-table td { padding: 12px 8px; border: 1px solid #ddd; text-align: left; vertical-align: middle; }
         .info-card { background-color: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 15px; padding: 15px; border-left: 5px solid #007bff; }
