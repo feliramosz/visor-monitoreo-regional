@@ -763,8 +763,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadSismosTsunamiContent() {
-        openModal("Últimos Boletines Sísmicos");
-                
+        openModal("Últimos Boletines Sísmicos");        
+        
         modalBody.innerHTML = `
             <div class="bulletin-card" id="ptwc-card">
                 <h3>Pacific Tsunami Warning Center (PTWC)</h3>
@@ -776,6 +776,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
+        // --- Carga de datos para PTWC ---
         try {
             const responsePtwc = await fetch('/api/last_tsunami_message');
             const dataPtwc = await responsePtwc.json();
@@ -784,7 +785,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (responsePtwc.ok) {
                 ptwcContainer.textContent = dataPtwc.mensaje;
-                const receptionDate = new Date(dataPtwc.timestamp * 1000);            
+                const receptionDate = new Date(dataPtwc.timestamp * 1000);                
                 const metaInfoDiv = document.createElement('div');
                 metaInfoDiv.className = 'meta-info';
                 metaInfoDiv.innerHTML = `<span><strong>Recibido:</strong> ${receptionDate.toLocaleString('es-CL')}</span>`;
@@ -796,6 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('ptwc-bulletin').textContent = 'No se pudo conectar con el servicio de PTWC.';
         }
 
+        // --- Carga de datos para GEOFON ---
         try {
             const responseGeofon = await fetch('/api/last_geofon_message');
             const dataGeofon = await responseGeofon.json();
@@ -809,24 +811,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 metaInfoDiv.className = 'meta-info';
                 metaInfoDiv.innerHTML = `<span><strong>Recibido:</strong> ${receptionDate.toLocaleString('es-CL')}</span>`;
                 geofonCard.appendChild(metaInfoDiv);
-            } else {
-                geofonContainer.textContent = dataGeofon.error || 'No hay boletín reciente de GEOFON.';
-            }
-        } catch (error) {
-            document.getElementById('geofon-bulletin').textContent = 'No se pudo conectar con el servicio de GEOFON.';
-        }
-
-        try {
-            const responseGeofon = await fetch('/api/last_geofon_message');
-            const dataGeofon = await responseGeofon.json();
-            const geofonContainer = document.getElementById('geofon-bulletin');
-            const geofonTimeContainer = document.getElementById('geofon-time-container');
-            if (responseGeofon.ok) {
-                geofonContainer.textContent = dataGeofon.mensaje;
-                // --- Mostrar la hora de recepción ---
-                const receptionDate = new Date(dataGeofon.timestamp * 1000);
-                geofonTimeContainer.textContent = `Recibido: ${receptionDate.toLocaleString('es-CL')}`;
-                geofonTimeContainer.style.display = 'block';
             } else {
                 geofonContainer.textContent = dataGeofon.error || 'No hay boletín reciente de GEOFON.';
             }
