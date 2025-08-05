@@ -1787,7 +1787,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const customIcon = L.divIcon({
                             className: 'custom-wind-marker',
                             html: markerHtml,
-                            iconSize: [65, 50],
+                            iconSize: [60, 45],
                             iconAnchor: [35, 50]
                         });
 
