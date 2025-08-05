@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Lógica del Pop-up (Modal) ---
     function openModal(title = "Cargando...") {
-        modalTitle.textContent = title;
+        modalTitle.innerHTML = title; // Cambiado a innerHTML para permitir HTML en el título
         modalBody.innerHTML = '<p>Por favor, espere...</p>';
         modal.style.display = 'flex';
     }
@@ -118,7 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 2. Contenido para Avisos Vigentes
     async function loadAvisosContent() {
         openModal("Avisos Vigentes");
         try {
@@ -155,7 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 3. Contenido para Informes Emitidos (24h)
     async function loadInformesContent() {
         openModal("Informes Emitidos (Últimas 24h)");
         try {
@@ -188,7 +186,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 4. Contenido para Novedades
     async function loadNovedadesContent() {
         openModal("Novedades");
         try {
@@ -202,7 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             let cardsHTML = '';
-            // Invertimos el array para mostrar la novedad más reciente primero
             novedades.reverse().forEach(item => {
                 cardsHTML += `
                     <div class="novedad-item">
@@ -220,14 +216,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 5. Contenido para Calidad del Aire
     async function loadCalidadAireContent() {
         openModal("Calidad del Aire");
         try {
             const response = await fetch('/api/calidad_aire');
             const stations = await response.json();
 
-            // Función interna para renderizar la vista principal (todas las estaciones)
             const renderMainView = () => {
                 let tableHTML = `
                     <div class="main-header">
@@ -252,7 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('show-details-btn').addEventListener('click', renderDetailView);
             };
 
-            // Función interna para renderizar la vista de detalles (solo estaciones con novedad)
             const renderDetailView = () => {
                 const stationsWithNews = stations.filter(s => s.estado !== 'bueno' && s.estado !== 'no_disponible');
                 let detailHTML = `
@@ -282,14 +275,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 modalBody.innerHTML = detailHTML;
-
-                // El evento se añade después de que el botón existe en el pop-up
-                document.getElementById('show-main-btn').addEventListener('click', () => {
-                    renderMainView();
-                });
+                document.getElementById('show-main-btn').addEventListener('click', renderMainView);
             };
 
-            // Cargar la vista principal por defecto
             renderMainView();
 
         } catch (error) {
@@ -297,14 +285,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 6. Contenido para Estaciones Meteorológicas
     async function loadEstacionesMeteoContent() {
         openModal("Estaciones Meteorológicas");
         try {
             const response = await fetch('/api/weather');
             const stations = await response.json();
 
-            // Función para renderizar la vista de detalles de UNA estación
             const renderDetailView = (stationCode) => {
                 const station = stations.find(s => s.codigo === stationCode);
                 if (!station) {
@@ -327,7 +313,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('back-to-list-btn').addEventListener('click', renderMainView);
             };
 
-            // Función para renderizar la lista principal de estaciones
             const renderMainView = () => {
                 modalTitle.textContent = "Estaciones Meteorológicas";
                 let tableHTML = `
@@ -345,7 +330,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 tableHTML += '</tbody></table>';
                 modalBody.innerHTML = tableHTML;
 
-                // Añadir eventos a los nuevos botones "Ver"
                 modalBody.querySelectorAll('.info-button').forEach(button => {
                     button.addEventListener('click', (e) => {
                         renderDetailView(e.target.dataset.codigo);
@@ -353,7 +337,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             };
 
-            // Cargar la vista principal por defecto
             renderMainView();
 
         } catch (error) {
@@ -361,7 +344,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 7. Contenido para Agua Caída (Precipitación)
     async function loadAguaCaidaContent() {
         openModal("Precipitación Acumulada (24h)");
         try {
@@ -403,7 +385,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 8. Contenido para Estado de Puertos
     async function loadPuertosContent() {
         openModal("Estado de Puertos");
         try {
@@ -415,7 +396,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            let tableHTML = `
+            // --- Obtener la hora actual ---
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+            
+            let contentHTML = `
                 <table class="data-table">
                     <thead>
                         <tr>
@@ -427,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <tbody>`;
             
             puertos.forEach(puerto => {
-                tableHTML += `
+                contentHTML += `
                     <tr>
                         <td>${puerto.puerto}</td>
                         <td>${puerto.estado_del_puerto}</td>
@@ -435,15 +420,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tr>`;
             });
 
-            tableHTML += '</tbody></table>';
-            modalBody.innerHTML = tableHTML;
+            contentHTML += '</tbody></table>';
+            
+            // --- Añadir la hora de actualización al final ---
+            contentHTML += `<p class="meta-info" style="text-align: right; margin-top: 15px;">Hora de última actualización: ${timeString} h.</p>`;
+
+            modalBody.innerHTML = contentHTML;
 
         } catch (error) {
             modalBody.innerHTML = '<p style="color:red;">Error al cargar la información de los puertos.</p>';
         }
     }
 
-    // 9. Contenido para Pasos Fronterizos
     async function loadPasosFronterizosContent() {
         openModal("Estado de Pasos Fronterizos");
         try {
@@ -490,7 +478,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 10. Contenido para Clientes con Alteración de Suministro (SEC)
     async function loadSecContent() {
         openModal("Suministro Eléctrico (SEC)");
         try {
@@ -499,7 +486,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (data.error) throw new Error(data.error);
 
-            // Función para renderizar la vista de desglose por comuna
+            // --- Obtener la hora actual ---
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+
             const renderDetailView = (provinceName) => {
                 const provinceData = data.desglose_provincias.find(p => p.provincia === provinceName);
                 if (!provinceData) return;
@@ -531,10 +521,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('back-to-provinces-btn').addEventListener('click', () => renderMainView());
             };
 
-            // Función para renderizar la vista principal (resumen por provincia)
             const renderMainView = () => {
                 modalTitle.textContent = "Suministro Eléctrico (SEC)";
-                let tableHTML = `
+                let contentHTML = `
                     <table class="data-table">
                         <tbody>
                             <tr><td><strong>% Afectación Regional</strong></td><td style="text-align:center;"><strong>${data.porcentaje_afectado}%</strong></td></tr>
@@ -546,16 +535,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         <tbody>`;
                 
                 data.desglose_provincias.forEach(prov => {
-                    tableHTML += `
+                    contentHTML += `
                         <tr class="${prov.total_afectados > 0 ? 'province-row' : ''}" data-provincia="${prov.provincia}">
                             <td>${prov.provincia}</td>
                             <td style="text-align:center;">${prov.total_afectados.toLocaleString('es-CL')}</td>
                         </tr>`;
                 });
-                tableHTML += '</tbody></table>';
-                modalBody.innerHTML = tableHTML;
+                contentHTML += '</tbody></table>';
+                
+                // --- Añadir la hora de actualización al final ---
+                contentHTML += `<p class="meta-info" style="text-align: right; margin-top: 15px;">Hora de última actualización: ${timeString} h.</p>`;
 
-                // Añadir eventos a las filas de las provincias para ver el detalle
+                modalBody.innerHTML = contentHTML;
+
                 modalBody.querySelectorAll('.province-row').forEach(row => {
                     row.addEventListener('click', (e) => {
                         renderDetailView(e.currentTarget.dataset.provincia);
@@ -563,7 +555,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             };
 
-            // Cargar la vista principal por defecto
             renderMainView();
 
         } catch (error) {
@@ -571,22 +562,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 11. Contenido para Hidrometría DGA
     async function loadHidrometriaContent() {
-        openModal("Hidrometría DGA");
+        // --- Obtener la hora actual ---
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+        
+        // --- Construir el título con la hora ---
+        const titleHTML = `Hidrometría DGA <span style="font-size: 0.7em; color: #6c757d; font-weight: normal;">Ult. act: ${timeString} h.</span>`;
+        openModal(titleHTML);
+
         try {
             const response = await fetch('/api/data');
             const data = await response.json();
             const measuredData = data.datos_hidrometricos || [];
             
-            // Umbrales definidos
             const hydroThresholds = {
                 'Aconcagua en Chacabuquito': { nivel: { amarilla: 2.28, roja: 2.53 }, caudal: { amarilla: 155.13, roja: 193.60 } },
                 'Aconcagua San Felipe 2': { nivel: { amarilla: 2.80, roja: 3.15 }, caudal: { amarilla: 174.37, roja: 217.63 } },
                 'Putaendo Resguardo Los Patos': { nivel: { amarilla: 1.16, roja: 1.25 }, caudal: { amarilla: 66.79, roja: 80.16 } }
             };
 
-            // Función para determinar la clase de color según el umbral
             const getStatusClass = (value, thresholds) => {
                 if (value === null || typeof value === 'undefined' || isNaN(value)) return '';
                 if (value >= thresholds.roja) return 'status-rojo';
@@ -637,14 +632,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 12. Contenido para Personal de Turno
     async function loadTurnosContent() {
         openModal("Personal de Turno");
         try {
             const response = await fetch('/api/turnos');
             const turnosData = await response.json();
 
-            // Lógica de cálculo de turnos, adaptada del dashboard principal
             const ahora = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Santiago"}));
             const mesActual = ahora.toLocaleString('es-CL', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
             const datosMes = turnosData[mesActual];
@@ -667,12 +660,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else {
                 tipoTurno = 'Noche';
-                if (horaActual >= 21) { // Noche del día actual (21:00 - 23:59)
+                if (horaActual >= 21) {
                     turnoActivo = infoHoy?.turno_noche;
                     const manana = new Date(ahora); manana.setDate(ahora.getDate() + 1);
                     const infoManana = datosMes.dias.find(d => d.dia === manana.getDate());
                     proximoTurno = infoManana?.turno_dia;
-                } else { // Noche del día anterior (00:00 - 08:59)
+                } else {
                     const ayer = new Date(ahora); ayer.setDate(ahora.getDate() - 1);
                     const mesAyer = ayer.toLocaleString('es-CL', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
                     const infoAyer = turnosData[mesAyer]?.dias.find(d => d.dia === ayer.getDate());
@@ -686,7 +679,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Construir las tarjetas con la información
             modalBody.innerHTML = `
                 <div class="turno-card">
                     <h3>Profesional a Llamado</h3>
@@ -709,7 +701,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Funciones auxiliares de Ayuda para Waze ---
     function formatTimeAgo(millis) {
         const seconds = Math.floor((Date.now() - millis) / 1000);
         let interval = seconds / 3600;
@@ -724,7 +715,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.open(mapUrl, '_blank');
     }
 
-    // 13. Contenido para Accidentes Reportados en Waze
     async function loadWazeContent() {
         openModal("Accidentes Reportados en Waze");
         try {
@@ -760,7 +750,6 @@ document.addEventListener('DOMContentLoaded', () => {
             tableHTML += '</tbody></table>';
             modalBody.innerHTML = tableHTML;
 
-            // Añadir eventos a los nuevos enlaces del mapa
             modalBody.querySelectorAll('.waze-map-link').forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -773,29 +762,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 14. Contenido para Sismos y Tsunami
     async function loadSismosTsunamiContent() {
         openModal("Últimos Boletines Sísmicos");
         
-        // Mostramos una estructura base mientras cargan los datos
         modalBody.innerHTML = `
             <div class="bulletin-card" id="ptwc-card">
                 <h3>Pacific Tsunami Warning Center (PTWC)</h3>
                 <p id="ptwc-bulletin">Cargando...</p>
+                <div class="meta-info" id="ptwc-time-container" style="display: none;"></div>
             </div>
             <div class="bulletin-card" id="geofon-card">
                 <h3>GEOFON (Sismo Significativo)</h3>
                 <p id="geofon-bulletin">Cargando...</p>
+                <div class="meta-info" id="geofon-time-container" style="display: none;"></div>
             </div>
         `;
 
         try {
-            // Cargar boletín de Tsunami (PTWC)
             const responsePtwc = await fetch('/api/last_tsunami_message');
             const dataPtwc = await responsePtwc.json();
             const ptwcContainer = document.getElementById('ptwc-bulletin');
+            const ptwcTimeContainer = document.getElementById('ptwc-time-container');
             if (responsePtwc.ok) {
                 ptwcContainer.textContent = dataPtwc.mensaje;
+                // --- Mostrar la hora de recepción ---
+                const receptionDate = new Date(dataPtwc.timestamp * 1000);
+                ptwcTimeContainer.textContent = `Recibido: ${receptionDate.toLocaleString('es-CL')}`;
+                ptwcTimeContainer.style.display = 'block';
             } else {
                 ptwcContainer.textContent = dataPtwc.error || 'No hay boletín reciente de PTWC.';
             }
@@ -804,12 +797,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // Cargar boletín de Sismo Significativo (GEOFON)
             const responseGeofon = await fetch('/api/last_geofon_message');
             const dataGeofon = await responseGeofon.json();
             const geofonContainer = document.getElementById('geofon-bulletin');
+            const geofonTimeContainer = document.getElementById('geofon-time-container');
             if (responseGeofon.ok) {
                 geofonContainer.textContent = dataGeofon.mensaje;
+                // --- Mostrar la hora de recepción ---
+                const receptionDate = new Date(dataGeofon.timestamp * 1000);
+                geofonTimeContainer.textContent = `Recibido: ${receptionDate.toLocaleString('es-CL')}`;
+                geofonTimeContainer.style.display = 'block';
             } else {
                 geofonContainer.textContent = dataGeofon.error || 'No hay boletín reciente de GEOFON.';
             }
@@ -818,11 +815,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 15. Contenido para Último Boletín por Voz
     async function loadUltimoBoletinContent() {
         openModal("Último Boletín por Voz");
 
-        // Preparamos la interfaz con el botón de Play
         modalBody.innerHTML = `
             <div class="boletin-container">
                 <button id="play-boletin-btn">▶</button>
@@ -845,19 +840,14 @@ document.addEventListener('DOMContentLoaded', () => {
             statusText.textContent = 'Preparando boletín, por favor espere...';
 
             try {
-                // "Despertamos" el motor de voz de Safari (Corrección para iPhone)
                 window.speechSynthesis.cancel();
                 const warmUpUtterance = new SpeechSynthesisUtterance(' ');
                 warmUpUtterance.volume = 0;
                 window.speechSynthesis.speak(warmUpUtterance);
 
-                // Obtenemos todos los datos necesarios
-                const [dataResponse, calidadAireResponse, turnosResponse] = await Promise.all([
-                    fetch('/api/data'), fetch('/api/calidad_aire'), fetch('/api/turnos')
-                ]);
+                const [dataResponse] = await Promise.all([ fetch('/api/data') ]);
                 const mainData = await dataResponse.json();
 
-                // Construimos el texto del boletín
                 const ahora = new Date();
                 const hora = ahora.getHours();
                 const minuto = ahora.getMinutes();
@@ -881,7 +871,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 boletinCompleto.push(`Finaliza el boletín informativo de las ${horaFormato} horas, ${saludoFinal}`);
                 const textoFinal = boletinCompleto.filter(Boolean).join(" ... ");
                 
-                // Reproducimos el boletín
                 const sonidoNotificacion = new Audio('/assets/notificacion_normal.mp3');
                 sonidoNotificacion.play();
                 
@@ -889,11 +878,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     const utterance = hablar(textoFinal);
                     statusText.textContent = 'Reproduciendo boletín...';
                     
-                    if (utterance) {
+                    if (utterance && utterance.onend) {
                         utterance.onend = () => {
                             statusText.textContent = 'Boletín finalizado.';
-                            playBtn.style.display = 'none'; // Oculta el botón al finalizar
+                            playBtn.style.display = 'none';
                         };
+                    } else if (utterance) {
+                         setTimeout(() => {
+                           statusText.textContent = 'Boletín finalizado.';
+                           playBtn.style.display = 'none';
+                         }, (utterance.text.length / 10) * 1000); 
                     }
                 };
 
@@ -910,51 +904,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const section = card.dataset.section;
             
             switch (section) {
-                case 'alertas':
-                    loadAlertasContent();
-                    break;
-                case 'avisos':
-                    loadAvisosContent();
-                    break;
-                case 'informes':
-                    loadInformesContent();
-                    break;
-                case 'novedades':
-                    loadNovedadesContent();
-                    break;
-                case 'calidad_aire':
-                    loadCalidadAireContent();
-                    break;
-                case 'estacion_meteo':
-                    loadEstacionesMeteoContent();
-                    break;
-                case 'agua_caida':
-                    loadAguaCaidaContent();
-                    break;
-                case 'puertos':
-                    loadPuertosContent();
-                    break;
-                case 'paso':
-                    loadPasosFronterizosContent();
-                    break;
-                case 'sec':
-                    loadSecContent();
-                    break;
-                case 'dga':
-                    loadHidrometriaContent();
-                    break;
-                case 'turnos':
-                    loadTurnosContent();
-                    break;
-                case 'waze':
-                    loadWazeContent();
-                    break;
-                case 'sismos':
-                    loadSismosTsunamiContent();
-                    break;
-                case 'boletin':
-                    loadUltimoBoletinContent();
-                    break;
+                case 'alertas': loadAlertasContent(); break;
+                case 'avisos': loadAvisosContent(); break;
+                case 'informes': loadInformesContent(); break;
+                case 'novedades': loadNovedadesContent(); break;
+                case 'calidad_aire': loadCalidadAireContent(); break;
+                case 'estacion_meteo': loadEstacionesMeteoContent(); break;
+                case 'agua_caida': loadAguaCaidaContent(); break;
+                case 'puertos': loadPuertosContent(); break;
+                case 'paso': loadPasosFronterizosContent(); break;
+                case 'sec': loadSecContent(); break;
+                case 'dga': loadHidrometriaContent(); break;
+                case 'turnos': loadTurnosContent(); break;
+                case 'waze': loadWazeContent(); break;
+                case 'sismos': loadSismosTsunamiContent(); break;
+                case 'boletin': loadUltimoBoletinContent(); break;
                 default:
                     openModal(card.querySelector('span').textContent);
                     modalBody.innerHTML = `<p>Sección '${section}' en desarrollo.</p>`;
