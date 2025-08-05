@@ -1739,8 +1739,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch(METEO_MAP_API_URL),
                 fetch(WEATHER_API_URL)
             ]);
-            const stationsWithCoords = await coordsResponse.json();
-            const weatherData = await response.json();
+            const stationsWithCoords = await coordsResponse.json();        
+            const weatherData = await weatherResponse.json(); 
             const weatherDataMap = new Map(weatherData.map(station => [station.nombre, station]));
 
             stationsWithCoords.forEach(station => {
@@ -1757,24 +1757,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         let windSpeedHtml = '';
                         let windIndicatorSvg = '';
 
-                        // --- Lógica para Celda de Viento y Flecha ---
                         if (speedKmh > 0) {
-                            // Si hay viento, muestra velocidad y flecha
                             windSpeedHtml = `${speedKmh.toFixed(0)}<span class="unit">km/h</span>`;
                             windIndicatorSvg = `
                                 <svg class="arrow-svg" style="transform: rotate(${directionDeg}deg);" viewBox="0 0 24 24" width="22" height="22">
                                     <path d="M12 2L12 18M12 2L6 8M12 2L18 8" fill="none" stroke="#003366" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>`;
                         } else {
-                            // Si el viento está calmo, muestra "Calmo" y un círculo
                             windSpeedHtml = '<span class="calm-text">Calmo</span>';
                             windIndicatorSvg = `
                                 <svg class="arrow-svg" viewBox="0 0 24 24" width="22" height="22">
                                     <circle cx="12" cy="12" r="6" fill="none" stroke="#003366" stroke-width="3"/>
                                 </svg>`;
-                        }                    
+                        }
 
-                        // --- ESTRUCTURA DE TABLA 2x2 ---
                         const markerHtml = `
                             <table class="wind-grid-table">
                                 <tr>
@@ -1788,12 +1784,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             </table>
                         `;
 
-                        // Se ajusta el tamaño del ícono a la nueva cuadrícula
                         const customIcon = L.divIcon({
                             className: 'custom-wind-marker',
                             html: markerHtml,
-                            iconSize: [70, 50],   // Ancho y alto [width, height]
-                            iconAnchor: [35, 50]    // Anclaje en la punta inferior central
+                            iconSize: [70, 50],
+                            iconAnchor: [35, 50]
                         });
 
                         marker = L.marker([station.lat, station.lon], { icon: customIcon })
