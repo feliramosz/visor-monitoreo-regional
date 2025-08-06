@@ -1788,24 +1788,36 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             interval = int(post_data.get("poll_interval_seconds", 600))
 
             try:
-                # Intenta leer el archivo existente para no perder otros datos (como el contador)
-                with open(TWITTER_CONFIG_FILE, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-            except (FileNotFoundError, json.JSONDecodeError):
-                # Si no existe o está corrupto, empezamos con un diccionario vacío
+                # --- INICIO DE LA LÓGICA  ---
                 config = {}
+                # Paso 1: Leer la configuración existente para no perder datos.
+                try:
+                    with open(TWITTER_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                        config = json.load(f)
+                except (FileNotFoundError, json.JSONDecodeError):
+                    # Si no existe o está dañado, creamos una base.
+                    config = {
+                        "monthly_api_calls": 0,
+                        "last_reset_date": datetime.now().strftime("%Y-%m-01")
+                    }
 
-            # Actualizamos el diccionario con los datos del panel de admin
-            config["accounts"] = accounts
-            config["poll_interval_seconds"] = interval
+                # Paso 2: Actualizar solo los campos que vienen del panel de administración.
+                config["accounts"] = accounts
+                config["poll_interval_seconds"] = interval
 
-            # Escribimos el archivo completo en modo 'w' (escritura), que lo crea si no existe
-            with open(TWITTER_CONFIG_FILE, 'w', encoding='utf-8') as f:
-                json.dump(config, f, ensure_ascii=False, indent=2)
+                # Paso 3: Escribir el objeto completo de vuelta al archivo.
+                with open(TWITTER_CONFIG_FILE, 'w', encoding='utf-8') as f:
+                    json.dump(config, f, ensure_ascii=False, indent=2)
+                # --- FIN DE LA LÓGICA  ---
 
-            self._log_activity(username, "Configuración de Twitter Actualizada", details=f"Cuentas: {accounts}, Intervalo: {interval}s")
-            self._set_headers(200, 'application/json')
-            self.wfile.write(json.dumps({"message": "Configuración de Twitter guardada."}).encode('utf-8'))
+                self._log_activity(username, "Configuración de Twitter Actualizada", details=f"Cuentas: {accounts}, Intervalo: {interval}s")
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps({"message": "Configuración de Twitter guardada."}).encode('utf-8'))
+            
+            except Exception as e:
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({'error': f'Error al guardar la configuración: {e}'}).encode('utf-8'))
+            
             return
 
         # --- ENDPOINT POST PARA NOVEDADES ---
