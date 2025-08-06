@@ -69,6 +69,11 @@ def fetch_and_process_tweets():
     
     config = {}
     try:
+        # Asegurarse de que el historial exista al inicio
+        if not os.path.exists(TWEET_HISTORY_FILE):
+            with open(TWEET_HISTORY_FILE, 'w') as f:
+                json.dump([], f)
+
         with open(TWITTER_CONFIG_FILE, 'r+') as f:
             config = json.load(f)
             accounts = config.get("accounts", [])
@@ -77,7 +82,6 @@ def fetch_and_process_tweets():
             today = datetime.now()
             last_reset = datetime.strptime(config.get("last_reset_date", "1970-01-01"), "%Y-%m-%d")
             if today.month != last_reset.month or today.year != last_reset.year:
-                print(f"[TWITTER] Nuevo mes detectado. Reiniciando contador de API.")
                 config["monthly_api_calls"] = 0
                 config["last_reset_date"] = today.strftime("%Y-%m-%d")
             
@@ -89,59 +93,55 @@ def fetch_and_process_tweets():
                                     resource_owner_key=X_ACCESS_TOKEN, resource_owner_secret=X_ACCESS_TOKEN_SECRET)
             
             for account_username in accounts:
-                print(f"[TWITTER] Buscando tweets para @{account_username}...")
                 user_lookup_url = f"https://api.twitter.com/2/users/by/username/{account_username}"
                 user_response = oauth.get(user_lookup_url)
                 config["monthly_api_calls"] += 1
-
-                if user_response.status_code != 200:
-                    print(f"[TWITTER] Error al buscar ID del usuario @{account_username}: {user_response.text}")
-                    continue
+                if user_response.status_code != 200: continue
                 
                 user_id = user_response.json().get("data", {}).get("id")
                 if not user_id: continue
                 
                 tweets_url = f"https://api.twitter.com/2/users/{user_id}/tweets"
-                
-                # PARÁMETROS CORREGIDOS Y MEJORADOS
                 params = {
                     "max_results": 10,
                     "expansions": "author_id",
                     "tweet.fields": "created_at,text",
-                    "user.fields": "profile_image_url,name,username" # <-- CORRECCIÓN CLAVE 1
+                    "user.fields": "profile_image_url,name,username"
                 }
+                
                 last_seen_id = LAST_SEEN_TWEET_IDS.get(account_username)
                 if last_seen_id:
-                    params['since_id'] = last_seen_id # <-- MEJORA: Solo pedimos tweets más nuevos que el último que vimos
-
+                    params['since_id'] = last_seen_id
+                
                 tweets_response = oauth.get(tweets_url, params=params)
                 config["monthly_api_calls"] += 1
-
                 if tweets_response.status_code != 200: continue
 
                 tweets_data = tweets_response.json()
-                if not tweets_data.get("data"):
-                    print(f"[TWITTER] No hay tweets nuevos para @{account_username}.")
-                    # Actualizamos el ID del último tweet visto para la primera ejecución
+                
+                # --- LÓGICA DE INICIALIZACIÓN Y PROCESAMIENTO MEJORADA ---
+                all_tweets = tweets_data.get("data", [])
+                
+                if not all_tweets:
+                    # Si no hay tweets nuevos Y es la primera vez que revisamos,
+                    # necesitamos saber cuál es el último para no empezar de cero.
                     if not last_seen_id:
-                        # Hacemos una llamada extra solo la primera vez para saber cuál es el último
-                        params_latest = {"max_results": 1, "expansions": "author_id"}
-                        latest_resp = oauth.get(f"https://api.twitter.com/2/users/{user_id}/tweets", params=params_latest)
+                        latest_params = {"max_results": 1}
+                        latest_resp = oauth.get(f"https://api.twitter.com/2/users/{user_id}/tweets", params=latest_params)
                         config["monthly_api_calls"] += 1
                         if latest_resp.status_code == 200 and latest_resp.json().get("data"):
                             LAST_SEEN_TWEET_IDS[account_username] = latest_resp.json()["data"][0]["id"]
-                            print(f"[TWITTER] Inicializado el último ID para @{account_username} a {LAST_SEEN_TWEET_IDS[account_username]}")
-
+                            print(f"[TWITTER] Inicializado último ID para @{account_username} a {LAST_SEEN_TWEET_IDS[account_username]}")
                     continue
-                
-                # LÓGICA MEJORADA PARA PROCESAR MÚLTIPLES TWEETS
-                newest_tweet_id_in_batch = tweets_data["data"][0]["id"]
+
+                # Actualizamos el ID más reciente que hemos visto en este lote
+                newest_tweet_id_in_batch = all_tweets[0]["id"]
                 LAST_SEEN_TWEET_IDS[account_username] = newest_tweet_id_in_batch
                 
                 author_info = tweets_data.get("includes", {}).get("users", [{}])[0]
 
-                # Iteramos en reversa para procesar del más antiguo al más nuevo
-                for tweet in reversed(tweets_data["data"]):
+                # Iteramos en reversa para que las notificaciones aparezcan en orden cronológico
+                for tweet in reversed(all_tweets):
                     print(f"[TWITTER] ¡NUEVO TWEET PROCESADO! ID: {tweet['id']} de @{account_username}")
                     notification = {
                         "id": tweet["id"],
@@ -153,6 +153,7 @@ def fetch_and_process_tweets():
                     }
                     NEW_TWEETS_QUEUE.append(notification)
 
+                    # Guardamos en el historial
                     with open(TWEET_HISTORY_FILE, 'r+') as hist_f:
                         history = json.load(hist_f)
                         history.insert(0, notification)

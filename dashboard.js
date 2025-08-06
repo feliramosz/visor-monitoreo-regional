@@ -2434,38 +2434,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Función para mostrar una notificación de un tweet
     function displayTweetNotification(tweet) {
-        if (twitterNotificationSound) {
-            twitterNotificationSound.play().catch(e => console.error("Error al reproducir sonido:", e));
-        }
-
-        const popup = document.createElement('div');
-        popup.className = 'twitter-popup';
-
-        popup.innerHTML = `
-            <div class="tweet-header">
-                <img src="${tweet.profile_image_url}" alt="Profile picture of ${tweet.name}" class="tweet-avatar">
-                <div class="tweet-author">
-                    <span class="tweet-name">${tweet.name}</span>
-                    <span class="tweet-username">@${tweet.username}</span>
-                </div>
-            </div>
-            <div class="tweet-body">
-                <p>${tweet.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</p>
-            </div>
-        `;
-
-        twitterPopupContainer.appendChild(popup);
-
-        // Hace que el popup aparezca
-        setTimeout(() => popup.classList.add('visible'), 100);
-
-        // Hace que el popup desaparezca después de 12 segundos
-        setTimeout(() => {
-            popup.classList.remove('visible');
-            // Elimina el elemento del DOM después de la transición de desaparición
-            setTimeout(() => popup.remove(), 500);
-        }, 12000);
+    if (twitterNotificationSound) {
+        twitterNotificationSound.play().catch(e => console.error("Error al reproducir sonido:", e));
     }
+
+    const popup = document.createElement('div');
+    popup.className = 'twitter-popup';
+
+    popup.innerHTML = `
+        <div class="tweet-header">
+            <img src="${tweet.profile_image_url}" alt="Profile picture of ${tweet.name}" class="tweet-avatar">
+            <div class="tweet-author">
+                <span class="tweet-name">${tweet.name}</span>
+                <span class="tweet-username">@${tweet.username}</span>
+            </div>
+        </div>
+        <div class="tweet-body">
+            <p>${tweet.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</p>
+        </div>
+    `;
+
+    twitterPopupContainer.appendChild(popup);
+
+    // Función para cerrar y limpiar el popup
+    const dismissPopup = () => {
+        popup.classList.remove('visible');
+        // Quita el listener de clic para que no afecte a otros elementos
+        document.body.removeEventListener('click', dismissPopup);
+        setTimeout(() => popup.remove(), 500);
+    };
+
+    // Añadimos un listener para cerrar con un clic en cualquier parte
+    document.body.addEventListener('click', dismissPopup, { once: true });
+
+    // Hacemos que el popup aparezca
+    setTimeout(() => popup.classList.add('visible'), 100);
+
+    // Hacemos que el popup desaparezca automáticamente después de 15 segundos
+    const autoDismissTimeout = setTimeout(dismissPopup, 15000);
+    
+    // Si el usuario hace clic, cancelamos el cierre automático para evitar errores
+    popup.addEventListener('click', (e) => {
+        e.stopPropagation(); // Evita que el clic en el popup lo cierre
+    });
+}
 
     // Función para buscar nuevos tweets periódicamente
     async function checkForNewTweets() {

@@ -3001,7 +3001,11 @@ footer {
     backdrop-filter: blur(5px);
     border: 1px solid rgba(255, 255, 255, 0.2);
     
-    /* Animación de entrada y salida */
+    /* --- INICIO DE CAMBIOS --- */
+    max-height: 300px; /* Altura máxima antes de que aparezca el scroll */
+    overflow-y: auto;  /* Permite el desplazamiento si el contenido es muy largo */
+    /* --- FIN DE CAMBIOS --- */
+    
     opacity: 0;
     transform: translateY(-20px);
     transition: opacity 0.4s ease-out, transform 0.4s ease-out;
