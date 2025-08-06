@@ -69,6 +69,110 @@ def fetch_and_process_tweets():
     
     config = {}
     try:
+        # Asegurarse de que los archivos de datos existan al inicio
+        if not os.path.exists(TWEET_HISTORY_FILE):
+            with open(TWEET_HISTORY_FILE, 'w') as f: json.dump([], f)
+        
+        with open(TWITTER_CONFIG_FILE, 'r+') as f:
+            config = json.load(f)
+            accounts = config.get("accounts", [])
+            interval = config.get("poll_interval_seconds", 600)
+
+            today = datetime.now()
+            last_reset = datetime.strptime(config.get("last_reset_date", "1970-01-01"), "%Y-%m-%d")
+            if today.month != last_reset.month or today.year != last_reset.year:
+                config["monthly_api_calls"] = 0
+                config["last_reset_date"] = today.strftime("%Y-%m-%d")
+            
+            if not accounts:
+                print("[TWITTER] No hay cuentas configuradas para monitorear.")
+                return
+
+            oauth = OAuth1Session(X_API_KEY, client_secret=X_API_SECRET,
+                                    resource_owner_key=X_ACCESS_TOKEN, resource_owner_secret=X_ACCESS_TOKEN_SECRET)
+            
+            for account_username in accounts:
+                user_lookup_url = f"https://api.twitter.com/2/users/by/username/{account_username}"
+                user_response = oauth.get(user_lookup_url)
+                config["monthly_api_calls"] += 1
+                if user_response.status_code != 200: continue
+                
+                user_id = user_response.json().get("data", {}).get("id")
+                if not user_id: continue
+                
+                tweets_url = f"https://api.twitter.com/2/users/{user_id}/tweets"
+                params = {
+                    "max_results": 10, "expansions": "author_id",
+                    "tweet.fields": "created_at,text", "user.fields": "profile_image_url,name,username"
+                }
+                
+                last_seen_id = LAST_SEEN_TWEET_IDS.get(account_username)
+                if last_seen_id:
+                    params['since_id'] = last_seen_id
+                
+                tweets_response = oauth.get(tweets_url, params=params)
+                config["monthly_api_calls"] += 1
+                if tweets_response.status_code != 200: continue
+
+                tweets_data = tweets_response.json()
+                all_tweets = tweets_data.get("data", [])
+                
+                if not all_tweets:
+                    if not last_seen_id:
+                        latest_params = {"max_results": 1}
+                        latest_resp = oauth.get(f"https://api.twitter.com/2/users/{user_id}/tweets", params=latest_params)
+                        config["monthly_api_calls"] += 1
+                        if latest_resp.status_code == 200 and latest_resp.json().get("data"):
+                            LAST_SEEN_TWEET_IDS[account_username] = latest_resp.json()["data"][0]["id"]
+                    continue
+
+                newest_tweet_id_in_batch = all_tweets[0]["id"]
+                LAST_SEEN_TWEET_IDS[account_username] = newest_tweet_id_in_batch
+                
+                author_info = tweets_data.get("includes", {}).get("users", [{}])[0]
+
+                for tweet in reversed(all_tweets):
+                    notification = {
+                        "id": tweet["id"], "username": author_info.get("username"),
+                        "name": author_info.get("name"),
+                        "profile_image_url": author_info.get("profile_image_url", "").replace("_normal", "_400x400"),
+                        "text": tweet.get("text"), "created_at": tweet.get("created_at")
+                    }
+                    NEW_TWEETS_QUEUE.append(notification)
+
+                    # --- INICIO DE LA LÓGICA DE GUARDADO CORREGIDA ---
+                    history = []
+                    try:
+                        with open(TWEET_HISTORY_FILE, 'r', encoding='utf-8') as hist_f:
+                            history = json.load(hist_f)
+                    except (FileNotFoundError, json.JSONDecodeError):
+                        print("[TWITTER] Historial no encontrado o corrupto, se creará uno nuevo.")
+                        pass # history ya es una lista vacía
+
+                    history.insert(0, notification)
+
+                    with open(TWEET_HISTORY_FILE, 'w', encoding='utf-8') as hist_f:
+                        json.dump(history[:50], hist_f, ensure_ascii=False, indent=2)
+                    # --- FIN DE LA LÓGICA DE GUARDADO CORREGIDA ---
+
+            # Guardar la configuración actualizada (incluyendo el contador) al final del ciclo
+            f.seek(0)
+            json.dump(config, f, ensure_ascii=False, indent=2)
+            f.truncate()
+
+    except Exception as e:
+        print(f"[TWITTER] ERROR FATAL en el ciclo de sondeo: {e}")
+    finally:
+        interval = config.get("poll_interval_seconds", 600)
+        print(f"[TWITTER] Ciclo finalizado. Próximo sondeo en {interval} segundos.")
+        TWITTER_POLL_TIMER = threading.Timer(interval, fetch_and_process_tweets)
+        TWITTER_POLL_TIMER.start()
+    global LAST_SEEN_TWEET_IDS, NEW_TWEETS_QUEUE, TWITTER_POLL_TIMER
+
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [TWITTER] Iniciando ciclo de sondeo de tweets...")
+    
+    config = {}
+    try:
         # Asegurarse de que el historial exista al inicio
         if not os.path.exists(TWEET_HISTORY_FILE):
             with open(TWEET_HISTORY_FILE, 'w') as f:
