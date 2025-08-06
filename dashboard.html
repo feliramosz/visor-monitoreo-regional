@@ -25,6 +25,8 @@
         <div class="logo-right"><img src="assets/logo_circ.jpg" alt="Logo Gobierno de Chile"></div>
     </header>
     
+    <div id="twitter-popup-container"></div>
+
     <div id="weather-banner-container" class="weather-banner">
         <div id="weather-slide" class="top-banner-slide">
             </div>
@@ -68,6 +70,20 @@
             <div id="right-column-carousel-container" class="dashboard-panel-container"></div>
         </div>
     </main>
+
+    <div id="twitter-history-panel">
+        <div class="panel-header">
+            <h4>Historial de Tweets</h4>
+            <button id="close-twitter-panel-btn" class="close-btn">&times;</button>
+        </div>
+        <div id="twitter-history-content" class="panel-content">
+            <p>Cargando historial...</p>
+        </div>
+    </div>
+    <button id="open-twitter-panel-btn" class="panel-toggler">
+        <img src="assets/x_logo.png" alt="X Logo">
+    </button>
+
     <footer>
         <div id="dashboard-controls-container">
             <button id="setViewSummerBtn" class="view-switch-btn" title="Visualización de Verano">☀️</button>
@@ -126,5 +142,6 @@
             <div id="air-quality-modal-body" class="sec-modal-body"></div>
         </div>
     </div>
+<audio id="twitter-notification-sound" src="assets/twitter_notification.mp3" preload="auto"></audio>    
 </body>
 </html>

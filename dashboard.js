@@ -2022,6 +2022,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setInterval(fetchAndRenderSecSlide, 5 * 60 * 1000);
         setInterval(checkForUpdates, 10000);
         setInterval(verificarNotificaciones, 60000);
+        setInterval(checkForNewTweets, 15000)
         
         setInterval(refreshWaze, 2 * 60 * 1000);
         setInterval(refreshAllMeteoData, 10 * 60 * 1000);
@@ -2419,6 +2420,113 @@ document.addEventListener('DOMContentLoaded', () => {
             closeAirQualityModal();
         }
     });
+
+    // ===============================================
+    // ===== LÓGICA PARA NOTIFICACIONES DE TWITTER =====
+    // ===============================================
+
+    const twitterPopupContainer = document.getElementById('twitter-popup-container');
+    const twitterNotificationSound = document.getElementById('twitter-notification-sound');
+    const openTwitterPanelBtn = document.getElementById('open-twitter-panel-btn');
+    const closeTwitterPanelBtn = document.getElementById('close-twitter-panel-btn');
+    const twitterHistoryPanel = document.getElementById('twitter-history-panel');
+    const twitterHistoryContent = document.getElementById('twitter-history-content');
+
+    // Función para mostrar una notificación de un tweet
+    function displayTweetNotification(tweet) {
+        if (twitterNotificationSound) {
+            twitterNotificationSound.play().catch(e => console.error("Error al reproducir sonido:", e));
+        }
+
+        const popup = document.createElement('div');
+        popup.className = 'twitter-popup';
+
+        popup.innerHTML = `
+            <div class="tweet-header">
+                <img src="${tweet.profile_image_url}" alt="Profile picture of ${tweet.name}" class="tweet-avatar">
+                <div class="tweet-author">
+                    <span class="tweet-name">${tweet.name}</span>
+                    <span class="tweet-username">@${tweet.username}</span>
+                </div>
+            </div>
+            <div class="tweet-body">
+                <p>${tweet.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</p>
+            </div>
+        `;
+
+        twitterPopupContainer.appendChild(popup);
+
+        // Hace que el popup aparezca
+        setTimeout(() => popup.classList.add('visible'), 100);
+
+        // Hace que el popup desaparezca después de 12 segundos
+        setTimeout(() => {
+            popup.classList.remove('visible');
+            // Elimina el elemento del DOM después de la transición de desaparición
+            setTimeout(() => popup.remove(), 500);
+        }, 12000);
+    }
+
+    // Función para buscar nuevos tweets periódicamente
+    async function checkForNewTweets() {
+        try {
+            const response = await fetch('/api/twitter_notifications');
+            if (response.status === 200) {
+                const newTweets = await response.json();
+                // Procesamos cada tweet recibido en la cola
+                newTweets.forEach(tweet => {
+                    displayTweetNotification(tweet);
+                });
+            }
+        } catch (error) {
+            console.error("Error al buscar notificaciones de Twitter:", error);
+        }
+    }
+
+    // Lógica del panel lateral de historial
+    async function loadTweetHistory() {
+        twitterHistoryContent.innerHTML = '<p>Cargando historial...</p>';
+        try {
+            const response = await fetch('/api/tweet_history');
+            const history = await response.json();
+            
+            if (history.length === 0) {
+                twitterHistoryContent.innerHTML = '<p>No hay tweets en el historial.</p>';
+                return;
+            }
+
+            twitterHistoryContent.innerHTML = history.map(tweet => `
+                <div class="tweet-history-item">
+                    <div class="tweet-header">
+                        <img src="${tweet.profile_image_url}" alt="Avatar" class="tweet-avatar">
+                        <div class="tweet-author">
+                            <span class="tweet-name">${tweet.name}</span>
+                            <span class="tweet-username">@${tweet.username}</span>
+                        </div>
+                    </div>
+                    <div class="tweet-body">
+                        <p>${tweet.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</p>
+                    </div>
+                    <div class="tweet-footer">
+                        <span>${new Date(tweet.created_at).toLocaleString('es-CL')}</span>
+                    </div>
+                </div>
+            `).join('');
+
+        } catch (error) {
+            twitterHistoryContent.innerHTML = `<p style="color: red;">Error al cargar el historial.</p>`;
+        }
+    }
+
+    openTwitterPanelBtn.addEventListener('click', () => {
+        twitterHistoryPanel.classList.add('active');
+        loadTweetHistory();
+    });
+
+    closeTwitterPanelBtn.addEventListener('click', () => {
+        twitterHistoryPanel.classList.remove('active');
+    });
+
 
     initializeApp();
 });
