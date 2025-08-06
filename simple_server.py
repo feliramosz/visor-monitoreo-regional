@@ -752,8 +752,19 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                     self._set_headers(401, 'application/json')
                     self.wfile.write(json.dumps({'error': 'No autorizado'}).encode('utf-8'))
                     return
-                with open(TWITTER_CONFIG_FILE, 'r') as f:
-                    config = json.load(f)
+                
+                try:
+                    with open(TWITTER_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                        config = json.load(f)
+                except (FileNotFoundError, json.JSONDecodeError):                    
+                    print(f"ADVERTENCIA: No se encontró '{TWITTER_CONFIG_FILE}' o está corrupto. Creando configuración por defecto.")
+                    config = {
+                        "accounts": [],
+                        "poll_interval_seconds": 600,
+                        "monthly_api_calls": 0,
+                        "last_reset_date": datetime.now().strftime("%Y-%m-01")
+                    }
+                
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps(config).encode('utf-8'))
                 return
