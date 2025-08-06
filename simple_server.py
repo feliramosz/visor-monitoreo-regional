@@ -92,7 +92,7 @@ def _fetch_and_process_tweets(self):
             if not accounts:
                 print("[TWITTER] No hay cuentas configuradas para monitorear.")
                 # Re-programar el próximo chequeo y salir
-                TWITTER_POLL_TIMER = threading.Timer(interval, self._fetch_and_process_tweets)
+                TWITTER_POLL_TIMER = threading.Timer(interval, self.fetch_and_process_tweets)
                 TWITTER_POLL_TIMER.start()
                 return
 
@@ -178,7 +178,7 @@ def _fetch_and_process_tweets(self):
         # 7. Re-programar el próximo chequeo
         interval = config.get("poll_interval_seconds", 600)
         print(f"[TWITTER] Ciclo finalizado. Próximo sondeo en {interval} segundos.")
-        TWITTER_POLL_TIMER = threading.Timer(interval, self._fetch_and_process_tweets)
+        TWITTER_POLL_TIMER = threading.Timer(interval, self.fetch_and_process_tweets)
         TWITTER_POLL_TIMER.start()
   
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
