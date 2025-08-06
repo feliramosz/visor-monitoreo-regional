@@ -1779,18 +1779,25 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             content_length = int(self.headers['Content-Length'])
             post_data = json.loads(self.rfile.read(content_length))
             
-            # Validar y limpiar datos
             accounts = [acc.replace("@", "").strip() for acc in post_data.get("accounts", []) if acc.strip()]
             interval = int(post_data.get("poll_interval_seconds", 600))
 
-            with open(TWITTER_CONFIG_FILE, 'r+') as f:
-                config = json.load(f)
-                config["accounts"] = accounts
-                config["poll_interval_seconds"] = interval
-                f.seek(0)
+            try:
+                # Intenta leer el archivo existente para no perder otros datos (como el contador)
+                with open(TWITTER_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                # Si no existe o está corrupto, empezamos con un diccionario vacío
+                config = {}
+
+            # Actualizamos el diccionario con los datos del panel de admin
+            config["accounts"] = accounts
+            config["poll_interval_seconds"] = interval
+
+            # Escribimos el archivo completo en modo 'w' (escritura), que lo crea si no existe
+            with open(TWITTER_CONFIG_FILE, 'w', encoding='utf-8') as f:
                 json.dump(config, f, ensure_ascii=False, indent=2)
-                f.truncate()
-            
+
             self._log_activity(username, "Configuración de Twitter Actualizada", details=f"Cuentas: {accounts}, Intervalo: {interval}s")
             self._set_headers(200, 'application/json')
             self.wfile.write(json.dumps({"message": "Configuración de Twitter guardada."}).encode('utf-8'))
