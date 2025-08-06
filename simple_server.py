@@ -784,8 +784,13 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 return
             
             elif requested_path == '/api/tweet_history':
-                with open(TWEET_HISTORY_FILE, 'r') as f:
-                    history = json.load(f)
+                try:
+                    with open(TWEET_HISTORY_FILE, 'r', encoding='utf-8') as f:
+                        history = json.load(f)
+                except (FileNotFoundError, json.JSONDecodeError):
+                    # Si el archivo no existe o está corrupto, devolvemos una lista vacía
+                    history = []
+                
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps(history).encode('utf-8'))
                 return
