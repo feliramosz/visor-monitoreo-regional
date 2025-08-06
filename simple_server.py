@@ -62,17 +62,15 @@ TWITTER_POLL_TIMER = None
 # =========================================================================
 # ===== FUNCIÓN INDEPENDIENTE PARA MONITOREO DE TWITTER =====
 # =========================================================================
-def fetch_and_process_tweets():    
+def fetch_and_process_tweets():
     global LAST_SEEN_TWEET_IDS, NEW_TWEETS_QUEUE, TWITTER_POLL_TIMER
 
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [TWITTER] Iniciando ciclo de sondeo de tweets...")
     
     config = {}
     try:
-        # Asegurarse de que el historial exista al inicio
         if not os.path.exists(TWEET_HISTORY_FILE):
-            with open(TWEET_HISTORY_FILE, 'w', encoding='utf-8') as f:
-                json.dump([], f)
+            with open(TWEET_HISTORY_FILE, 'w', encoding='utf-8') as f: json.dump([], f)
         
         with open(TWITTER_CONFIG_FILE, 'r+', encoding='utf-8') as f:
             config = json.load(f)
@@ -93,11 +91,11 @@ def fetch_and_process_tweets():
                                     resource_owner_key=X_ACCESS_TOKEN, resource_owner_secret=X_ACCESS_TOKEN_SECRET)
             
             for account_username in accounts:
+                # ... (código para obtener user_id, igual que antes) ...
                 user_lookup_url = f"https://api.twitter.com/2/users/by/username/{account_username}"
                 user_response = oauth.get(user_lookup_url)
                 config["monthly_api_calls"] += 1
                 if user_response.status_code != 200: continue
-                
                 user_id = user_response.json().get("data", {}).get("id")
                 if not user_id: continue
                 
@@ -130,9 +128,15 @@ def fetch_and_process_tweets():
                 newest_tweet_id_in_batch = all_tweets[0]["id"]
                 LAST_SEEN_TWEET_IDS[account_username] = newest_tweet_id_in_batch
                 
-                author_info = tweets_data.get("includes", {}).get("users", [{}])[0]
+                # --- INICIO DE LA CORRECCIÓN CLAVE ---
+                # Creamos un mapa para buscar fácilmente los datos del autor por su ID
+                users_included = {user['id']: user for user in tweets_data.get("includes", {}).get("users", [])}
+                # --- FIN DE LA CORRECCIÓN CLAVE ---
 
                 for tweet in reversed(all_tweets):
+                    # Buscamos el autor correcto para ESTE tweet en específico
+                    author_info = users_included.get(tweet['author_id'], {})
+                    
                     notification = {
                         "id": tweet["id"], "username": author_info.get("username"),
                         "name": author_info.get("name"),
