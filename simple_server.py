@@ -26,35 +26,25 @@ import time
 from requests_oauthlib import OAuth1Session
 import threading
 
-
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8001
 load_dotenv()
 PID = os.getpid()
 
 # --- Definición de Rutas del Proyecto ---
-# Define la raíz del proyecto (donde se encuentra simple_server.py)
 SERVER_ROOT = os.path.dirname(os.path.abspath(__file__))
-
-# Define la carpeta de datos relativa a la raíz del proyecto
 DATA_OUTPUT_FOLDER = os.path.join(SERVER_ROOT, 'datos_extraidos')
 
-# Define la carpeta de datos relativa a la raíz del proyecto
-DATA_FOLDER_PATH = os.path.join(SERVER_ROOT, 'datos_extraidos')
-
-# Define las rutas a los archivos de datos específicos
-DATA_FILE = os.path.join(DATA_FOLDER_PATH, 'ultimo_informe.json')
-
-NOVEDADES_FILE = os.path.join(DATA_FOLDER_PATH, 'novedades.json')
-TURNOS_FILE = os.path.join(DATA_FOLDER_PATH, 'turnos.json')
+DATA_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'ultimo_informe.json')
+NOVEDADES_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'novedades.json')
+TURNOS_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'turnos.json')
 DATABASE_FILE = os.path.join(SERVER_ROOT, 'database-staging.db')
 TWITTER_CONFIG_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'twitter_config.json')
 TWEET_HISTORY_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'tweet_history.json')
-# Define la carpeta para las imágenes dinámicas
 DYNAMIC_SLIDES_FOLDER = os.path.join(SERVER_ROOT, 'assets', 'dynamic_slides')
 
 # --- Variables de Sesión y Configuración ---
-SESSIONS = {} # Almacenamiento temporal de sesiones activas: { 'token': 'username' }
+SESSIONS = {}
 MAX_IMAGE_WIDTH = 1200
 MAX_IMAGE_HEIGHT = 800
 NTP_SERVER = 'ntp.shoa.cl'
@@ -64,16 +54,20 @@ X_API_SECRET = os.getenv('X_API_KEY_SECRET')
 X_ACCESS_TOKEN = os.getenv('X_ACCESS_TOKEN')
 X_ACCESS_TOKEN_SECRET = os.getenv('X_ACCESS_TOKEN_SECRET')
 
-# Memoria para notificaciones y monitoreo en segundo plano
-LAST_SEEN_TWEET_IDS = {} # ej: {'RedGeoChile': '123456789'}
+# --- Memoria para notificaciones y monitoreo en segundo plano ---
+LAST_SEEN_TWEET_IDS = {}
 NEW_TWEETS_QUEUE = []
 TWITTER_POLL_TIMER = None
 
-def _fetch_and_process_tweets(self):
+# =========================================================================
+# ===== FUNCIÓN INDEPENDIENTE PARA MONITOREO DE TWITTER =====
+# =========================================================================
+def fetch_and_process_tweets():
     global LAST_SEEN_TWEET_IDS, NEW_TWEETS_QUEUE, TWITTER_POLL_TIMER
 
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [TWITTER] Iniciando ciclo de sondeo de tweets...")
     
+    config = {} # Definimos config aquí para que exista en el bloque `finally`
     try:
         # 1. Cargar configuración
         with open(TWITTER_CONFIG_FILE, 'r+') as f:
@@ -91,9 +85,6 @@ def _fetch_and_process_tweets(self):
             
             if not accounts:
                 print("[TWITTER] No hay cuentas configuradas para monitorear.")
-                # Re-programar el próximo chequeo y salir
-                TWITTER_POLL_TIMER = threading.Timer(interval, self.fetch_and_process_tweets)
-                TWITTER_POLL_TIMER.start()
                 return
 
             # 3. Crear sesión de autenticación con la API de X
@@ -103,7 +94,6 @@ def _fetch_and_process_tweets(self):
             # 4. Iterar sobre las cuentas y obtener el último tweet
             for account_username in accounts:
                 print(f"[TWITTER] Buscando último tweet para @{account_username}...")
-                # Endpoint para obtener tweets de un usuario por su username
                 user_lookup_url = f"https://api.twitter.com/2/users/by/username/{account_username}"
                 user_response = oauth.get(user_lookup_url)
                 
@@ -118,12 +108,12 @@ def _fetch_and_process_tweets(self):
                     print(f"[TWITTER] No se encontró el ID para @{account_username}")
                     continue
                 
-                # Usar el ID para obtener los tweets más recientes
                 tweets_url = f"https://api.twitter.com/2/users/{user_id}/tweets"
                 params = {
-                    "max_results": 5, # Pedimos los 5 más recientes
+                    "max_results": 5,
                     "expansions": "author_id",
-                    "tweet.fields": "created_at,text"
+                    "tweet.fields": "created_at,text",
+                    "user.fields": "profile_image_url"
                 }
                 tweets_response = oauth.get(tweets_url, params=params)
                 config["monthly_api_calls"] += 1
@@ -147,7 +137,6 @@ def _fetch_and_process_tweets(self):
                     print(f"[TWITTER] ¡NUEVO TWEET DETECTADO! ID: {tweet_id} de @{account_username}")
                     LAST_SEEN_TWEET_IDS[account_username] = tweet_id
                     
-                    # Formatear y añadir a la cola de notificaciones
                     notification = {
                         "id": tweet_id,
                         "username": author_info.get("username"),
@@ -162,7 +151,6 @@ def _fetch_and_process_tweets(self):
                     with open(TWEET_HISTORY_FILE, 'r+') as hist_f:
                         history = json.load(hist_f)
                         history.insert(0, notification)
-                        # Mantenemos el historial con un máximo de 50 tweets
                         hist_f.seek(0)
                         json.dump(history[:50], hist_f, ensure_ascii=False, indent=2)
                         hist_f.truncate()
@@ -178,7 +166,7 @@ def _fetch_and_process_tweets(self):
         # 7. Re-programar el próximo chequeo
         interval = config.get("poll_interval_seconds", 600)
         print(f"[TWITTER] Ciclo finalizado. Próximo sondeo en {interval} segundos.")
-        TWITTER_POLL_TIMER = threading.Timer(interval, self.fetch_and_process_tweets)
+        TWITTER_POLL_TIMER = threading.Timer(interval, fetch_and_process_tweets)
         TWITTER_POLL_TIMER.start()
   
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
@@ -337,8 +325,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
     def _check_tsunami_bulletin(self):
         print(f"[{PID}][TSUNAMI_CHECK] Iniciando la verificación de boletín CAP.")
         CAP_FEED_URL = "https://www.tsunami.gov/events/xml/PHEBCAP.xml"
-        LAST_BULLETIN_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_bulletin.txt')
-        LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_message.json')
+        LAST_BULLETIN_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'last_tsunami_bulletin.txt')
+        LAST_MESSAGE_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'last_tsunami_message.json')
 
         try:
             # 1. Leer el ID del último boletín procesado
@@ -418,8 +406,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
     def _check_geofon_bulletin(self):
         print(f"[{PID}][GEOFON_CHECK] Iniciando la verificación de evento sísmico significativo.")
         GEOFON_API_URL = "https://geofon.gfz-potsdam.de/fdsnws/event/1/query?limit=1&orderby=time&minmagnitude=5.0&maxdepth=300&format=xml"
-        LAST_EVENT_FILE = os.path.join(DATA_FOLDER_PATH, 'last_geofon_event.txt')
-        LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_geofon_message.json')
+        LAST_EVENT_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'last_geofon_event.txt')
+        LAST_MESSAGE_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'last_geofon_message.json')
 
         try:
             last_processed_id = ""
