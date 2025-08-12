@@ -25,6 +25,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import time
 from requests_oauthlib import OAuth1Session
 import threading
+from geopy.geocoders import Nominatim
 
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8001
@@ -1468,6 +1469,24 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 return
             # --- FIN ENDPOINT WAZE ---
 
+            # --- ENDPOINT PARA OBTENER LOS TIPOS DE EMERGENCIA ---
+            elif requested_path == '/api/emergencies/types':
+                try:
+                    conn = sqlite3.connect(DATABASE_FILE)
+                    conn.row_factory = sqlite3.Row # Para obtener resultados como diccionarios
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT id, name FROM emergency_types ORDER BY name")
+                    types = [dict(row) for row in cursor.fetchall()]
+                    conn.close()
+                    
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(types).encode('utf-8'))
+                except Exception as e:
+                    print(f"Error al obtener tipos de emergencia: {e}")
+                    self._set_headers(500, 'application/json')
+                    self.wfile.write(json.dumps({"error": f"Error de servidor: {e}"}).encode('utf-8'))
+                return
+            
             # --- ENDPOINT PARA DATOS DE TSUNAMI ---
             elif requested_path == '/api/tsunami_check':
                 bulletin_data = self._check_tsunami_bulletin()
@@ -2252,7 +2271,76 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": f"Error de servidor: {e}"}).encode('utf-8'))
             return
         # --- FIN ENDPOINT PARA CAMBIAR CONTRASEÑA ---
-                
+
+        # --- ENDPOINT PARA RECIBIR REPORTES DE EMERGENCIA DESDE LA APP ---
+        elif self.path == '/api/emergencies/report':
+            username = self._get_user_from_token()
+            if not username: # Aseguramos que el usuario esté logueado
+                self._set_headers(401, 'application/json')
+                self.wfile.write(json.dumps({'error': 'No autorizado'}).encode('utf-8'))
+                return
+
+            try:
+                content_length = int(self.headers['Content-Length'])
+                post_data = json.loads(self.rfile.read(content_length))
+
+                # --- Datos que esperamos recibir desde la app ---
+                user_id = post_data.get('userId')
+                type_id = post_data.get('typeId')
+                latitude = post_data.get('latitude')
+                longitude = post_data.get('longitude')
+                details = post_data.get('details') # Este será el JSON con los datos específicos
+                additional_locations = post_data.get('additional_locations') # Lista de direcciones manuales
+                photos = post_data.get('photos', []) # Lista de fotos (simplificado por ahora)
+
+                # --- Lógica de Geocodificación para la ubicación principal si no viene ---
+                if not latitude and additional_locations:
+                    try:
+                        geolocator = Nominatim(user_agent="senapred_valparaiso_monitor")
+                        # Usamos la primera dirección manual para centrar el mapa
+                        location = geolocator.geocode(additional_locations[0] + ", Valparaíso, Chile")
+                        if location:
+                            latitude = location.latitude
+                            longitude = location.longitude
+                    except Exception as geo_e:
+                        print(f"Advertencia de Geocodificación: {geo_e}")
+
+
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+
+                # Insertamos el reporte principal en la base de datos
+                cursor.execute("""
+                    INSERT INTO emergencies (user_id, type_id, report_timestamp, main_latitude, main_longitude, details, additional_locations)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    user_id,
+                    type_id,
+                    datetime.now().isoformat(),
+                    latitude,
+                    longitude,
+                    json.dumps(details), # Convertimos el diccionario a un string JSON
+                    json.dumps(additional_locations) # Convertimos la lista a un string JSON
+                ))
+
+                emergency_id = cursor.lastrowid # Obtenemos el ID del reporte que acabamos de crear
+
+                # Aquí va la lógica para guardar las fotos en la tabla `emergency_updates`
+                # Por ahora lo dejamos pendiente para simplificar el primer paso.
+
+                conn.commit()
+                conn.close()
+
+                self._log_activity(username, "Nuevo Reporte de Emergencia", details=f"ID de emergencia: {emergency_id}")
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps({'message': 'Reporte recibido exitosamente', 'emergencyId': emergency_id}).encode('utf-8'))
+
+            except Exception as e:
+                print(f"ERROR al procesar reporte de emergencia: {e}")
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({"error": f"Error de servidor: {e}"}).encode('utf-8'))
+            return
+
         else:
             self._set_headers(404, 'text/plain')
             self.wfile.write(b"Ruta POST no encontrada")    

@@ -1,6 +1,6 @@
 # Sistema de Monitoreo Regional - SENAPRED Valparaíso
 
-_Última actualización: 29 de julio de 2025_
+_Última actualización: 12 de agosto de 2025_
 
 ![Estado](https://img.shields.io/badge/estado-en_producción-green)
 ![Python](https://img.shields.io/badge/python-3.x-blue.svg)
@@ -58,7 +58,12 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 -   **Autenticación Segura y Control de Acceso por Roles**:
     -   Todas las vistas de la aplicación (`index`, `dashboard`, `admin`, `mobile`) están protegidas por un sistema de **usuario y contraseña**.
     -   Se han definido roles de **administrador** y **operador**, donde solo los administradores pueden acceder a las secciones de gestión de usuarios y logs.
-    -   Las contraseñas se almacenan de forma segura (hasheadas) en una base de datos SQLite.
+    -   Las contraseñas se almacenan de forma segura (hasheadas con **Werkzeug**) en una base de datos SQLite.
+-   **Monitoreo de X / Twitter**:
+    -   El sistema monitorea cuentas de X (Twitter) predefinidas en busca de nuevos tweets.
+    -   Muestra **notificaciones visuales emergentes** en el dashboard cuando se detecta un nuevo tweet.
+    -   Incluye un **panel lateral** con el historial de los últimos tweets monitoreados.
+    -   La configuración (cuentas a seguir, intervalo de revisión) es completamente gestionable desde el panel de administración.
 -   **Boletines Informativos por Voz**:
     -   El sistema emite automáticamente un **boletín informativo hablado** en horarios programados (08:55, 12:00 y 20:55).
     -   El contenido es **generado dinámicamente** a partir de los datos más recientes.
@@ -82,9 +87,11 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
     -   **"Mis Turnos":** Vista personal para que cada usuario vea su propio calendario de turnos.
     -   **"Mi Perfil":** Función para que cada usuario pueda **cambiar su propia contraseña**.
 -   **Visualización Avanzada de Datos**:
+    -   **Dashboard Personalizable**: Los operadores pueden alternar entre una vista de **"Verano"** (enfocada en viento y T°) y una de **"Invierno"** (enfocada en precipitaciones). También pueden activar o desactivar la visibilidad de los paneles principales (superior, central, derecho).
     -   **Fondos Meteorológicos Dinámicos**: Los paneles de las estaciones meteorológicas en ambos visores (`index.html` y `dashboard.html`) muestran fondos animados (GIFs) que reflejan el estado del tiempo inferido (Despejado, Lluvia, Nieve, etc.). La lógica distingue entre día y noche.
     -   **Medidores Personalizados**: Componentes visuales para mostrar datos hidrométricos (nivel y caudal) y porcentaje de afectación SEC.
     -   **Carruseles de Información Dinámica**: El dashboard cuenta con múltiples carruseles automáticos y personalizables para presentar la información de forma cíclica.
+    -   **Marquesina de Notificaciones**: Una barra de texto deslizante en el pie de página del dashboard muestra el texto de las últimas notificaciones importantes.
 -   **Gestión de Usuarios y Auditoría (Solo Administradores)**:
     -   **Gestión de Usuarios desde la Interfaz**: Los administradores pueden crear, editar y eliminar cuentas de usuario.
     -   **Log de Actividad del Sistema**: El sistema registra todas las acciones importantes (inicios de sesión, cambios de datos, etc.) con **usuario, fecha, hora y dirección IP**.
@@ -103,7 +110,9 @@ Se ha implementado un flujo de trabajo profesional que automatiza el despliegue 
 -   **Añadida Gestión de Usuarios y Log de Auditoría desde la Interfaz.**
 -   **Desarrollada una Versión Móvil completamente funcional.**
 -   **Desarrollado un Dashboard de Operaciones Avanzado y Sincronización en Tiempo Real.**
+-   **Implementado Dashboard Personalizable** (vistas Verano/Invierno y visibilidad de paneles).
 -   **Añadido Módulo de Gestión de Perfil de Usuario** (Mis Turnos y Cambiar Contraseña).
+-   **Integrado el Monitoreo de X / Twitter** con notificaciones visuales y panel de historial.
 -   **Mejorada la visualización de datos SEC** con desglose comunal interactivo y porcentajes de afectación.
 -   **Añadida Visualización de Personal de Turno en Tiempo Real**, basado en un calendario configurable con **exportación a Excel**.
 -   **Implementado Sistema de Boletines Informativos por Voz**, con activaciones programadas y contenido dinámico.
@@ -161,6 +170,9 @@ El frontend consulta periódicamente al servidor para mantener la interfaz actua
 * **Detección de Cambios Generales (`/api/last_update_timestamp`):**
     * **Página:** `dashboard.html`, `index.html`.
     * **Frecuencia:** Cada **10 segundos**. Si detecta un cambio, dispara una actualización completa de los datos del informe.
+* **Notificaciones de X/Twitter (`/api/twitter_notifications`):**
+    * **Página:** `dashboard.html`.
+    * **Frecuencia de Verificación:** Cada **15 segundos**.
 * **Notificaciones de Tsunami y Geofon (`/api/tsunami_check`, `/api/geofon_check`):**
     * **Página:** `dashboard.html`.
     * **Frecuencia de Verificación:** Cada **60 segundos**.
