@@ -1708,29 +1708,36 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         # --- Endpoint de Login ---
         if self.path == '/api/login':
-            content_length = int(self.headers['Content-Length'])
-            post_data = json.loads(self.rfile.read(content_length))
-            username = post_data.get('username')
-            password = post_data.get('password')
+            try:
+                content_length = int(self.headers['Content-Length'])
+                post_data = json.loads(self.rfile.read(content_length))
+                username = post_data.get('username')
+                password = post_data.get('password')
 
-            conn = sqlite3.connect(DATABASE_FILE)
-            cursor = conn.cursor()
-            cursor.execute("SELECT password_hash FROM users WHERE username = ?", (username,))
-            result = cursor.fetchone()
-            conn.close()
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                cursor.execute("SELECT password_hash FROM users WHERE username = ?", (username,))
+                result = cursor.fetchone()
+                conn.close()
 
-            if result and check_password_hash(result[0], password):
-                token = str(uuid.uuid4())
-                SESSIONS[token] = username
-                self._log_activity(username, "Inicio de Sesión Exitoso")
-                self._set_headers(200, 'application/json')
-                self.wfile.write(json.dumps({'message': 'Login exitoso', 'token': token}).encode('utf-8'))
-            else:
-                ip_address = self.client_address[0]
-                self._log_activity(username, "Intento de Login Fallido")
-                self._set_headers(401, 'application/json')
-                self.wfile.write(json.dumps({'error': 'Usuario o contraseña inválidos'}).encode('utf-8'))
-            return # Termina la función aquí
+                if result and check_password_hash(result[0], password):
+                    token = str(uuid.uuid4())
+                    SESSIONS[token] = username
+                    self._log_activity(username, "Inicio de Sesión Exitoso")
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps({'message': 'Login exitoso', 'token': token}).encode('utf-8'))
+                else:
+                    self._log_activity(username or "desconocido", "Intento de Login Fallido")
+                    self._set_headers(401, 'application/json')
+                    self.wfile.write(json.dumps({'error': 'Usuario o contraseña inválidos'}).encode('utf-8'))
+            
+            except Exception as e:
+                # Bloque de seguridad: Si algo falla, se envía un error JSON válido
+                print(f"ERROR CRÍTICO en /api/login: {e}")
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({'error': 'Error interno del servidor al procesar el login.'}).encode('utf-8'))
+            
+            return
 
         # --- Endpoint de Logout ---
         if self.path == '/api/logout':
