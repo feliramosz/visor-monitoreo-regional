@@ -1708,34 +1708,52 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         # --- Endpoint de Login ---
         if self.path == '/api/login':
+            print("\n--- [DEBUG] Petición recibida en /api/login ---")
             try:
                 content_length = int(self.headers['Content-Length'])
-                post_data = json.loads(self.rfile.read(content_length))
+                post_data_raw = self.rfile.read(content_length)
+                print(f"[DEBUG] Datos crudos recibidos: {post_data_raw}")
+
+                post_data = json.loads(post_data_raw)
                 username = post_data.get('username')
                 password = post_data.get('password')
+                print(f"[DEBUG] Intentando login para usuario: '{username}'")
 
                 conn = sqlite3.connect(DATABASE_FILE)
                 cursor = conn.cursor()
+                
+                print("[DEBUG] Ejecutando consulta a la base de datos...")
                 cursor.execute("SELECT password_hash FROM users WHERE username = ?", (username,))
                 result = cursor.fetchone()
                 conn.close()
 
-                if result and check_password_hash(result[0], password):
-                    token = str(uuid.uuid4())
-                    SESSIONS[token] = username
-                    self._log_activity(username, "Inicio de Sesión Exitoso")
-                    self._set_headers(200, 'application/json')
-                    self.wfile.write(json.dumps({'message': 'Login exitoso', 'token': token}).encode('utf-8'))
+                if result:
+                    print("[DEBUG] Usuario encontrado. Verificando contraseña...")
+                    # Asegúrate de tener esta importación al principio del archivo: from werkzeug.security import check_password_hash
+                    if check_password_hash(result[0], password):
+                        print("[DEBUG] ¡Contraseña correcta! generando token...")
+                        token = str(uuid.uuid4())
+                        SESSIONS[token] = username
+                        self._log_activity(username, "Inicio de Sesión Exitoso")
+                        self._set_headers(200, 'application/json')
+                        self.wfile.write(json.dumps({'message': 'Login exitoso', 'token': token}).encode('utf-8'))
+                        print("[DEBUG] Respuesta de éxito enviada.")
+                    else:
+                        print("[DEBUG] Contraseña incorrecta.")
+                        self._log_activity(username, "Intento de Login Fallido - Contraseña incorrecta")
+                        self._set_headers(401, 'application/json')
+                        self.wfile.write(json.dumps({'error': 'Usuario o contraseña inválidos'}).encode('utf-8'))
                 else:
-                    self._log_activity(username or "desconocido", "Intento de Login Fallido")
+                    print(f"[DEBUG] Usuario '{username}' no encontrado en la base de datos.")
+                    self._log_activity(username, "Intento de Login Fallido - Usuario no existe")
                     self._set_headers(401, 'application/json')
                     self.wfile.write(json.dumps({'error': 'Usuario o contraseña inválidos'}).encode('utf-8'))
-            
             except Exception as e:
-                # Bloque de seguridad: Si algo falla, se envía un error JSON válido
-                print(f"ERROR CRÍTICO en /api/login: {e}")
-                self._set_headers(500, 'application/json')
-                self.wfile.write(json.dumps({'error': 'Error interno del servidor al procesar el login.'}).encode('utf-8'))
+                print(f"\n--- [ERROR GRAVE EN /api/login] ---")
+                print(f"Ocurrió una excepción: {e}")
+                print("Esto probablemente causó una respuesta vacía.")
+                # No enviamos respuesta aquí a propósito para replicar el error,
+                # pero el print nos dirá qué pasó.
             
             return
 
