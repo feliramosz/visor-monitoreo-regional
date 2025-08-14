@@ -252,6 +252,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             params = {p.find('valueName').text: p.find('value').text for p in info_tag.find_all('parameter')}
             magnitude = params.get('EventPreliminaryMagnitude', 'N/A')
             location = params.get('EventLocationName', 'ubicación no especificada')
+            lat = params.get('EventLatitude', None)
+            lon = params.get('EventLongitude', None)
 
             # 6. Construir el mensaje de voz en español según las reglas
             mensaje_voz = f"Boletín de información de tsunami, emitido por el Pacific Tsunami Warning Center. "
@@ -273,10 +275,11 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             # 7. Guardar el estado para no repetir y para el botón de prueba
             with open(LAST_BULLETIN_FILE, 'w') as f:
                 f.write(bulletin_id)
+            message_to_save = {"sonido": sonido, "mensaje": mensaje_voz, "lat": lat, "lon": lon}    
             with open(LAST_MESSAGE_FILE, 'w') as f:
                 json.dump({"sonido": sonido, "mensaje": mensaje_voz}, f, ensure_ascii=False)
 
-            return {"sonido": sonido, "mensaje": mensaje_voz}
+            return message_to_save
 
         except Exception as e:
             print(f"[TSUNAMI_CHECK] ERROR FATAL en la función _check_tsunami_bulletin: {e}")
@@ -312,8 +315,11 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
             magnitude = soup.find('magnitude').find('mag').find('value').text if soup.find('magnitude') else 'N/A'
             place = soup.find('description').find('text').text if soup.find('description') else 'ubicación no especificada'
+            origin_tag = soup.find('origin')
             depth_meters = soup.find('origin').find('depth').find('value').text if soup.find('origin') else '0'
-            depth = int(float(depth_meters) / 1000)
+            depth = int(float(depth_meters) / 1000)            
+            lat = origin_tag.find('latitude').find('value').text if origin_tag else None
+            lon = origin_tag.find('longitude').find('value').text if origin_tag else None
 
             # --- MENSAJE CORREGIDO Y PRUDENTE ---
             mensaje_voz = (f"Atención, boletín informativo de sismo significativo. "
@@ -327,10 +333,11 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
 
             with open(LAST_EVENT_FILE, 'w') as f:
                 f.write(event_id)
+            message_to_save = {"sonido": sonido, "mensaje": mensaje_voz, "lat": lat, "lon": lon}    
             with open(LAST_MESSAGE_FILE, 'w') as f:
                 json.dump({"sonido": sonido, "mensaje": mensaje_voz}, f, ensure_ascii=False)
 
-            return {"sonido": sonido, "mensaje": mensaje_voz}
+            return message_to_save
 
         except Exception as e:
             print(f"[GEOFON_CHECK] ERROR FATAL en la función _check_geofon_bulletin: {e}")
