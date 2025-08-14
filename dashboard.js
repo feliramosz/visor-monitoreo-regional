@@ -37,6 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const airQualityModalBody = document.getElementById('air-quality-modal-body');
     let lastAirQualityData = [];
 
+    // --- NUEVAS VARIABLES GLOBALES PARA MAPA DE EVENTOS ---
+    let eventMapPopup = null;
+    let eventMap = null;
+    let eventMarker = null;
+
     // --- Controles del carrusel de MAPAS ---
     const mapPanelTitle = document.getElementById('map-panel-title');
     const airQualityMapContainer = document.getElementById('air-quality-map-container-dashboard');
@@ -345,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Convierte un texto a voz utilizando la Web Speech API del navegador.
      * @param {string} texto - El texto a ser leído en voz alta.
      */
-    function hablar(texto) {
+    function hablar(texto, onEndCallback) {
         if (!userHasInteracted) {
             // Si el usuario aún no ha interactuado, guarda el mensaje en la fila de espera
             speechQueue.push(texto);
@@ -359,9 +364,45 @@ document.addEventListener('DOMContentLoaded', () => {
         const enunciado = new SpeechSynthesisUtterance(texto);
         enunciado.lang = 'es-CL';
         enunciado.rate = 0.95;
+        enunciado.onend = () => {
+            if (typeof onEndCallback === 'function') {
+                onEndCallback();
+            }
+        };
+
         window.speechSynthesis.speak(enunciado);
     }
     
+    // ---  FUNCIONES PARA MAPA DE EVENTOS SISMICOS ---
+    function showEventMap(lat, lon) {
+        if (!eventMapPopup) {
+            eventMapPopup = document.getElementById('event-map-popup');
+        }
+
+        eventMapPopup.classList.add('visible');
+
+        if (!eventMap) { // Inicializa el mapa solo la primera vez
+            eventMap = L.map('event-map-container').setView([lat, lon], 6);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(eventMap);
+            eventMarker = L.marker([lat, lon]).addTo(eventMap)
+                .bindPopup('Ubicación aproximada del evento')
+                .openPopup();
+        } else { // Si ya existe, solo actualiza la vista y el marcador
+            eventMap.setView([lat, lon], 6);
+            eventMarker.setLatLng([lat, lon]);
+        }
+        
+        // Es crucial llamar a invalidateSize para que el mapa se renderice correctamente
+        setTimeout(() => eventMap.invalidateSize(), 400); 
+    }
+
+    function hideEventMap() {
+        if (eventMapPopup) {
+            eventMapPopup.classList.remove('visible');
+        }
+    }
+
+
     // Objeto para almacenar las horas y minutos de los boletines
         const momentosBoletin = [
         { hora: 8, minuto: 55 },
@@ -433,7 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const data = await response.json();
                 if (data && data.sonido && data.mensaje) {
-                    lanzarNotificacion(data.sonido, data.mensaje);
+                    lanzarNotificacion(data.sonido, data.mensaje, data.lat, data.lon);
                 }
             }
         } catch (error) {
@@ -2240,20 +2281,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Función genérica para lanzar sonido y voz
-    function lanzarNotificacion(archivoSonido, texto) {
+    function lanzarNotificacion(archivoSonido, texto, lat, lon) {
+        if (lat && lon) {
+            showEventMap(parseFloat(lat), parseFloat(lon));
+        }
         const sonido = new Audio(archivoSonido);
         const promise = sonido.play();
-
-        // --- AÑADE ESTA LÍNEA ---
+       
         updateMarquee(texto); // Envía el texto a la marquesina
-        // --- FIN DE LA MODIFICACIÓN ---
-
+        
         if (promise !== undefined) {
             promise.then(_ => {
-                sonido.onended = () => hablar(texto);
+                sonido.onended = () => hablar(texto, hideEventMap);
             }).catch(error => {
                 console.warn("Sonido de notificación bloqueado. Reproduciendo solo la voz.");
-                hablar(texto);
+                hablar(texto, hideEventMap);
             });
         }
     }
@@ -2293,7 +2335,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const data = await response.json();
                 if (data && data.sonido && data.mensaje) {
-                    lanzarNotificacion(data.sonido, data.mensaje);
+                    lanzarNotificacion(data.sonido, data.mensaje, data.lat, data.lon);
                 }
             }
         } catch (error) {

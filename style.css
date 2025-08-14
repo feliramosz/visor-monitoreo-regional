@@ -2972,3 +2972,65 @@ footer {
     font-weight: bold;
     color: #0277bd;
 }
+
+/* --- ESTILOS PARA POPUP DE MAPA DE EVENTOS SÍSMICOS --- */
+.event-map-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9998; /* Muy alto, pero por debajo de otros modales si es necesario */
+    backdrop-filter: blur(5px);
+    
+    /* Control de visibilidad y animación */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease-in-out, visibility 0.5s;
+}
+
+.event-map-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.event-map-content {
+    background-color: #ffffff;
+    width: 50%;
+    height: 50%;
+    border-radius: 10px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.4);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Asegura que las esquinas redondeadas se apliquen al mapa */
+    transform: scale(0.95);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.event-map-overlay.visible .event-map-content {
+    transform: scale(1);
+}
+
+.event-map-header {
+    background-color: #c20d00;
+    color: white;
+    padding: 10px 15px;
+    flex-shrink: 0; /* Evita que el header se encoja */
+}
+
+.event-map-header h3 {
+    margin: 0;
+    font-size: 1.3em;
+    text-align: center;
+    color: white;
+    border: none;
+}
+
+#event-map-container {
+    flex-grow: 1; /* Hace que el mapa ocupe todo el espacio restante */
+    background-color: #e5e3df; /* Color de fondo mientras carga el mapa */
+}
