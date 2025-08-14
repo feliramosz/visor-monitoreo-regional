@@ -2008,8 +2008,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setInterval(fetchAndDisplayTurnos, 5 * 60 * 1000);
         setInterval(fetchAndRenderSecSlide, 5 * 60 * 1000);
         setInterval(checkForUpdates, 10000);
-        setInterval(verificarNotificaciones, 60000);        
-        setInterval(processNotificationQueue, 3000);        
+        setInterval(verificarNotificaciones, 60000);
         setInterval(refreshWaze, 2 * 60 * 1000);
         setInterval(refreshAllMeteoData, 10 * 60 * 1000);
         setInterval(fetchAndRenderAirQuality, 5 * 60 * 1000);
