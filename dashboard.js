@@ -1063,7 +1063,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const horaActual = ahora.getHours();
 
             const datosMesActual = turnosData[mesActualCapitalizado];
-            if (!datosMesActual) return; // Salir si no hay datos para el mes actual
+            if (!datosMesActual) return; 
 
             // --- Lógica para encontrar el turno actual y el próximo ---
             let turnoActivo = null, proximoTurno = null, tipoTurno = '', personal = datosMesActual.personal;
@@ -1075,26 +1075,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     turnoActivo = infoHoy.turno_dia;
                     proximoTurno = infoHoy.turno_noche;
                 }
-            } else { // Turno de Noche (21:00 a 08:59)
+            } else { 
                 tipoTurno = 'Noche';
                 let infoTurnoNoche;
-
-                if (horaActual >= 21) { // --- PARA 21:00 - 23:59 ---
-                    infoTurnoNoche = infoHoy; // El turno activo es el de la noche de HOY.
-
+                if (horaActual >= 21) { 
+                    infoTurnoNoche = infoHoy; 
                     if (infoTurnoNoche) {
                         turnoActivo = infoTurnoNoche.turno_noche;
-
-                        // BUSCAMOS EL TURNO DE MAÑANA
                         const diaSiguiente = new Date(ahora);
                         diaSiguiente.setDate(ahora.getDate() + 1);
-                        
                         const mesSiguienteCapitalizado = (diaSiguiente.toLocaleString('es-CL', { month: 'long' })).replace(/^\w/, c => c.toUpperCase());
                         const numeroDiaSiguiente = diaSiguiente.getDate();
-
-                        // Verificamos si el mes siguiente está en los datos, si no, usamos el actual
                         const datosMesSiguiente = turnosData[mesSiguienteCapitalizado] || datosMesActual;
-
                         if (datosMesSiguiente) {
                             const infoDiaSiguiente = datosMesSiguiente.dias.find(d => d.dia === numeroDiaSiguiente);
                             if (infoDiaSiguiente) {
@@ -1102,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         }
                     }
-                } else { // --- Lógica existente para 00:00 - 08:59 ---
+                } else { 
                     const diaAyer = new Date(ahora); diaAyer.setDate(ahora.getDate() - 1);
                     const mesAyerCapitalizado = (diaAyer.toLocaleString('es-CL', { month: 'long' })).replace(/^\w/, c => c.toUpperCase());
                     const datosMesAyer = turnosData[mesAyerCapitalizado];
@@ -1110,10 +1102,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         infoTurnoNoche = datosMesAyer.dias.find(d => d.dia === diaAyer.getDate());
                         personal = datosMesAyer.personal;
                     }
-
                     if (infoTurnoNoche) {
                         turnoActivo = infoTurnoNoche.turno_noche;
-                        // El próximo turno es el de día de hoy
                         if (infoHoy) proximoTurno = infoHoy.turno_dia;
                     }
                 }
@@ -1127,8 +1117,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Panel Izquierdo: Profesional a llamado
                 llamadoContainer.innerHTML = `
                     <h4>Profesional a llamado</h4>
-                    <p class="turno-op-nombre">${personal[turnoActivo.llamado] || 'N/A'}</p>
-                    <div id="hora-informe-inline"></div>
+                    <p class="turno-op-nombre">${personal[turnoActivo.llamado]?.nombre || 'N/A'}</p> <div id="hora-informe-inline"></div>
                 `;
 
                 // Panel Derecho: Operadores de Turno
@@ -1140,9 +1129,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 operadoresContainer.innerHTML = `
                     <h4>Op. Turno (${tipoTurno})</h4>
                     <div>
-                        <span class="turno-op-nombre">${personal[turnoActivo.op1] || 'N/A'}</span>
-                        <span class="turno-op-nombre">${personal[turnoActivo.op2] || 'N/A'}</span>
-                    </div>
+                        <span class="turno-op-nombre">${personal[turnoActivo.op1]?.nombre || 'N/A'}</span> <span class="turno-op-nombre">${personal[turnoActivo.op2]?.nombre || 'N/A'}</span> </div>
                     ${proximoTurnoHtml}
                 `;
                 renderHoraUltimoInforme(lastData); 
