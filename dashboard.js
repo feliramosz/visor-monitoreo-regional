@@ -1065,7 +1065,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const datosMesActual = turnosData[mesActualCapitalizado];
             if (!datosMesActual) return; 
 
-            // --- Lógica para encontrar el turno actual y el próximo ---
+            // --- Lógica para encontrar el turno actual y el próximo (sin cambios) ---
             let turnoActivo = null, proximoTurno = null, tipoTurno = '', personal = datosMesActual.personal;
             const infoHoy = datosMesActual.dias.find(d => d.dia === diaActual);
 
@@ -1117,7 +1117,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Panel Izquierdo: Profesional a llamado
                 llamadoContainer.innerHTML = `
                     <h4>Profesional a llamado</h4>
-                    <p class="turno-op-nombre">${personal[turnoActivo.llamado]?.nombre || 'N/A'}</p> <div id="hora-informe-inline"></div>
+                    <p class="turno-op-nombre">${simplificarNombre(personal[turnoActivo.llamado]?.nombre) || 'N/A'}</p> <div id="hora-informe-inline"></div>
                 `;
 
                 // Panel Derecho: Operadores de Turno
@@ -1129,7 +1129,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 operadoresContainer.innerHTML = `
                     <h4>Op. Turno (${tipoTurno})</h4>
                     <div>
-                        <span class="turno-op-nombre">${personal[turnoActivo.op1]?.nombre || 'N/A'}</span> <span class="turno-op-nombre">${personal[turnoActivo.op2]?.nombre || 'N/A'}</span> </div>
+                        <span class="turno-op-nombre">${simplificarNombre(personal[turnoActivo.op1]?.nombre) || 'N/A'}</span> <span class="turno-op-nombre">${simplificarNombre(personal[turnoActivo.op2]?.nombre) || 'N/A'}</span> </div>
                     ${proximoTurnoHtml}
                 `;
                 renderHoraUltimoInforme(lastData); 
