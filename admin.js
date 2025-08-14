@@ -519,9 +519,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         poblarSelectoresFecha();
         await cargarDatosYRenderizarCalendario();
 
-        // Añadir listeners a los selectores para que recarguen el calendario al cambiar
-        mesSelect.addEventListener('change', renderizarCalendario);
+        // Añadir listeners a los selectores
+        mesSelect.addEventListener('change', () => {            
+            renderizarPanelesPersonal(); 
+            renderizarGestionPersonal(); 
+            renderizarCalendario();
+        });
         anioSelect.addEventListener('change', renderizarCalendario);
+
+        // Configurar el listener para el botón "Añadir Personal" (solo se hace una vez)
+        setupAddPersonalListener();
 
         // Listener para el botón de GUARDAR
         btnGuardarTurnos.addEventListener('click', async () => {
@@ -560,7 +567,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const mes = mesSelect.options[mesSelect.selectedIndex].text;
             const anio = anioSelect.value;
             
-            // Construimos la URL para la descarga. Pasamos el token como parámetro para la autenticación.
+            // Construimos la URL para la descarga, pasando el token para la autenticación.
             const exportUrl = `/api/turnos/export?mes=${encodeURIComponent(mes)}&anio=${anio}&token=${token}`;
             
             // Abrimos la URL en una nueva pestaña, lo que iniciará la descarga del archivo.
@@ -603,39 +610,37 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Renderiza el panel de personal unificado
     function renderizarPanelesPersonal() {
-        const personalContainer = document.getElementById('personal-list-container');
         const mesSeleccionadoStr = mesSelect.options[mesSelect.selectedIndex].text;
         const personalDelMes = datosTurnos[mesSeleccionadoStr]?.personal || {};
 
-        // Listas definidas de iniciales para cada rol
-        const inicialesOperadores = ["FRZ", "LCC", "SMM", "AAG", "VMV", "FSO", "PAM", "EPA", "MZH"];
-        const inicialesLlamado = ["FSP", "FSA", "BRL", "GMH", "PAR", "FED"];
+        const operadoresHtml = [];
+        const llamadoHtml = [];
 
-        // Función para crear los items, filtrando y ordenando
-        const crearItems = (listaIniciales, tipo) => {
-            return listaIniciales
-                .filter(inicial => personalDelMes.hasOwnProperty(inicial)) // Solo incluir si existe en el JSON
-                .sort() // Ordenar alfabéticamente
-                .map(iniciales => `<span class="${tipo}-item" data-iniciales="${iniciales}" data-tipo="${tipo}">${iniciales}</span>`)
-                .join('');
-        };
+        // Clasifica al personal según su rol y ordena alfabéticamente por iniciales
+        Object.keys(personalDelMes).sort().forEach(iniciales => {
+            const persona = personalDelMes[iniciales];
+            const itemHtml = `<span class="${persona.rol}-item" data-iniciales="${iniciales}" data-tipo="${persona.rol}">${iniciales}</span>`;
 
-        // Construir el HTML final
-        personalContainer.innerHTML = `
+            if (persona.rol === 'operador') {
+                operadoresHtml.push(itemHtml);
+            } else if (persona.rol === 'llamado') {
+                llamadoHtml.push(itemHtml);
+            }
+        });
+
+        // Construir el HTML final y añadirlo al contenedor
+        operadoresListContainer.innerHTML = `
             <h4>Operadores de Turno</h4>
-            <div>${crearItems(inicialesOperadores, 'operador')}</div>
+            <div>${operadoresHtml.join('')}</div>
             <hr>
             <h4>Profesional a Llamado</h4>
-            <div>${crearItems(inicialesLlamado, 'llamado')}</div>
+            <div>${llamadoHtml.join('')}</div>
         `;
 
-        // Añadir listeners para la selección de personal
+        // Vuelve a añadir los listeners para la selección de personal
         document.querySelectorAll('.operador-item, .llamado-item').forEach(item => {
             item.addEventListener('click', (e) => {
-                // Deseleccionar el item anterior
                 document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
-                
-                // Seleccionar el nuevo
                 e.target.classList.add('selected');
                 seleccionActual.iniciales = e.target.dataset.iniciales;
                 seleccionActual.tipo = e.target.dataset.tipo;
@@ -643,6 +648,99 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     
+    // --- INICIO: NUEVAS FUNCIONES PARA GESTIONAR PERSONAL ---
+
+    /**
+     * Genera iniciales a partir de un nombre completo. Ej: "Juan Pérez Soto" -> "JPS"
+     * @param {string} nombreCompleto El nombre completo del funcionario.
+     * @returns {string} Las iniciales en mayúsculas.
+     */
+    function generarIniciales(nombreCompleto) {
+        if (!nombreCompleto) return '';
+        return nombreCompleto.split(' ')
+            .map(palabra => palabra[0])
+            .join('')
+            .toUpperCase();
+    }
+
+    /**
+     * Renderiza la lista de personal en el nuevo panel de gestión,
+     * con botones para eliminar a cada persona.
+     */
+    function renderizarGestionPersonal() {
+        const container = document.getElementById('lista-gestion-personal');
+        const mesSeleccionadoStr = mesSelect.options[mesSelect.selectedIndex].text;
+        const personalDelMes = datosTurnos[mesSeleccionadoStr]?.personal || {};
+
+        container.innerHTML = ''; // Limpiar la lista actual
+
+        Object.keys(personalDelMes).sort().forEach(iniciales => {
+            const persona = personalDelMes[iniciales];
+            const div = document.createElement('div');
+            div.style = 'display: flex; justify-content: space-between; align-items: center; padding: 5px 0;';
+            div.innerHTML = `
+                <span><strong>${iniciales}</strong> - ${persona.nombre} (${persona.rol})</span>
+                <button type="button" class="remove remove-personal-btn" data-iniciales="${iniciales}" style="padding: 3px 8px;">&times;</button>
+            `;
+            container.appendChild(div);
+        });
+
+        // Añadir listeners a los nuevos botones de eliminar
+        container.querySelectorAll('.remove-personal-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const iniciales = e.target.dataset.iniciales;
+                if (confirm(`¿Estás seguro de que quieres eliminar a ${iniciales} de la lista?`)) {
+                    const mes = mesSelect.options[mesSelect.selectedIndex].text;
+                    delete datosTurnos[mes].personal[iniciales];
+
+                    // Re-renderizar ambas listas
+                    renderizarPanelesPersonal();
+                    renderizarGestionPersonal();
+                }
+            });
+        });
+    }
+
+    /**
+     * Configura el listener para el botón "Añadir Personal".
+     */
+    function setupAddPersonalListener() {
+        const btn = document.getElementById('btn-add-personal');
+        btn.addEventListener('click', () => {
+            const nombreInput = document.getElementById('nuevo-personal-nombre');
+            const rolSelect = document.getElementById('nuevo-personal-rol');
+            const nombreCompleto = nombreInput.value.trim();
+            const rol = rolSelect.value;
+
+            if (!nombreCompleto) {
+                showMessage('El nombre no puede estar vacío.', 'error');
+                return;
+            }
+
+            const iniciales = generarIniciales(nombreCompleto);
+            if (iniciales.length < 2) {
+                showMessage('El nombre debe tener al menos dos partes (nombre y apellido).', 'error');
+                return;
+            }
+
+            const mes = mesSelect.options[mesSelect.selectedIndex].text;
+            if (datosTurnos[mes].personal[iniciales]) {
+                showMessage(`Las iniciales '${iniciales}' ya existen.`, 'error');
+                return;
+            }
+
+            // Añadir al objeto de datos
+            datosTurnos[mes].personal[iniciales] = { nombre: nombreCompleto, rol: rol };
+
+            // Re-renderizar las listas para reflejar el cambio
+            renderizarPanelesPersonal();
+            renderizarGestionPersonal();
+
+            // Limpiar el formulario
+            nombreInput.value = '';
+        });
+    }
+
     // Dibuja la grilla del calendario para el mes y año seleccionados
     function renderizarCalendario() {
         const mes = parseInt(mesSelect.value);
@@ -968,7 +1066,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             showMessage(error.message, 'error');
         }
     }
-
+    
     cancelEditBtn.addEventListener('click', resetUserForm);
 
     // --- Carga inicial de la aplicación ---

@@ -23,7 +23,7 @@ import unicodedata
 import uuid
 from werkzeug.security import check_password_hash, generate_password_hash
 import time
-
+from geopy.geocoders import Nominatim
 
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8001
@@ -31,27 +31,23 @@ load_dotenv()
 PID = os.getpid()
 
 # --- Definición de Rutas del Proyecto ---
-# Define la raíz del proyecto (donde se encuentra simple_server.py)
 SERVER_ROOT = os.path.dirname(os.path.abspath(__file__))
+DATA_OUTPUT_FOLDER = os.path.join(SERVER_ROOT, 'datos_extraidos')
 
-# Define la carpeta de datos relativa a la raíz del proyecto
-DATA_FOLDER_PATH = os.path.join(SERVER_ROOT, 'datos_extraidos')
-
-# Define las rutas a los archivos de datos específicos
-DATA_FILE = os.path.join(DATA_FOLDER_PATH, 'ultimo_informe.json')
-NOVEDADES_FILE = os.path.join(DATA_FOLDER_PATH, 'novedades.json')
-TURNOS_FILE = os.path.join(DATA_FOLDER_PATH, 'turnos.json')
+DATA_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'ultimo_informe.json')
+NOVEDADES_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'novedades.json')
+TURNOS_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'turnos.json')
 DATABASE_FILE = os.path.join(SERVER_ROOT, 'database-staging.db')
-
-# Define la carpeta para las imágenes dinámicas
+TWITTER_CONFIG_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'twitter_config.json')
+TWEET_HISTORY_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'tweet_history.json')
 DYNAMIC_SLIDES_FOLDER = os.path.join(SERVER_ROOT, 'assets', 'dynamic_slides')
 
 # --- Variables de Sesión y Configuración ---
-SESSIONS = {} # Almacenamiento temporal de sesiones activas: { 'token': 'username' }
+SESSIONS = {}
 MAX_IMAGE_WIDTH = 1200
 MAX_IMAGE_HEIGHT = 800
 NTP_SERVER = 'ntp.shoa.cl'
-  
+
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
     # --- Función para registrar logs ---
     def _get_real_ip(self):
@@ -208,8 +204,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
     def _check_tsunami_bulletin(self):
         print(f"[{PID}][TSUNAMI_CHECK] Iniciando la verificación de boletín CAP.")
         CAP_FEED_URL = "https://www.tsunami.gov/events/xml/PHEBCAP.xml"
-        LAST_BULLETIN_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_bulletin.txt')
-        LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_message.json')
+        LAST_BULLETIN_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'last_tsunami_bulletin.txt')
+        LAST_MESSAGE_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'last_tsunami_message.json')
 
         try:
             # 1. Leer el ID del último boletín procesado
@@ -289,8 +285,8 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
     def _check_geofon_bulletin(self):
         print(f"[{PID}][GEOFON_CHECK] Iniciando la verificación de evento sísmico significativo.")
         GEOFON_API_URL = "https://geofon.gfz-potsdam.de/fdsnws/event/1/query?limit=1&orderby=time&minmagnitude=5.0&maxdepth=300&format=xml"
-        LAST_EVENT_FILE = os.path.join(DATA_FOLDER_PATH, 'last_geofon_event.txt')
-        LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_geofon_message.json')
+        LAST_EVENT_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'last_geofon_event.txt')
+        LAST_MESSAGE_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'last_geofon_message.json')
 
         try:
             last_processed_id = ""
@@ -332,9 +328,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             with open(LAST_EVENT_FILE, 'w') as f:
                 f.write(event_id)
             with open(LAST_MESSAGE_FILE, 'w') as f:
-                json.dump({"sonido": sonido, "mensaje": mensaje_voz, "sonido": sonido}, f, ensure_ascii=False)
+                json.dump({"sonido": sonido, "mensaje": mensaje_voz}, f, ensure_ascii=False)
 
-            return {"sonido": sonido, "mensaje": mensaje_voz, "sonido": sonido}
+            return {"sonido": sonido, "mensaje": mensaje_voz}
 
         except Exception as e:
             print(f"[GEOFON_CHECK] ERROR FATAL en la función _check_geofon_bulletin: {e}")
@@ -583,15 +579,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         try:
             parsed_path = urllib.parse.urlparse(self.path)
             requested_path = urllib.parse.unquote(parsed_path.path)
-
-            if requested_path == '/api/debug_hidro':
-                debug_data = get_hidrometry_data_for_debug()
-                self._set_headers(200, 'application/json')
-                self.wfile.write(json.dumps(debug_data, indent=2, ensure_ascii=False).encode('utf-8'))
-                return
-            
+                       
             # --- ENDPOINTS DE API (GET) ---
-            elif requested_path == '/api/users':
+            if requested_path == '/api/users':
                 username = self._get_user_from_token()
                 if self._get_user_role(username) != 'administrador':
                     self._set_headers(403, 'application/json')
@@ -1301,6 +1291,24 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 return
             # --- FIN ENDPOINT WAZE ---
 
+            # --- ENDPOINT PARA OBTENER LOS TIPOS DE EMERGENCIA ---
+            elif requested_path == '/api/emergencies/types':
+                try:
+                    conn = sqlite3.connect(DATABASE_FILE)
+                    conn.row_factory = sqlite3.Row # Para obtener resultados como diccionarios
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT id, name FROM emergency_types ORDER BY name")
+                    types = [dict(row) for row in cursor.fetchall()]
+                    conn.close()
+                    
+                    self._set_headers(200, 'application/json')
+                    self.wfile.write(json.dumps(types).encode('utf-8'))
+                except Exception as e:
+                    print(f"Error al obtener tipos de emergencia: {e}")
+                    self._set_headers(500, 'application/json')
+                    self.wfile.write(json.dumps({"error": f"Error de servidor: {e}"}).encode('utf-8'))
+                return
+            
             # --- ENDPOINT PARA DATOS DE TSUNAMI ---
             elif requested_path == '/api/tsunami_check':
                 bulletin_data = self._check_tsunami_bulletin()
@@ -1522,29 +1530,54 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         # --- Endpoint de Login ---
         if self.path == '/api/login':
-            content_length = int(self.headers['Content-Length'])
-            post_data = json.loads(self.rfile.read(content_length))
-            username = post_data.get('username')
-            password = post_data.get('password')
+            print("\n--- [DEBUG] Petición recibida en /api/login ---")
+            try:
+                content_length = int(self.headers['Content-Length'])
+                post_data_raw = self.rfile.read(content_length)
+                print(f"[DEBUG] Datos crudos recibidos: {post_data_raw}")
 
-            conn = sqlite3.connect(DATABASE_FILE)
-            cursor = conn.cursor()
-            cursor.execute("SELECT password_hash FROM users WHERE username = ?", (username,))
-            result = cursor.fetchone()
-            conn.close()
+                post_data = json.loads(post_data_raw)
+                username = post_data.get('username')
+                password = post_data.get('password')
+                print(f"[DEBUG] Intentando login para usuario: '{username}'")
 
-            if result and check_password_hash(result[0], password):
-                token = str(uuid.uuid4())
-                SESSIONS[token] = username
-                self._log_activity(username, "Inicio de Sesión Exitoso")
-                self._set_headers(200, 'application/json')
-                self.wfile.write(json.dumps({'message': 'Login exitoso', 'token': token}).encode('utf-8'))
-            else:
-                ip_address = self.client_address[0]
-                self._log_activity(username, "Intento de Login Fallido")
-                self._set_headers(401, 'application/json')
-                self.wfile.write(json.dumps({'error': 'Usuario o contraseña inválidos'}).encode('utf-8'))
-            return # Termina la función aquí
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+                
+                print("[DEBUG] Ejecutando consulta a la base de datos...")
+                cursor.execute("SELECT password_hash FROM users WHERE username = ?", (username,))
+                result = cursor.fetchone()
+                conn.close()
+
+                if result:
+                    print("[DEBUG] Usuario encontrado. Verificando contraseña...")
+                    # Asegúrate de tener esta importación al principio del archivo: from werkzeug.security import check_password_hash
+                    if check_password_hash(result[0], password):
+                        print("[DEBUG] ¡Contraseña correcta! generando token...")
+                        token = str(uuid.uuid4())
+                        SESSIONS[token] = username
+                        self._log_activity(username, "Inicio de Sesión Exitoso")
+                        self._set_headers(200, 'application/json')
+                        self.wfile.write(json.dumps({'message': 'Login exitoso', 'token': token}).encode('utf-8'))
+                        print("[DEBUG] Respuesta de éxito enviada.")
+                    else:
+                        print("[DEBUG] Contraseña incorrecta.")
+                        self._log_activity(username, "Intento de Login Fallido - Contraseña incorrecta")
+                        self._set_headers(401, 'application/json')
+                        self.wfile.write(json.dumps({'error': 'Usuario o contraseña inválidos'}).encode('utf-8'))
+                else:
+                    print(f"[DEBUG] Usuario '{username}' no encontrado en la base de datos.")
+                    self._log_activity(username, "Intento de Login Fallido - Usuario no existe")
+                    self._set_headers(401, 'application/json')
+                    self.wfile.write(json.dumps({'error': 'Usuario o contraseña inválidos'}).encode('utf-8'))
+            except Exception as e:
+                print(f"\n--- [ERROR GRAVE EN /api/login] ---")
+                print(f"Ocurrió una excepción: {e}")
+                print("Esto probablemente causó una respuesta vacía.")
+                # No enviamos respuesta aquí a propósito para replicar el error,
+                # pero el print nos dirá qué pasó.
+            
+            return
 
         # --- Endpoint de Logout ---
         if self.path == '/api/logout':
@@ -2038,7 +2071,76 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": f"Error de servidor: {e}"}).encode('utf-8'))
             return
         # --- FIN ENDPOINT PARA CAMBIAR CONTRASEÑA ---
-                
+
+        # --- ENDPOINT PARA RECIBIR REPORTES DE EMERGENCIA DESDE LA APP ---
+        elif self.path == '/api/emergencies/report':
+            username = self._get_user_from_token()
+            if not username: # Aseguramos que el usuario esté logueado
+                self._set_headers(401, 'application/json')
+                self.wfile.write(json.dumps({'error': 'No autorizado'}).encode('utf-8'))
+                return
+
+            try:
+                content_length = int(self.headers['Content-Length'])
+                post_data = json.loads(self.rfile.read(content_length))
+
+                # --- Datos que esperamos recibir desde la app ---
+                user_id = post_data.get('userId')
+                type_id = post_data.get('typeId')
+                latitude = post_data.get('latitude')
+                longitude = post_data.get('longitude')
+                details = post_data.get('details') # Este será el JSON con los datos específicos
+                additional_locations = post_data.get('additional_locations') # Lista de direcciones manuales
+                photos = post_data.get('photos', []) # Lista de fotos (simplificado por ahora)
+
+                # --- Lógica de Geocodificación para la ubicación principal si no viene ---
+                if not latitude and additional_locations:
+                    try:
+                        geolocator = Nominatim(user_agent="senapred_valparaiso_monitor")
+                        # Usamos la primera dirección manual para centrar el mapa
+                        location = geolocator.geocode(additional_locations[0] + ", Valparaíso, Chile")
+                        if location:
+                            latitude = location.latitude
+                            longitude = location.longitude
+                    except Exception as geo_e:
+                        print(f"Advertencia de Geocodificación: {geo_e}")
+
+
+                conn = sqlite3.connect(DATABASE_FILE)
+                cursor = conn.cursor()
+
+                # Insertamos el reporte principal en la base de datos
+                cursor.execute("""
+                    INSERT INTO emergencies (user_id, type_id, report_timestamp, main_latitude, main_longitude, details, additional_locations)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    user_id,
+                    type_id,
+                    datetime.now().isoformat(),
+                    latitude,
+                    longitude,
+                    json.dumps(details), # Convertimos el diccionario a un string JSON
+                    json.dumps(additional_locations) # Convertimos la lista a un string JSON
+                ))
+
+                emergency_id = cursor.lastrowid # Obtenemos el ID del reporte que acabamos de crear
+
+                # Aquí va la lógica para guardar las fotos en la tabla `emergency_updates`
+                # Por ahora lo dejamos pendiente para simplificar el primer paso.
+
+                conn.commit()
+                conn.close()
+
+                self._log_activity(username, "Nuevo Reporte de Emergencia", details=f"ID de emergencia: {emergency_id}")
+                self._set_headers(200, 'application/json')
+                self.wfile.write(json.dumps({'message': 'Reporte recibido exitosamente', 'emergencyId': emergency_id}).encode('utf-8'))
+
+            except Exception as e:
+                print(f"ERROR al procesar reporte de emergencia: {e}")
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({"error": f"Error de servidor: {e}"}).encode('utf-8'))
+            return
+
         else:
             self._set_headers(404, 'text/plain')
             self.wfile.write(b"Ruta POST no encontrada")    
@@ -2141,8 +2243,8 @@ if __name__ == "__main__":
             print(f"Puerto invalido '{sys.argv[1]}'. Usando el puerto por defecto {PORT_NUMBER}.")
 
     # usa la variable 'port'
-    httpd = ThreadingHTTPServer((HOST_NAME, port), SimpleHttpRequestHandler)
 
+    httpd = ThreadingHTTPServer((HOST_NAME, port), SimpleHttpRequestHandler)
     print(f"Servidor MULTIHILO iniciado en http://{HOST_NAME}:{port} con PID {PID}")
     print("Presiona Ctrl+C para detener el servidor.")
     try:
