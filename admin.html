@@ -1026,7 +1026,28 @@
                 <h3>Planificación de Turnos Mensual</h3>
                 <div class="gestion-turnos-container">
                     <div class="turnos-sidebar">
-                        <div class="operadores-list" id="personal-list-container">
+                            <div class="operadores-list" id="personal-list-container">
+                                <div class="gestion-personal-panel" style="margin-top: 20px; border: 1px solid #ccc; border-radius: 5px; padding: 15px; background-color: #f8f9fa;">
+                                    <h4 style="margin-top: 0; padding-bottom: 10px; border-bottom: 1px solid #ddd;">Gestionar Personal</h4>
+                                    
+                                    <div class="form-group" style="padding:0; border:none; background:none;">
+                                        <label for="nuevo-personal-nombre">Nombre Completo:</label>
+                                        <input type="text" id="nuevo-personal-nombre" placeholder="Ej: Juan Pérez Soto">
+                                        
+                                        <label for="nuevo-personal-rol">Rol:</label>
+                                        <select id="nuevo-personal-rol">
+                                            <option value="operador">Operador de Turno</option>
+                                            <option value="llamado">Profesional a Llamado</option>
+                                        </select>
+                                        
+                                        <button type="button" id="btn-add-personal" style="background-color: #007bff; width: 100%;">Añadir Personal</button>
+                                    </div>
+
+                                    <hr>
+                                    
+                                    <div id="lista-gestion-personal" style="max-height: 200px; overflow-y: auto;">
+                                        </div>
+                                </div>
                             </div>
                     </div>
                     <div class="turnos-main">

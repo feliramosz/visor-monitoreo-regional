@@ -74,6 +74,20 @@ async function hablar(texto) {
     window.speechSynthesis.speak(enunciado);
 }
 
+/**
+ * Acorta un nombre completo para que suene más natural en el boletín por voz.
+ * Ej: "Felipe Ramos Zamora" -> "Felipe Ramos"
+ * @param {string} nombreCompleto El nombre con todos sus apellidos.
+ * @returns {string} El primer nombre y el primer apellido.
+ */
+function simplificarNombre(nombreCompleto) {
+    if (!nombreCompleto || typeof nombreCompleto !== 'string') {
+        return '';
+    }
+    const partes = nombreCompleto.split(' ');
+    // Tomamos solo las dos primeras partes (nombre y primer apellido)
+    return partes.slice(0, 2).join(' ');
+}
 
 // --- FUNCIONES AUXILIARES REUTILIZABLES ---
 
@@ -146,7 +160,7 @@ async function generarTextoTurnos(datos, hora, minuto) {
     try {
         const response = await fetch('/api/turnos');
         if (!response.ok) return "No fue posible obtener los datos de los turnos.";
-        
+
         const turnosData = await response.json();
         const ahora = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Santiago" }));
         const mesActual = ahora.toLocaleString('es-CL', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
@@ -156,14 +170,12 @@ async function generarTextoTurnos(datos, hora, minuto) {
 
         const infoHoy = datosMes.dias.find(d => d.dia === ahora.getDate());
         if (!infoHoy) return "No hay turnos planificados para el día de hoy.";
-        
+
         const personal = datosMes.personal || {};
 
-        // --- LÓGICA DE DECISIÓN CENTRAL ---        
         const anunciarTurnoEntrante = (hora === 8 && minuto === 55) || (hora === 20 && minuto === 55);
 
         if (anunciarTurnoEntrante) {
-            // --- LÓGICA PARA ANUNCIAR EL TURNO ENTRANTE (08:55 y 20:55) ---
             let turnoAAnunciar;
             let tipoTurno;
 
@@ -174,26 +186,24 @@ async function generarTextoTurnos(datos, hora, minuto) {
                 turnoAAnunciar = infoHoy.turno_noche;
                 tipoTurno = 'Noche';
             }
-            
+
             if (turnoAAnunciar) {
-                const profesional = personal[turnoAAnunciar.llamado] || 'No definido';
-                const op1 = personal[turnoAAnunciar.op1] || 'No definido';
-                const op2 = personal[turnoAAnunciar.op2] || 'No definido';
+                // ---- CAMBIO CLAVE AQUÍ ----
+                const profesional = simplificarNombre(personal[turnoAAnunciar.llamado]?.nombre) || 'No definido';
+                const op1 = simplificarNombre(personal[turnoAAnunciar.op1]?.nombre) || 'No definido';
+                const op2 = simplificarNombre(personal[turnoAAnunciar.op2]?.nombre) || 'No definido';
                 return `Para el próximo turno de ${tipoTurno}, se informa el ingreso de los operadores ${op1} y ${op2}. El profesional a llamado corresponde a ${profesional}.`;
             }
 
         } else {
-            // --- LÓGICA PARA ANUNCIAR Boletín de las 12:00 ---
             let turnoActivo;
             let tipoTurno;
-            // Se usa la hora real para determinar el turno activo en este momento.
             const horaActual = ahora.getHours(); 
 
             if (horaActual >= 9 && horaActual < 21) {
                 turnoActivo = infoHoy.turno_dia;
                 tipoTurno = 'Día';
             } else {
-                // Esta lógica compleja es para el caso de que el boletín se ejecute entre las 00:00 y 08:59
                 if (horaActual >= 21) {
                     turnoActivo = infoHoy.turno_noche;
                 } else {
@@ -208,13 +218,14 @@ async function generarTextoTurnos(datos, hora, minuto) {
             }
 
             if (turnoActivo) {
-                const profesional = personal[turnoActivo.llamado] || 'No definido';
-                const op1 = personal[turnoActivo.op1] || 'No definido';
-                const op2 = personal[turnoActivo.op2] || 'No definido';
+                // ---- CAMBIO CLAVE AQUÍ ----
+                const profesional = simplificarNombre(personal[turnoActivo.llamado]?.nombre) || 'No definido';
+                const op1 = simplificarNombre(personal[turnoActivo.op1]?.nombre) || 'No definido';
+                const op2 = simplificarNombre(personal[turnoActivo.op2]?.nombre) || 'No definido';
                 return `En el turno de ${tipoTurno}, se encuentran los operadores ${op1} y ${op2}. Y el profesional a llamado ante emergencias corresponde a ${profesional}.`;
             }
         }
-        
+
         return "No hay información de turnos para este boletín.";
 
     } catch (error) {

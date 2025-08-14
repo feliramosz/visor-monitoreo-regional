@@ -23,6 +23,7 @@ import unicodedata
 import uuid
 from werkzeug.security import check_password_hash, generate_password_hash
 import time
+from geopy.geocoders import Nominatim
 
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8001
