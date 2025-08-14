@@ -773,8 +773,7 @@
             <nav>
                 <ul>
                     <li><a href="#" data-section="informacion-general" class="active">Información del Reporte</a></li>                    
-                    <li><a href="#" data-section="dynamic-slides">Agregar imagenes</a></li>
-                    <li><a href="#" data-section="monitoreo-twitter">Monitoreo X / Twitter</a></li>
+                    <li><a href="#" data-section="dynamic-slides">Agregar imagenes</a></li>                    
                     <li><a href="#" data-section="accion-manual">Descargar Informe Manual</a></li>                    
                     <li><a href="#" data-section="mi-perfil">Mi Perfil</a></li>
                     <li class="admin-only"><a href="#" data-section="gestion-turnos">Gestión de Turnos</a></li>
@@ -795,38 +794,6 @@
 
         <div class="admin-content">
             <div class="message" id="adminMessage"></div>
-
-            <section id="monitoreo-twitter" class="admin-section">
-                <h3>Configuración de Monitoreo X / Twitter</h3>
-
-                <div class="form-group">
-                    <h3>Cuentas a Monitorear</h3>
-                    <label for="twitterAccountInput">Nombre de usuario de la cuenta (sin @):</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="text" id="twitterAccountInput" placeholder="Ej: Senapred" style="flex-grow: 1; margin-bottom: 0;">
-                        <button type="button" id="addTwitterAccountBtn">Añadir Cuenta</button>
-                    </div>
-
-                    <h4>Cuentas en Monitoreo:</h4>
-                    <div id="twitterAccountsList" style="margin-top: 15px;">
-                        <p>Cargando...</p>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <h3>Frecuencia de Actualización</h3>
-                    <label for="pollIntervalInput">Consultar nuevos tweets cada (minutos):</label>
-                    <input type="number" id="pollIntervalInput" min="1" value="10">
-                    <p style="font-size: 0.9em; color: #6c757d;">Un intervalo más bajo (ej. 2 minutos) ofrece mayor rapidez pero consume más cuota de la API. Se recomienda un valor entre 5 y 15 minutos.</p>
-                </div>
-
-                <div class="form-group">
-                    <h3>Estado del Servicio</h3>
-                    <p>Peticiones a la API de X realizadas este mes: <strong id="apiCallCount">--</strong></p>
-                    <p>Último reinicio del contador: <strong id="apiResetDate">--/--/----</strong></p>
-                </div>
-
-            </section>
 
             <section id="informacion-general" class="admin-section active">
                 <h3>Configuración y Datos del Reporte</h3>

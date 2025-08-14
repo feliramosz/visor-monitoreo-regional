@@ -2021,8 +2021,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setInterval(fetchAndDisplayTurnos, 5 * 60 * 1000);
         setInterval(fetchAndRenderSecSlide, 5 * 60 * 1000);
         setInterval(checkForUpdates, 10000);
-        setInterval(verificarNotificaciones, 60000);
-        setInterval(checkForNewTweets, 15000)
+        setInterval(verificarNotificaciones, 60000);        
         setInterval(processNotificationQueue, 3000);        
         setInterval(refreshWaze, 2 * 60 * 1000);
         setInterval(refreshAllMeteoData, 10 * 60 * 1000);
@@ -2420,128 +2419,6 @@ document.addEventListener('DOMContentLoaded', () => {
             closeAirQualityModal();
         }
     });
-
-    // ===============================================
-    // ===== LÓGICA PARA NOTIFICACIONES DE TWITTER =====
-    // ===============================================
-
-    const twitterPopupContainer = document.getElementById('twitter-popup-container');
-    const twitterNotificationSound = document.getElementById('twitter-notification-sound');
-    const openTwitterPanelBtn = document.getElementById('open-twitter-panel-btn');
-    const closeTwitterPanelBtn = document.getElementById('close-twitter-panel-btn');
-    const twitterHistoryPanel = document.getElementById('twitter-history-panel');
-    const twitterHistoryContent = document.getElementById('twitter-history-content');
-
-    // --- NUEVO: Sistema de Cola para Notificaciones ---
-    const notificationQueue = [];
-    let isDisplayingNotifications = false;
-    const BATCH_SIZE = 4; // Mostrar de a 4 tweets
-    const PAUSE_BETWEEN_BATCHES = 20000; // 20 segundos de pausa
-
-    // Función para mostrar un solo popup
-    function displaySinglePopup(tweet) {
-        const popup = document.createElement('div');
-        popup.className = 'twitter-popup';
-        popup.innerHTML = `
-            <div class="tweet-header">
-                <img src="${tweet.profile_image_url}" alt="Avatar" class="tweet-avatar">
-                <div class="tweet-author">
-                    <span class="tweet-name">${tweet.name}</span>
-                    <span class="tweet-username">@${tweet.username}</span>
-                </div>
-            </div>
-            <div class="tweet-body"><p>${tweet.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</p></div>
-        `;
-        twitterPopupContainer.appendChild(popup);
-
-        const dismissPopup = () => {
-            popup.classList.remove('visible');
-            setTimeout(() => popup.remove(), 500);
-        };
-
-        popup.addEventListener('click', dismissPopup, { once: true });
-        setTimeout(() => popup.classList.add('visible'), 100);
-        setTimeout(dismissPopup, 15000);
-    }
-
-    // NUEVO: Procesa la cola de notificaciones
-    function processNotificationQueue() {
-        if (isDisplayingNotifications || notificationQueue.length === 0) {
-            return; // Si ya está mostrando o no hay nada que mostrar, sale
-        }
-
-        isDisplayingNotifications = true;
-        const batch = notificationQueue.splice(0, BATCH_SIZE);
-
-        if (twitterNotificationSound) {
-            twitterNotificationSound.play().catch(e => console.error("Error al reproducir sonido:", e));
-        }
-
-        // Muestra cada tweet del lote con un pequeño retraso entre ellos
-        batch.forEach((tweet, index) => {
-            setTimeout(() => {
-                displaySinglePopup(tweet);
-            }, index * 2000); // 2 segundos entre cada popup del mismo lote
-        });
-
-        // Libera el bloqueo para el próximo lote después de la pausa
-        setTimeout(() => {
-            isDisplayingNotifications = false;
-        }, PAUSE_BETWEEN_BATCHES);
-    }
-
-    // MODIFICADO: Esta función ahora solo añade a la cola
-    async function checkForNewTweets() {
-        try {
-            const response = await fetch('/api/twitter_notifications');
-            if (response.status === 200) {
-                const newTweets = await response.json();
-                // Añade los nuevos tweets a la cola
-                notificationQueue.push(...newTweets);
-            }
-        } catch (error) {
-            console.error("Error al buscar notificaciones de Twitter:", error);
-        }
-    }
-
-    // Lógica del panel lateral de historial (sin cambios)
-    async function loadTweetHistory() {
-        twitterHistoryContent.innerHTML = '<p>Cargando historial...</p>';
-        try {
-            const response = await fetch('/api/tweet_history');
-            const history = await response.json();
-            if (history.length === 0) {
-                twitterHistoryContent.innerHTML = '<p>No hay tweets en el historial.</p>';
-                return;
-            }
-            twitterHistoryContent.innerHTML = history.map(tweet => `
-                <div class="tweet-history-item">
-                    <div class="tweet-header">
-                        <img src="${tweet.profile_image_url || ''}" alt="Avatar" class="tweet-avatar">
-                        <div class="tweet-author">
-                            <span class="tweet-name">${tweet.name || 'Usuario'}</span>
-                            <span class="tweet-username">@${tweet.username || 'usuario'}</span>
-                        </div>
-                    </div>
-                    <div class="tweet-body"><p>${tweet.text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>')}</p></div>
-                    <div class="tweet-footer"><span>${new Date(tweet.created_at).toLocaleString('es-CL')}</span></div>
-                </div>
-            `).join('');
-        } catch (error) {
-            twitterHistoryContent.innerHTML = `<p style="color: red;">Error al cargar el historial.</p>`;
-        }
-    }
-
-    openTwitterPanelBtn.addEventListener('click', () => {
-        twitterHistoryPanel.classList.add('active');
-        loadTweetHistory();
-    });
-
-    closeTwitterPanelBtn.addEventListener('click', () => {
-        twitterHistoryPanel.classList.remove('active');
-    });
-
-
 
     initializeApp();
 });

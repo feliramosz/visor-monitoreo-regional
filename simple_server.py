@@ -23,9 +23,6 @@ import unicodedata
 import uuid
 from werkzeug.security import check_password_hash, generate_password_hash
 import time
-from requests_oauthlib import OAuth1Session
-import threading
-from geopy.geocoders import Nominatim
 
 HOST_NAME = '0.0.0.0'
 PORT_NUMBER = 8001
@@ -50,126 +47,6 @@ MAX_IMAGE_WIDTH = 1200
 MAX_IMAGE_HEIGHT = 800
 NTP_SERVER = 'ntp.shoa.cl'
 
-X_API_KEY = os.getenv('X_API_KEY')
-X_API_SECRET = os.getenv('X_API_KEY_SECRET')
-X_ACCESS_TOKEN = os.getenv('X_ACCESS_TOKEN')
-X_ACCESS_TOKEN_SECRET = os.getenv('X_ACCESS_TOKEN_SECRET')
-
-# --- Memoria para notificaciones y monitoreo en segundo plano ---
-LAST_SEEN_TWEET_IDS = {}
-NEW_TWEETS_QUEUE = []
-TWITTER_POLL_TIMER = None
-
-# =========================================================================
-# ===== FUNCIÓN INDEPENDIENTE PARA MONITOREO DE TWITTER =====
-# =========================================================================
-def fetch_and_process_tweets():
-    global LAST_SEEN_TWEET_IDS, NEW_TWEETS_QUEUE, TWITTER_POLL_TIMER
-
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [TWITTER] Iniciando ciclo de sondeo de tweets...")
-    
-    config = {}
-    try:
-        if not os.path.exists(TWEET_HISTORY_FILE):
-            with open(TWEET_HISTORY_FILE, 'w', encoding='utf-8') as f: json.dump([], f)
-        
-        with open(TWITTER_CONFIG_FILE, 'r+', encoding='utf-8') as f:
-            config = json.load(f)
-            accounts = config.get("accounts", [])
-            interval = config.get("poll_interval_seconds", 600)
-
-            today = datetime.now()
-            last_reset = datetime.strptime(config.get("last_reset_date", "1970-01-01"), "%Y-%m-%d")
-            if today.month != last_reset.month or today.year != last_reset.year:
-                config["monthly_api_calls"] = 0
-                config["last_reset_date"] = today.strftime("%Y-%m-%d")
-            
-            if not accounts:
-                print("[TWITTER] No hay cuentas configuradas para monitorear.")
-                return
-
-            oauth = OAuth1Session(X_API_KEY, client_secret=X_API_SECRET,
-                                    resource_owner_key=X_ACCESS_TOKEN, resource_owner_secret=X_ACCESS_TOKEN_SECRET)
-            
-            for account_username in accounts:
-                # ... (código para obtener user_id, igual que antes) ...
-                user_lookup_url = f"https://api.twitter.com/2/users/by/username/{account_username}"
-                user_response = oauth.get(user_lookup_url)
-                config["monthly_api_calls"] += 1
-                if user_response.status_code != 200: continue
-                user_id = user_response.json().get("data", {}).get("id")
-                if not user_id: continue
-                
-                tweets_url = f"https://api.twitter.com/2/users/{user_id}/tweets"
-                params = {
-                    "max_results": 10, "expansions": "author_id",
-                    "tweet.fields": "created_at,text", "user.fields": "profile_image_url,name,username"
-                }
-                
-                last_seen_id = LAST_SEEN_TWEET_IDS.get(account_username)
-                if last_seen_id:
-                    params['since_id'] = last_seen_id
-                
-                tweets_response = oauth.get(tweets_url, params=params)
-                config["monthly_api_calls"] += 1
-                if tweets_response.status_code != 200: continue
-
-                tweets_data = tweets_response.json()
-                all_tweets = tweets_data.get("data", [])
-                
-                if not all_tweets:
-                    if not last_seen_id:
-                        latest_params = {"max_results": 1}
-                        latest_resp = oauth.get(f"https://api.twitter.com/2/users/{user_id}/tweets", params=latest_params)
-                        config["monthly_api_calls"] += 1
-                        if latest_resp.status_code == 200 and latest_resp.json().get("data"):
-                            LAST_SEEN_TWEET_IDS[account_username] = latest_resp.json()["data"][0]["id"]
-                    continue
-
-                newest_tweet_id_in_batch = all_tweets[0]["id"]
-                LAST_SEEN_TWEET_IDS[account_username] = newest_tweet_id_in_batch
-                
-                # --- INICIO DE LA CORRECCIÓN CLAVE ---
-                # Creamos un mapa para buscar fácilmente los datos del autor por su ID
-                users_included = {user['id']: user for user in tweets_data.get("includes", {}).get("users", [])}
-                # --- FIN DE LA CORRECCIÓN CLAVE ---
-
-                for tweet in reversed(all_tweets):
-                    # Buscamos el autor correcto para ESTE tweet en específico
-                    author_info = users_included.get(tweet['author_id'], {})
-                    
-                    notification = {
-                        "id": tweet["id"], "username": author_info.get("username"),
-                        "name": author_info.get("name"),
-                        "profile_image_url": author_info.get("profile_image_url", "").replace("_normal", "_400x400"),
-                        "text": tweet.get("text"), "created_at": tweet.get("created_at")
-                    }
-                    NEW_TWEETS_QUEUE.append(notification)
-
-                    history = []
-                    try:
-                        with open(TWEET_HISTORY_FILE, 'r', encoding='utf-8') as hist_f:
-                            history = json.load(hist_f)
-                    except (FileNotFoundError, json.JSONDecodeError):
-                        pass
-
-                    history.insert(0, notification)
-
-                    with open(TWEET_HISTORY_FILE, 'w', encoding='utf-8') as hist_f:
-                        json.dump(history[:50], hist_f, ensure_ascii=False, indent=2)
-
-            f.seek(0)
-            json.dump(config, f, ensure_ascii=False, indent=2)
-            f.truncate()
-
-    except Exception as e:
-        print(f"[TWITTER] ERROR FATAL en el ciclo de sondeo: {e}")
-    finally:
-        interval = config.get("poll_interval_seconds", 600)
-        print(f"[TWITTER] Ciclo finalizado. Próximo sondeo en {interval} segundos.")
-        TWITTER_POLL_TIMER = threading.Timer(interval, fetch_and_process_tweets)
-        TWITTER_POLL_TIMER.start()
-  
 class SimpleHttpRequestHandler(BaseHTTPRequestHandler):        
     # --- Función para registrar logs ---
     def _get_real_ip(self):
@@ -450,9 +327,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             with open(LAST_EVENT_FILE, 'w') as f:
                 f.write(event_id)
             with open(LAST_MESSAGE_FILE, 'w') as f:
-                json.dump({"sonido": sonido, "mensaje": mensaje_voz, "sonido": sonido}, f, ensure_ascii=False)
+                json.dump({"sonido": sonido, "mensaje": mensaje_voz}, f, ensure_ascii=False)
 
-            return {"sonido": sonido, "mensaje": mensaje_voz, "sonido": sonido}
+            return {"sonido": sonido, "mensaje": mensaje_voz}
 
         except Exception as e:
             print(f"[GEOFON_CHECK] ERROR FATAL en la función _check_geofon_bulletin: {e}")
@@ -701,15 +578,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
         try:
             parsed_path = urllib.parse.urlparse(self.path)
             requested_path = urllib.parse.unquote(parsed_path.path)
-
-            if requested_path == '/api/debug_hidro':
-                debug_data = get_hidrometry_data_for_debug()
-                self._set_headers(200, 'application/json')
-                self.wfile.write(json.dumps(debug_data, indent=2, ensure_ascii=False).encode('utf-8'))
-                return
-            
+                       
             # --- ENDPOINTS DE API (GET) ---
-            elif requested_path == '/api/users':
+            if requested_path == '/api/users':
                 username = self._get_user_from_token()
                 if self._get_user_role(username) != 'administrador':
                     self._set_headers(403, 'application/json')
@@ -746,56 +617,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps(logs).encode('utf-8'))
                 return          
             
-            # --- ENDPOINTS PARA MONITOREO DE TWITTER ---
-            elif requested_path == '/api/twitter_config':
-                username = self._get_user_from_token()
-                if not username:
-                    self._set_headers(401, 'application/json')
-                    self.wfile.write(json.dumps({'error': 'No autorizado'}).encode('utf-8'))
-                    return
-                
-                try:
-                    with open(TWITTER_CONFIG_FILE, 'r', encoding='utf-8') as f:
-                        config = json.load(f)
-                except (FileNotFoundError, json.JSONDecodeError):                    
-                    print(f"ADVERTENCIA: No se encontró '{TWITTER_CONFIG_FILE}' o está corrupto. Creando configuración por defecto.")
-                    config = {
-                        "accounts": [],
-                        "poll_interval_seconds": 600,
-                        "monthly_api_calls": 0,
-                        "last_reset_date": datetime.now().strftime("%Y-%m-01")
-                    }
-                
-                self._set_headers(200, 'application/json')
-                self.wfile.write(json.dumps(config).encode('utf-8'))
-                return
-
-            elif requested_path == '/api/twitter_notifications':
-                global NEW_TWEETS_QUEUE
-                if NEW_TWEETS_QUEUE:
-                    # Devolvemos la cola de tweets y la vaciamos
-                    tweets_to_send = list(NEW_TWEETS_QUEUE)
-                    NEW_TWEETS_QUEUE.clear()
-                    self._set_headers(200, 'application/json')
-                    self.wfile.write(json.dumps(tweets_to_send).encode('utf-8'))
-                else:
-                    # 204 No Content, significa "todo en orden, no hay nada nuevo"
-                    self._set_headers(204)
-                    self.wfile.write(b'')
-                return
-            
-            elif requested_path == '/api/tweet_history':
-                try:
-                    with open(TWEET_HISTORY_FILE, 'r', encoding='utf-8') as f:
-                        history = json.load(f)
-                except (FileNotFoundError, json.JSONDecodeError):
-                    # Si el archivo no existe o está corrupto, devolvemos una lista vacía
-                    history = []
-                
-                self._set_headers(200, 'application/json')
-                self.wfile.write(json.dumps(history).encode('utf-8'))
-                return
-
             # --- ENDPOINT PARA ESTADO DE PUERTOS EN VIVO (DIRECTEMAR) ---
             elif requested_path == '/api/estado_puertos_live':
                 cache_key = 'estado_puertos_live'
@@ -1817,53 +1638,6 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": f"Error al guardar los datos: {e}"}).encode('utf-8'))
             return
 
-        # --- ENDPOINT PARA GUARDAR CONFIGURACIÓN DE TWITTER ---
-        elif self.path == '/api/twitter_config':
-            username = self._get_user_from_token()
-            if not username:
-                self._set_headers(401, 'application/json')
-                self.wfile.write(json.dumps({'error': 'No autorizado'}).encode('utf-8'))
-                return
-            
-            content_length = int(self.headers['Content-Length'])
-            post_data = json.loads(self.rfile.read(content_length))
-            
-            accounts = [acc.replace("@", "").strip() for acc in post_data.get("accounts", []) if acc.strip()]
-            interval = int(post_data.get("poll_interval_seconds", 600))
-
-            try:
-                # --- INICIO DE LA LÓGICA  ---
-                config = {}
-                # Paso 1: Leer la configuración existente para no perder datos.
-                try:
-                    with open(TWITTER_CONFIG_FILE, 'r', encoding='utf-8') as f:
-                        config = json.load(f)
-                except (FileNotFoundError, json.JSONDecodeError):
-                    # Si no existe o está dañado, creamos una base.
-                    config = {
-                        "monthly_api_calls": 0,
-                        "last_reset_date": datetime.now().strftime("%Y-%m-01")
-                    }
-
-                # Paso 2: Actualizar solo los campos que vienen del panel de administración.
-                config["accounts"] = accounts
-                config["poll_interval_seconds"] = interval
-
-                # Paso 3: Escribir el objeto completo de vuelta al archivo.
-                with open(TWITTER_CONFIG_FILE, 'w', encoding='utf-8') as f:
-                    json.dump(config, f, ensure_ascii=False, indent=2)
-                # --- FIN DE LA LÓGICA  ---
-
-                self._log_activity(username, "Configuración de Twitter Actualizada", details=f"Cuentas: {accounts}, Intervalo: {interval}s")
-                self._set_headers(200, 'application/json')
-                self.wfile.write(json.dumps({"message": "Configuración de Twitter guardada."}).encode('utf-8'))
-            
-            except Exception as e:
-                self._set_headers(500, 'application/json')
-                self.wfile.write(json.dumps({'error': f'Error al guardar la configuración: {e}'}).encode('utf-8'))
-            
-            return
-
         # --- ENDPOINT POST PARA NOVEDADES ---
         elif self.path == '/api/novedades':
             username = self._get_user_from_token()
@@ -2470,11 +2244,6 @@ if __name__ == "__main__":
     # usa la variable 'port'
 
     httpd = ThreadingHTTPServer((HOST_NAME, port), SimpleHttpRequestHandler)
-    # --- INICIAR EL MONITOREO DE TWITTER EN SEGUNDO PLANO ---
-    print("Iniciando el primer ciclo de sondeo de Twitter en 15 segundos...")
-    TWITTER_POLL_TIMER = threading.Timer(15, fetch_and_process_tweets)
-    TWITTER_POLL_TIMER.start()
-    # --- FIN DEL BLOQUE AÑADIDO ---
     print(f"Servidor MULTIHILO iniciado en http://{HOST_NAME}:{port} con PID {PID}")
     print("Presiona Ctrl+C para detener el servidor.")
     try:
