@@ -382,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
         eventMapPopup.classList.add('visible');
 
         if (!eventMap) { // Inicializa el mapa solo la primera vez
-            eventMap = L.map('event-map-container').setView([lat, lon], 6);
+            eventMap = L.map('event-map-container').setView([lat, lon], 4);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(eventMap);
             eventMarker = L.marker([lat, lon]).addTo(eventMap)
                 .bindPopup('Ubicación aproximada del evento')
