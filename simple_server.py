@@ -1619,23 +1619,38 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
             try:
-                received_data = json.loads(post_data.decode('utf-8')) # Datos recibidos del frontend
+                received_data = json.loads(post_data.decode('utf-8'))
 
-                # Cargar los datos actuales del archivo para preservar campos no modificados
-                current_file_data = {}
+                # Cargar los datos actuales del archivo para comparar y preservar campos no modificados
+                old_data = {}
                 if os.path.exists(DATA_FILE):
                     with open(DATA_FILE, 'r', encoding='utf-8') as f:
-                        current_file_data = json.load(f)
+                        old_data = json.load(f)
 
-                                
-                current_file_data.update(received_data)
+                # --- INICIO: LÓGICA DE COMPARACIÓN PARA EL LOG ---
+                campos_modificados = []
+                for key, new_value in received_data.items():
+                    # Compara si la clave no existía antes o si el valor es diferente
+                    if old_data.get(key) != new_value:
+                        campos_modificados.append(key)
+                
+                log_details = ''
+                if campos_modificados:
+                    log_details = f"Secciones modificadas: {', '.join(campos_modificados)}"
+                else:
+                    log_details = "Actualización sin cambios detectados."                
+
+                # Se crea una copia de los datos viejos y se actualiza con los nuevos
+                updated_data = old_data.copy()
+                updated_data.update(received_data)
 
                 os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
-
                 with open(DATA_FILE, 'w', encoding='utf-8') as f:
-                    json.dump(current_file_data, f, ensure_ascii=False, indent=4) # Guardar los datos actualizados
+                    json.dump(updated_data, f, ensure_ascii=False, indent=4)
 
-                self._log_activity(username, "Informe Principal Actualizado")
+                # Se registra la actividad con los detalles específicos
+                self._log_activity(username, "Informe Principal Actualizado", details=log_details)
+
                 self._set_headers(200, 'application/json')
                 self.wfile.write(json.dumps({"message": "Datos de informe actualizados correctamente."}, ensure_ascii=False).encode('utf-8'))
             except json.JSONDecodeError:
@@ -1669,10 +1684,9 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._set_headers(500, 'application/json')
                 self.wfile.write(json.dumps({"error": f"Error al guardar novedades: {e}"}).encode('utf-8'))
-            return
-        # --- FIN ENDPOINT POST NOVEDADES ---
+            return        
 
-        # --- INICIO ENDPOINT POST PARA GUARDAR TURNOS ---
+        # --- ENDPOINT POST PARA GUARDAR TURNOS ---
         elif self.path == '/api/turnos/save':
             username = self._get_user_from_token()
             if not username:
@@ -1704,76 +1718,75 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._set_headers(500, 'application/json')
                 self.wfile.write(json.dumps({"error": f"Error al guardar el archivo de turnos: {e}"}).encode('utf-8'))
-            return
-        # --- FIN ENDPOINT POST PARA GUARDAR TURNOS ---
-
+            return        
+        
         # --- Endpoint para descargar informe manual ---
         elif self.path == '/api/trigger-download':
-                    username = self._get_user_from_token()
-                    if not username:
-                        self._set_headers(401, 'application/json')
-                        self.wfile.write(json.dumps({'error': 'No autorizado. Se requiere iniciar sesión.'}).encode('utf-8'))
-                        return
-                    try:
-                        print("INFO: Se ha recibido una solicitud para ejecutar descargar_informe.py manualmente.")
-                                                
-                        if getattr(sys, 'frozen', False):
-                            application_path = os.path.dirname(sys.executable)
-                        else:
-                            application_path = os.path.dirname(os.path.abspath(__file__))
+            username = self._get_user_from_token()
+            if not username:
+                self._set_headers(401, 'application/json')
+                self.wfile.write(json.dumps({'error': 'No autorizado. Se requiere iniciar sesión.'}).encode('utf-8'))
+                return
+            try:
+                print("INFO: Se ha recibido una solicitud para ejecutar descargar_informe.py manualmente.")
+                
+                if getattr(sys, 'frozen', False):
+                    application_path = os.path.dirname(sys.executable)
+                else:
+                    application_path = os.path.dirname(os.path.abspath(__file__))
 
-                        # Definimos la ruta al script .py
-                        download_script_py = os.path.join(application_path, "descargar_informe.py")
+                download_script_py = os.path.join(application_path, "descargar_informe.py")
+                python_executable = "/usr/bin/python3"
+                command = [python_executable, download_script_py, "--force"]
 
-                        # Definimos la ruta al ejecutable de Python DENTRO del venv
-                        python_executable = "/usr/bin/python3"
+                result = subprocess.run(
+                    command, 
+                    capture_output=True, 
+                    text=True,
+                    encoding='utf-8',
+                    errors='replace',
+                    timeout=300
+                )
 
-                        # El comando ahora usa ambas variables definidas
-                        command = [python_executable, download_script_py, "--force"]
+                if result.returncode == 0:
+                    # --- LÓGICA PARA DETALLES DEL LOG ---
+                    log_details = "Ejecución exitosa." # Mensaje por defecto
+                    match = re.search(r"PROCESADO_OK:\[(.*?)\]", result.stdout)
+                    if match:
+                        filename_procesado = match.group(1)
+                        log_details = f"Se procesó el archivo: {filename_procesado}"                    
+                    
+                    self._log_activity(username, "Descarga Manual de Informe Ejecutada", details=log_details)
+                    print("SUCCESS: El script descargar_informe.py se ejecutó correctamente.")
+                    self._set_headers(200, 'application/json')
+                    response = {
+                        "success": True,
+                        "message": "El script se ejecutó correctamente.",
+                        "output": result.stdout
+                    }
+                    self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
+                else:
+                    self._log_activity(username, "Descarga Manual de Informe Fallida")
+                    print(f"ERROR: El script descargar_informe.py falló con el código {result.returncode}.")
+                    self._set_headers(500, 'application/json')
+                    response = {
+                        "success": False,
+                        "message": "Error durante la ejecución del script.",
+                        "error": result.stderr,
+                        "output": result.stdout
+                    }
+                    self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
 
-                        result = subprocess.run(
-                            command, 
-                            capture_output=True, 
-                            text=True,
-                            encoding='utf-8',
-                            errors='replace',
-                            timeout=300
-                        )
-
-                        # Verificamos si el script se ejecutó correctamente (código de salida 0)
-                        if result.returncode == 0:
-                            self._log_activity(username, "Descarga Manual de Informe Ejecutada")
-                            print("SUCCESS: El script descargar_informe.py se ejecutó correctamente.")
-                            self._set_headers(200, 'application/json')
-                            response = {
-                                "success": True,
-                                "message": "El script se ejecutó correctamente.",
-                                "output": result.stdout
-                            }
-                            self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
-                        else:
-                            # Si el script falló, enviamos un error 500 con la salida del error
-                            self._log_activity(username, "Descarga Manual de Informe Fallida")
-                            print(f"ERROR: El script descargar_informe.py falló con el código {result.returncode}.")
-                            self._set_headers(500, 'application/json')
-                            response = {
-                                "success": False,
-                                "message": "Error durante la ejecución del script.",
-                                "error": result.stderr,
-                                "output": result.stdout
-                            }
-                            self.wfile.write(json.dumps(response, ensure_ascii=False).encode('utf-8'))
-
-                    except FileNotFoundError:
-                        self._set_headers(500, 'application/json')
-                        self.wfile.write(json.dumps({"error": "No se encontró el script 'descargar_informe.py'."}).encode('utf-8'))
-                    except subprocess.TimeoutExpired:
-                        self._set_headers(500, 'application/json')
-                        self.wfile.write(json.dumps({"error": "La ejecución del script tardó demasiado y fue cancelada (Timeout)."}).encode('utf-8'))
-                    except Exception as e:
-                        self._set_headers(500, 'application/json')
-                        self.wfile.write(json.dumps({"error": f"Ocurrió un error inesperado en el servidor: {e}"}).encode('utf-8'))
-                    return
+            except FileNotFoundError:
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({"error": "No se encontró el script 'descargar_informe.py'."}).encode('utf-8'))
+            except subprocess.TimeoutExpired:
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({"error": "La ejecución del script tardó demasiado y fue cancelada (Timeout)."}).encode('utf-8'))
+            except Exception as e:
+                self._set_headers(500, 'application/json')
+                self.wfile.write(json.dumps({"error": f"Ocurrió un error inesperado en el servidor: {e}"}).encode('utf-8'))
+            return
 
         # --- Endpoint para cargar imagenes --- #
         elif self.path == '/api/upload_image':

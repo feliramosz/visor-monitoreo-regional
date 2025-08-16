@@ -176,7 +176,7 @@ def extraer_datos_docx(docx_filepath, subject_email, report_id):
             print("No se encontró la tabla de Alertas Vigentes.")
 
         # --- EXTRAER RESUMEN DE EMERGENCIAS DE LAS ÚLTIMAS 24 HORAS ---
-        datos_extraidos['emergencias_ultimas_24_horas'] = []
+        emergencias_extraidas = []
         if len(document.tables) > 2:
             table_emergencias = document.tables[2]
             for i, row in enumerate(table_emergencias.rows):
@@ -185,18 +185,30 @@ def extraer_datos_docx(docx_filepath, subject_email, report_id):
                 cells = [cell.text.strip() for cell in row.cells]
                 if len(cells) >= 4:
                     if cells[0] and cells[1] and cells[2] and cells[3]:
-                        datos_extraidos['emergencias_ultimas_24_horas'].append({
+                        emergencias_extraidas.append({
                             'n_informe': cells[0],
                             'fecha_hora': cells[1],
                             'evento_lugar': cells[2],
                             'resumen': cells[3]
                         })
                     elif not cells[0] and not cells[1] and not cells[2] and cells[3]:
-                        if datos_extraidos['emergencias_ultimas_24_horas']:
-                            datos_extraidos['emergencias_ultimas_24_horas'][-1]['resumen'] += " " + cells[3]
+                        if emergencias_extraidas:
+                            emergencias_extraidas[-1]['resumen'] += " " + cells[3]
 
-            print(f"Emergencias extraídas: {len(datos_extraidos['emergencias_ultimas_24_horas'])} registros.")
+            # --- INICIO BLOQUE PARA FILTRAR GUIONES ---
+            emergencias_reales = []
+            for emergencia in emergencias_extraidas:
+                contenido_fila = "".join(str(valor) for valor in emergencia.values())
+                if contenido_fila.replace('-', '').strip() == '':
+                    continue # Si la fila solo tiene guiones o espacios, se ignora
+                emergencias_reales.append(emergencia)
+            
+            datos_extraidos['emergencias_ultimas_24_horas'] = emergencias_reales
+            
+
+            print(f"Emergencias extraídas (después de filtrar guiones): {len(datos_extraidos['emergencias_ultimas_24_horas'])} registros.")
         else:
+            datos_extraidos['emergencias_ultimas_24_horas'] = [] 
             print("No se encontró la tabla de Emergencias.")
 
         # --- EXTRAER AVISOS / ALERTAS / ALARMAS METEOROLÓGICAS ---
@@ -401,6 +413,7 @@ def main():
 
     if json_ruta:
         print(f"Proceso de extracción completado exitosamente para: {json_ruta}")
+        print(f"PROCESADO_OK:[{nombre_archivo}]")
         try:
             os.remove(ruta_informe_descargado)
             print(f"Archivo de informe '{nombre_archivo}' eliminado después de procesar.")            
