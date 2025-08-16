@@ -696,17 +696,17 @@ document.addEventListener('DOMContentLoaded', () => {
             modalBody.innerHTML = `
                 <div class="turno-card">
                     <h3>Profesional a Llamado</h3>
-                    <p>${personal[turnoActivo.llamado] || 'No definido'}</p>
+                    <p>${simplificarNombre(personal[turnoActivo.llamado]?.nombre) || 'No definido'}</p>
                 </div>
                 <div class="turno-card">
                     <h3>Personal en Turno (${tipoTurno})</h3>
-                    <p>${personal[turnoActivo.op1] || 'No definido'}</p>
-                    <p>${personal[turnoActivo.op2] || 'No definido'}</p>
+                    <p>${simplificarNombre(personal[turnoActivo.op1]?.nombre) || 'No definido'}</p>
+                    <p>${simplificarNombre(personal[turnoActivo.op2]?.nombre) || 'No definido'}</p>
                 </div>
                 <div class="turno-card">
                     <h3>Próximo Turno</h3>
-                    <p>${proximoTurno ? (personal[proximoTurno.op1] || 'No definido') : 'No definido'}</p>
-                    <p>${proximoTurno ? (personal[proximoTurno.op2] || 'No definido') : 'No definido'}</p>
+                    <p>${proximoTurno ? (simplificarNombre(personal[proximoTurno.op1]?.nombre) || 'No definido') : 'No definido'}</p>
+                    <p>${proximoTurno ? (simplificarNombre(personal[proximoTurno.op2]?.nombre) || 'No definido') : 'No definido'}</p>
                 </div>
             `;
 

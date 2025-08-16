@@ -1328,7 +1328,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 return
 
             elif requested_path == '/api/last_tsunami_message':
-                LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_tsunami_message.json')
+                LAST_MESSAGE_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'last_tsunami_message.json')
                 if os.path.exists(LAST_MESSAGE_FILE):
                     with open(LAST_MESSAGE_FILE, 'r') as f:
                         data = json.load(f)
@@ -1353,7 +1353,7 @@ class SimpleHttpRequestHandler(BaseHTTPRequestHandler):
                 return
 
             elif requested_path == '/api/last_geofon_message':
-                LAST_MESSAGE_FILE = os.path.join(DATA_FOLDER_PATH, 'last_geofon_message.json')
+                LAST_MESSAGE_FILE = os.path.join(DATA_OUTPUT_FOLDER, 'last_geofon_message.json')
                 if os.path.exists(LAST_MESSAGE_FILE):
                     with open(LAST_MESSAGE_FILE, 'r') as f:
                         data = json.load(f)
